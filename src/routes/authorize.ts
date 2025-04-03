@@ -1,6 +1,11 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { DB } from '../controllers';
+
+interface Request extends Express.Request {
+  user?: any; // Add the user property to the Request interface
+  headers?: any;
+}
 
 const authorize = (req: Request, res: Response, next: NextFunction) => {
   try {

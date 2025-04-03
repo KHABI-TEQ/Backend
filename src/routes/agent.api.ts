@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response, Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 
 import { AgentController, DB } from '../controllers';
 import validator from '../common/validator';
@@ -7,6 +7,12 @@ import { IAgentDoc, PropertyRent, PropertySell } from '../models';
 import jwt from 'jsonwebtoken';
 import googleAuthHandler from './googleAuth';
 import authorize from './authorize';
+
+interface Request extends Express.Request {
+  user?: any;
+  body?: any;
+  query?: any;
+}
 
 // Init shared
 const router = Router();

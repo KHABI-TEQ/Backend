@@ -11,6 +11,7 @@ import { RouteError } from './common/classes';
 import cors from 'cors';
 import CronJob from './common/cron.job';
 import KeepAlive from './services/cron-job';
+import path from 'path';
 
 // // Init Auth service
 // require('./services/authorize');
@@ -45,7 +46,7 @@ KeepAlive();
 // Add APIs
 
 app.use('/', (req: Request, res: Response) => {
-  return res.sendFile('../public/welcome.html', { root: __dirname });
+  return res.sendFile('welcome.html', { root: path.join(__dirname, '../public') });
 });
 app.use('/api', BaseRouter);
 
