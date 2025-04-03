@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import passport from 'passport';
 import PropertyRentRouter from './property.rent.api.actions';
 import PropertySellRouter from './property.sell.api.actions';
 import AgentRouter from './agent.api';

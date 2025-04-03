@@ -11,8 +11,8 @@ import { RouteError } from './common/classes';
 import cors from 'cors';
 import CronJob from './common/cron.job';
 
-// Init Auth service
-require('./services/authorize');
+// // Init Auth service
+// require('./services/authorize');
 
 // Init express
 const app = express();

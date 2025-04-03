@@ -3,7 +3,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { IAgent } from '../../models/index';
 import { DB } from '../index';
-import passport from 'passport';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { otherConstants } from '../../common/constants';
