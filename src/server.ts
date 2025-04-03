@@ -45,10 +45,10 @@ KeepAlive();
 
 // Add APIs
 
-app.use('/', (req: Request, res: Response) => {
+app.use('/api', BaseRouter);
+app.get('/', (req: Request, res: Response) => {
   return res.sendFile('welcome.html', { root: path.join(__dirname, '../public') });
 });
-app.use('/api', BaseRouter);
 
 // app.use('/', (req: Request, res: Response) => {
 //   res.sendFile('./public/welcome.html', { root: __dirname });
