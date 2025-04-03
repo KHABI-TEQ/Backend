@@ -11,3 +11,5 @@ function KeepAlive() {
       });
   }, 5 * 60 * 1000); // Keep alive every 5 minutes
 }
+
+export default KeepAlive;
