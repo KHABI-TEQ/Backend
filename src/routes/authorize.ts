@@ -16,7 +16,7 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
       return res.status(401).json({ message: 'Token missing' });
     }
 
-    const user = jwt.verify(token, process.env.JWT_SECRET, async (err, decoded: { id: string }) => {
+    const user = jwt.verify(token, process.env.JWT_SECRET, async (err: any, decoded: { id: string }) => {
       if (err) {
         console.log(err);
         return res.status(401).json({ message: 'Token is not valid' });
