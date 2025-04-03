@@ -1,5 +1,4 @@
 declare module 'jsonwebtoken';
-declare module 'node-cron';
 declare module 'nodemailer';
 declare module 'passport';
 declare module 'bcryptjs';
