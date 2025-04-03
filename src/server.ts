@@ -43,7 +43,7 @@ CronJob();
 // Add APIs
 
 app.use('/', (req: Request, res: Response) => {
-  return res.sendFile('/src/public/welcome.html', { root: __dirname });
+  return res.sendFile('/public/welcome.html', { root: __dirname });
 });
 app.use('/api', BaseRouter);
 
