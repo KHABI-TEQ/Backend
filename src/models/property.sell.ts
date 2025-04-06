@@ -27,7 +27,10 @@ export interface IPropertySell {
   pictures?: string[];
   isApproved: boolean;
   isRejected?: boolean;
-  landSize: number;
+  landSize: {
+    measurementType: string;
+    size: number;
+  };
 }
 
 export interface IPropertySellDoc extends IPropertySell, Document {}

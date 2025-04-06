@@ -11,6 +11,8 @@ class PropertySell {
     receipt: 'Receipt',
     cOfO: 'C of O',
     governorConsent: 'Governor Consent',
+    landCertificate: 'Land Certificate',
+    deedOfConveyance: 'Registered deed of conveyance',
   };
 
   private usageOptions = {

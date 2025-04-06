@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextFunction, Request, Response } from 'express';
-import { IAgent } from '../../models/index';
+import { IAgent, IAgentDoc } from '../../models/index';
 import { DB } from '../index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -186,8 +186,8 @@ export class AgentController implements IAgentController {
     const mail = generalTemplate(body);
     await sendEmail({
       to: email,
-      subject: 'Account Under Review',
-      text: 'Account Under Review',
+      subject: 'Your Agent Account is Under Review',
+      text: 'Your Agent Account is Under Review',
       html: mail,
     });
 
@@ -433,6 +433,25 @@ export class AgentController implements IAgentController {
 
       return message;
     } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async changePassword(agent: IAgentDoc, oldPassword: string, newPassword: string): Promise<any> {
+    try {
+      const user = await DB.Models.Agent.findById(agent._id).exec();
+      if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
+
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid password');
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      await DB.Models.Agent.findByIdAndUpdate(user._id, { password: passwordHash }).exec();
+
+      return { success: true, message: 'Password changed successfully' };
+    } catch (error) {
+      console.error(error);
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }

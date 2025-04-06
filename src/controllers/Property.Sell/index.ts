@@ -1,4 +1,4 @@
-import { generatePropertySellBriefEmail } from '../../common/email.template';
+import { generalTemplate, generatePropertySellBriefEmail, PropertyReceivedTemplate } from '../../common/email.template';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import { RouteError } from '../../common/classes';
 import { IPropertySell } from '../../models/index';
@@ -111,21 +111,23 @@ export class PropertySellController implements IPropertySellController {
         owner: owner._id,
         ownerModel: owner && !agent ? 'PropertyOwner' : 'Agent',
       });
-      const mailBody = generatePropertySellBriefEmail({ ...PropertySell, isAdmin: true });
+      const mailBody = PropertyReceivedTemplate(PropertySell.owner.fullName, PropertySell);
+
+      const generalMailTemplate = generalTemplate(mailBody);
 
       const adminEmail = process.env.ADMIN_EMAIL || '';
 
       await sendEmail({
         to: adminEmail,
-        subject: 'New Property Sell Request',
-        text: mailBody,
-        html: mailBody,
+        subject: 'New Sell Property',
+        text: generalMailTemplate,
+        html: generalMailTemplate,
       });
-      const mailBody1 = generatePropertySellBriefEmail({ ...PropertySell });
+      const mailBody1 = generatePropertySellBriefEmail({ ...PropertySell, isAdmin: true });
 
       await sendEmail({
         to: owner.email,
-        subject: 'New Property Sell Request',
+        subject: 'New Sell Property',
         text: mailBody1,
         html: mailBody1,
       });

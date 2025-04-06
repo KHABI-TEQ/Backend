@@ -134,10 +134,10 @@ class Validator {
       .required(),
     propertyFeatures: joi
       .object({
-        noOfBedrooms: joi.number().required(),
+        noOfBedrooms: joi.number().optional(),
         additionalFeatures: joi.array().items(joi.string()).optional(),
       })
-      .required(),
+      .optional(),
     areYouTheOwner: joi.boolean().required(),
     owner: joi
       .object({
@@ -154,6 +154,12 @@ class Validator {
     ),
     pictures: joi.array().items(joi.string()).optional(),
     budgetRange: joi.string().optional(),
+    landSize: joi
+      .object({
+        measurementType: joi.string().required(),
+        size: joi.number().required(),
+      })
+      .required(),
   });
 
   private propertyRentSchema = joi.object({
@@ -180,22 +186,22 @@ class Validator {
         joi.object({
           featureName: joi
             .string()
-            .required()
+            .optional()
             .valid(...Object.values(propertyRent.getPropertyFeatures)),
         })
       )
-      .required(),
+      .optional(),
     tenantCriteria: joi
       .array()
       .items(
         joi.object({
           criteria: joi
             .string()
-            .required()
+            .optional()
             .valid(...Object.values(propertyRent.getTenantCriteria)),
         })
       )
-      .required(),
+      .optional(),
     owner: joi.object({
       fullName: joi.string().required(),
       phoneNumber: joi.string().required(),
@@ -209,17 +215,17 @@ class Validator {
   private propertyRentSearchSchema = joi.object({
     propertyType: joi
       .string()
-      .required()
+      .optional()
       .valid(...Object.values(propertyRent.getPropertyType)),
     location: joi
       .object({
-        state: joi.string().required(),
-        localGovernment: joi.string().required(),
-        area: joi.string().required(),
+        state: joi.string().optional(),
+        localGovernment: joi.string().optional(),
+        area: joi.string().optional(),
       })
-      .required(),
-    budgetMin: joi.number().required(),
-    budgetMax: joi.number().required(),
+      .optional(),
+    budgetMin: joi.number().optional(),
+    budgetMax: joi.number().optional(),
     features: joi.string().optional(),
     minLandSize: joi.number().optional(),
     maxLandSize: joi.number().optional(),
@@ -228,16 +234,16 @@ class Validator {
   private propertySellSearchSchema = joi.object({
     propertyType: joi
       .string()
-      .required()
+      .optional()
       .valid(...Object.values(propertySell.getPropertyType)),
-    state: joi.string().required(),
-    localGovernment: joi.string().required(),
-    area: joi.string().required(),
-    minPrice: joi.number().required(),
-    maxPrice: joi.number().required(),
-    minBedrooms: joi.number().required(),
-    maxBedrooms: joi.number().required(),
-    usageOptions: joi.array().items(joi.string()).required(),
+    state: joi.string().optional(),
+    localGovernment: joi.string().optional(),
+    area: joi.string().optional(),
+    minPrice: joi.number().optional(),
+    maxPrice: joi.number().optional(),
+    minBedrooms: joi.number().optional(),
+    maxBedrooms: joi.number().optional(),
+    usageOptions: joi.array().items(joi.string()).optional(),
     additionalFeatures: joi.array().items(joi.string()).optional(),
     minLandSize: joi.number().optional(),
     maxLandSize: joi.number().optional(),

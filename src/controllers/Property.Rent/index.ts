@@ -3,7 +3,11 @@ import HttpStatusCodes from '../../common/HttpStatusCodes';
 import { RouteError } from '../../common/classes';
 import { IPropertyRent } from '../../models/index';
 import { DB } from '../index';
-import { generatePropertyRentBriefEmail } from '../../common/email.template';
+import {
+  generalTemplate,
+  generatePropertyRentBriefEmail,
+  PropertyRentReceivedTemplate,
+} from '../../common/email.template';
 import sendEmail from '../../common/send.email';
 
 interface PropertyRentProps {
@@ -122,13 +126,15 @@ export class PropertyRentController implements IPropertyRentController {
         html: mailBody,
       });
 
-      const mailBody1 = generatePropertyRentBriefEmail({ ...PropertyRent });
+      const mailBody1 = PropertyRentReceivedTemplate(owner.fullName, PropertyRent);
+
+      const generalTemplate1 = generalTemplate(mailBody1);
 
       await sendEmail({
         to: owner.email,
-        subject: 'New Property Rent Request',
-        text: mailBody1,
-        html: mailBody1,
+        subject: 'New Property Rent',
+        text: generalTemplate1,
+        html: generalTemplate1,
       });
 
       return newPropertyRent;

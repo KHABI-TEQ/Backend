@@ -157,8 +157,9 @@ router.post('/rent/search', async (req: Request, res: Response, next: NextFuncti
       budgetMax,
       features,
       tenantCriteria,
-      minLandSize, // min land size
-      maxLandSize, // max land size
+      // minLandSize, // min land size
+      // maxLandSize, // max land size
+      landSize,
     } = req.body;
     const response = await propertyRentControl.getPropertiesFuzzy({
       propertyType,
@@ -171,8 +172,7 @@ router.post('/rent/search', async (req: Request, res: Response, next: NextFuncti
       budgetMax,
       features,
       tenantCriteria,
-      minLandSize,
-      maxLandSize,
+      landSize,
     });
     return res.status(HttpStatusCodes.OK).json(response);
   } catch (error) {

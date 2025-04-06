@@ -5,6 +5,7 @@ import { DB } from '../controllers';
 interface Request extends Express.Request {
   user?: any; // Add the user property to the Request interface
   headers?: any;
+  url?: string;
 }
 
 const authorize = (req: Request, res: Response, next: NextFunction) => {
@@ -33,6 +34,10 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
 
       if (!agent) {
         return res.status(401).json({ message: 'Agent not found' });
+      }
+
+      if (req.url !== '/onboard' && !agent.accountApproved) {
+        return res.status(403).json({ message: 'Account not approved, You cannot perform this action' });
       }
 
       req.user = agent;

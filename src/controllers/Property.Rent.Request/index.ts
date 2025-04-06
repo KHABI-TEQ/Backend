@@ -54,8 +54,12 @@ interface PropertySearchProps {
   budgetMax: number;
   features: string;
   tenantCriteria: string;
-  minLandSize: number;
-  maxLandSize: number;
+  // minLandSize: number;
+  // maxLandSize: number;
+  landSize: {
+    measurementType: string;
+    size: number;
+  };
 }
 
 export interface IBuyerOrRentPropertyRentController {
@@ -239,8 +243,9 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
         noOfBedrooms,
         features,
         tenantCriteria,
-        minLandSize,
-        maxLandSize,
+        // minLandSize,
+        // maxLandSize,
+        landSize,
       } = PropertySearch;
 
       const query: any = {};
@@ -263,10 +268,10 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
       }
 
       // Land size filter
-      if (minLandSize || maxLandSize) {
+      if (landSize) {
         query.landSize = {};
-        if (minLandSize) query.landSize.$gte = Number(minLandSize);
-        if (maxLandSize) query.landSize.$lte = Number(maxLandSize);
+        if (landSize.size) query.landSize.size.$gte = Number(landSize.size);
+        if (landSize.measurementType) query.landSize.measurementType = landSize.measurementType;
       }
 
       // Number of bedrooms filter

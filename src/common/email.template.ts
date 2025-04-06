@@ -8,7 +8,7 @@ export const generalTemplate = (body: string): string => {
 <body style="margin: 0; padding: 0; background-color: #ffffff; height: 100%; display: flex; align-items: center; justify-content: center;">
     
     <!-- Main Wrapper -->
-    <table role="presentation" width="60%" cellspacing="0" cellpadding="0" border="0" bgcolor="#f4f4f4" style="margin: auto; padding-bottom: 40px">
+    <table role="presentation" width="60%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F0F3F1" style="margin: auto; padding-bottom: 40px">
         <tr>
 
             <!-- Header Logo -->
@@ -89,16 +89,14 @@ export const propertyRequestTemplate = (buyerName: string, propertyAddress: stri
 
 export const agentNotificationTemplate = (agentName: string, propertyAddress: string): string => {
   return `
-                <html>
-                <body>
-                        <p>Dear ${agentName},</p>
-                        <p>A buyer has requested an inspection for ${propertyAddress}. Please confirm
-                        availability within 24 hours. Let us know if the property is no longer available.</p>
-                        <p>Best regards,<br/>
-                        Khabi-Teq Realty</p>
-                </body>
-                </html>
-        `;
+                        <p>
+                        Dear ${agentName},
+
+                        A buyer has requested an inspection for a property linked to one of your briefs. Please confirm the property's availability for inspection by logging into your Agent Portal and updating the status.
+
+                        Thank you for your prompt attention to this matter.
+                        </p>    
+                        `;
 };
 
 export const propertyAvailableTemplate = (agentName: string, propertyAddress: string, calendlyLink: string): string => {
@@ -157,7 +155,7 @@ export const verifyEmailTemplate = (name: string, verificationLink: string): str
 export const accountUnderReviewTemplate = (name: string): string => {
   return `
         <p>Hi ${name},</p>
-        <p>Thank you for registering with Khabi-Teq Realty. Your agent account is currently under review. We are verifying your submitted documents and details. You will receive a confirmation email once your account is approved. If we require any additional information, we will reach out to you.</p>
+        <p>Thank you for registering with Khabi-Teq Realty. Your agent account is currently <strong>under review</strong>. We are verifying your submitted documents and details. You will receive a confirmation email once your account is approved. If we require any additional information, we will reach out to you.</p>
         `;
 };
 
@@ -166,6 +164,18 @@ export const accountApproved = (name: string): string => {
                 <p>Dear ${name},</p>
                 <p>Welcome to Khabi-Teq Realty! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
                 <p>Get ready to unlock new opportunities and grow your real estate career with us.</p>
+        `;
+};
+
+export const accountDisaapproved = (name: string): string => {
+  return `
+        <p>
+        Dear ${name},
+
+        Thank you for your interest in joining Khabi-Teq Realty. After reviewing your application, we regret to inform you that your account has not been approved at this time.
+
+        If you have any questions or wish to provide additional information, please feel free to contact us at agent.support@khabiteqrealty.com.
+        </p>
         `;
 };
 
@@ -502,9 +512,7 @@ export function propertyRentPreferenceTemplate(data: any) {
                                 <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
                                   .map((c: any) => c.criteria)
                                   .join(', ')}</p>
-                                <p><strong>Owner Email:</strong> ${data.owner.email}</p>
-                                <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
-                                <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
+                                
                                 <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
                         </div>
                         
@@ -870,4 +878,60 @@ export function DeleteAgent(name: string, reason: string): string {
                                         <p>Your agent account has been deleted. Due to: </p>
                                         ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
                                         <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>                   </div>       </body>           </html>           `;
+}
+
+export function PropertyReceivedTemplate(ownerName: string, property: any): string {
+  return ` 
+        <p>Hi ${ownerName},</p>
+        <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+      
+        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+          <p>Submitted Brief: </p>
+                <li><strong>Property Type:</strong> ${property.propertyType}</li>
+              
+                <li><strong>Location:</strong> ${property.location.state}, ${property.location.localGovernment}, ${
+    property.location.area
+  }</li>
+                <li><strong>Price Range:</strong> ₦${property.price}</li>
+                <li><strong>Usage Options:</strong> ${property.usageOptions?.join(', ') || 'N/A'}</li>
+                <li><strong>Property Features:</strong>
+                <ul>
+                        ${Object.entries(property.propertyFeatures)
+                          .map(([key, value]) => `<li>${key}: ${value}</li>`)
+                          .join('')}
+                </ul>
+                </li>
+      
+            </ul>
+        <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
+        <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+            `;
+}
+
+export function PropertyRentReceivedTemplate(ownerName: string, property: any): string {
+  return `
+        <p>Hi ${ownerName},</p>
+        <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+      
+        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+          <p>Submitted Brief: </p>
+                <li><strong>Property Type:</strong> ${property.propertyType}</li>
+              
+                <li><strong>Location:</strong> ${property.location.state}, ${property.location.localGovernment}, ${
+    property.location.area
+  }</li>
+                <li><strong>Price Range:</strong> ₦${property.rentalPrice}</li>
+                <li><strong>Tenant Criteria:</strong> ${
+                  property.tenantCriteria?.map((p: any) => p.criteria).join(', ') || 'N/A'
+                }</li>
+                <li><strong>Property Features:</strong>
+              
+                        ${property.features.map((f: any) => f.featureName).join(', ')}
+              
+                </li>
+      
+            </ul>
+        <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
+        <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+        `;
 }

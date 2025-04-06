@@ -45,8 +45,12 @@ interface PropertySearchProps {
   maxBedrooms: number;
   usageOptions: [string];
   additionalFeatures: [string];
-  minLandSize: number;
-  maxLandSize: number;
+  // minLandSize: number;
+  // maxLandSize: number;
+  lanndSize: {
+    measurementType: string;
+    size: number;
+  };
 }
 
 export interface IBuyerOrRentPropertySellController {
@@ -203,8 +207,7 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
         maxBedrooms,
         usageOptions,
         additionalFeatures,
-        minLandSize,
-        maxLandSize,
+        lanndSize,
       } = PropertySearch;
 
       const query: any = {};
@@ -214,7 +217,7 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
 
       // Filter by Location
       if (state) query['location.state'] = state;
-      // if (localGovernment) query['location.localGovernment'] = localGovernment;
+      if (localGovernment) query['location.localGovernment'] = localGovernment;
       // if (area) query['location.area'] = area;
 
       // Price Range
@@ -225,10 +228,10 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
       }
 
       // Land Size Range
-      if (minLandSize || maxLandSize) {
+      if (lanndSize) {
         query.landSize = {};
-        if (minLandSize) query.landSize.$gte = Number(minLandSize);
-        if (maxLandSize) query.landSize.$lte = Number(maxLandSize);
+        if (lanndSize.size) query.landSize.size.$gte = Number(lanndSize.size);
+        if (lanndSize.measurementType) query.landSize.measurementType = lanndSize.measurementType;
       }
 
       // Number of Bedrooms Range

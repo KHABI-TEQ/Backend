@@ -1,4 +1,4 @@
-import { agentNotificationTemplate, inspectionScheduledTemplate } from '../../common/email.template';
+import { agentNotificationTemplate, generalTemplate, inspectionScheduledTemplate } from '../../common/email.template';
 import { DB } from '..';
 import sendEmail from '../../common/send.email';
 import path from 'path';
@@ -53,7 +53,7 @@ export class PropertyRequestController implements IPropertRequestController {
     console.log(request);
 
     if (request) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'You have already requested for this property');
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'You have already requested an inspection for this property');
     }
 
     await DB.Models.PropertyRequest.create({
@@ -64,7 +64,7 @@ export class PropertyRequestController implements IPropertRequestController {
     });
 
     const mailBodyAgent = agentNotificationTemplate(
-      (property.owner as any).email as string,
+      (property.owner as any).fullName as string,
       `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`
     );
 
@@ -75,18 +75,21 @@ export class PropertyRequestController implements IPropertRequestController {
 
     // const adminMailBody =
 
+    const mailAgent = generalTemplate(mailBodyAgent);
+    const mailRequester = generalTemplate(mailBodyRequester);
+
     await sendEmail({
       to: (property.owner as any).email,
-      subject: 'Confirm Property Availability for Inspection',
-      text: 'Confirm Property Availability for Inspection',
-      html: mailBodyAgent,
+      subject: 'Inspection Request Confirmed – Action Required',
+      text: 'Inspection Request Confirmed – Action Required',
+      html: mailAgent,
     });
 
     await sendEmail({
       to: requestFrom.email,
       subject: 'Your Inspection Request is Being Processed',
       text: 'Your Inspection Request is Being Processed',
-      html: mailBodyRequester,
+      html: mailRequester,
     });
   }
 

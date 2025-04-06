@@ -1,5 +1,6 @@
 import {
   accountApproved,
+  accountDisaapproved,
   DeactivateOrActivateAgent,
   DeleteAgent,
   generalTemplate,
@@ -179,19 +180,23 @@ export class AdminController {
     }
   }
 
-  public async approveAgent(_id: string) {
+  public async approveAgent(_id: string, approved: boolean) {
     try {
-      const agent = await DB.Models.Agent.findByIdAndUpdate(_id, { accountApproved: true }).exec();
+      const agent = await DB.Models.Agent.findByIdAndUpdate(_id, { accountApproved: approved }).exec();
 
       if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
-      const body = accountApproved(agent.firstName);
+      const body = approved ? accountApproved(agent.firstName) : accountDisaapproved(agent.firstName);
+
+      const subject = approved
+        ? 'Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!'
+        : 'Update on Your KhabiTeqRealty Application';
 
       const mailBody = generalTemplate(body);
 
       await sendEmail({
         to: agent.email,
-        subject: 'Account Approved',
+        subject: subject,
         text: mailBody,
         html: mailBody,
       });

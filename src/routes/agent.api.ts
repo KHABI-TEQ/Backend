@@ -212,130 +212,21 @@ router.put('/onboard', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-router.get('/profile', async (req: Request, res: Response, next: NextFunction) => {
-  const user = req.user as IAgentDoc;
-
-  if (!user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const { password, ...others } = user.toObject();
-  return res.status(200).json({
-    success: true,
-    data: others,
-  });
-});
-
-router.post('/upload/image', async (req: Request & { file?: any }, res: Response, next: NextFunction) => {
+router.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { image } = req.body;
-    console.log(req?.file);
-    const response = await agentControl.uploadImage(image);
-    return res.status(HttpStatusCodes.OK).json(response);
-  } catch (error) {
-    next(error);
-  }
-});
-/******************************************************************************
- *                      add user - "POST /api/auth/register"
- ******************************************************************************/
-router.post('/properties', async (req: Request, res: Response, next: NextFunction) => {
-  // const {} = req.agent
-  try {
-    // const properties1 = await DB.Models.PropertyRent.find({ owner: req.agent._id });
-    // const properties2 = await DB.Models.PropertySell.find({ owner: req.agent._id });
-    // const properties = [...properties1, ...properties2];
-    // return res.status(200).json(properties);
+    const agent = req.user as IAgentDoc;
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({
+        message: 'Old password and new password are required',
+      });
+    }
+
+    const response = await agentControl.changePassword(agent, oldPassword, newPassword);
+    return res.status(200).json(response);
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/properties', async (req: Request, res: Response, next: NextFunction) => {
-  const user = req.user as IAgentDoc;
-
-  if (!user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const rentProperties = await DB.Models.PropertyRent.find({ owner: user._id });
-
-  const sellProperties = await DB.Models.PropertySell.find({ owner: user._id });
-
-  return res.status(200).json({
-    success: true,
-    data: {
-      rentProperties,
-      sellProperties,
-    },
-  });
-});
-
-/******************************************************************************
- * Confirms Property Availability for Inspection  - "POST /api/agent/confirm-property"
- */
-
-router.post('/confirm-property', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { requestId, isAvailable } = req.body;
-    const response = await agentControl.confirmPropertyAvailability(requestId, isAvailable);
-    return res.status(HttpStatusCodes.OK).json({
-      message: response,
-      success: true,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/******************************************************************************
- * All preferences from buyers/renters  - "POST /api/agent/preferences"
- */
-
-router.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const rentPreferences = await DB.Models.PropertyRent.find({
-      ownerModel: 'BuyerOrRenter',
-    });
-
-    const sellPreferences = await DB.Models.PropertySell.find({
-      ownerModel: 'BuyerOrRenter',
-    });
-
-    return res.status(200).json({
-      rentPreferences,
-      sellPreferences,
-      success: true,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/requests', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = req.user as IAgentDoc;
-
-    const propertiesSells = await DB.Models.PropertySell.find({ owner: user._id });
-    const propertiesRents = await DB.Models.PropertyRent.find({ owner: user._id });
-
-    const requests = await DB.Models.PropertyRequest.find({
-      propertyId: { $in: [...propertiesSells.map((p) => p._id), ...propertiesRents.map((p) => p._id)] },
-    })
-      // .populate({ path: 'propertyId' })
-      .populate({ path: 'propertyId' })
-      .populate({ path: 'requestFrom' });
-
-    // const property = await DB.Models.PropertySell.findById(requests[0].propertyId);
-    // console.log('Property', property);
-
-    return res.status(200).json({ success: true, data: requests });
-  } catch (error) {
-    next(error);
-  }
-});
-
-/******************************************************************************
- *                                     Export
- ******************************************************************************/
 export default router;
