@@ -268,11 +268,11 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
       }
 
       // Land size filter
-      if (landSize) {
-        query.landSize = {};
-        if (landSize.size) query.landSize.size.$gte = Number(landSize.size);
-        if (landSize.measurementType) query.landSize.measurementType = landSize.measurementType;
-      }
+      // if (landSize) {
+      //   query.landSize = {};
+      //   if (landSize.size) query.landSize.size.$gte = Number(landSize.size);
+      //   if (landSize.measurementType) query.landSize.measurementType = landSize.measurementType;
+      // }
 
       // Number of bedrooms filter
       if (noOfBedrooms) {

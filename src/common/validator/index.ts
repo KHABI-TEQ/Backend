@@ -245,8 +245,12 @@ class Validator {
     maxBedrooms: joi.number().optional(),
     usageOptions: joi.array().items(joi.string()).optional(),
     additionalFeatures: joi.array().items(joi.string()).optional(),
-    minLandSize: joi.number().optional(),
-    maxLandSize: joi.number().optional(),
+    landSize: joi
+      .object({
+        measurementType: joi.string().optional(),
+        size: joi.number().optional(),
+      })
+      .optional(),
   });
 
   public validate(data: any, schemaName: keyof typeof validatorSchemaNames) {

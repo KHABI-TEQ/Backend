@@ -31,6 +31,10 @@ interface PropertySellProps {
   budgetRange?: string;
   pictures?: string[];
   isApproved?: boolean;
+  landSize?: {
+    measurementType: string;
+    size: number;
+  };
 }
 
 export interface IPropertySellController {
@@ -74,16 +78,25 @@ export class PropertySellController implements IPropertySellController {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid page or limit');
       }
       const skip = (page - 1) * limit;
-      const data = await DB.Models.PropertySell.find({ ownerModel })
-        .skip(skip)
-        .limit(limit)
-        .sort({ createdAt: -1 })
-        .exec();
-      return {
-        data,
-        total: await DB.Models.PropertySell.find({ ownerModel }).countDocuments({}),
-        currentPage: page,
-      };
+      if (ownerModel) {
+        const data = await DB.Models.PropertySell.find({ ownerModel })
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .exec();
+        return {
+          data,
+          total: await DB.Models.PropertySell.find({ ownerModel }).countDocuments({}),
+          currentPage: page,
+        };
+      } else {
+        const data = await DB.Models.PropertySell.find({}).skip(skip).limit(limit).sort({ createdAt: -1 }).exec();
+        return {
+          data,
+          total: await DB.Models.PropertySell.countDocuments({}),
+          currentPage: page,
+        };
+      }
     } catch (err) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
     }

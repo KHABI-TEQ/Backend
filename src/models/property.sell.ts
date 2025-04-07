@@ -57,7 +57,7 @@ export class PropertySell {
             // imageUrl
           },
         ],
-        landSize: { type: Number },
+
         propertyFeatures: {
           noOfBedrooms: { type: Number, required: true },
           additionalFeatures: [{ type: String }],
@@ -76,6 +76,10 @@ export class PropertySell {
         pictures: [{ type: String }],
         isApproved: { type: Boolean, default: false },
         isRejected: { type: Boolean, default: false },
+        landSize: {
+          measurementType: { type: String },
+          size: { type: Number },
+        },
       },
       {
         timestamps: true,

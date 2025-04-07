@@ -58,6 +58,7 @@ router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
       areYouTheOwner,
       usageOptions,
       pictures,
+      landSize,
     } = validator.validate(req.body, 'propertySellSchema');
 
     const response = await propertySellControl.add({
@@ -70,6 +71,7 @@ router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
       areYouTheOwner,
       usageOptions,
       pictures,
+      landSize,
     });
     return res.status(HttpStatusCodes.CREATED).json(response);
   } catch (error) {

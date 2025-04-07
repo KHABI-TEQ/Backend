@@ -229,9 +229,13 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
 
       // Land Size Range
       if (lanndSize) {
-        query.landSize = {};
-        if (lanndSize.size) query.landSize.size.$gte = Number(lanndSize.size);
-        if (lanndSize.measurementType) query.landSize.measurementType = lanndSize.measurementType;
+        query['landSize.size'] = {};
+        if (lanndSize.size) {
+          query['landSize.size'].$gte = Number(lanndSize.size);
+        }
+        if (lanndSize.measurementType) {
+          query['landSize.measurementType'] = lanndSize.measurementType;
+        }
       }
 
       // Number of Bedrooms Range
@@ -248,7 +252,7 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
       //  if (ownerModel) query.ownerModel = ownerModel;
 
       // Availability
-      query.isAvailable = true;
+      // query.isAvailable = false;
       // Usage
       if (usageOptions) query.usageOptions = { $in: usageOptions };
 
