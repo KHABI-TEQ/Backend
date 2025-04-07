@@ -131,7 +131,7 @@ export class PropertySellController implements IPropertySellController {
       const adminEmail = process.env.ADMIN_EMAIL || '';
 
       await sendEmail({
-        to: adminEmail,
+        to: owner.email,
         subject: 'New Sell Property',
         text: generalMailTemplate,
         html: generalMailTemplate,
@@ -139,7 +139,7 @@ export class PropertySellController implements IPropertySellController {
       const mailBody1 = generatePropertySellBriefEmail({ ...PropertySell, isAdmin: true });
 
       await sendEmail({
-        to: owner.email,
+        to: adminEmail,
         subject: 'New Sell Property',
         text: mailBody1,
         html: mailBody1,
