@@ -14,7 +14,7 @@ export const generalTemplate = (body: string): string => {
             <!-- Header Logo -->
             <tr>
                 <td align="start" style="padding: 50px 0px 0 100px;">
-                    <img src="https://res.cloudinary.com/drlfylzhf/image/upload/fl_sanitize/v1743087585/profileImages/khabi-teq_o08xqk.svg" alt="Khabi-teq Realty Logo" width="150">
+                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-teq Realty Logo" width="150">
                 </td>
             </tr>
             <td align="center" style="padding: 30px;">
@@ -58,7 +58,7 @@ export const generalTemplate = (body: string): string => {
                                 <!-- Copyright Section -->
                                 <tr>
                                     <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                        <img src="https://res.cloudinary.com/drlfylzhf/image/upload/v1743087585/profileImages/khabi-teq_o08xqk.svg" alt="Khabi-teq Realty Logo" width="120"><br><br>
+                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-teq Realty Logo" width="120"><br><br>
                                         
                                         <p style="margin-top: 20px;">Copyright © 2020 Khabiteq Realty Limited.<br>
                                         Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
