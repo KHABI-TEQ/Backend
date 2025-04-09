@@ -7,6 +7,12 @@ import { IAgentDoc, PropertyRent, PropertySell } from '../models';
 import jwt from 'jsonwebtoken';
 import googleAuthHandler from './googleAuth';
 import authorize from './authorize';
+import cloudinary from '../common/cloudinary';
+import multer from 'multer';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+});
 
 interface Request extends Express.Request {
   user?: any;
@@ -229,4 +235,75 @@ router.post('/change-password', async (req: Request, res: Response, next: NextFu
   }
 });
 
+router.post('/update-profile', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agent = req.user as IAgentDoc;
+    const profileData = validator.validate(req.body, 'agentProfileUpdateSchema');
+
+    const response = await agentControl.updateProfile(agent, profileData);
+    return res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/upload-profile-pic', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
+    }
+
+    const agent = req.user as IAgentDoc;
+
+    // Convert the buffer to a Base64 string
+    const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+    // Upload to Cloudinary
+    const uploadImg = await cloudinary.uploadFile(fileBase64, `${agent._id}/profile-image`, 'profile-images');
+
+    await DB.Models.Agent.findByIdAndUpdate(agent._id, {
+      $set: {
+        profile_picture: uploadImg,
+      },
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      message: 'Image uploaded successfully',
+      url: uploadImg,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/account-upgrade', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agent = req.user as IAgentDoc;
+    const { companyAgent, meansOfId } = validator.validate(req.body, 'acctUpgradeSchema');
+
+    const response = await agentControl.acctUpgrade(agent, { companyAgent, meansOfId });
+    return res.status(200).json({
+      message: 'Account upgrade request submitted successfully',
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/account', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agent = req.user as IAgentDoc;
+
+    const { password, isAccountInRecovery, isDeleted, isInActive, ...data } = agent.toObject();
+
+    return res.status(200).json({
+      success: true,
+      user: data,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 export default router;

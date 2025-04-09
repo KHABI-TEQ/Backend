@@ -34,6 +34,19 @@ export interface IAgent {
     name: string;
     docImg: string[];
   }[];
+  isInUpgrade: boolean;
+  upgradeData: {
+    companyAgent: {
+      companyName?: string;
+      // regNumber?: string;
+    };
+    meansOfId: {
+      name: string;
+      docImg: string[];
+    }[];
+    requestDate?: Date;
+    approvedDate?: Date;
+  };
 }
 
 export interface IAgentDoc extends IAgent, Document {}
@@ -81,6 +94,22 @@ export class Agent {
             docImg: { type: [String] },
           },
         ],
+
+        isInUpgrade: { type: Boolean, default: false },
+        upgradeData: {
+          companyAgent: {
+            companyName: { type: String },
+            // regNumber: { type: String },
+          },
+          meansOfId: [
+            {
+              name: { type: String },
+              docImg: { type: [String] },
+            },
+          ],
+          requestDate: { type: Date, default: Date.now },
+          approvedDate: { type: Date },
+        },
       },
       {
         timestamps: true,

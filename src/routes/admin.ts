@@ -85,4 +85,14 @@ AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: Nex
   }
 });
 
+AdminRouter.post('/upgrade-agent', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId, approved } = req.body;
+    const response = await adminController.approveUpgradeRequest(agentId, approved);
+    return res.status(200).json({ success: true, response });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default AdminRouter;

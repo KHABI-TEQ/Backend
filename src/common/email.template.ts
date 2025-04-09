@@ -159,6 +159,27 @@ export const accountUnderReviewTemplate = (name: string): string => {
         `;
 };
 
+export const accountUpgradeTemplate = (name: string): string => {
+  return `
+                <p>Hi ${name},</p>
+                <p>Thank you for your recent upgrade request with Khabi-Teq Realty. Your request is currently under review. We will notify you once the review is complete.</p>
+                `;
+};
+
+export const accountUpgradeApprovedTemplate = (name: string): string => {
+  return `
+                        <p>Dear ${name},</p>
+                        <p>Congratulations! Your upgrade request with Khabi-Teq Realty has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
+                        `;
+};
+
+export const accountUpgradeDisapprovedTemplate = (name: string): string => {
+  return `
+                                <p>Dear ${name},</p>
+                                <p>Thank you for your recent upgrade request with Khabi-Teq Realty. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
+                                `;
+};
+
 export const accountApproved = (name: string): string => {
   return `
                 <p>Dear ${name},</p>

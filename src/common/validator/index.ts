@@ -12,6 +12,8 @@ enum validatorSchemaNames {
   googleSignupSchema = 'googleSignupSchema',
   propertyRentSearchSchema = 'propertyRentSearchSchema',
   propertySellSearchSchema = 'propertySellSearchSchema',
+  agentProfileUpdateSchema = 'agentProfileUpdateSchema',
+  acctUpgradeSchema = 'acctUpgradeSchema',
 }
 
 class Validator {
@@ -104,6 +106,19 @@ class Validator {
         })
       )
       .required(),
+    phoneNumber: joi.string().required(),
+    firstName: joi.string().required(),
+    lastName: joi.string().required(),
+  });
+
+  private agentProfileUpdateSchema = joi.object({
+    address: joi.object({
+      street: joi.string().required(),
+      // city: joi.string().required(),
+      state: joi.string().required(),
+      localGovtArea: joi.string().required(),
+    }),
+    regionOfOperation: joi.array().items(joi.string()).required(),
     phoneNumber: joi.string().required(),
     firstName: joi.string().required(),
     lastName: joi.string().required(),
@@ -253,6 +268,23 @@ class Validator {
       .optional(),
   });
 
+  private acctUpgradeSchema = joi.object({
+    companyAgent: joi
+      .object({
+        companyName: joi.string().required(),
+        // regNumber: joi.string().optional(),
+      })
+      .optional(),
+    meansOfId: joi
+      .array()
+      .items(
+        joi.object({
+          name: joi.string().required(),
+          docImg: joi.array().items(joi.string()).required(),
+        })
+      )
+      .required(),
+  });
   public validate(data: any, schemaName: keyof typeof validatorSchemaNames) {
     try {
       const schema = this[schemaName];

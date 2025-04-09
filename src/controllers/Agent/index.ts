@@ -13,6 +13,7 @@ import cloudinaryApiUpload from '../../common/cloudinary';
 import { OAuth2Client, TokenPayload } from 'google-auth-library';
 import {
   accountUnderReviewTemplate,
+  accountUpgradeTemplate,
   ForgotPasswordVerificationTemplate,
   generalTemplate,
   propertyAvailableTemplate,
@@ -83,6 +84,20 @@ export interface IAgentController {
 
   googleSignup: (idToken: string) => Promise<IAgent & { token: string }>;
   googleLogin: (idToken: string) => Promise<any>;
+  changePassword: (agent: IAgentDoc, oldPassword: string, newPassword: string) => Promise<any>;
+  acctUpgrade: (
+    agent: IAgentDoc,
+    upgradeData: {
+      companyAgent: {
+        companyName: string;
+        // regNumber?: string;
+      };
+      meansOfId: {
+        name: string;
+        docImg: string[];
+      }[];
+    }
+  ) => Promise<any>;
 }
 
 export class AgentController implements IAgentController {
@@ -450,6 +465,73 @@ export class AgentController implements IAgentController {
       await DB.Models.Agent.findByIdAndUpdate(user._id, { password: passwordHash }).exec();
 
       return { success: true, message: 'Password changed successfully' };
+    } catch (error) {
+      console.error(error);
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async updateProfile(
+    agent: IAgentDoc,
+    profileData: {
+      firstName?: string;
+      lastName?: string;
+      phoneNumber?: string;
+      address?: {
+        street: string;
+        state: string;
+        localGovtArea: string;
+      };
+      regionOfOperation?: string[];
+      profilePicture?: string;
+    }
+  ): Promise<any> {
+    try {
+      const user = await DB.Models.Agent.findById(agent._id).exec();
+      if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
+
+      const updatedUser = await DB.Models.Agent.findByIdAndUpdate(agent._id, { ...profileData }, { new: true }).exec();
+
+      return updatedUser?.toObject();
+    } catch (error) {
+      console.error(error);
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async acctUpgrade(
+    agent: IAgentDoc,
+    upgradeData: {
+      companyAgent: {
+        companyName: string;
+        // regNumber?: string;
+      };
+      meansOfId: {
+        name: string;
+        docImg: string[];
+      }[];
+    }
+  ): Promise<any> {
+    try {
+      const user = await DB.Models.Agent.findById(agent._id).exec();
+      if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
+
+      const updatedUser = await DB.Models.Agent.findByIdAndUpdate(
+        agent._id,
+        { isInUpgrade: true, upgradeData: upgradeData },
+        { new: true }
+      ).exec();
+
+      const body = accountUpgradeTemplate(user.firstName || user.email);
+      const mail = generalTemplate(body);
+      await sendEmail({
+        to: user.email,
+        subject: 'Account Upgrade Request',
+        text: 'Account Upgrade Request',
+        html: mail,
+      });
+
+      return updatedUser?.toObject();
     } catch (error) {
       console.error(error);
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);

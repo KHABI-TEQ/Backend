@@ -1,6 +1,8 @@
 import {
   accountApproved,
   accountDisaapproved,
+  accountUpgradeApprovedTemplate,
+  accountUpgradeDisapprovedTemplate,
   DeactivateOrActivateAgent,
   DeleteAgent,
   generalTemplate,
@@ -218,5 +220,49 @@ export class AdminController {
       total,
       currentPage: page,
     };
+  }
+
+  public async approveUpgradeRequest(_id: string, approved: boolean) {
+    try {
+      const agent = await DB.Models.Agent.findById(_id).exec();
+      if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+
+      const updateData = approved
+        ? {
+            isInUpgrade: false,
+            upgradeData: {
+              companyAgent: agent.upgradeData.companyAgent,
+              meansOfId: agent.upgradeData.meansOfId,
+              requestDate: agent.upgradeData.requestDate,
+              approvedDate: new Date(),
+            },
+            individualAgent: {
+              typeOfId: '',
+            },
+            companyAgent: agent.upgradeData.companyAgent,
+            meansOfId: agent.upgradeData.meansOfId,
+          }
+        : {
+            isInUpgrade: false,
+          };
+
+      await DB.Models.Agent.findByIdAndUpdate(_id, updateData).exec();
+
+      const body = approved
+        ? accountUpgradeApprovedTemplate(agent.firstName)
+        : accountUpgradeDisapprovedTemplate(agent.firstName);
+      const mailBody = generalTemplate(body);
+
+      await sendEmail({
+        to: agent.email,
+        subject: 'Update on Your KhabiTeqRealty Application',
+        text: mailBody,
+        html: mailBody,
+      });
+
+      return approved ? 'Agent upgrade approved' : 'Agent upgrade disapproved';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
   }
 }
