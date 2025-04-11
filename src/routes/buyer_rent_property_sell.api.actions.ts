@@ -48,6 +48,19 @@ router.get('/:_id', async (req: Request, res: Response, next: NextFunction) => {
 
 router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // const {
+    //   propertyType,
+    //   location,
+    //   price,
+    //   docOnProperty,
+    //   propertyFeatures,
+    //   owner,
+    //   areYouTheOwner,
+    //   usageOptions,
+    //   budgetRange,
+    //   pictures,
+    // } = validator.validate(req.body, 'propertySellSchema');
+
     const {
       propertyType,
       location,
@@ -59,7 +72,7 @@ router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
       usageOptions,
       budgetRange,
       pictures,
-    } = validator.validate(req.body, 'propertySellSchema');
+    } = req.body;
 
     if (!budgetRange)
       return res.status(HttpStatusCodes.BAD_REQUEST).json({

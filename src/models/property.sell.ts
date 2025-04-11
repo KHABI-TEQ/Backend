@@ -61,13 +61,13 @@ export class PropertySell {
               required: true,
               // enum: Object.values(propertySell.getDocOnProperty)
             },
-            isProvided: { type: Boolean, required: true },
+            isProvided: { type: Boolean },
             // imageUrl
           },
         ],
 
         propertyFeatures: {
-          noOfBedrooms: { type: Number, required: true },
+          noOfBedrooms: { type: Number },
           additionalFeatures: [{ type: String }],
         },
         owner: { type: Types.ObjectId, required: true, refPath: 'ownerModel' },
@@ -81,7 +81,7 @@ export class PropertySell {
         usageOptions: [
           {
             type: String,
-            required: true,
+            // required: true,
             //  enum: Object.values(propertySell.getUsageOptions)
           },
         ],

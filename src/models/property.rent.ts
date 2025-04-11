@@ -52,11 +52,11 @@ export class PropertyRent {
         location: {
           state: { type: String, required: true },
           localGovernment: { type: String, required: true },
-          area: { type: String, required: true },
+          // area: { type: String, required: true },
         },
         rentalPrice: { type: Number, required: true },
         landSize: { type: Number },
-        noOfBedrooms: { type: Number, required: true },
+        noOfBedrooms: { type: Number },
         features: [
           {
             featureName: {
