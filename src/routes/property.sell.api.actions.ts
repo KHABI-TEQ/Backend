@@ -56,6 +56,19 @@ router.get('/:_id', async (req: Request, res: Response, next: NextFunction) => {
 
 router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // const {
+    //   propertyType,
+    //   location,
+    //   price,
+    //   docOnProperty,
+    //   propertyFeatures,
+    //   owner,
+    //   areYouTheOwner,
+    //   usageOptions,
+    //   pictures,
+    //   landSize,
+    // } = validator.validate(req.body, 'propertySellSchema');
+
     const {
       propertyType,
       location,
@@ -67,8 +80,7 @@ router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
       usageOptions,
       pictures,
       landSize,
-    } = validator.validate(req.body, 'propertySellSchema');
-
+    } = req.body;
     const response = await propertySellControl.add({
       propertyType,
       location,
@@ -101,6 +113,17 @@ router.put('/update/:_id', async (req: Request, res: Response, next: NextFunctio
         error: 'Property ID is required',
       });
     }
+    // const {
+    //   propertyType,
+    //   location,
+    //   price,
+    //   docOnProperty,
+    //   propertyFeatures,
+    //   owner,
+    //   areYouTheOwner,
+    //   usageOptions,
+    //   pictures,
+    // } = validator.validate(req.body, 'propertySellSchema');
     const {
       propertyType,
       location,
@@ -111,7 +134,7 @@ router.put('/update/:_id', async (req: Request, res: Response, next: NextFunctio
       areYouTheOwner,
       usageOptions,
       pictures,
-    } = validator.validate(req.body, 'propertySellSchema');
+    } = req.body;
 
     const user = req.user as any;
 
