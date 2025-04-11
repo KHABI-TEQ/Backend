@@ -74,11 +74,11 @@ router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
       pictures,
     } = req.body;
 
-    if (!budgetRange)
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        data: 'Budget Range is required',
-      });
+    // if (!budgetRange)
+    //   return res.status(HttpStatusCodes.BAD_REQUEST).json({
+    //     success: false,
+    //     data: 'Budget Range is required',
+    //   });
 
     const response = await propertySellControl.add({
       propertyType,

@@ -67,11 +67,11 @@ router.post('/rent/new', async (req: Request, res: Response, next: NextFunction)
       pictures,
     } = req.body;
 
-    if (!budgetRange)
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        data: 'Budget Range is missing',
-      });
+    // if (!budgetRange)
+    //   return res.status(HttpStatusCodes.BAD_REQUEST).json({
+    //     success: false,
+    //     data: 'Budget Range is missing',
+    //   });
 
     const response = await propertyRentControl.add({
       propertyType,
@@ -116,11 +116,11 @@ router.put('/rent/update/:_id', async (req: Request, res: Response, next: NextFu
       budgetRange,
     } = validator.validate(req.body, 'propertyRentSchema');
 
-    if (!budgetRange)
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        data: 'Budget Range is missing',
-      });
+    // if (!budgetRange)
+    //   return res.status(HttpStatusCodes.BAD_REQUEST).json({
+    //     success: false,
+    //     data: 'Budget Range is missing',
+    //   });
 
     const response = await propertyRentControl.update(_id, {
       propertyType,
