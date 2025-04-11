@@ -71,7 +71,8 @@ export class PropertySellController implements IPropertySellController {
   public async all(
     page: number,
     limit: number,
-    ownerModel?: string
+    ownerModel?: string,
+    isApproved?: boolean
   ): Promise<{ data: IPropertySell[]; total: number; currentPage: number }> {
     try {
       if (page < 1 || limit < 1) {
@@ -86,14 +87,18 @@ export class PropertySellController implements IPropertySellController {
           .exec();
         return {
           data,
-          total: await DB.Models.PropertySell.find({ ownerModel }).countDocuments({}),
+          total: await DB.Models.PropertySell.find({ ownerModel, isApproved }).countDocuments({}),
           currentPage: page,
         };
       } else {
-        const data = await DB.Models.PropertySell.find({}).skip(skip).limit(limit).sort({ createdAt: -1 }).exec();
+        const data = await DB.Models.PropertySell.find({ isApproved })
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .exec();
         return {
           data,
-          total: await DB.Models.PropertySell.countDocuments({}),
+          total: await DB.Models.PropertySell.countDocuments({ isApproved }),
           currentPage: page,
         };
       }

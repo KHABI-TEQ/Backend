@@ -60,6 +60,8 @@ class PropertyRent {
     spaciousCompound: 'Spacious Compound',
     cctv: 'CCTV',
     spaciousDiningArea: 'Spacious Dining Area',
+    furnished: 'Furnished',
+    unfurnished: 'Unfurnished',
   };
 
   private tenantCriteria = {

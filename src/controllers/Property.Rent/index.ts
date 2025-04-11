@@ -67,24 +67,25 @@ export class PropertyRentController implements IPropertyRentController {
   public async all(
     page: number,
     limit: number,
-    ownerModel?: string
+    ownerModel?: string,
+    isApproved?: boolean
   ): Promise<{ data: IPropertyRent[]; total: number; currentPage: number }> {
     try {
       if (!ownerModel) {
-        const data = await DB.Models.PropertyRent.find({})
+        const data = await DB.Models.PropertyRent.find({ isApproved })
           .skip((page - 1) * limit)
           .limit(limit)
           .sort({ createdAt: -1 })
           .exec();
-        const total = await DB.Models.PropertyRent.countDocuments().exec();
+        const total = await DB.Models.PropertyRent.countDocuments({ isApproved }).exec();
         return { data, total, currentPage: page };
       }
-      const data = await DB.Models.PropertyRent.find({ ownerModel })
+      const data = await DB.Models.PropertyRent.find({ ownerModel, isApproved })
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec();
-      const total = await DB.Models.PropertyRent.find({ ownerModel }).countDocuments().exec();
+      const total = await DB.Models.PropertyRent.find({ ownerModel, isApproved }).countDocuments().exec();
       return { data, total, currentPage: page };
     } catch (err) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);

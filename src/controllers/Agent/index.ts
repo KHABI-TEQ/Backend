@@ -108,6 +108,7 @@ export class AgentController implements IAgentController {
     firstName: string,
     phoneNumber: string
   ): Promise<any> {
+    email = email.toLowerCase().trim();
     const checkUser = await DB.Models.Agent.findOne({ email }).exec();
     if (checkUser) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User already exists');
@@ -127,7 +128,7 @@ export class AgentController implements IAgentController {
       text: 'Verify Your Email Address',
       html: mail,
     });
-    return { ...newUser.toObject() };
+    return { message: 'Signup successful, please verify your email' };
   }
 
   public async onboard(
@@ -156,6 +157,7 @@ export class AgentController implements IAgentController {
       docImg: string[];
     }[]
   ): Promise<any> {
+    email = email.toLowerCase().trim();
     let user = await DB.Models.Agent.findOne({ email }).exec();
 
     if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
@@ -219,7 +221,9 @@ export class AgentController implements IAgentController {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid Google Token');
     }
 
-    const { name, picture, email } = verifyUserWithGoogle;
+    const { name, picture } = verifyUserWithGoogle;
+
+    const email = verifyUserWithGoogle?.email?.toLowerCase().trim();
 
     const userExists = await DB.Models.Agent.findOne({ email });
     console.log('Checking if user exists');
@@ -247,7 +251,7 @@ export class AgentController implements IAgentController {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Invalid Google Token');
     }
 
-    const { email } = verifyUserWithGoogle;
+    const email = verifyUserWithGoogle?.email?.toLowerCase().trim();
 
     const user = await DB.Models.Agent.findOne({ email });
     if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
@@ -265,7 +269,9 @@ export class AgentController implements IAgentController {
 
   public async login(agentCredential: { email: string; password: string }): Promise<any> {
     try {
-      const { email, password } = agentCredential;
+      const { password } = agentCredential;
+
+      const email = agentCredential.email.toLowerCase().trim();
       const user = await DB.Models.Agent.findOne({ email });
       if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
 
@@ -320,7 +326,7 @@ export class AgentController implements IAgentController {
 
   public async forgotPasswordResetLink(email: string): Promise<any> {
     try {
-      const user = await DB.Models.Agent.findOne({ email });
+      const user = await DB.Models.Agent.findOne({ email: email.toLowerCase().trim() });
       if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
 
       const token = signJwt({ email: user.email });

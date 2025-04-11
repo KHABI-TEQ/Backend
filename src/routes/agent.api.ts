@@ -235,6 +235,70 @@ router.post('/change-password', async (req: Request, res: Response, next: NextFu
   }
 });
 
+/******************************************************************************
+ * Confirms Property Availability for Inspection  - "POST /api/agent/confirm-property"
+ */
+
+router.post('/confirm-property', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { requestId, isAvailable } = req.body;
+    const response = await agentControl.confirmPropertyAvailability(requestId, isAvailable);
+    return res.status(HttpStatusCodes.OK).json({
+      message: response,
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/******************************************************************************
+ * All preferences from buyers/renters  - "POST /api/agent/preferences"
+ */
+
+router.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const rentPreferences = await DB.Models.PropertyRent.find({
+      ownerModel: 'BuyerOrRenter',
+    });
+
+    const sellPreferences = await DB.Models.PropertySell.find({
+      ownerModel: 'BuyerOrRenter',
+    });
+
+    return res.status(200).json({
+      rentPreferences,
+      sellPreferences,
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/requests', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as IAgentDoc;
+
+    const propertiesSells = await DB.Models.PropertySell.find({ owner: user._id });
+    const propertiesRents = await DB.Models.PropertyRent.find({ owner: user._id });
+
+    const requests = await DB.Models.PropertyRequest.find({
+      propertyId: { $in: [...propertiesSells.map((p) => p._id), ...propertiesRents.map((p) => p._id)] },
+    })
+      // .populate({ path: 'propertyId' })
+      .populate({ path: 'propertyId' })
+      .populate({ path: 'requestFrom' });
+
+    // const property = await DB.Models.PropertySell.findById(requests[0].propertyId);
+    // console.log('Property', property);
+
+    return res.status(200).json({ success: true, data: requests });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/update-profile', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IAgentDoc;

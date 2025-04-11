@@ -22,7 +22,7 @@ const propertyRentControl = new PropertyRentController();
 
 router.get('/all', async (req: Request, res: Response) => {
   const { page, limit, ownerModel } = req.query as ParamsDictionary;
-  const propertys = await propertyRentControl.all(Number(page), Number(limit), ownerModel);
+  const propertys = await propertyRentControl.all(Number(page), Number(limit), ownerModel, true);
   return res.status(HttpStatusCodes.OK).send(propertys);
 });
 

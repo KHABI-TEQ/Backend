@@ -24,7 +24,7 @@ const propertySellControl = new PropertySellController();
 router.get('/all', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { page, limit } = req.query as ParamsDictionary;
-    const propertys = await propertySellControl.all(Number(page), Number(limit));
+    const propertys = await propertySellControl.all(Number(page), Number(limit), '', true);
     return res.status(HttpStatusCodes.OK).send(propertys);
   } catch (error) {
     next(error);
