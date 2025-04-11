@@ -297,7 +297,7 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
       // Execute the query
       const properties = await DB.Models.PropertyRent.find(query);
 
-      return properties;
+      return properties.filter((property) => property.isAvailable);
     } catch (error) {
       console.error(error);
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
