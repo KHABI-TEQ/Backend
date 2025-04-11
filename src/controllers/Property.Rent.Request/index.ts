@@ -292,7 +292,7 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
         query.tenantCriteria = { $elemMatch: { criteria: { $in: criteriaArray } } };
       }
 
-      query.isAvailable = true;
+      query.isApproved = true;
 
       // Execute the query
       const properties = await DB.Models.PropertyRent.find(query);

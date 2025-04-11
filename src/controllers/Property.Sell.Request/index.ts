@@ -254,7 +254,10 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
       // Availability
       // query.isAvailable = false;
       // Usage
+
       if (usageOptions) query.usageOptions = { $in: usageOptions };
+
+      query.isApproved = true;
 
       // Search Properties
       const properties = await DB.Models.PropertySell.find(query).sort({ createdAt: -1 });
