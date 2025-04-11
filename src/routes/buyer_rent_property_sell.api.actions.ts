@@ -97,6 +97,19 @@ router.put('/update/:_id', async (req: Request, res: Response, next: NextFunctio
         error: 'Property ID is required',
       });
     }
+    // const {
+    //   propertyType,
+    //   location,
+    //   price,
+    //   docOnProperty,
+    //   propertyFeatures,
+    //   owner,
+    //   areYouTheOwner,
+    //   usageOptions,
+    //   pictures,
+    //   budgetRange,
+    // } = validator.validate(req.body, 'propertySellSchema');
+
     const {
       propertyType,
       location,
@@ -108,7 +121,7 @@ router.put('/update/:_id', async (req: Request, res: Response, next: NextFunctio
       usageOptions,
       pictures,
       budgetRange,
-    } = validator.validate(req.body, 'propertySellSchema');
+    } = req.body;
 
     if (!budgetRange)
       return res.status(HttpStatusCodes.BAD_REQUEST).json({

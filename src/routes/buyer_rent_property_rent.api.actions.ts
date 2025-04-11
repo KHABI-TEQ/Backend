@@ -39,6 +39,20 @@ router.get('/rent/:_id', async (req: Request, res: Response, next: NextFunction)
 
 router.post('/rent/new', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // const {
+    //   propertyType,
+    //   propertyCondition,
+    //   location,
+    //   rentalPrice,
+    //   noOfBedrooms,
+    //   features,
+    //   tenantCriteria,
+    //   owner,
+    //   areYouTheOwner,
+    //   budgetRange,
+    //   pictures,
+    // } = validator.validate(req.body, 'propertyRentSchema');
+
     const {
       propertyType,
       propertyCondition,
@@ -51,7 +65,7 @@ router.post('/rent/new', async (req: Request, res: Response, next: NextFunction)
       areYouTheOwner,
       budgetRange,
       pictures,
-    } = validator.validate(req.body, 'propertyRentSchema');
+    } = req.body;
 
     if (!budgetRange)
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
