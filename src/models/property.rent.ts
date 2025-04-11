@@ -39,8 +39,16 @@ export class PropertyRent {
   constructor() {
     const schema = new Schema(
       {
-        propertyType: { type: String, required: true, enum: Object.values(propertyRent.getPropertyType) },
-        propertyCondition: { type: String, required: true, enum: Object.values(propertyRent.getPropertyCondition) },
+        propertyType: {
+          type: String,
+          required: true,
+          //  enum: Object.values(propertyRent.getPropertyType)
+        },
+        propertyCondition: {
+          type: String,
+          required: true,
+          //  enum: Object.values(propertyRent.getPropertyCondition)
+        },
         location: {
           state: { type: String, required: true },
           localGovernment: { type: String, required: true },
@@ -51,13 +59,21 @@ export class PropertyRent {
         noOfBedrooms: { type: Number, required: true },
         features: [
           {
-            featureName: { type: String, required: true, enum: Object.values(propertyRent.getPropertyFeatures) },
+            featureName: {
+              type: String,
+              required: true,
+              // enum: Object.values(propertyRent.getPropertyFeatures)
+            },
           },
         ],
 
         tenantCriteria: [
           {
-            criteria: { type: String, required: true, enum: Object.values(propertyRent.getTenantCriteria) },
+            criteria: {
+              type: String,
+              required: true,
+              //  enum: Object.values(propertyRent.getTenantCriteria)
+            },
           },
         ],
 

@@ -43,7 +43,11 @@ export class PropertySell {
   constructor() {
     const schema = new Schema(
       {
-        propertyType: { type: String, required: true, enum: Object.values(propertySell.getPropertyType) },
+        propertyType: {
+          type: String,
+          required: true,
+          // enum: Object.values(propertySell.getPropertyType)
+        },
         location: {
           state: { type: String, required: true },
           localGovernment: { type: String, required: true },
@@ -52,7 +56,11 @@ export class PropertySell {
         price: { type: Number, required: true },
         docOnProperty: [
           {
-            docName: { type: String, required: true, enum: Object.values(propertySell.getDocOnProperty) },
+            docName: {
+              type: String,
+              required: true,
+              // enum: Object.values(propertySell.getDocOnProperty)
+            },
             isProvided: { type: Boolean, required: true },
             // imageUrl
           },
@@ -70,7 +78,13 @@ export class PropertySell {
           enum: ['PropertyOwner', 'Agent', 'BuyerOrRenter'],
         },
         areYouTheOwner: { type: Boolean, default: false },
-        usageOptions: [{ type: String, required: true, enum: Object.values(propertySell.getUsageOptions) }],
+        usageOptions: [
+          {
+            type: String,
+            required: true,
+            //  enum: Object.values(propertySell.getUsageOptions)
+          },
+        ],
         isAvailable: { type: Boolean, default: true },
         budgetRange: { type: String },
         pictures: [{ type: String }],
