@@ -458,7 +458,7 @@ export class AgentController implements IAgentController {
       if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
 
       const isMatch = await bcrypt.compare(oldPassword, user.password);
-      if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid password');
+      if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid Old password');
 
       const passwordHash = await bcrypt.hash(newPassword, 10);
 

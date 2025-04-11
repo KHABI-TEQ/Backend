@@ -1,9 +1,17 @@
-import { NextFunction, Request, Response, Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 import { ParamsDictionary } from 'express-serve-static-core';
 
 import { PropertySellController } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
 import validator from '../common/validator';
+import AuthorizeAction from './authorize_action';
+
+interface Request extends Express.Request {
+  user?: any;
+  query?: any;
+  params?: any;
+  body?: any;
+}
 
 // Init shared
 const router = Router();
@@ -83,6 +91,8 @@ router.post('/new', async (req: Request, res: Response, next: NextFunction) => {
  *                       Update - "PUT /api/properties/sell/:_id"
  ******************************************************************************/
 
+router.use(AuthorizeAction);
+
 router.put('/update/:_id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { _id } = req.params as ParamsDictionary;
@@ -103,17 +113,23 @@ router.put('/update/:_id', async (req: Request, res: Response, next: NextFunctio
       pictures,
     } = validator.validate(req.body, 'propertySellSchema');
 
-    const updated = await propertySellControl.update(_id, {
-      propertyType,
-      location,
-      price,
-      docOnProperty,
-      propertyFeatures,
-      owner,
-      areYouTheOwner,
-      usageOptions,
-      pictures,
-    });
+    const user = req.user as any;
+
+    const updated = await propertySellControl.update(
+      _id,
+      {
+        propertyType,
+        location,
+        price,
+        docOnProperty,
+        propertyFeatures,
+        owner,
+        areYouTheOwner,
+        usageOptions,
+        pictures,
+      },
+      user
+    );
     return res.status(HttpStatusCodes.OK).json(updated);
   } catch (error) {
     next(error);

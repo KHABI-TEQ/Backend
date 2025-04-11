@@ -306,4 +306,23 @@ router.get('/account', async (req: Request, res: Response, next: NextFunction) =
     next(error);
   }
 });
+
+router.get('/properties', async (req: Request, res: Response, next: NextFunction) => {
+  const agent = req.user as IAgentDoc;
+
+  console.log('Agent ID', agent._id);
+
+  const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
+
+  const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
+
+  return res.status(200).json({
+    success: true,
+    properties: {
+      sellProperties,
+      rentProperties,
+    },
+  });
+});
+
 export default router;

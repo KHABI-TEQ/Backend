@@ -110,15 +110,24 @@ export class PropertySellController implements IPropertySellController {
     try {
       let owner = await DB.Models.Owner.findOne({ email: PropertySell.owner.email }).exec();
       const agent = await DB.Models.Agent.findOne({ email: PropertySell.owner.email }).exec();
+
+      if (agent) {
+        owner = agent as any;
+      }
+
       if (!owner && !agent) {
         owner = await DB.Models.Owner.create({
           ...PropertySell.owner,
           ownerType: 'Seller',
         });
+        console.log('owner created', owner);
       } else if (agent && !owner) {
         owner = agent as any;
         PropertySell.isApproved = true;
+        console.log('agent found', agent);
       }
+
+      console.log('owner found', owner);
       const newPropertySell = await DB.Models.PropertySell.create({
         ...PropertySell,
         owner: owner._id,
@@ -155,12 +164,27 @@ export class PropertySellController implements IPropertySellController {
    * @param PropertySell
    * @param _id
    */
-  public async update(_id: string, PropertySell: PropertySellProps): Promise<IPropertySell> {
+  public async update(_id: string, PropertySell: PropertySellProps, user?: any): Promise<any> {
     try {
       const owner =
-        (await DB.Models.Owner.findOne({ email: PropertySell.owner.email }).exec()) ||
-        (await DB.Models.Agent.findOne({ email: PropertySell.owner.email }).exec());
+        (await DB.Models.Agent.findOne({ email: PropertySell.owner.email }).exec()) ||
+        (await DB.Models.Owner.findOne({ email: PropertySell.owner.email }).exec());
+
       if (!owner) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Owner not found');
+
+      const propert = await DB.Models.PropertySell.findById(_id);
+
+      console.log('propert', propert);
+      console.log(user);
+
+      if (propert.ownerModel === 'Agent' && PropertySell.owner.email.toLowerCase() !== user?.email.toLowerCase()) {
+        // throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
+        return {
+          success: false,
+          message: 'Unauthorized, Please login',
+        };
+      }
+
       const property = await DB.Models.PropertySell.findOneAndUpdate(
         { _id },
         { ...PropertySell, owner: owner._id },

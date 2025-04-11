@@ -1,10 +1,17 @@
-import { NextFunction, Request, Response, Router } from 'express';
+import { NextFunction, Response, Router } from 'express';
 import { ParamsDictionary } from 'express-serve-static-core';
 
 import { PropertyRentController } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
 import validator from '../common/validator';
+import { IAgentDoc, IAgentModel } from '../models';
 
+interface Request extends Express.Request {
+  user?: any;
+  query?: any;
+  params?: any;
+  body?: any;
+}
 // Init shared
 const router = Router();
 const propertyRentControl = new PropertyRentController();
@@ -14,8 +21,8 @@ const propertyRentControl = new PropertyRentController();
  ******************************************************************************/
 
 router.get('/all', async (req: Request, res: Response) => {
-  const { page, limit } = req.query as ParamsDictionary;
-  const propertys = await propertyRentControl.all(Number(page), Number(limit));
+  const { page, limit, ownerModel } = req.query as ParamsDictionary;
+  const propertys = await propertyRentControl.all(Number(page), Number(limit), ownerModel);
   return res.status(HttpStatusCodes.OK).send(propertys);
 });
 
@@ -78,6 +85,7 @@ router.post('/rent/new', async (req: Request, res: Response, next: NextFunction)
 router.put('/rent/update/:_id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { _id } = req.params as ParamsDictionary;
+    const user = req.user as IAgentDoc;
     if (!_id) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'Property ID is required' });
     }
@@ -94,18 +102,22 @@ router.put('/rent/update/:_id', async (req: Request, res: Response, next: NextFu
       pictures,
     } = validator.validate(req.body, 'propertyRentSchema');
 
-    const response = await propertyRentControl.update(_id, {
-      propertyType,
-      propertyCondition,
-      location,
-      rentalPrice,
-      noOfBedrooms,
-      features,
-      tenantCriteria,
-      owner,
-      areYouTheOwner,
-      pictures,
-    });
+    const response = await propertyRentControl.update(
+      _id,
+      {
+        propertyType,
+        propertyCondition,
+        location,
+        rentalPrice,
+        noOfBedrooms,
+        features,
+        tenantCriteria,
+        owner,
+        areYouTheOwner,
+        pictures,
+      },
+      user
+    );
     return res.status(HttpStatusCodes.OK).json(response);
   } catch (error) {
     next(error);
@@ -118,7 +130,8 @@ router.put('/rent/update/:_id', async (req: Request, res: Response, next: NextFu
 
 router.delete('/rent/delete/:_id', async (req: Request, res: Response) => {
   const { _id } = req.params as ParamsDictionary;
-  await propertyRentControl.delete(_id);
+  const user = req.user as IAgentDoc;
+  await propertyRentControl.delete(_id, '', user);
   return res.status(HttpStatusCodes.OK).end();
 });
 

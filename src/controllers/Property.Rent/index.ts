@@ -1,7 +1,7 @@
 import path from 'path';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import { RouteError } from '../../common/classes';
-import { IPropertyRent } from '../../models/index';
+import { IAgentDoc, IPropertyRent } from '../../models/index';
 import { DB } from '../index';
 import {
   generalTemplate,
@@ -42,7 +42,7 @@ export interface IPropertyRentController {
   getOne: (_id: string) => Promise<IPropertyRent | null>;
   add: (PropertyRent: PropertyRentProps) => Promise<IPropertyRent>;
   update: (_id: string, PropertyRent: PropertyRentProps) => Promise<IPropertyRent>;
-  delete: (_id: string, ownerModel?: string) => Promise<void>;
+  delete: (_id: string, ownerModel?: string, user?: IAgentDoc) => Promise<void>;
 }
 
 export class PropertyRentController implements IPropertyRentController {
@@ -99,6 +99,11 @@ export class PropertyRentController implements IPropertyRentController {
     try {
       let owner = await DB.Models.Owner.findOne({ email: PropertyRent.owner.email }).exec();
       const agent = await DB.Models.Agent.findOne({ email: PropertyRent.owner.email }).exec();
+
+      if (agent) {
+        owner = agent as any;
+      }
+
       if (!owner && !agent) {
         owner = await DB.Models.Owner.create({
           ...PropertyRent.owner,
@@ -148,12 +153,20 @@ export class PropertyRentController implements IPropertyRentController {
    * @param PropertyRent
    * @param _id
    */
-  public async update(_id: string, PropertyRent: PropertyRentProps): Promise<IPropertyRent> {
+  public async update(_id: string, PropertyRent: PropertyRentProps, user?: IAgentDoc): Promise<IPropertyRent> {
     try {
       const owner =
-        (await DB.Models.Owner.findOne({ email: PropertyRent.owner.email }).exec()) ||
-        (await DB.Models.Agent.findOne({ email: PropertyRent.owner.email }).exec());
+        (await DB.Models.Agent.findOne({ email: PropertyRent.owner.email }).exec()) ||
+        (await DB.Models.Owner.findOne({ email: PropertyRent.owner.email }).exec());
+
       if (!owner) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Owner not found');
+
+      const propert = await DB.Models.PropertyRent.findById(_id);
+
+      if (propert.ownerModel === 'Agent' && PropertyRent.owner?.email.toLowerCase() !== user?.email?.toLowerCase()) {
+        throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
+      }
+
       const property = await DB.Models.PropertyRent.findOneAndUpdate(
         { _id },
         { ...PropertyRent, owner: owner._id },
@@ -174,9 +187,18 @@ export class PropertyRentController implements IPropertyRentController {
    *
    * @param id
    */
-  public async delete(_id: string, ownerModel?: string): Promise<void> {
+  public async delete(_id: string, ownerModel?: string, user?: IAgentDoc): Promise<void> {
     try {
-      await DB.Models.PropertyRent.findByIdAndDelete({ _id, ownerModel }).exec();
+      const property = await DB.Models.PropertyRent.findById(_id).exec();
+
+      let owner;
+
+      if (property.ownerModel === 'Agent') {
+        if (String(property?.owner) !== String(user?._id))
+          throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized access, please login');
+      }
+
+      await property.delete();
     } catch (err) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
     }
