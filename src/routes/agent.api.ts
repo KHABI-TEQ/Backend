@@ -258,16 +258,23 @@ router.post('/confirm-property', async (req: Request, res: Response, next: NextF
 
 router.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const rentPreferences = await DB.Models.PropertyRent.find({
-      ownerModel: 'BuyerOrRenter',
-    });
+    // const rentPreferences = await DB.Models.PropertyRent.find({
+    //   ownerModel: 'BuyerOrRenter',
+    // });
+
+    const user = req.user as IAgentDoc;
 
     const sellPreferences = await DB.Models.PropertySell.find({
       ownerModel: 'BuyerOrRenter',
-    });
+      'location.state': user.address.state,
+    }).then((properties) =>
+      properties.map((property) => {
+        const { owner, ...propertyData } = property.toObject();
+        return propertyData;
+      })
+    );
 
     return res.status(200).json({
-      rentPreferences,
       sellPreferences,
       success: true,
     });
@@ -288,7 +295,14 @@ router.get('/requests', async (req: Request, res: Response, next: NextFunction) 
     })
       // .populate({ path: 'propertyId' })
       .populate({ path: 'propertyId' })
-      .populate({ path: 'requestFrom' });
+      .populate({ path: 'requestFrom' })
+      .then((requests) =>
+        requests.map((request) => {
+          const { requestFrom, ...otherData } = request.toObject();
+
+          return otherData;
+        })
+      );
 
     // const property = await DB.Models.PropertySell.findById(requests[0].propertyId);
     // console.log('Property', property);

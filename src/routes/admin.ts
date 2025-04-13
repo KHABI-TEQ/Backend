@@ -24,6 +24,28 @@ AdminRouter.post('/properties', async (req: Request, res: Response, next: NextFu
   }
 });
 
+AdminRouter.get('/request/all', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page, limit, propertyType } = req.query;
+
+    if (!propertyType) {
+      return res.status(400).json({ success: false, message: 'Property type is required' });
+    }
+
+    if (propertyType !== 'PropertySell' && propertyType !== 'PropertyRent') {
+      return res.status(400).json({ success: false, message: 'Invalid property type' });
+    }
+    const requests = await adminController.getPropertyRequests(
+      propertyType as 'PropertySell' | 'PropertyRent',
+      Number(page),
+      Number(limit)
+    );
+    return res.status(200).json({ success: true, requests });
+  } catch (error) {
+    next(error);
+  }
+});
+
 AdminRouter.delete('/delete-property', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { propertyId, propertyType, ownerType } = req.body;

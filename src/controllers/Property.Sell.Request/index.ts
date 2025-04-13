@@ -1,4 +1,8 @@
-import { buyerPropertySellPreferenceTemplate, propertySellPreferenceTemplate } from '../../common/email.template';
+import {
+  buyerPropertySellPreferenceTemplate,
+  generalTemplate,
+  propertySellPreferenceTemplate,
+} from '../../common/email.template';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import { RouteError } from '../../common/classes';
 import { IPropertySell } from '../../models/index';
@@ -120,13 +124,18 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
         ownerModel: 'BuyerOrRenter',
       });
 
-      const mailBody = propertySellPreferenceTemplate(PropertySell);
-      const buyerMailBody = buyerPropertySellPreferenceTemplate(PropertySell);
-      const allAgents = await DB.Models.Agent.find({}).exec();
+      const mailBody = generalTemplate(
+        propertySellPreferenceTemplate({ ...PropertySell, fullName: process.env.ADMIN_EMAIL || 'Khabi Teq Admin' })
+      );
+      const buyerMailBody = generalTemplate(
+        buyerPropertySellPreferenceTemplate({ ...PropertySell, fullName: PropertySell.owner.fullName })
+      );
+      console.log(PropertySell.location.state, 'state');
+      const allAgents = await DB.Models.Agent.find({ 'address.state': PropertySell.location.state }).exec();
       allAgents.forEach(async (agent) => {
         await sendEmail({
           to: agent.email,
-          subject: 'New Property Rent Request',
+          subject: 'New Property Sell Request',
           text: mailBody,
           html: mailBody,
         });
@@ -134,14 +143,14 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
 
       await sendEmail({
         to: process.env.ADMIN_EMAIL,
-        subject: 'Property Rent Request',
+        subject: 'Property Sell Request',
         text: mailBody,
         html: mailBody,
       });
 
       await sendEmail({
         to: PropertySell.owner.email,
-        subject: 'Property Rent Request',
+        subject: 'Property Sell Request',
         text: buyerMailBody,
         html: buyerMailBody,
       });

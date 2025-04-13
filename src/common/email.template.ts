@@ -131,15 +131,13 @@ export const propertyNotAvailableTemplate = (recepientName: string, propertyAddr
 
 export const inspectionScheduledTemplate = (agentName: string, propertyAddress: string, dateTime: string): string => {
   return `
-                                                                <html>
-                                                                <body>
-                                                                                                <p>Dear ${agentName},</p>
-                                                                                                <p>The inspection for ${propertyAddress} has been scheduled for ${dateTime}. Please
-                                                                                                ensure you are available to meet the buyer. Contact us if any issues arise.</p>
-                                                                                                <p>Best regards,<br/>
-                                                                                                Khabi-Teq Realty</p>
-                                                                </body>
-                                                                </html>
+      <div>
+          <p>Dear ${agentName},</p>
+          <p>The inspection for ${propertyAddress} has been scheduled for ${dateTime}. Please
+          ensure you are available to meet the buyer. Contact us if any issues arise.</p>
+          <p>Best regards,<br/>
+          Khabi-Teq Realty</p>
+      </div>
                                 `;
 };
 
@@ -201,55 +199,8 @@ export const accountDisaapproved = (name: string): string => {
 };
 
 export function generatePropertyRentBriefEmail(data: any) {
-  console.log(data);
   return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New Property Rental Brief</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                padding: 20px;
-            }
-            .container {
-                max-width: 600px;
-                margin: 0 auto;
-                background: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            }
-            h2 {
-                color: #333;
-            }
-            p {
-                line-height: 1.6;
-            }
-            .details {
-                background: #f9f9f9;
-                padding: 10px;
-                border-radius: 5px;
-            }
-                .pictures {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center
-                gap: 10px;
-                }
-            .footer {
-                margin-top: 20px;
-                text-align: center;
-                font-size: 14px;
-                color: #777;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
+  <div class="container">
             <h2>New Property Rental Brief Created</h2>
             <p>A new property rental brief has been submitted for rent. Here are the details:</p>
             
@@ -289,62 +240,12 @@ export function generatePropertyRentBriefEmail(data: any) {
             }
             
             ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
-            <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>
         </div>
-    </body>
-    </html>
-    `;
+  `;
 }
 
 export function generatePropertySellBriefEmail(data: any) {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>New Property Brief</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                padding: 20px;
-            }
-            .container {
-                max-width: 900px;
-                margin: 0 auto;
-                background: #fff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            }
-            h2 {
-                color: #333;
-            }
-            p {
-                line-height: 1.6;
-            }
-            .details {
-                background: #f9f9f9;
-                padding: 10px;
-                border-radius: 5px;
-            }
-            .footer {
-                margin-top: 20px;
-                text-align: center;
-                font-size: 14px;
-                color: #777;
-            }
-                .pictures {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center
-                gap: 10px;
-                }
-        </style>
-    </head>
-    <body>
-        <div class="container">
+  return ` <div class="container">
             <h2>New Property Brief Created</h2>
             <p>A new property brief has been submitted for sale. Here are the details:</p>
             
@@ -393,314 +294,156 @@ export function generatePropertySellBriefEmail(data: any) {
             }
             
             ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
-            <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>
-        </div>
-    </body>
-    </html>
-    `;
+            
+        </div>`;
 }
 
 export function propertySellPreferenceTemplate(data: any) {
   return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>New Property Preference</title>
-                <style>
-                        body {
-                                font-family: Arial, sans-serif;
-                                background-color: #f4f4f4;
-                                padding: 20px;
-                        }
-                        .container {
-                                max-width: 600px;
-                                margin: 0 auto;
-                                background: #fff;
-                                padding: 20px;
-                                border-radius: 8px;
-                                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                        }
-                        h2 {
-                                color: #333;
-                        }
-                        p {
-                                line-height: 1.6;
-                        }
-                        .details {
-                                background: #f9f9f9;
-                                padding: 10px;
-                                border-radius: 5px;
-                        }
-                        .footer {
-                                margin-top: 20px;
-                                text-align: center;
-                                font-size: 14px;
-                                color: #777;
-                        }
-                </style>
-        </head>
-        <body>
-                <div class="container">
-                        <h2>New Property Preference</h2>
-                        <p>A new property preference has been submitted. Here are the details:</p>
-                        
-                        <div class="details">
-                                <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                                <p><strong>Location:</strong> ${data.location.state}, ${
+                        <p>Hi ${data.fullName},</p>
+                        <p>A property preference for sale with the following details was submitted:</p>
+                
+                        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+                                <p>Submitted Preference: </p>
+                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                
+                                                        <li><strong>Location:</strong> ${data.location.state}, ${
     data.location.localGovernment
-  }, ${data.location.area}</p>
-                                <p><strong>Price:</strong> ₦${data.price}</p>
-                                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures.noOfBedrooms}</p>
-                                <p><strong>Additional Features:</strong> ${data.propertyFeatures.additionalFeatures.join(
-                                  ', '
-                                )}</p>
-                                <p><strong>Documents on Property:</strong> ${data.docOnProperty
-                                  .map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                                  .join(', ')}</p>
-                                <p><strong>Owner Email:</strong> ${data.owner.email}</p>
-                                <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
-                                <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
-                                <p><strong>Usage Options:</strong> ${data.usageOptions.join(', ')}</p>
-                                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
-                        </div>
-                        
-                        <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>
-                </div>
-        </body>
-        </html>
-        `;
+  }, ${data.location.area}</li>
+                                                        <li><strong>Price Range:</strong> ₦${data.price}</li>
+                                                        <li><strong>Usage Options:</strong> ${
+                                                          data.usageOptions?.join(', ') || 'N/A'
+                                                        }</li>
+                                                        <li><strong>Property Features:</strong>
+                                                        <ul>
+                                                                                        ${Object.entries(
+                                                                                          data.propertyFeatures
+                                                                                        )
+                                                                                          .map(
+                                                                                            ([key, value]) =>
+                                                                                              `<li>${key}: ${value}</li>`
+                                                                                          )
+                                                                                          .join('')}
+                                                        </ul>
+                                                        </li>
+                
+                                        </ul>
+                        <p>Our team will review your submission and contact you if any additional information is needed or once your preference is approved.</p>
+                        <p>Thank you for trusting Khabi-Teq Realty with your property needs.</p>
+                        `;
 }
 
 export function propertyRentPreferenceTemplate(data: any) {
   return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>New Property Rent Preference</title>
-                <style>
-                        body {
-                                font-family: Arial, sans-serif;
-                                background-color: #f4f4f4;
-                                padding: 20px;
-                        }
-                        .container {
-                                max-width: 600px;
-                                margin: 0 auto;
-                                background: #fff;
-                                padding: 20px;
-                                border-radius: 8px;
-                                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                        }
-                        h2 {
-                                color: #333;
-                        }
-                        p {
-                                line-height: 1.6;
-                        }
-                        .details {
-                                background: #f9f9f9;
-                                padding: 10px;
-                                border-radius: 5px;
-                        }
-                        .footer {
-                                margin-top: 20px;
-                                text-align: center;
-                                font-size: 14px;
-                                color: #777;
-                        }
-                </style>
-        </head>
-        <body>
-                <div class="container">
-                        <h2>New Property Rent Preference</h2>
-                        <p>A new property rent preference has been submitted. Here are the details:</p>
-                        
-                        <div class="details">
-                                <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                                <p><strong>Condition:</strong> ${data.propertyCondition}</p>
-                                <p><strong>Location:</strong> ${data.location.state}, ${
+                        <p>Hi ${data.fullName},</p>
+                        <p>A property preference for rent with the following details was submitted:</p>
+                
+                        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+                                <p>Submitted Preference: </p>
+                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                
+                                                        <li><strong>Location:</strong> ${data.location.state}, ${
     data.location.localGovernment
-  }, ${data.location.area}</p>
-                                <p><strong>Rental Price:</strong> ₦${data.rentalPrice}</p>
-                                <p><strong>Number of Bedrooms:</strong> ${data.noOfBedrooms}</p>
-                                <p><strong>Features:</strong> ${data.features
-                                  .map((f: any) => f.featureName)
-                                  .join(', ')}</p>
-                                <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                                  .map((c: any) => c.criteria)
-                                  .join(', ')}</p>
-                                
-                                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
-                        </div>
-                        
-                        <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>
-                </div>
-        </body>
-        </html>
-        `;
+  }, ${data.location.area}</li>
+                                                        <li><strong>Rental Price:</strong> ₦${data.rentalPrice}</li>
+                                                        <li><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+                                                          .map((c: any) => c.criteria)
+                                                          .join(', ')}</li>
+                                                        <li><strong>Property Features:</strong>
+                                                        <ul>
+                                                                                        ${data.features
+                                                                                          .map(
+                                                                                            (feature: any) =>
+                                                                                              `<li>${feature.featureName}</li>`
+                                                                                          )
+                                                                                          .join('')}
+                                                        </ul>
+                                                        </li>
+                
+                                        </ul>
+                        <p>Our team will review your submission and contact you if any additional information is needed or once your preference is approved.</p>
+                        <p>Thank you for trusting Khabi-Teq Realty with your property needs.</p>
+                        `;
 }
 
 export function buyerPropertyRentPreferenceTemplate(data: any) {
   return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>New Property Rent Preference</title>
-                <style>
-                        body {
-                                font-family: Arial, sans-serif;
-                                background-color: #f4f4f4;
-                                padding: 20px;
-                        }
-                        .container {
-                                max-width: 600px;
-                                margin: 0 auto;
-                                background: #fff;
-                                padding: 20px;
-                                border-radius: 8px;
-                                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                        }
-                        h2 {
-                                color: #333;
-                        }
-                        p {
-                                line-height: 1.6;
-                        }
-                        .details {
-                                background: #f9f9f9;
-                                padding: 10px;
-                                border-radius: 5px;
-                        }
-                        .footer {
-                                margin-top: 20px;
-                                text-align: center;
-                                font-size: 14px;
-                                color: #777;
-                        }
-                </style>
-        </head>
-        <body>
-                <div class="container">
-                        <h2>Property Rent Preference Request</h2>
-                        <p>A new property rent preference has been submitted by you. Here are the details:</p>
-                        
-                        <div class="details">
-                                <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                                <p><strong>Condition:</strong> ${data.propertyCondition}</p>
-                                <p><strong>Location:</strong> ${data.location.state}, ${
+                        <p>Hi ${data.fullName},</p>
+                        <p>Thank you for submitting your property rent preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
+                
+                        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+                                <p>Submitted Preference: </p>
+                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                
+                                                        <li><strong>Location:</strong> ${data.location.state}, ${
     data.location.localGovernment
-  }, ${data.location.area}</p>
-                                <p><strong>Rental Price:</strong> ₦${data.rentalPrice}</p>
-                                <p><strong>Number of Bedrooms:</strong> ${data.noOfBedrooms}</p>
-                                <p><strong>Features:</strong> ${data.features
-                                  .map((f: any) => f.featureName)
-                                  .join(', ')}</p>
-                                <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                                  .map((c: any) => c.criteria)
-                                  .join(', ')}</p>
-                                <p><strong>Your Email:</strong> ${data.owner.email}</p>
-                                <p><strong>Your Name:</strong> ${data.owner.fullName}</p>
-                                <p><strong>Your Phone:</strong> ${data.owner.phoneNumber}</p>
-                                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
-                        </div>
-                        
-                        <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>
-                </div>
-        </body>
-        </html>
-        `;
+  }, ${data.location.area}</li>
+                                                        <li><strong>Rental Price:</strong> ₦${data.rentalPrice}</li>
+                                                        <li><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+                                                          .map((c: any) => c.criteria)
+                                                          .join(', ')}</li>
+                                                        <li><strong>Property Features:</strong>
+                                                        <ul>
+                                                                                        ${data.features
+                                                                                          .map(
+                                                                                            (feature: any) =>
+                                                                                              `<li>${feature.featureName}</li>`
+                                                                                          )
+                                                                                          .join('')}
+                                                        </ul>
+                                                        </li>
+                
+                                        </ul>
+                        <p>Our team will review your submission and contact you if any additional information is needed or once your preference is approved.</p>
+                        <p>Thank you for trusting Khabi-Teq Realty with your property needs.</p>
+                        `;
 }
 
 export function buyerPropertySellPreferenceTemplate(data: any) {
   return `
-        <!DOCTYPE html>
-        <html>
-        <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>New Property Preference</title>
-                <style>
-                        body {
-                                font-family: Arial, sans-serif;
-                                background-color: #f4f4f4;
-                                padding: 20px;
-                        }
-                        .container {
-                                max-width: 600px;
-                                margin: 0 auto;
-                                background: #fff;
-                                padding: 20px;
-                                border-radius: 8px;
-                                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                        }
-                        h2 {
-                                color: #333;
-                        }
-                        p {
-                                line-height: 1.6;
-                        }
-                        .details {
-                                background: #f9f9f9;
-                                padding: 10px;
-                                border-radius: 5px;
-                        }
-                        .footer {
-                                margin-top: 20px;
-                                text-align: center;
-                                font-size: 14px;
-                                color: #777;
-                        }
-                </style>
-        </head>
-        <body>
-                <div class="container">
-                        <h2>New Property Request for sale</h2>
-                        <p>A for-sale new property preference has been submitted by you. Here are the details:</p>
-                        
-                        <div class="details">
-                                <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                                <p><strong>Location:</strong> ${data.location.state}, ${
+                        <p>Hi ${data.fullName},</p>
+                        <p>Thank you for submitting your property preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
+                
+                        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+                                <p>Submitted Brief: </p>
+                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                
+                                                        <li><strong>Location:</strong> ${data.location.state}, ${
     data.location.localGovernment
-  }, ${data.location.area}</p>
-                                <p><strong>Price:</strong> ₦${data.price}</p>
-                                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures.noOfBedrooms}</p>
-                                <p><strong>Additional Features:</strong> ${data.propertyFeatures.additionalFeatures.join(
-                                  ', '
-                                )}</p>
-                                <p><strong>Documents on Property:</strong> ${data.docOnProperty
-                                  .map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                                  .join(', ')}</p>
-                                <p><strong>Your Email:</strong> ${data.owner.email}</p>
-                                <p><strong>Your Name:</strong> ${data.owner.fullName}</p>
-                                <p><strong>Your Phone:</strong> ${data.owner.phoneNumber}</p>
-                                <p><strong>Usage Options:</strong> ${data.usageOptions.join(', ')}</p>
-                                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
-                        </div>
-                        
-                        <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>
-                </div>
-        </body>
-        </html>
-        `;
+  }, ${data.location.area}</li>
+                                                        <li><strong>Price Range:</strong> ₦${data.price}</li>
+                                                        <li><strong>Usage Options:</strong> ${
+                                                          data.usageOptions?.join(', ') || 'N/A'
+                                                        }</li>
+                                                        <li><strong>Property Features:</strong>
+                                                        <ul>
+                                                                                        ${Object.entries(
+                                                                                          data.propertyFeatures
+                                                                                        )
+                                                                                          .map(
+                                                                                            ([key, value]) =>
+                                                                                              `<li>${key}: ${value}</li>`
+                                                                                          )
+                                                                                          .join('')}
+                                                        </ul>
+                                                        </li>
+                
+                                        </ul>
+                        <p>Our team will review your submission and contact you if any additional information is needed or once your a preference is found.</p>
+                        <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+                        `;
 }
 
 export function ForgotPasswordVerificationTemplate(email: string, verificationLink: string): string {
   return `
-                        <html>
-                        <body>
+                        <div>
                                 <p>Dear ${email},</p>
                                 <p>You requested to reset your password. Please click the link below to reset your password:</p>
                                 <p>🔗 <a href="${verificationLink}">Reset Password</a></p>
                                 <p>Best regards,<br/>
                                 Khabi-Teq Realty</p>
-                        </body>
-                        </html>
+                        </div>
+                      
                 `;
 }
 

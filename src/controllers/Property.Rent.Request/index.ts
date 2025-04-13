@@ -4,7 +4,11 @@ import { RouteError } from '../../common/classes';
 import { IPropertyRent } from '../../models/index';
 import { DB } from '../index';
 import Fuse from 'fuse.js';
-import { buyerPropertyRentPreferenceTemplate, propertyRentPreferenceTemplate } from '../../common/email.template';
+import {
+  buyerPropertyRentPreferenceTemplate,
+  generalTemplate,
+  propertyRentPreferenceTemplate,
+} from '../../common/email.template';
 import sendEmail from '../../common/send.email';
 
 interface PropertyRentProps {
@@ -98,6 +102,7 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
+        .populate('owner', 'fullName email phoneNumber')
         .exec();
       const total = await DB.Models.PropertyRent.countDocuments({}).exec();
       return { data, total, currentPage: page };
@@ -125,17 +130,21 @@ export class BuyerOrRentPropertyRentController implements IBuyerOrRentPropertyRe
         ownerModel: 'BuyerOrRenter',
       });
 
-      const mailBody = propertyRentPreferenceTemplate(PropertyRent);
-      const buyerMailBody = buyerPropertyRentPreferenceTemplate(PropertyRent);
-      const allAgents = await DB.Models.Agent.find({}).exec();
-      allAgents.forEach(async (agent) => {
-        await sendEmail({
-          to: agent.email,
-          subject: 'New Property Rent Request',
-          text: mailBody,
-          html: mailBody,
-        });
-      });
+      const mailBody = generalTemplate(
+        propertyRentPreferenceTemplate({ ...PropertyRent, fullName: 'Khabi Teq Admin' })
+      );
+      const buyerMailBody = generalTemplate(
+        buyerPropertyRentPreferenceTemplate({ ...PropertyRent, fullName: PropertyRent.owner.fullName })
+      );
+      // const allAgents = await DB.Models.Agent.find({'address.state': PropertyRent.location.state}).exec();
+      // allAgents.forEach(async (agent) => {
+      //   await sendEmail({
+      //     to: agent.email,
+      //     subject: 'New Property Rent Request',
+      //     text: mailBody,
+      //     html: mailBody,
+      //   });
+      // });
 
       await sendEmail({
         to: process.env.ADMIN_EMAIL,

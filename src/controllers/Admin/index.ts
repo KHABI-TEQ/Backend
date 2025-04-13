@@ -265,4 +265,37 @@ export class AdminController {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }
+
+  public async getPropertyRequests(propertyType: 'PropertySell' | 'PropertyRent', page: number, limit: number) {
+    const requests = await DB.Models.PropertyRequest.find({ propertyModel: propertyType })
+      .populate('requestFrom')
+      .populate({
+        path: 'propertyId',
+        populate: {
+          path: 'owner',
+          select: 'email firstName lastName phoneNumber fullName',
+        },
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip((page - 1) * limit)
+      .exec()
+      .then((requests) => {
+        return requests.map((request) => {
+          const { propertyId, requestFrom, ...otherRequestDetails } = request.toObject();
+          return {
+            ...otherRequestDetails,
+            property: propertyId,
+            buyer: requestFrom,
+          };
+        });
+      });
+
+    const total = await DB.Models.PropertyRequest.countDocuments({ propertyModel: propertyType }).exec();
+    return {
+      data: requests,
+      total,
+      currentPage: page,
+    };
+  }
 }

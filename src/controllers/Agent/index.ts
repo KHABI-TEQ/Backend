@@ -336,7 +336,9 @@ export class AgentController implements IAgentController {
 
       const resetPasswordLink = process.env.CLIENT_LINK + '/agent/auth/reset-password?token=' + token;
       console.log('resetPasswordLink', resetPasswordLink);
-      const mailBody = ForgotPasswordVerificationTemplate(user.firstName || user.email, resetPasswordLink);
+      const mailBody = generalTemplate(
+        ForgotPasswordVerificationTemplate(user.firstName || user.email, resetPasswordLink)
+      );
 
       await sendEmail({
         to: email,
@@ -431,10 +433,12 @@ export class AgentController implements IAgentController {
         const calendlyLink = `${process.env.CLIENT_LINK}/slots?token=${encodedData}`;
         console.log('calendlyLink', calendlyLink);
 
-        mailBody = propertyAvailableTemplate(
-          requester.fullName || requester.email,
-          `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`,
-          calendlyLink
+        mailBody = generalTemplate(
+          propertyAvailableTemplate(
+            requester.fullName || requester.email,
+            `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`,
+            calendlyLink
+          )
         );
 
         await DB.Models.PropertyRequest.findByIdAndUpdate(requestId, { status: 'Accepted' }).exec();

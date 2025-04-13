@@ -28,11 +28,15 @@ export class PropertyRequestController implements IPropertRequestController {
       .findById(propertyId)
       .populate({
         path: 'owner',
-        select: 'email fullName',
+        select: 'email fullName firstName',
       })
       .exec();
     if (!property) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+    }
+
+    if (property.ownerModel === 'BuyerOrRenter') {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'You cannot request this property');
     }
 
     if (!property.isAvailable) {
@@ -64,7 +68,7 @@ export class PropertyRequestController implements IPropertRequestController {
     });
 
     const mailBodyAgent = agentNotificationTemplate(
-      (property.owner as any).fullName as string,
+      ((property.owner as any).firstName as string) || (property.owner as any).fullName,
       `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`
     );
 
@@ -157,10 +161,12 @@ export class PropertyRequestController implements IPropertRequestController {
     await propertyRequest.save();
 
     // Send Email Notification
-    const mailBody = inspectionScheduledTemplate(
-      (property.owner as any).email as string,
-      `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`,
-      inspectionDate as any
+    const mailBody = generalTemplate(
+      inspectionScheduledTemplate(
+        (property.owner as any).email as string,
+        `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`,
+        inspectionDate as any
+      )
     );
 
     await sendEmail({

@@ -87,18 +87,28 @@ export class PropertySellController implements IPropertySellController {
           .exec();
         return {
           data,
-          total: await DB.Models.PropertySell.find({ ownerModel, isApproved }).countDocuments({}),
+          total: await DB.Models.PropertySell.find({ ownerModel }).countDocuments({}),
           currentPage: page,
         };
       } else {
-        const data = await DB.Models.PropertySell.find({ isApproved })
+        const data = await DB.Models.PropertySell.find({
+          isApproved,
+          ownerModel: {
+            $not: { $eq: 'BuyerOrRenter' },
+          },
+        })
           .skip(skip)
           .limit(limit)
           .sort({ createdAt: -1 })
           .exec();
         return {
           data,
-          total: await DB.Models.PropertySell.countDocuments({ isApproved }),
+          total: await DB.Models.PropertySell.countDocuments({
+            isApproved,
+            ownerModel: {
+              $not: { $eq: 'BuyerOrRenter' },
+            },
+          }),
           currentPage: page,
         };
       }
@@ -150,7 +160,7 @@ export class PropertySellController implements IPropertySellController {
         text: generalMailTemplate,
         html: generalMailTemplate,
       });
-      const mailBody1 = generatePropertySellBriefEmail({ ...PropertySell, isAdmin: true });
+      const mailBody1 = generalTemplate(generatePropertySellBriefEmail({ ...PropertySell, isAdmin: true }));
 
       await sendEmail({
         to: adminEmail,

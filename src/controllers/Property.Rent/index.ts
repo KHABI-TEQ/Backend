@@ -72,20 +72,32 @@ export class PropertyRentController implements IPropertyRentController {
   ): Promise<{ data: IPropertyRent[]; total: number; currentPage: number }> {
     try {
       if (!ownerModel) {
-        const data = await DB.Models.PropertyRent.find({ isApproved })
+        const data = await DB.Models.PropertyRent.find({
+          isApproved,
+          ownerModel: {
+            $not: { $eq: 'BuyerOrRenter' },
+          },
+        })
           .skip((page - 1) * limit)
           .limit(limit)
           .sort({ createdAt: -1 })
           .exec();
-        const total = await DB.Models.PropertyRent.countDocuments({ isApproved }).exec();
+        const total = await DB.Models.PropertyRent.countDocuments({
+          isApproved,
+          ownerModel: {
+            $not: { $eq: 'BuyerOrRenter' },
+          },
+        }).exec();
         return { data, total, currentPage: page };
       }
-      const data = await DB.Models.PropertyRent.find({ ownerModel, isApproved })
+      console.log(ownerModel, isApproved);
+      const data = await DB.Models.PropertyRent.find({ ownerModel })
+        .populate('owner', 'fullName email phoneNumber')
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec();
-      const total = await DB.Models.PropertyRent.find({ ownerModel, isApproved }).countDocuments().exec();
+      const total = await DB.Models.PropertyRent.find({ ownerModel }).countDocuments().exec();
       return { data, total, currentPage: page };
     } catch (err) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
@@ -121,7 +133,7 @@ export class PropertyRentController implements IPropertyRentController {
         ownerModel: owner && !agent ? 'PropertyOwner' : 'Agent',
       });
 
-      const mailBody = generatePropertyRentBriefEmail({ ...PropertyRent, isAdmin: true });
+      const mailBody = generalTemplate(generatePropertyRentBriefEmail({ ...PropertyRent, isAdmin: true }));
 
       const adminEmail = process.env.ADMIN_EMAIL || '';
 
