@@ -49,6 +49,17 @@ export class AdminController {
       } else {
         return await this.propertyRentController.all(page, limit, ownerType);
       }
+    } else if (propertyType === 'all') {
+      const propertyRent = await this.propertyRentController.all(page, limit, 'all');
+      const propertySell = await this.propertySellController.all(page, limit, 'all');
+      return {
+        data: {
+          rents: propertyRent.data,
+          sells: propertySell.data,
+          success: true,
+          message: 'Properties fetched successfully',
+        },
+      };
     } else {
       if (ownerType === 'BuyerOrRenter') {
         return await this.buyerOrRenterPropertySellController.all(page, limit);

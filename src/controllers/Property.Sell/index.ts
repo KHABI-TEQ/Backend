@@ -79,7 +79,7 @@ export class PropertySellController implements IPropertySellController {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid page or limit');
       }
       const skip = (page - 1) * limit;
-      if (ownerModel) {
+      if (ownerModel !== 'all' && ownerModel) {
         const data = await DB.Models.PropertySell.find({ ownerModel })
           .skip(skip)
           .limit(limit)
@@ -90,6 +90,18 @@ export class PropertySellController implements IPropertySellController {
           total: await DB.Models.PropertySell.find({ ownerModel }).countDocuments({}),
           currentPage: page,
         };
+      } else if (ownerModel === 'all') {
+        const data = await DB.Models.PropertySell.find({})
+          .populate('owner', 'firstName lastName fullName email phoneNumber')
+          .skip(skip)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .exec();
+        return {
+          data,
+          total: await DB.Models.PropertySell.countDocuments({}),
+          currentPage: page,
+        };
       } else {
         const data = await DB.Models.PropertySell.find({
           isApproved,
@@ -97,6 +109,7 @@ export class PropertySellController implements IPropertySellController {
             $not: { $eq: 'BuyerOrRenter' },
           },
         })
+          .populate('owner', 'firstName lastName fullName email phoneNumber')
           .skip(skip)
           .limit(limit)
           .sort({ createdAt: -1 })

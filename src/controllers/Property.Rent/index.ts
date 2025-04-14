@@ -89,10 +89,21 @@ export class PropertyRentController implements IPropertyRentController {
           },
         }).exec();
         return { data, total, currentPage: page };
+      } else if (ownerModel === 'all') {
+        const data = await DB.Models.PropertyRent.find({})
+          .populate('owner', 'firstName lastName fullName email phoneNumber')
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .sort({ createdAt: -1 })
+          .exec();
+        const total = await DB.Models.PropertyRent.countDocuments({}).exec();
+        return { data, total, currentPage: page };
       }
+
       console.log(ownerModel, isApproved);
+
       const data = await DB.Models.PropertyRent.find({ ownerModel })
-        .populate('owner', 'fullName email phoneNumber')
+        .populate('owner', 'firstName lastName fullName email phoneNumber')
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
