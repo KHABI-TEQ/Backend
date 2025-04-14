@@ -449,50 +449,10 @@ export function ForgotPasswordVerificationTemplate(email: string, verificationLi
 
 export function PropertyApprovedOrDisapprovedTemplate(name: string, status: string, data: any): string {
   return `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Property ${status}</title>
-                        <style>
-                                body {
-                                        font-family: Arial, sans-serif;
-                                        background-color: #f4f4f4;
-                                        padding: 20px;
-                                }
-                                .container {
-                                        max-width: 600px;
-                                        margin: 0 auto;
-                                        background: #fff;
-                                        padding: 20px;
-                                        border-radius: 8px;
-                                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                                }
-                                h2 {
-                                        color: #333;
-                                }
-                                p {
-                                        line-height: 1.6;
-                                }
-                                .details {
-                                        background: #f9f9f9;
-                                        padding: 10px;
-                                        border-radius: 5px;
-                                }
-                                .footer {
-                                        margin-top: 20px;
-                                        text-align: center;
-                                        font-size: 14px;
-                                        color: #777;
-                                }
-                        </style>
-                </head>
-                <body>
-                        <div class="container">
+<div class="">
                         <h1> Hello ${name},</h1>
                                 <h2>Property ${status}</h2>
-                                <p>Your property ${status} successfully. Here are the details:</p>
+                                <p>Your property was ${status}. Here are the details:</p>
                                 
                                 <div class="details">
                                         <p><strong>Property Type:</strong> ${data.propertyType}</p>
@@ -518,10 +478,6 @@ export function PropertyApprovedOrDisapprovedTemplate(name: string, status: stri
                                             )
                                             .join(', ') || 'N/A'
                                         }</p>
-                                        <p><strong>Owner Email:</strong> ${data.owner.email}</p>
-                                        <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
-                                        <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
-                                        <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
                                         <p><strong>Usage Options:</strong> ${data.usageOptions?.join(', ') || 'N/A'}</p>
                                         <p><strong>Availability:</strong> ${data.isAvailable ? 'Yes' : 'No'}</p>
                                         <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
@@ -542,106 +498,26 @@ export function PropertyApprovedOrDisapprovedTemplate(name: string, status: stri
                                 `
                                     : ''
                                 }
-                                
-                                <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>                   </div>       </body>           </html>           `;
+</div>
+  `;
 }
 export function DeactivateOrActivateAgent(name: string, status: boolean, reason: string): string {
   return `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                        <meta charset="UTF-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <title>Agent ${status}</title>
-                        <style>
-                                body {
-                                        font-family: Arial, sans-serif;
-                                        background-color: #f4f4f4;
-                                        padding: 20px;
-                                }
-                                .container {
-                                        max-width: 600px;
-                                        margin: 0 auto;
-                                        background: #fff;
-                                        padding: 20px;
-                                        border-radius: 8px;
-                                        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                                }
-                                h2 {
-                                        color: #333;
-                                }
-                                p {
-                                        line-height: 1.6;
-                                }
-                                .details {
-                                        background: #f9f9f9;
-                                        padding: 10px;
-                                        border-radius: 5px;
-                                }
-                                .footer {
-                                        margin-top: 20px;
-                                        text-align: center;
-                                        font-size: 14px;
-                                        color: #777;
-                                }
-                        </style>
-                </head>
-                <body>
-                        <div class="container">
+                        <div class="">
                         <h1> Hello ${name},</h1>
                                 <h2>Agent ${status ? 'Deactivated' : 'Activated'}</h2>
                                 <p>Your agent account has been ${status ? 'deactivated or suspended' : 'activated'}</p>
                                 ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
-                                <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>                   </div>       </body>           </html>           `;
+                                   `;
 }
 export function DeleteAgent(name: string, reason: string): string {
   return `
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                                <meta charset="UTF-8">
-                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                <title>Agent Deleted</title>
-                                <style>
-                                        body {
-                                                font-family: Arial, sans-serif;
-                                                background-color: #f4f4f4;
-                                                padding: 20px;
-                                        }
-                                        .container {
-                                                max-width: 600px;
-                                                margin: 0 auto;
-                                                background: #fff;
-                                                padding: 20px;
-                                                border-radius: 8px;
-                                                box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                                        }
-                                        h2 {
-                                                color: #333;
-                                        }
-                                        p {
-                                                line-height: 1.6;
-                                        }
-                                        .details {
-                                                background: #f9f9f9;
-                                                padding: 10px;
-                                                border-radius: 5px;
-                                        }
-                                        .footer {
-                                                margin-top: 20px;
-                                                text-align: center;
-                                                font-size: 14px;
-                                                color: #777;
-                                        }
-                                </style>
-                        </head>
-                        <body>
-                                <div class="container">
+                                <div class="">
                                 <h1> Hello ${name},</h1>
                                         <h2>Agent Deleted</h2>
                                         <p>Your agent account has been deleted. Due to: </p>
                                         ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
-                                        <div class="footer">&copy; ${new Date().getFullYear()} Khabi-Teq</div>                   </div>       </body>           </html>           `;
+                                           `;
 }
 
 export function PropertyReceivedTemplate(ownerName: string, property: any): string {

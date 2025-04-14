@@ -108,17 +108,39 @@ export class AdminController {
   public async approveOrDisapproveProperty(propertyType: string, _id: string, status: boolean) {
     let property, owner;
     if (propertyType === 'rent') {
-      property = await DB.Models.PropertyRent.findByIdAndUpdate(_id, { isApproved: status }).populate('owner').exec();
+      property = await DB.Models.PropertyRent.findOneAndUpdate(
+        {
+          _id,
+          ownerModel: {
+            $ne: 'BuyerOrRenter',
+          },
+        },
+        { isApproved: status }
+      )
+        .populate('owner')
+        .exec();
     } else {
-      property = await DB.Models.PropertySell.findByIdAndUpdate(_id, { isApproved: status }).populate('owner').exec();
+      property = await DB.Models.PropertySell.findOneAndUpdate(
+        {
+          _id,
+          ownerModel: {
+            $ne: 'BuyerOrRenter',
+          },
+        },
+        { isApproved: status }
+      )
+        .populate('owner')
+        .exec();
     }
 
     if (!property) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
 
-    const mailBody = PropertyApprovedOrDisapprovedTemplate(
-      (property?.owner as any).fullName as any,
-      status ? 'approved' : 'disapproved',
-      property
+    const mailBody = generalTemplate(
+      PropertyApprovedOrDisapprovedTemplate(
+        ((property?.owner as any).fullName as any) || (property?.owner as any).firstName,
+        status ? 'approved' : 'disapproved',
+        property
+      )
     );
 
     await sendEmail({
@@ -127,6 +149,8 @@ export class AdminController {
       html: mailBody,
       text: mailBody,
     });
+
+    return status ? 'Property approved' : 'Property disapproved';
   }
 
   public async deactivateAgent(_id: string, inActiveSatatus: boolean, reason: string) {
@@ -146,7 +170,7 @@ export class AdminController {
         await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
       });
 
-      const mailBody = DeactivateOrActivateAgent(agent.fullName, inActiveSatatus, reason);
+      const mailBody = generalTemplate(DeactivateOrActivateAgent(agent.fullName, inActiveSatatus, reason));
 
       await sendEmail({
         to: agent.email,
@@ -178,7 +202,7 @@ export class AdminController {
         await DB.Models.PropertySell.findByIdAndDelete(property._id).exec();
       });
 
-      const mailBody = DeleteAgent(agent.firstName, reason);
+      const mailBody = generalTemplate(DeleteAgent(agent.firstName, reason));
 
       await sendEmail({
         to: agent.email,
