@@ -90,8 +90,12 @@ export class PropertyRentController implements IPropertyRentController {
         }).exec();
         return { data, total, currentPage: page };
       } else if (ownerModel === 'all') {
-        const data = await DB.Models.PropertyRent.find({})
-          .populate('owner', 'firstName lastName fullName email phoneNumber')
+        const data = await DB.Models.PropertyRent.find({
+          ownerModel: {
+            $not: { $eq: 'BuyerOrRenter' },
+          },
+        })
+          .populate('owner', 'firstName lastName agentType fullName email phoneNumber')
           .skip((page - 1) * limit)
           .limit(limit)
           .sort({ createdAt: -1 })
@@ -103,7 +107,7 @@ export class PropertyRentController implements IPropertyRentController {
       console.log(ownerModel, isApproved);
 
       const data = await DB.Models.PropertyRent.find({ ownerModel })
-        .populate('owner', 'firstName lastName fullName email phoneNumber')
+        .populate('owner', 'firstName lastName agentType fullName email phoneNumber')
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })

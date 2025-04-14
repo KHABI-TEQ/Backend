@@ -91,8 +91,12 @@ export class PropertySellController implements IPropertySellController {
           currentPage: page,
         };
       } else if (ownerModel === 'all') {
-        const data = await DB.Models.PropertySell.find({})
-          .populate('owner', 'firstName lastName fullName email phoneNumber')
+        const data = await DB.Models.PropertySell.find({
+          ownerModel: {
+            $not: { $eq: 'BuyerOrRenter' },
+          },
+        })
+          .populate('owner', 'firstName agentType lastName fullName email phoneNumber')
           .skip(skip)
           .limit(limit)
           .sort({ createdAt: -1 })
@@ -109,7 +113,7 @@ export class PropertySellController implements IPropertySellController {
             $not: { $eq: 'BuyerOrRenter' },
           },
         })
-          .populate('owner', 'firstName lastName fullName email phoneNumber')
+          .populate('owner', 'firstName agentType lastName fullName email phoneNumber')
           .skip(skip)
           .limit(limit)
           .sort({ createdAt: -1 })
