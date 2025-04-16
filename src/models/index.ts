@@ -7,3 +7,4 @@ export * from './buyer';
 export * from './property.request';
 export * from './inspection.booking';
 export * from './inspection.slot';
+export * from './admin';

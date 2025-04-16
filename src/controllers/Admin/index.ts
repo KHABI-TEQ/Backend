@@ -16,8 +16,9 @@ import { PropertyRequestController } from '../Property.Request';
 import { PropertySellController } from '../Property.Sell';
 import { BuyerOrRentPropertySellController } from '../Property.Sell.Request';
 import sendEmail from '../../common/send.email';
-import { RouteError } from '../../common/classes';
+import { RouteError, signJwt } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
+import bcrypt from 'bcryptjs';
 
 export class AdminController {
   private agentController = new AgentController();
@@ -50,6 +51,19 @@ export class AdminController {
         return await this.propertyRentController.all(page, limit, ownerType);
       }
     } else if (propertyType === 'all') {
+      if (ownerType === 'BuyerOrRenter') {
+        const propertyRentPreference = await this.buyerOrRentePropertyController.all(page, limit);
+        const propertySellPreference = await this.buyerOrRenterPropertySellController.all(page, limit);
+
+        return {
+          data: {
+            rents: propertyRentPreference.data,
+            sells: propertySellPreference.data,
+            success: true,
+            message: 'Properties fetched successfully',
+          },
+        };
+      }
       const propertyRent = await this.propertyRentController.all(page, limit, 'all');
       const propertySell = await this.propertySellController.all(page, limit, 'all');
       return {
@@ -332,5 +346,36 @@ export class AdminController {
       total,
       currentPage: page,
     };
+  }
+
+  public async login(adminCred: { email: string; password: string }): Promise<any> {
+    try {
+      const { password } = adminCred;
+
+      const email = adminCred.email.toLowerCase().trim();
+      const admin = await DB.Models.Admin.findOne({ email });
+      if (!admin) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin not found');
+
+      if (!admin.password) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid Password');
+
+      const isMatch = await bcrypt.compare(password, admin.password);
+      if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid password');
+
+      const payload = {
+        email: admin.email,
+        role: admin.role,
+        id: admin._id,
+      };
+
+      admin.isAccountInRecovery = false;
+
+      await admin.save();
+
+      const token = signJwt(payload);
+
+      return { admin: admin.toObject(), token: token };
+    } catch (err) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, err.message);
+    }
   }
 }

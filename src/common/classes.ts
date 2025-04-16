@@ -50,6 +50,10 @@ export const signJwt = (data: any) => {
   return jwt.sign(data, process.env.JWT_SECRET, { expiresIn: '2d' });
 };
 
+export const signJwtAdmin = (data: any) => {
+  return jwt.sign(data, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
+};
+
 export const getMimeType = (filename: string): string => {
   const extname = path.extname(filename).toLowerCase();
   switch (extname) {

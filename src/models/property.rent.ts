@@ -26,7 +26,7 @@ export interface IPropertyRent {
   pictures?: string[];
   isApproved: boolean;
   isRejected?: boolean;
-  landSize: number;
+  // landSize: number;
 }
 
 export interface IPropertyRentDoc extends IPropertyRent, Document {}

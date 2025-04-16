@@ -129,23 +129,24 @@ export class PropertyRentController implements IPropertyRentController {
       const agent = await DB.Models.Agent.findOne({ email: PropertyRent.owner.email }).exec();
 
       if (agent) {
-        owner = agent as any;
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "An agent can't upload a property for rent");
       }
 
-      if (!owner && !agent) {
+      if (!owner) {
         owner = await DB.Models.Owner.create({
           ...PropertyRent.owner,
           ownerType: 'LandLord',
         });
-      } else if (agent && !owner) {
-        owner = agent as any;
-        PropertyRent.isApproved = true;
       }
+      //  else if (agent && !owner) {
+      //   owner = agent as any;
+      //   PropertyRent.isApproved = true;
+      // }
 
       const newPropertyRent = await DB.Models.PropertyRent.create({
         ...PropertyRent,
         owner: owner._id,
-        ownerModel: owner && !agent ? 'PropertyOwner' : 'Agent',
+        ownerModel: 'PropertyOwner',
       });
 
       const mailBody = generalTemplate(generatePropertyRentBriefEmail({ ...PropertyRent, isAdmin: true }));

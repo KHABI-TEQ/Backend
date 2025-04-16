@@ -4,6 +4,16 @@ import { AdminController } from '../controllers/Admin';
 const AdminRouter = express.Router();
 const adminController = new AdminController();
 
+AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password } = req.body;
+    const admin = await adminController.login({ email, password });
+    return res.status(200).json({ success: true, admin });
+  } catch (error) {
+    next(error);
+  }
+});
+
 AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const users = await adminController.getAllUsers();

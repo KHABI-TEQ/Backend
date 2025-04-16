@@ -24,6 +24,13 @@ import { propertyNotAvailableTemplate } from '../../common/email.template';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID as string);
 
+const ADMINS = [
+  'khabiteqrealty@gmail.com',
+  'akanjiabayomi2@gmail.com',
+  'abdulsalamasheem@gmail.com',
+  'oluwafemiomolounnu@gmail.com',
+];
+
 // Define an interface for the response
 interface GoogleUserInfo extends TokenPayload {}
 
@@ -317,6 +324,14 @@ export class AgentController implements IAgentController {
 
       if (!user.accountApproved) {
         return { user: user.toObject(), token: token, isAccountApproved: false };
+      }
+
+      if (ADMINS.includes(user.email)) {
+        const findAdmin = await DB.Models.Admin.findOne({ email: user.email }).exec();
+        if (!findAdmin)
+          await DB.Models.Admin.create({
+            ...user.toObject(),
+          });
       }
       return { user: user.toObject(), token: token };
     } catch (err) {
