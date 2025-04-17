@@ -90,7 +90,10 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
     limit: number
   ): Promise<{ data: IPropertySell[]; total: number; currentPage: number }> {
     try {
-      const data = await DB.Models.PropertySell.find({})
+      const data = await DB.Models.PropertySell.find({
+        ownerModel: 'BuyerOrRenter',
+      })
+        .populate('owner', 'email phoneNumber fullName')
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();

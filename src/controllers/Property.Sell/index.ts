@@ -79,7 +79,8 @@ export class PropertySellController implements IPropertySellController {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid page or limit');
       }
       const skip = (page - 1) * limit;
-      if (ownerModel !== 'all' && ownerModel) {
+      if (ownerModel !== 'all' && !ownerModel) {
+        console.log('Fetching data for ownerModel:', ownerModel);
         const data = await DB.Models.PropertySell.find({ ownerModel })
           .skip(skip)
           .limit(limit)
@@ -107,12 +108,20 @@ export class PropertySellController implements IPropertySellController {
           currentPage: page,
         };
       } else {
-        const data = await DB.Models.PropertySell.find({
-          isApproved,
-          ownerModel: {
-            $not: { $eq: 'BuyerOrRenter' },
-          },
-        })
+        const filter =
+          ownerModel === 'Agent'
+            ? {
+                ownerModel: {
+                  $not: { $eq: 'BuyerOrRenter' },
+                  $eq: ownerModel,
+                },
+              }
+            : {
+                ownerModel: {
+                  $nin: ['BuyerOrRenter', 'Agent'],
+                },
+              };
+        const data = await DB.Models.PropertySell.find(filter)
           .populate('owner', 'firstName agentType lastName fullName email phoneNumber')
           .skip(skip)
           .limit(limit)
@@ -121,7 +130,7 @@ export class PropertySellController implements IPropertySellController {
         return {
           data,
           total: await DB.Models.PropertySell.countDocuments({
-            isApproved,
+            // isApproved,
             ownerModel: {
               $not: { $eq: 'BuyerOrRenter' },
             },
