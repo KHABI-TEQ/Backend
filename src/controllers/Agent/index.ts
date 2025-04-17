@@ -29,6 +29,7 @@ const ADMINS = [
   'akanjiabayomi2@gmail.com',
   'abdulsalamasheem@gmail.com',
   'oluwafemiomolounnu@gmail.com',
+  'sammiebeechh@gmail.com',
 ];
 
 // Define an interface for the response

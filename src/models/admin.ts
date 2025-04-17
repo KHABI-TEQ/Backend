@@ -16,6 +16,7 @@ export interface IAdmin {
   fullName?: string;
   profile_picture: string;
   role: string;
+  isVerifed: boolean;
 }
 
 export interface IAdminDoc extends IAdmin, Document {}

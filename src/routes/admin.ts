@@ -1,14 +1,52 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express, { NextFunction, Response } from 'express';
 import { AdminController } from '../controllers/Admin';
+import { IAdmin, IAdminDoc } from '../models';
+import { authorizeAdmin } from './admin.authorize';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
+
+interface Request extends Express.Request {
+  body?: any;
+  params?: any;
+  query?: any;
+  admin?: any;
+}
 
 AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
     const admin = await adminController.login({ email, password });
     return res.status(200).json({ success: true, admin });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password, firstName, lastName, phoneNumber, address } = req.body;
+    const admin = await adminController.createAdmin({
+      email,
+      firstName,
+      lastName,
+      phoneNumber,
+      address,
+    });
+    return res.status(200).json({ success: true, admin });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/change-password', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const admin = req.admin as IAdminDoc;
+    const { newPassword } = req.body;
+
+    const response = await adminController.changePassword(admin._id, newPassword);
+
+    return res.status(200).json({ success: true, message: response });
   } catch (error) {
     next(error);
   }

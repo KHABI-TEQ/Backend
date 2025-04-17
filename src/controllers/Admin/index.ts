@@ -16,7 +16,7 @@ import { PropertyRequestController } from '../Property.Request';
 import { PropertySellController } from '../Property.Sell';
 import { BuyerOrRentPropertySellController } from '../Property.Sell.Request';
 import sendEmail from '../../common/send.email';
-import { RouteError, signJwt } from '../../common/classes';
+import { RouteError, signJwt, signJwtAdmin } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import bcrypt from 'bcryptjs';
 
@@ -28,6 +28,8 @@ export class AdminController {
   private buyerOrRentePropertyController = new BuyerOrRentPropertyRentController();
   private buyerOrRenterPropertySellController = new BuyerOrRentPropertySellController();
   private readonly ownerTypes = ['PropertyOwner', 'BuyerOrRenter', 'Agent'];
+
+  private readonly defaultPassword = 'KhabiTeqRealty@123';
 
   public async getAllUsers() {
     const propertyOwners = await DB.Models.Owner.find().exec();
@@ -371,11 +373,61 @@ export class AdminController {
 
       await admin.save();
 
-      const token = signJwt(payload);
+      const token = signJwtAdmin(payload);
 
       return { admin: admin.toObject(), token: token };
     } catch (err) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, err.message);
+    }
+  }
+
+  public async createAdmin(adminCred: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    address: string;
+  }) {
+    try {
+      const { email, firstName, lastName, phoneNumber, address } = adminCred;
+
+      const existingAdmin = await DB.Models.Admin.findOne({ email: email.toLowerCase().trim() }).exec();
+      if (existingAdmin) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin with this email already exists');
+      }
+
+      const hashedPassword = await bcrypt.hash(this.defaultPassword, 10);
+
+      const newAdmin = new DB.Models.Admin({
+        email: email.toLowerCase().trim(),
+        firstName,
+        lastName,
+        phoneNumber,
+        address,
+        password: hashedPassword,
+      });
+
+      await newAdmin.save();
+
+      return { message: 'Admin created successfully', admin: newAdmin.toObject() };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async changePassword(adminId: string, newPassword: string) {
+    try {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      const admin = await DB.Models.Admin.findByIdAndUpdate(adminId, {
+        password: hashedPassword,
+        isVerifed: true,
+      }).exec();
+      if (!admin) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Admin not found');
+
+      return { message: 'Password changed successfully' };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }
 }
