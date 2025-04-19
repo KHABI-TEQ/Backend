@@ -41,6 +41,111 @@ export class AdminController {
     return { propertyOwners, buyerOrRenters, agents };
   }
 
+  public async groupPropsWithOwner(
+    ownerModel: 'PropertySell' | 'PropertyRent',
+    ownerType: string,
+    page?: number,
+    limit?: number
+  ) {
+    const groupedProperties = await DB.Models[ownerModel].aggregate([
+      {
+        $lookup: {
+          from: ownerType, // or 'agents', 'buyerorrenters', depending on ownerModel
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'ownerDetails',
+          pipeline: [
+            {
+              $project: {
+                firstName: 1,
+                lastName: 1,
+                email: 1,
+                fullName: 1,
+                phoneNumber: 1,
+                agentType: 1,
+                createdAt: 1,
+                updatedAt: 1,
+              },
+            },
+          ],
+        },
+      },
+      {
+        $unwind: '$ownerDetails',
+      },
+      {
+        $group: {
+          _id: '$owner',
+          ownerInfo: { $first: '$ownerDetails' },
+          properties: { $push: '$$ROOT' },
+        },
+      },
+      { $sort: { 'properties.0.createdAt': -1 } },
+
+      // Pagination
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
+
+      {
+        $project: {
+          _id: 0,
+          ownerId: '$_id',
+          ownerInfo: 1,
+          properties: {
+            $map: {
+              input: '$properties',
+              as: 'property',
+              in: {
+                _id: '$$property._id',
+                propertyType: '$$property.propertyType',
+                location: '$$property.location',
+                price: '$$property.price',
+                docOnProperty: '$$property.docOnProperty',
+                propertyFeatures: '$$property.propertyFeatures',
+                owner: '$$property.owner',
+                ownerModel: '$$property.ownerModel',
+                areYouTheOwner: '$$property.areYouTheOwner',
+                usageOptions: '$$property.usageOptions',
+                isAvailable: '$$property.isAvailable',
+                budgetRange: '$$property.budgetRange',
+                pictures: '$$property.pictures',
+                isApproved: '$$property.isApproved',
+                isRejected: '$$property.isRejected',
+                landSize: '$$property.landSize',
+                tenantCriteria: '$$property.tenantCriteria',
+                noOfBedrooms: '$$property.noOfBedrooms',
+                createdAt: '$$property.createdAt',
+                updatedAt: '$$property.updatedAt',
+              },
+            },
+          },
+        },
+      },
+    ]);
+
+    return groupedProperties;
+  }
+
+  public async getAllPropertiesWithOwnersGrouped(userType: string, page: number, limit: number) {
+    // if (!this.ownerTypes.includes(ownerType)) {
+    //   throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');
+    // }
+    if (userType === 'seller') {
+      return await this.groupPropsWithOwner('PropertySell', 'propertyowners', page, limit);
+    } else if (userType === 'landlord') {
+      return await this.groupPropsWithOwner('PropertyRent', 'propertyowners', page, limit);
+    } else if (userType === 'buyer') {
+      const rentPrefencees = await this.groupPropsWithOwner('PropertyRent', 'buyerorrenters', page, limit);
+      const sellPreferences = await this.groupPropsWithOwner('PropertySell', 'propertyowners', page, limit);
+
+      return { rentPrefencees, sellPreferences };
+    } else if (userType === 'agent') {
+      return await this.groupPropsWithOwner('PropertySell', 'agents', page, limit);
+    } else {
+      return [];
+    }
+  }
+
   public async getProperties(propertyType: string, ownerType: string, page: number, limit: number) {
     if (!this.ownerTypes.includes(ownerType)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');

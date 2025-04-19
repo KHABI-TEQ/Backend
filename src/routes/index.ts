@@ -32,8 +32,10 @@ router.post('/upload-image', upload.single('file'), async (req: Request, res: Re
     // Convert the buffer to a Base64 string
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
+    const filename = Date.now() + '-' + 'property-image-' + req?.file?.originalname?.replace(/\s+/g, '-').toLowerCase();
+
     // Upload to Cloudinary
-    const uploadImg = await cloudinary.uploadFile(fileBase64, 'property-image', 'property-images');
+    const uploadImg = await cloudinary.uploadFile(fileBase64, filename, 'property-images');
 
     console.log(uploadImg);
 

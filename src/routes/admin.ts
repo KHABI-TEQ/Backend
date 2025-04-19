@@ -165,4 +165,16 @@ AdminRouter.post('/upgrade-agent', async (req: Request, res: Response, next: Nex
   }
 });
 
+AdminRouter.post('/properties-users', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userType, page, limit } = req.body;
+
+    const properties = await adminController.getAllPropertiesWithOwnersGrouped(userType, page, limit);
+
+    return res.status(200).json(properties);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default AdminRouter;
