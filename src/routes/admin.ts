@@ -2,6 +2,7 @@ import express, { NextFunction, Response } from 'express';
 import { AdminController } from '../controllers/Admin';
 import { IAdmin, IAdminDoc } from '../models';
 import { authorizeAdmin } from './admin.authorize';
+import { DB } from '../controllers';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -47,6 +48,24 @@ AdminRouter.post('/change-password', authorizeAdmin, async (req: Request, res: R
     const response = await adminController.changePassword(admin._id, newPassword);
 
     return res.status(200).json({ success: true, message: response });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/agent/:agentId/properties', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.params;
+    const { page, limit } = req.query;
+    console.log(agentId, page, limit);
+    const properties = await DB.Models.PropertySell.find({ owner: agentId })
+      .populate('owner')
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+
+      .exec();
+
+    return res.status(200).json({ success: true, properties, page: Number(page), limit: Number(limit) });
   } catch (error) {
     next(error);
   }
