@@ -81,14 +81,14 @@ export class PropertySellController implements IPropertySellController {
       const skip = (page - 1) * limit;
       if (ownerModel !== 'all' && !ownerModel) {
         console.log('Fetching data for ownerModel:', ownerModel);
-        const data = await DB.Models.PropertySell.find({ ownerModel })
+        const data = await DB.Models.PropertySell.find({ isApproved: true })
           .skip(skip)
           .limit(limit)
           .sort({ createdAt: -1 })
           .exec();
         return {
           data,
-          total: await DB.Models.PropertySell.find({ ownerModel }).countDocuments({}),
+          total: await DB.Models.PropertySell.find({ isApproved: true }).countDocuments({}),
           currentPage: page,
         };
       } else if (ownerModel === 'all') {
