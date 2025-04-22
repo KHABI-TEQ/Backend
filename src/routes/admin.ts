@@ -156,8 +156,8 @@ AdminRouter.delete('/delete-agent/:id', async (req: Request, res: Response, next
 
 AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page, limit, activeStatus } = req.query;
-    const agents = await adminController.getAgents(Number(page), Number(limit), (activeStatus as string) === 'true');
+    const { page, limit, activeStatus, type } = req.query;
+    const agents = await adminController.getAgents(Number(page), Number(limit), type);
     return res.status(200).json({ success: true, agents });
   } catch (error) {
     next(error);

@@ -365,15 +365,44 @@ export class AdminController {
     }
   }
 
-  public async getAgents(page: number, limit: number, active: boolean) {
-    const agents = await DB.Models.Agent.find({ isInActive: active })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .exec();
-    const total = await DB.Models.Agent.countDocuments({ isInActive: active }).exec();
+  public async getAgents(page: number, limit: number, type: string) {
+    const totalActiveAgents = await DB.Models.Agent.countDocuments({ isInActive: false }).exec();
+    const totalInactiveAgents = await DB.Models.Agent.countDocuments({ isInActive: true }).exec();
+    const totalAgents = await DB.Models.Agent.countDocuments({}).exec();
+    const totalFlaggedAgents = await DB.Models.Agent.countDocuments({ isFlagged: true }).exec();
+
+    let agents;
+
+    if (type === 'active') {
+      agents = await DB.Models.Agent.find({ isInActive: false })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec();
+    } else if (type === 'inactive') {
+      agents = await DB.Models.Agent.find({ isInActive: true })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec();
+    } else if (type === 'flagged') {
+      agents = await DB.Models.Agent.find({ isFlagged: true })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec();
+    } else if (type === 'all') {
+      agents = await DB.Models.Agent.find({})
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec();
+    } else {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid agent type');
+    }
+
     return {
       data: agents,
-      total,
+      totalActiveAgents,
+      totalInactiveAgents,
+      totalFlaggedAgents,
+      totalAgents,
       currentPage: page,
     };
   }
