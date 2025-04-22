@@ -174,6 +174,17 @@ AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: Nex
   }
 });
 
+AdminRouter.put('/agent/flag/:agentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.params;
+    console.log(agentId);
+    await DB.Models.Agent.findByIdAndUpdate(agentId, { isFlagged: true });
+    return res.status(200).json({ success: true, message: 'Agent flagged successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 AdminRouter.post('/upgrade-agent', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agentId, approved } = req.body;

@@ -47,6 +47,7 @@ export interface IAgent {
     requestDate?: Date;
     approvedDate?: Date;
   };
+  isFlagged: boolean;
 }
 
 export interface IAgentDoc extends IAgent, Document {}
@@ -110,6 +111,7 @@ export class Agent {
           requestDate: { type: Date, default: Date.now },
           approvedDate: { type: Date },
         },
+        isFlagged: { type: Boolean, default: false },
       },
       {
         timestamps: true,
