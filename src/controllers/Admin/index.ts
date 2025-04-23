@@ -291,7 +291,7 @@ export class AdminController {
         await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
       });
 
-      const mailBody = generalTemplate(DeactivateOrActivateAgent(agent.fullName, inActiveSatatus, reason));
+      const mailBody = generalTemplate(DeactivateOrActivateAgent(agent.firstName, inActiveSatatus, reason));
 
       await sendEmail({
         to: agent.email,
@@ -560,6 +560,21 @@ export class AdminController {
       if (!admin) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Admin not found');
 
       return { message: 'Password changed successfully' };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async updateProperty(propertyId: string, propertyType: string, propertyData: any) {
+    try {
+      if (propertyType === 'rent') {
+        await this.propertyRentController.update(propertyId, propertyData);
+      } else if (propertyType === 'sell') {
+        await this.propertySellController.update(propertyId, propertyData, 'Admin');
+      } else {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid property type');
+      }
+      return { message: 'Property updated successfully' };
     } catch (error) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }

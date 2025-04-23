@@ -207,4 +207,15 @@ AdminRouter.post('/properties-users', async (req: Request, res: Response, next: 
   }
 });
 
+AdminRouter.put('/property/:propertyId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { propertyId } = req.params;
+    const { propertyType, propertyData } = req.body;
+    const response = await adminController.updateProperty(propertyId, propertyType, propertyData);
+    return res.status(200).json({ success: true, response });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default AdminRouter;

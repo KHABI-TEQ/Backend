@@ -215,15 +215,14 @@ export class PropertySellController implements IPropertySellController {
 
       const propert = await DB.Models.PropertySell.findById(_id);
 
-      console.log('propert', propert);
-      console.log(user);
-
-      if (propert.ownerModel === 'Agent' && PropertySell.owner.email.toLowerCase() !== user?.email.toLowerCase()) {
-        // throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
-        return {
-          success: false,
-          message: 'Unauthorized, Please login',
-        };
+      if (user !== 'Admin') {
+        if (propert.ownerModel === 'Agent' && PropertySell.owner.email.toLowerCase() !== user?.email.toLowerCase()) {
+          // throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
+          return {
+            success: false,
+            message: 'Unauthorized, Please login',
+          };
+        }
       }
 
       const property = await DB.Models.PropertySell.findOneAndUpdate(

@@ -185,14 +185,14 @@ export class PropertyRentController implements IPropertyRentController {
   public async update(_id: string, PropertyRent: PropertyRentProps, user?: IAgentDoc): Promise<IPropertyRent> {
     try {
       const owner =
-        (await DB.Models.Agent.findOne({ email: PropertyRent.owner.email }).exec()) ||
-        (await DB.Models.Owner.findOne({ email: PropertyRent.owner.email }).exec());
+        // (await DB.Models.Agent.findOne({ email: PropertyRent.owner.email }).exec()) ||
+        await DB.Models.Owner.findOne({ email: PropertyRent.owner.email }).exec();
 
       if (!owner) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Owner not found');
 
       const propert = await DB.Models.PropertyRent.findById(_id);
 
-      if (propert.ownerModel === 'Agent' && PropertyRent.owner?.email.toLowerCase() !== user?.email?.toLowerCase()) {
+      if (PropertyRent.owner?.email.toLowerCase() !== user?.email?.toLowerCase()) {
         throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
       }
 
