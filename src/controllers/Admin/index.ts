@@ -568,7 +568,7 @@ export class AdminController {
   public async updateProperty(propertyId: string, propertyType: string, propertyData: any) {
     try {
       if (propertyType === 'rent') {
-        await this.propertyRentController.update(propertyId, propertyData);
+        await this.propertyRentController.update(propertyId, propertyData, 'Admin' as any);
       } else if (propertyType === 'sell') {
         await this.propertySellController.update(propertyId, propertyData, 'Admin');
       } else {
