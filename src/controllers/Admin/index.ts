@@ -136,7 +136,7 @@ export class AdminController {
       return await this.groupPropsWithOwner('PropertyRent', 'propertyowners', page, limit);
     } else if (userType === 'buyer') {
       const rentPrefencees = await this.groupPropsWithOwner('PropertyRent', 'buyerorrenters', page, limit);
-      const sellPreferences = await this.groupPropsWithOwner('PropertySell', 'propertyowners', page, limit);
+      const sellPreferences = await this.groupPropsWithOwner('PropertySell', 'buyerorrenters', page, limit);
 
       return { rentPrefencees, sellPreferences };
     } else if (userType === 'agent') {
