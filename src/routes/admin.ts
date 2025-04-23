@@ -180,7 +180,9 @@ AdminRouter.put('/agent/flag/:agentId/:status', async (req: Request, res: Respon
     const { agentId, status } = req.params;
     const isFlagged = status === 'true' ? true : false;
     await DB.Models.Agent.findByIdAndUpdate(agentId, { isFlagged: isFlagged });
-    return res.status(200).json({ success: true, message: 'Agent flagged successfully' });
+    return res
+      .status(200)
+      .json({ success: true, message: isFlagged ? 'Agent flagged successfully' : 'Agent unflagged successfully' });
   } catch (error) {
     next(error);
   }
