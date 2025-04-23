@@ -291,7 +291,9 @@ export class AdminController {
         await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
       });
 
-      const mailBody = generalTemplate(DeactivateOrActivateAgent(agent.firstName, inActiveSatatus, reason));
+      const mailBody = generalTemplate(
+        DeactivateOrActivateAgent(agent.firstName || agent.lastName || agent.email, inActiveSatatus, reason)
+      );
 
       await sendEmail({
         to: agent.email,
