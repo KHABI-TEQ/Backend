@@ -62,10 +62,11 @@ AdminRouter.get('/agent/:agentId/properties', async (req: Request, res: Response
       .populate('owner')
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-
       .exec();
 
-    return res.status(200).json({ success: true, properties, page: Number(page), limit: Number(limit) });
+    const total = await DB.Models.PropertySell.countDocuments({ owner: agentId }).exec();
+
+    return res.status(200).json({ success: true, properties, page: Number(page), limit: Number(limit), total });
   } catch (error) {
     next(error);
   }
@@ -174,11 +175,11 @@ AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: Nex
   }
 });
 
-AdminRouter.put('/agent/flag/:agentId', async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.put('/agent/flag/:agentId/:status', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { agentId } = req.params;
-    console.log(agentId);
-    await DB.Models.Agent.findByIdAndUpdate(agentId, { isFlagged: true });
+    const { agentId, status } = req.params;
+    const isFlagged = status === 'true' ? true : false;
+    await DB.Models.Agent.findByIdAndUpdate(agentId, { isFlagged: isFlagged });
     return res.status(200).json({ success: true, message: 'Agent flagged successfully' });
   } catch (error) {
     next(error);

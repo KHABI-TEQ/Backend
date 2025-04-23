@@ -368,7 +368,7 @@ export class AdminController {
   }
 
   public async getAgents(page: number, limit: number, type: string) {
-    const totalActiveAgents = await DB.Models.Agent.countDocuments({ isInActive: false }).exec();
+    const totalActiveAgents = await DB.Models.Agent.countDocuments({ isInActive: false, accountApproved: true }).exec();
     const totalInactiveAgents = await DB.Models.Agent.countDocuments({ isInActive: true }).exec();
     const totalAgents = await DB.Models.Agent.countDocuments({}).exec();
     const totalFlaggedAgents = await DB.Models.Agent.countDocuments({ isFlagged: true }).exec();
@@ -376,22 +376,31 @@ export class AdminController {
     let agents;
 
     if (type === 'active') {
-      agents = await DB.Models.Agent.find({ isInActive: false })
+      agents = await DB.Models.Agent.find({ isInActive: false, accountApproved: true })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'inactive') {
-      agents = await DB.Models.Agent.find({ isInActive: true })
+      agents = await DB.Models.Agent.find({ isInActive: true, accountApproved: true })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'flagged') {
-      agents = await DB.Models.Agent.find({ isFlagged: true })
+      agents = await DB.Models.Agent.find({ isFlagged: true, accountApproved: true })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'all') {
       agents = await DB.Models.Agent.find({})
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .exec();
+    } else if (type === 'onboarding') {
+      agents = await DB.Models.Agent.find({
+        agentType: {
+          $nin: ['Individual', 'Company'],
+        },
+      })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
