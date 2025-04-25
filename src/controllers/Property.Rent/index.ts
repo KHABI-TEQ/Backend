@@ -51,7 +51,7 @@ export class PropertyRentController implements IPropertyRentController {
    */
   public async getOne(_id: string): Promise<IPropertyRent | null> {
     try {
-      const data = await DB.Models.PropertyRent.find({ _id, ownerModel: 'PropertyOwner' }).exec();
+      const data = await DB.Models.PropertyRent.find({ _id }).exec();
       if (data) {
         return data[0];
       }
