@@ -68,13 +68,13 @@ export class PropertyRequestController implements IPropertRequestController {
     });
 
     const mailBodyAgent = agentNotificationTemplate(
-      ((property.owner as any).firstName as string) || (property.owner as any).fullName,
-      `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`
+      ((property?.owner as any)?.firstName as string) || (property?.owner as any)?.fullName,
+      `${property.location.area}, ${property?.location?.localGovernment}, ${property?.location?.state}`
     );
 
     const mailBodyRequester = propertyRequestTemplate(
-      requestFrom.fullName,
-      `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`
+      requestFrom?.fullName,
+      `${property?.location?.area}, ${property?.location?.localGovernment}, ${property?.location?.state}`
     );
 
     // const adminMailBody =
@@ -83,14 +83,14 @@ export class PropertyRequestController implements IPropertRequestController {
     const mailRequester = generalTemplate(mailBodyRequester);
 
     await sendEmail({
-      to: (property.owner as any).email,
+      to: (property.owner as any)?.email,
       subject: 'Inspection Request Confirmed – Action Required',
       text: 'Inspection Request Confirmed – Action Required',
       html: mailAgent,
     });
 
     await sendEmail({
-      to: requestFrom.email,
+      to: requestFrom?.email,
       subject: 'Your Inspection Request is Being Processed',
       text: 'Your Inspection Request is Being Processed',
       html: mailRequester,
