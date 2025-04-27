@@ -24,6 +24,10 @@ export interface IPropertRequestController {
 export class PropertyRequestController implements IPropertRequestController {
   public async requestProperty(PropertyRequest: IPropertyRequest): Promise<void> {
     const { propertyId, requestFrom, propertyType } = PropertyRequest;
+
+    if (propertyType !== 'PropertySell' && propertyType !== 'PropertyRent') {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid property type');
+    }
     const property = await DB.Models[propertyType]
       .findById(propertyId)
       .populate({
