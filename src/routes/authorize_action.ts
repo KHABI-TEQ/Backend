@@ -33,17 +33,17 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
 
         console.log('Decoded:', decoded);
 
-        const agent = await DB.Models.Agent.findById(decoded.id);
+        const user = await DB.Models.User.findById(decoded.id);
 
-        if (!agent) {
-          return res.status(401).json({ message: 'Agent not found' });
+        if (!user) {
+          return res.status(401).json({ message: 'User not found' });
         }
 
-        if (req.url !== '/onboard' && !agent.accountApproved) {
+        if (req.url !== '/onboard' && !user.accountApproved) {
           return res.status(403).json({ message: 'Account not approved, You cannot perform this action' });
         }
 
-        req.user = agent;
+        req.user = user;
         next();
       });
     }

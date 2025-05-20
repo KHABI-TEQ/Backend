@@ -8,3 +8,5 @@ export * from './property.request';
 export * from './inspection.booking';
 export * from './inspection.slot';
 export * from './admin';
+export * from './user';
+export * from './property';

@@ -192,11 +192,11 @@ export class PropertyRentController implements IPropertyRentController {
 
       const propert = await DB.Models.PropertyRent.findById(_id);
 
-      if ((user as any) !== 'Admin') {
-        if (PropertyRent.owner?.email.toLowerCase() !== user?.email?.toLowerCase()) {
-          throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
-        }
-      }
+      // if ((user as any) !== 'Admin') {
+      //   if (PropertyRent.owner?.email.toLowerCase() !== user?.email?.toLowerCase()) {
+      //     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized, Please login');
+      //   }
+      // }
 
       const property = await DB.Models.PropertyRent.findOneAndUpdate(
         { _id },

@@ -4,8 +4,8 @@ import { RouteError } from '../classes';
 import HttpStatusCodes from '../HttpStatusCodes';
 
 enum validatorSchemaNames {
-  agentSignupSchema = 'agentSignupSchema',
-  agentLoginSchema = 'agentLoginSchema',
+  userSignupSchema = 'userSignupSchema',
+  userLoginSchema = 'userLoginSchema',
   agentOnboardSchema = 'agentOnboardSchema',
   propertySellSchema = 'propertySellSchema',
   propertyRentSchema = 'propertyRentSchema',
@@ -23,7 +23,52 @@ class Validator {
     this.passwordRegex = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{6,}$/;
   }
 
-  private agentSignupSchema = joi.object({
+  // private agentSignupSchema = joi.object({
+  //   email: joi.string().email().required(),
+  //   password: joi
+  //     .string()
+  //     .min(8)
+  //     .max(30)
+  //     .custom((value, helpers) => {
+  //       if (!/[A-Z].*[a-z]/.test(value)) {
+  //         return helpers.error('string.minOfUppercase');
+  //       }
+  //       // if (!/[a-z].*[a-z]/.test(value)) {
+  //       //   return helpers.error('string.minOfLowercase');
+  //       // }
+  //       // if (!/[0-9].*[0-9]/.test(value)) {
+  //       //   return helpers.error('string.minOfNumeric');
+  //       // }
+  //       if (!/[^a-zA-Z0-9].*[^a-zA-Z0-9]/.test(value)) {
+  //         return helpers.error('string.minOfSpecialCharacters');
+  //       }
+  //       // if (/\s/.test(value)) {
+  //       //   return helpers.error('string.noWhiteSpaces');
+  //       // }
+  //       // if (!/^[\x00-\x7F]+$/.test(value)) {
+  //       //   return helpers.error('string.onlyLatinCharacters');
+  //       // }
+  //       if (/\bpassword\b/i.test(value)) {
+  //         return helpers.error('string.doesNotInclude');
+  //       }
+  //       return value;
+  //     })
+  //     .messages({
+  //       'string.minOfUppercase': 'Password must contain at least 1 uppercase letters.',
+  //       // 'string.minOfLowercase': 'Password must contain at least 2 lowercase letters.',
+  //       // 'string.minOfNumeric': 'Password must contain at least 2 numbers.',
+  //       'string.minOfSpecialCharacters': 'Password must contain at least 2 special characters.',
+  //       // 'string.noWhiteSpaces': 'Password cannot contain whitespace.',
+  //       // 'string.onlyLatinCharacters': 'Password must contain only Latin characters.',
+  //       'string.doesNotInclude': 'Password cannot include the word "password".',
+  //     })
+  //     .required(),
+  //   lastName: joi.string().required(),
+  //   firstName: joi.string().required(),
+  //   phoneNumber: joi.string().required(),
+  // });
+
+  private userSignupSchema = joi.object({
     email: joi.string().email().required(),
     password: joi
       .string()
@@ -66,13 +111,14 @@ class Validator {
     lastName: joi.string().required(),
     firstName: joi.string().required(),
     phoneNumber: joi.string().required(),
+    userType: joi.string().valid('Agent', 'Landowners').required(),
   });
 
   private googleSignupSchema = joi.object({
     idToken: joi.string().required(),
   });
 
-  private agentLoginSchema = joi.object({
+  private userLoginSchema = joi.object({
     email: joi.string().email().required(),
     password: joi.string().required(),
   });

@@ -17,6 +17,11 @@ import {
   InspectionBooking,
   IAdminModel,
   Admin,
+  IUserModel,
+  User,
+  IProperty,
+  Property,
+  IPropertyModel,
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
 
@@ -30,6 +35,8 @@ declare interface IModels {
   InspectionSlot: IInspectionSlotModel;
   InspectionBooking: IInspectionBookingModel;
   Admin: IAdminModel;
+  User: IUserModel;
+  Property: IPropertyModel;
 }
 
 export class DB {
@@ -58,6 +65,8 @@ export class DB {
       InspectionSlot: new InspectionSlot().model,
       InspectionBooking: new InspectionBooking().model,
       Admin: new Admin().model,
+      User: new User().model,
+      Property: new Property().model,
     };
   }
 

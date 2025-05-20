@@ -1,20 +1,6 @@
 import { Schema, model, Document, Model } from 'mongoose';
 
 export interface IAgent {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  isAccountInRecovery: boolean;
-  address: {
-    street: string;
-    // city: string;
-    state: string;
-    localGovtArea: string;
-  };
-  fullName?: string;
-  profile_picture: string;
   regionOfOperation: string[];
   agentType: string;
   companyAgent: {
@@ -25,7 +11,6 @@ export interface IAgent {
     typeOfId: string;
     // idNumber: string;
   };
-  isAccountVerified: boolean;
   isInActive?: boolean;
   isDeleted?: boolean;
   accountApproved?: boolean;
@@ -48,6 +33,7 @@ export interface IAgent {
     approvedDate?: Date;
   };
   isFlagged: boolean;
+  userId: string;
 }
 
 export interface IAgentDoc extends IAgent, Document {}

@@ -126,8 +126,8 @@ AdminRouter.delete('/delete-property', async (req: Request, res: Response, next:
 
 AdminRouter.post('/approve-disapprove-property', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { propertyId, propertyType, status } = req.body;
-    const response = await adminController.approveOrDisapproveProperty(propertyType, propertyId, status);
+    const { propertyId, status } = req.body;
+    const response = await adminController.approveOrDisapproveProperty(propertyId, status);
     return res.status(200).json({ success: true, response });
   } catch (error) {
     next(error);

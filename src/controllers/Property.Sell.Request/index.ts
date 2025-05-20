@@ -137,7 +137,7 @@ export class BuyerOrRentPropertySellController implements IBuyerOrRentPropertySe
       const allAgents = await DB.Models.Agent.find({ 'address.state': PropertySell.location.state }).exec();
       allAgents.forEach(async (agent) => {
         await sendEmail({
-          to: agent.email,
+          to: (agent as any).email as any,
           subject: 'New Property Sell Request',
           text: mailBody,
           html: mailBody,

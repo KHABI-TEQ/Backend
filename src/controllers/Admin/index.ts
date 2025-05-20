@@ -36,7 +36,7 @@ export class AdminController {
 
     const buyerOrRenters = await DB.Models.BuyerOrRent.find().exec();
 
-    const agents = await DB.Models.Agent.find().exec();
+    const agents = await DB.Models.User.find().exec();
 
     return { propertyOwners, buyerOrRenters, agents };
   }
@@ -226,35 +226,13 @@ export class AdminController {
     }
   }
 
-  public async approveOrDisapproveProperty(propertyType: string, _id: string, status: boolean) {
+  public async approveOrDisapproveProperty(_id: string, status: boolean) {
     let property, owner;
-    if (propertyType === 'rent') {
-      property = await DB.Models.PropertyRent.findOneAndUpdate(
-        {
-          _id,
-          ownerModel: {
-            $ne: 'BuyerOrRenter',
-          },
-        },
-        { isApproved: status }
-      )
-        .populate('owner')
-        .exec();
-    } else {
-      property = await DB.Models.PropertySell.findOneAndUpdate(
-        {
-          _id,
-          ownerModel: {
-            $ne: 'BuyerOrRenter',
-          },
-        },
-        { isApproved: status }
-      )
-        .populate('owner')
-        .exec();
-    }
+    property = await DB.Models.Property.updateOne({ _id }, { isApproved: status }).exec();
 
     if (!property) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+
+    property = await DB.Models.Property.findById(_id).populate('owner').exec();
 
     const mailBody = generalTemplate(
       PropertyApprovedOrDisapprovedTemplate(
@@ -276,7 +254,7 @@ export class AdminController {
 
   public async deactivateAgent(_id: string, inActiveSatatus: boolean, reason: string) {
     try {
-      const agent = await DB.Models.Agent.findByIdAndUpdate(_id, { isInActive: inActiveSatatus }).exec();
+      const agent = await DB.Models.User.findByIdAndUpdate(_id, { isInActive: inActiveSatatus }).exec();
 
       if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
@@ -310,7 +288,7 @@ export class AdminController {
 
   public async deleteAgent(_id: string, reason: string) {
     try {
-      const agent = await DB.Models.Agent.findByIdAndDelete(_id).exec();
+      const agent = await DB.Models.User.findByIdAndDelete(_id).exec();
 
       if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
@@ -342,11 +320,13 @@ export class AdminController {
 
   public async approveAgent(_id: string, approved: boolean) {
     try {
-      const agent = await DB.Models.Agent.findByIdAndUpdate(_id, { accountApproved: approved }).exec();
+      const userAcct = await DB.Models.User.findByIdAndUpdate(_id, { accountApproved: approved }).exec();
 
-      if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      if (!userAcct) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
-      const body = approved ? accountApproved(agent.firstName) : accountDisaapproved(agent.firstName);
+      const agent = await DB.Models.Agent.findByIdAndUpdate({ userId: userAcct._id }, { accountApproved: true }).exec();
+
+      const body = approved ? accountApproved(userAcct.firstName) : accountDisaapproved(userAcct.firstName);
 
       const subject = approved
         ? 'Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!'
@@ -355,7 +335,7 @@ export class AdminController {
       const mailBody = generalTemplate(body);
 
       await sendEmail({
-        to: agent.email,
+        to: userAcct.email,
         subject: subject,
         text: mailBody,
         html: mailBody,
@@ -368,35 +348,35 @@ export class AdminController {
   }
 
   public async getAgents(page: number, limit: number, type: string) {
-    const totalActiveAgents = await DB.Models.Agent.countDocuments({ isInActive: false, accountApproved: true }).exec();
-    const totalInactiveAgents = await DB.Models.Agent.countDocuments({ isInActive: true }).exec();
-    const totalAgents = await DB.Models.Agent.countDocuments({}).exec();
-    const totalFlaggedAgents = await DB.Models.Agent.countDocuments({ isFlagged: true }).exec();
+    const totalActiveAgents = await DB.Models.User.countDocuments({ isInActive: false, accountApproved: true }).exec();
+    const totalInactiveAgents = await DB.Models.User.countDocuments({ isInActive: true }).exec();
+    const totalAgents = await DB.Models.User.countDocuments({}).exec();
+    const totalFlaggedAgents = await DB.Models.User.countDocuments({ isFlagged: true }).exec();
 
     let agents;
 
     if (type === 'active') {
-      agents = await DB.Models.Agent.find({ isInActive: false, accountApproved: true })
+      agents = await DB.Models.User.find({ isInActive: false, accountApproved: true })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'inactive') {
-      agents = await DB.Models.Agent.find({ isInActive: true, accountApproved: true })
+      agents = await DB.Models.User.find({ isInActive: true, accountApproved: true })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'flagged') {
-      agents = await DB.Models.Agent.find({ isFlagged: true, accountApproved: true })
+      agents = await DB.Models.User.find({ isFlagged: true, accountApproved: true })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'all') {
-      agents = await DB.Models.Agent.find({})
+      agents = await DB.Models.User.find({})
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'onboarding') {
-      agents = await DB.Models.Agent.find({
+      agents = await DB.Models.User.find({
         agentType: {
           $nin: ['Individual', 'Company'],
         },
@@ -420,7 +400,10 @@ export class AdminController {
 
   public async approveUpgradeRequest(_id: string, approved: boolean) {
     try {
-      const agent = await DB.Models.Agent.findById(_id).exec();
+      const user = await DB.Models.User.findById(_id).exec();
+      if (!user) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+
+      const agent = await DB.Models.Agent.findOne({ userId: user._id }).exec();
       if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
       const updateData = approved
@@ -442,15 +425,15 @@ export class AdminController {
             isInUpgrade: false,
           };
 
-      await DB.Models.Agent.findByIdAndUpdate(_id, updateData).exec();
+      await DB.Models.User.findByIdAndUpdate(_id, updateData).exec();
 
       const body = approved
-        ? accountUpgradeApprovedTemplate(agent.firstName)
-        : accountUpgradeDisapprovedTemplate(agent.firstName);
+        ? accountUpgradeApprovedTemplate(user.firstName)
+        : accountUpgradeDisapprovedTemplate(user.firstName);
       const mailBody = generalTemplate(body);
 
       await sendEmail({
-        to: agent.email,
+        to: user.email,
         subject: 'Update on Your KhabiTeqRealty Application',
         text: mailBody,
         html: mailBody,

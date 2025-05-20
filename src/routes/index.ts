@@ -13,6 +13,8 @@ import { DB, PropertyRequestController } from '../controllers';
 import { RouteError } from '../common/classes';
 import jwt from 'jsonwebtoken';
 import AdminRouter from './admin';
+import propertyRouter from './property';
+import { UserRouter } from './user.api';
 
 const router = express.Router();
 
@@ -102,6 +104,8 @@ router.use('/properties/rents', PropertyRentRouter);
 router.use('/properties/sell', PropertySellRouter);
 router.use('/properties/buy/request', BuyPropertySellRequest);
 router.use('/properties/rent/request', RentPropertyRentRequest);
+router.use('/properties', propertyRouter);
+router.use('/user', UserRouter);
 
 // Add one more middleware namely `authorize` after passport.authenticate to authorize user for access
 // console `req.user` and `req` in authorize middleware
