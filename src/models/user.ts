@@ -56,6 +56,7 @@ export class User {
         accountApproved: { type: Boolean, default: false },
         accountStatus: { type: String, enum: ['active', 'inactive', 'deleted'], default: 'active' },
         isFlagged: { type: Boolean, default: false },
+        userType: { type: String, enum: ['Landowners', 'Agent'] },
       },
       {
         timestamps: true,
