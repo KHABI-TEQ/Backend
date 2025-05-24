@@ -22,8 +22,8 @@ export interface IUser {
   accountApproved?: boolean;
   accountStatus?: string;
   userType: string;
-
   isFlagged: boolean;
+  accountId: string;
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -57,6 +57,7 @@ export class User {
         accountStatus: { type: String, enum: ['active', 'inactive', 'deleted'], default: 'active' },
         isFlagged: { type: Boolean, default: false },
         userType: { type: String, enum: ['Landowners', 'Agent'] },
+        accountId: { type: String },
       },
       {
         timestamps: true,

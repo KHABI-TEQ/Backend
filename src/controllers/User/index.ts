@@ -35,6 +35,22 @@ export class UserController {
     this.userModel = DB.Models.User;
   }
 
+  public async generateAccountiD(): Promise<string> {
+    let randomString = Math.random().toString(36).substring(2, 10);
+    let isFound = false;
+
+    while (!isFound) {
+      const user = await DB.Models.User.findOne({ accountId: randomString }).exec();
+      if (user) {
+        randomString = Math.random().toString(36).substring(2, 10);
+      } else {
+        isFound = true;
+      }
+    }
+
+    return randomString;
+  }
+
   public async signup(
     email: string,
     password: string,
@@ -49,6 +65,7 @@ export class UserController {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User already exists');
     }
     const passwordHash = await bcrypt.hash(password, 10);
+    const accountId = await this.generateAccountiD();
     const newUser = await DB.Models.User.create({
       email,
       password: passwordHash,
@@ -56,6 +73,9 @@ export class UserController {
       firstName,
       phoneNumber,
       userType,
+      accountId,
+      accountApproved: userType === 'Landowners' ? true : false,
+      accountStatus: userType === 'Landowners' ? 'active' : 'inactive',
     });
     if (!newUser) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Error creating user');
@@ -75,7 +95,7 @@ export class UserController {
     return { message: 'Signup successful, please verify your email' };
   }
 
-  public async googleSignup(idToken: string): Promise<IUser & { token: string }> {
+  public async googleSignup(idToken: string, userType: string): Promise<IUser & { token: string }> {
     //GOOGLE AUTHENTICATION
     const verifyUserWithGoogle = await verifyIdToken(idToken);
 
@@ -92,12 +112,17 @@ export class UserController {
     if (userExists) {
       throw new RouteError(HttpStatusCodes.CONFLICT, 'User already exists');
     }
+    const accountId = await this.generateAccountiD();
 
     const newUser = await DB.Models.User.create({
       email,
       fullName: name,
       profile_picture: picture,
       isAccountVerified: true,
+      accountId,
+      userType,
+      accountApproved: userType === 'Landowners' ? true : false,
+      accountStatus: userType === 'Landowners' ? 'active' : 'inactive',
     });
 
     const token = signJwt({ email: newUser.email, id: newUser._id });
