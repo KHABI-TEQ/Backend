@@ -51,6 +51,7 @@ interface PropertyProps {
     fullName: string;
     phoneNumber: string;
   };
+  additionalInfo?: string;
 }
 
 export class PropertyController {
@@ -186,8 +187,7 @@ export class PropertyController {
     if (query.buildingType) filter.buildingType = query.buildingType;
     if (query.owner) filter.owner = query.owner;
     if (query.isAvailable) filter.isAvailable = query.isAvailable;
-    if (query.isApproved !== undefined) filter.isApproved = query.isApproved;
-    if (query.isRejected !== undefined) filter.isRejected = query.isRejected;
+    filter.isApproved = true;
 
     // Location subfields
     if (query.state) filter['location.state'] = query.state;
@@ -220,6 +220,8 @@ export class PropertyController {
     if (query.noOfBathrooms) filter['additionalFeatures.noOfBathrooms'] = Number(query.noOfBathrooms);
     if (query.noOfToilets) filter['additionalFeatures.noOfToilets'] = Number(query.noOfToilets);
     if (query.noOfCarParks) filter['additionalFeatures.noOfCarParks'] = Number(query.noOfCarParks);
+    if (query.buildingType) filter.buildingType = query.buildingType;
+    // filter.isAvailable = true
 
     return await DB.Models.Property.find(filter);
   }

@@ -87,6 +87,7 @@ propertyRouter.post('/new', async (req: Request, res: Response, next: NextFuncti
       additionalFeatures,
       buildingType,
       owner,
+      additionalInfo,
     } = req.body;
     const response = await propertyControl.add({
       propertyType,
@@ -111,6 +112,7 @@ propertyRouter.post('/new', async (req: Request, res: Response, next: NextFuncti
         fullName: owner.fullName,
         phoneNumber: owner.phoneNumber,
       },
+      additionalInfo,
     });
     return res.status(HttpStatusCodes.CREATED).json(response);
   } catch (error) {

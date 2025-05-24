@@ -35,6 +35,7 @@ export interface IProperty {
     additionalFeatures: string[];
   };
   buildingType?: string;
+  additionalInfo?: string;
 }
 
 export interface IPropertyDoc extends IProperty, Document {}
@@ -95,6 +96,7 @@ export class Property {
           additionalFeatures: [{ type: String }],
         },
         buildingType: { type: String },
+        additionalInfo: { type: String },
       },
       {
         timestamps: true,
