@@ -36,13 +36,13 @@ export class UserController {
   }
 
   public async generateAccountiD(): Promise<string> {
-    let randomString = Math.random().toString(36).substring(2, 10);
+    let randomString = `KT_${Math.random().toString(36).substring(2, 8)}`;
     let isFound = false;
 
     while (!isFound) {
       const user = await DB.Models.User.findOne({ accountId: randomString }).exec();
       if (user) {
-        randomString = Math.random().toString(36).substring(2, 10);
+        randomString = Math.random().toString(36).substring(2, 8);
       } else {
         isFound = true;
       }
