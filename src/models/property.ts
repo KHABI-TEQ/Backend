@@ -50,26 +50,24 @@ export class Property {
       {
         propertyType: {
           type: String,
-          required: true,
         },
         propertyCondition: {
           type: String,
-          required: true,
         },
         location: {
-          state: { type: String, required: true },
-          localGovernment: { type: String, required: true },
-          area: { type: String, required: true },
+          state: { type: String },
+          localGovernment: { type: String },
+          area: { type: String },
         },
-        briefType: { type: String, required: true },
-        price: { type: Number, required: true },
+        briefType: { type: String },
+        price: { type: Number },
         landSize: {
-          measurementType: { type: String, required: true },
-          size: { type: Number, required: true },
+          measurementType: { type: String },
+          size: { type: Number },
         },
         features: [{ type: String }],
         tenantCriteria: [{ type: String }],
-        owner: { type: Schema.Types.ObjectId, ref: 'User', required: true }, //ref to User
+        owner: { type: Schema.Types.ObjectId, ref: 'User' }, //ref to User
         areYouTheOwner: { type: Boolean, default: false },
         isAvailable: { type: String, default: 'yes' },
         budgetRange: { type: String },
@@ -80,7 +78,6 @@ export class Property {
           {
             docName: {
               type: String,
-              required: true,
             },
             isProvided: {
               type: Boolean,
