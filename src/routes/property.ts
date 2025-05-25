@@ -4,6 +4,7 @@ import HttpStatusCodes from '../common/HttpStatusCodes';
 import validator from '../common/validator';
 import AuthorizeAction from './authorize_action';
 import { PropertyController } from '../controllers/Property';
+import { DB } from '../controllers';
 
 interface Request extends Express.Request {
   user?: any;
@@ -184,6 +185,23 @@ propertyRouter.put('/update/:_id', async (req: Request, res: Response, next: Nex
       user
     );
     return res.status(HttpStatusCodes.OK).json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
+propertyRouter.get('/mine', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as any;
+    if (!user || !user._id) {
+      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+        error: 'Unauthorized',
+      });
+    }
+    const properties = await DB.Models.Property.find({
+      owner: user._id,
+    });
+    return res.status(HttpStatusCodes.OK).json(properties);
   } catch (error) {
     next(error);
   }
