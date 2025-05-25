@@ -47,7 +47,7 @@ export const validateRequestData = (data: any, schemaFunc: any) => {
 };
 
 export const signJwt = (data: any) => {
-  return jwt.sign(data, process.env.JWT_SECRET, { expiresIn: '2d' });
+  return jwt.sign(data, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
 export const signJwtAdmin = (data: any) => {
