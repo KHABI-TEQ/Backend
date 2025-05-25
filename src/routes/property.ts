@@ -190,7 +190,7 @@ propertyRouter.put('/update/:_id', async (req: Request, res: Response, next: Nex
   }
 });
 
-propertyRouter.get('/mine', async (req: Request, res: Response, next: NextFunction) => {
+propertyRouter.get('/mine/all', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user as any;
     if (!user || !user._id) {
