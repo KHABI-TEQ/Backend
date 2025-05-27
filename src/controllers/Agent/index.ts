@@ -39,6 +39,7 @@ export interface IAgentController {
       street: string;
       // city: string;
       state: string;
+      homeNo: string;
       localGovtArea: string;
     },
     regionOfOperation: string[],
@@ -51,9 +52,6 @@ export interface IAgentController {
       typeOfId: string;
       // idNumber: string;
     },
-    phoneNumber: string,
-    lastName: string,
-    firstName: string,
     meansOfId: {
       name: string;
       docImg: string[];
@@ -81,6 +79,7 @@ export class AgentController implements IAgentController {
     address: {
       street: string;
       // city: string;
+      homeNo: string;
       state: string;
       localGovtArea: string;
     },
@@ -94,9 +93,6 @@ export class AgentController implements IAgentController {
       typeOfId: string;
       // idNumber: string;
     },
-    phoneNumber: string,
-    lastName: string,
-    firstName: string,
     meansOfId: {
       name: string;
       docImg: string[];
@@ -118,9 +114,6 @@ export class AgentController implements IAgentController {
           agentType,
           companyAgent,
           meansOfId: meansOfId,
-          phoneNumber,
-          lastName,
-          firstName,
         },
         { new: true }
       ).populate('userId', 'email firstName lastName phoneNumber _id');
@@ -133,9 +126,6 @@ export class AgentController implements IAgentController {
           agentType,
           individualAgent,
           meansOfId: meansOfId,
-          phoneNumber,
-          lastName,
-          firstName,
         },
         { new: true }
       ).populate('userId', 'email firstName lastName phoneNumber _id');
@@ -143,7 +133,7 @@ export class AgentController implements IAgentController {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid agent type');
     }
 
-    const body = accountUnderReviewTemplate(firstName);
+    const body = accountUnderReviewTemplate((user.userId as any).firstName || (user.userId as any).email);
 
     const mail = generalTemplate(body);
     await sendEmail({
@@ -233,13 +223,11 @@ export class AgentController implements IAgentController {
   public async updateProfile(
     agent: IAgentDoc,
     profileData: {
-      firstName?: string;
-      lastName?: string;
-      phoneNumber?: string;
       address?: {
         street: string;
         state: string;
         localGovtArea: string;
+        homeNo: string;
       };
       regionOfOperation?: string[];
       profilePicture?: string;
