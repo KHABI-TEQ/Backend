@@ -83,9 +83,9 @@ AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunc
 
 AdminRouter.post('/properties', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { propertyType, ownerType, page, limit } = req.body;
-    console.log(propertyType, ownerType, page, limit);
-    const properties = await adminController.getProperties(propertyType, ownerType, page, limit);
+    const { briefType, ownerType, page, limit } = req.body;
+    console.log(briefType, ownerType, page, limit);
+    const properties = await adminController.getProperties(briefType, ownerType, page, limit);
     return res.status(200).json({ success: true, properties });
   } catch (error) {
     next(error);

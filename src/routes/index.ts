@@ -15,6 +15,7 @@ import jwt from 'jsonwebtoken';
 import AdminRouter from './admin';
 import propertyRouter from './property';
 import { UserRouter } from './user.api';
+import { buyerRouter } from './buyer';
 
 const router = express.Router();
 
@@ -31,15 +32,49 @@ router.post('/upload-image', upload.single('file'), async (req: Request, res: Re
       return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
     }
 
+    const fileFor = req.body.for || 'property-image';
+
+    const filFolder = fileFor === 'property-image' ? 'property-images' : 'other-images';
+
     // Convert the buffer to a Base64 string
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    const filename = Date.now() + '-' + 'property-image-' + req?.file?.originalname?.replace(/\s+/g, '-').toLowerCase();
+    const filename = Date.now() + '-' + fileFor;
 
     // Upload to Cloudinary
-    const uploadImg = await cloudinary.uploadFile(fileBase64, filename, 'property-images');
+    const uploadImg = await cloudinary.uploadFile(fileBase64, filename, filFolder);
 
-    console.log(uploadImg);
+    // console.log(uploadImg);
+
+    return res.status(HttpStatusCodes.OK).json({
+      message: 'Image uploaded successfully',
+      url: uploadImg,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
+  }
+});
+
+router.post('/upload-file', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
+    }
+
+    const fileFor = req.body.for || 'property-file';
+
+    const filFolder = fileFor === 'property-file' ? 'property-files' : 'other-files';
+
+    // Convert the buffer to a Base64 string
+    const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+    const filename = Date.now() + '-' + fileFor + '.' + req.file.originalname.split('.').pop();
+
+    // Upload to Cloudinary
+    const uploadImg = await cloudinary.uploadDoc(fileBase64, filename, filFolder);
+
+    // console.log(uploadImg);
 
     return res.status(HttpStatusCodes.OK).json({
       message: 'Image uploaded successfully',
@@ -106,6 +141,7 @@ router.use('/properties/buy/request', BuyPropertySellRequest);
 router.use('/properties/rent/request', RentPropertyRentRequest);
 router.use('/properties', propertyRouter);
 router.use('/user', UserRouter);
+router.use('/buyers', buyerRouter);
 
 // Add one more middleware namely `authorize` after passport.authenticate to authorize user for access
 // console `req.user` and `req` in authorize middleware

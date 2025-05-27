@@ -22,6 +22,11 @@ import {
   IProperty,
   Property,
   IPropertyModel,
+  ITransactionModel,
+  Transaction,
+  IBuyer,
+  Buyer,
+  IBuyerModel,
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
 
@@ -37,6 +42,8 @@ declare interface IModels {
   Admin: IAdminModel;
   User: IUserModel;
   Property: IPropertyModel;
+  Transaction: ITransactionModel;
+  Buyer: IBuyerModel;
 }
 
 export class DB {
@@ -67,6 +74,8 @@ export class DB {
       Admin: new Admin().model,
       User: new User().model,
       Property: new Property().model,
+      Transaction: new Transaction().model,
+      Buyer: new Buyer().model,
     };
   }
 

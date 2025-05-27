@@ -146,48 +146,109 @@ export class AdminController {
     }
   }
 
-  public async getProperties(propertyType: string, ownerType: string, page: number, limit: number) {
-    if (!this.ownerTypes.includes(ownerType)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');
-    }
+  public async getProperties(briefType: string, ownerType: string, page: number, limit: number) {
+    if (ownerType === 'all') {
+      if (briefType === 'all') {
+        const properties = await DB.Models.Property.find({})
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('owner', 'email firstName lastName phoneNumber fullName')
+          .sort({ createdAt: -1 })
+          .exec();
 
-    if (propertyType === 'rent') {
-      if (ownerType === 'BuyerOrRenter') {
-        return await this.buyerOrRentePropertyController.all(page, limit);
-      } else {
-        return await this.propertyRentController.all(page, limit, ownerType);
-      }
-    } else if (propertyType === 'all') {
-      if (ownerType === 'BuyerOrRenter') {
-        const propertyRentPreference = await this.buyerOrRentePropertyController.all(page, limit);
-        const propertySellPreference = await this.buyerOrRenterPropertySellController.all(page, limit);
-
+        const total = await DB.Models.Property.countDocuments({ briefType }).exec();
         return {
-          data: {
-            rents: propertyRentPreference.data,
-            sells: propertySellPreference.data,
-            success: true,
-            message: 'Properties fetched successfully',
-          },
+          data: properties,
+          total,
+          currentPage: page,
+        };
+      } else {
+        const properties = await DB.Models.Property.find({ briefType })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('owner', 'email firstName lastName phoneNumber fullName')
+          .sort({ createdAt: -1 })
+          .exec();
+
+        const total = await DB.Models.Property.countDocuments({ briefType }).exec();
+        return {
+          data: properties,
+          total,
+          currentPage: page,
         };
       }
-      const propertyRent = await this.propertyRentController.all(page, limit, 'all');
-      const propertySell = await this.propertySellController.all(page, limit, 'all');
-      return {
-        data: {
-          rents: propertyRent.data,
-          sells: propertySell.data,
-          success: true,
-          message: 'Properties fetched successfully',
-        },
-      };
     } else {
-      if (ownerType === 'BuyerOrRenter') {
-        return await this.buyerOrRenterPropertySellController.all(page, limit);
+      if (briefType === 'all') {
+        const properties = await DB.Models.Property.find({ ownerType })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('owner', 'email firstName lastName phoneNumber fullName')
+          .sort({ createdAt: -1 })
+          .exec();
+
+        const total = await DB.Models.Property.countDocuments({ ownerType }).exec();
+        return {
+          data: properties,
+          total,
+          currentPage: page,
+        };
       } else {
-        return await this.propertySellController.all(page, limit, ownerType);
+        const properties = await DB.Models.Property.find({ briefType, ownerType })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('owner', 'email firstName lastName phoneNumber fullName')
+          .sort({ createdAt: -1 })
+          .exec();
+
+        const total = await DB.Models.Property.countDocuments({ briefType, ownerType }).exec();
+        return {
+          data: properties,
+          total,
+          currentPage: page,
+        };
       }
     }
+    // if (!this.ownerTypes.includes(ownerType)) {
+    //   throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');
+    // }
+
+    // if (propertyType === 'rent') {
+    //   if (ownerType === 'BuyerOrRenter') {
+    //     return await this.buyerOrRentePropertyController.all(page, limit);
+    //   } else {
+    //     return await this.propertyRentController.all(page, limit, ownerType);
+    //   }
+    // } else if (propertyType === 'all') {
+    //   if (ownerType === 'BuyerOrRenter') {
+    //     const propertyRentPreference = await this.buyerOrRentePropertyController.all(page, limit);
+    //     const propertySellPreference = await this.buyerOrRenterPropertySellController.all(page, limit);
+
+    //     return {
+    //       data: {
+    //         rents: propertyRentPreference.data,
+    //         sells: propertySellPreference.data,
+    //         success: true,
+    //         message: 'Properties fetched successfully',
+    //       },
+    //     };
+    //   }
+    //   const propertyRent = await this.propertyRentController.all(page, limit, 'all');
+    //   const propertySell = await this.propertySellController.all(page, limit, 'all');
+    //   return {
+    //     data: {
+    //       rents: propertyRent.data,
+    //       sells: propertySell.data,
+    //       success: true,
+    //       message: 'Properties fetched successfully',
+    //     },
+    //   };
+    // } else {
+    //   if (ownerType === 'BuyerOrRenter') {
+    //     return await this.buyerOrRenterPropertySellController.all(page, limit);
+    //   } else {
+    //     return await this.propertySellController.all(page, limit, ownerType);
+    //   }
+    // }
   }
 
   public async deleteProperty(propertyType: string, _id: string, ownerType: string) {
@@ -254,20 +315,23 @@ export class AdminController {
 
   public async deactivateAgent(_id: string, inActiveSatatus: boolean, reason: string) {
     try {
-      const agent = await DB.Models.User.findByIdAndUpdate(_id, { isInActive: inActiveSatatus }).exec();
+      const agent = await DB.Models.User.findByIdAndUpdate(_id, {
+        isInActive: inActiveSatatus,
+        accountApproved: inActiveSatatus,
+      }).exec();
 
       if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
-      const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
-      const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
+      const properties = await DB.Models.Property.find({ owner: agent._id }).exec();
 
-      rentProperties.forEach(async (property) => {
-        await DB.Models.PropertyRent.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
-      });
+      properties.length > 0 &&
+        properties.forEach(async (property) => {
+          await DB.Models.PropertyRent.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
+        });
 
-      sellProperties.forEach(async (property) => {
-        await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
-      });
+      // sellProperties.forEach(async (property) => {
+      //   await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
+      // });
 
       const mailBody = generalTemplate(
         DeactivateOrActivateAgent(agent.firstName || agent.lastName || agent.email, inActiveSatatus, reason)

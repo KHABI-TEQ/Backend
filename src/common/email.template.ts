@@ -641,3 +641,45 @@ export function PropertyRentReceivedTemplate(ownerName: string, property: any): 
         <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
         `;
 }
+
+export function InspectionRequestWithNegotiation(buyerName: string, propertyData: any): string {
+  return `
+    <p>Dear ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+      Your property inspection has been successfully scheduled, and your Letter of Intent (LOI) has been submitted. 
+      Please allow up to 48 hours for a response from the seller. Kindly be patient. 
+      Below are the details of your inspection and LOI submission:
+    </p>
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    ${
+      propertyData.isNegotiating
+        ? `
+      <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Negotiation Details:</strong></p>
+        <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
+        <li><strong>Your Offer Price:</strong> ₦${propertyData.negotiationPrice}</li>
+      </ul>
+    `
+        : ''
+    }
+
+    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Details:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Agent Name:</strong> ${propertyData.agentName}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      If you have any questions or need to reschedule, please let us know in advance.
+    </p>
+  `;
+}

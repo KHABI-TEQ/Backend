@@ -85,6 +85,7 @@ export class PropertyController {
       })
         .skip((page - 1) * limit)
         .limit(limit)
+        .sort({ createdAt: -1 })
         .exec();
       const total = await DB.Models.Property.countDocuments({ briefType }).exec();
 
