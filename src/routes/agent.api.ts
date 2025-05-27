@@ -9,6 +9,7 @@ import googleAuthHandler from './googleAuth';
 import authorize from './authorize';
 import cloudinary from '../common/cloudinary';
 import multer from 'multer';
+import AuthorizeAction from './authorize_action';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -24,7 +25,7 @@ interface Request extends Express.Request {
 const router = Router();
 const agentControl = new AgentController();
 
-router.use(authorize);
+router.use(AuthorizeAction);
 
 /******************************************************************************
  *                      onboard agent - "POST /api/auth/onboard"
@@ -32,14 +33,11 @@ router.use(authorize);
 
 router.put('/onboard', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { token, address, regionOfOperation, agentType, companyAgent, individualAgent, phoneNumber } = req.body;
-
-    const decodeToken = (await jwt.verify(token, process.env.JWT_SECRET)) as any;
-
-    console.log('Body Request', req.body);
+    const { address, regionOfOperation, agentType, companyAgent, individualAgent, phoneNumber } = req.body;
+    const user = req.user as IUserDoc;
 
     const response = await agentControl.onboard(
-      decodeToken.email,
+      user.email,
       address,
       regionOfOperation,
       agentType,
