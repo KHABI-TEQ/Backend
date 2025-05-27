@@ -411,26 +411,30 @@ export class AdminController {
     }
   }
 
-  public async getAgents(page: number, limit: number, type: string) {
-    const totalActiveAgents = await DB.Models.User.countDocuments({ isInActive: false, accountApproved: true }).exec();
+  public async getAgents(page: number, limit: number, type: string, userType: string) {
+    const totalActiveAgents = await DB.Models.User.countDocuments({
+      isInActive: false,
+      accountApproved: true,
+      userType,
+    });
     const totalInactiveAgents = await DB.Models.User.countDocuments({ isInActive: true }).exec();
     const totalAgents = await DB.Models.User.countDocuments({}).exec();
-    const totalFlaggedAgents = await DB.Models.User.countDocuments({ isFlagged: true }).exec();
+    const totalFlaggedAgents = await DB.Models.User.countDocuments({ isFlagged: true, userType }).exec();
 
     let agents;
 
     if (type === 'active') {
-      agents = await DB.Models.User.find({ isInActive: false, accountApproved: true })
+      agents = await DB.Models.User.find({ isInActive: false, accountApproved: true, userType })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'inactive') {
-      agents = await DB.Models.User.find({ isInActive: true, accountApproved: true })
+      agents = await DB.Models.User.find({ isInActive: true, accountApproved: true, userType })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
     } else if (type === 'flagged') {
-      agents = await DB.Models.User.find({ isFlagged: true, accountApproved: true })
+      agents = await DB.Models.User.find({ isFlagged: true, accountApproved: true, userType })
         .skip((page - 1) * limit)
         .limit(limit)
         .exec();
@@ -440,13 +444,14 @@ export class AdminController {
         .limit(limit)
         .exec();
     } else if (type === 'onboarding') {
-      agents = await DB.Models.User.find({
+      agents = await DB.Models.Agent.find({
         agentType: {
           $nin: ['Individual', 'Company'],
         },
       })
         .skip((page - 1) * limit)
         .limit(limit)
+        .populate('userId', 'email firstName lastName phoneNumber fullName')
         .exec();
     } else {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid agent type');
