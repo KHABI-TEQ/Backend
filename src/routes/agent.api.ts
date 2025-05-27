@@ -197,7 +197,7 @@ router.get('/account', async (req: Request, res: Response, next: NextFunction) =
 
     const { password, isAccountInRecovery, isDeleted, isInActive, ...data } = agent.toObject();
 
-    const agentData = await DB.Models.Agent.findById(agent._id);
+    const agentData = await DB.Models.Agent.findById({ userId: agent._id });
 
     return res.status(200).json({
       success: true,

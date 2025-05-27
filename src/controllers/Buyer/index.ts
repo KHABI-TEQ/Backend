@@ -1,7 +1,21 @@
 import { RouteError } from '../../common/classes';
 import { DB } from '..';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
-import { generalTemplate, InspectionRequestWithNegotiation } from '../../common/email.template';
+import {
+  confirmTemplate,
+  CounterBuyerTemplate,
+  CounterSellerTemplate,
+  declineTemplate,
+  generalTemplate,
+  InspectionAcceptedTemplate,
+  InspectionRequestWithNegotiation,
+  InspectionRequestWithNegotiationSellerTemplate,
+  NegotiationAcceptedSellerTemplate,
+  NegotiationAcceptedTemplate,
+  NegotiationRejectedBuyerTemplate,
+  NegotiationRejectedSellerTemplate,
+  unavailableTemplate,
+} from '../../common/email.template';
 import sendEmail from '../../common/send.email';
 
 interface InspectionRequest {
@@ -11,7 +25,6 @@ interface InspectionRequest {
   //   bookedByModel: string;
   inspectionDate: Date;
   inspectionTime: string;
-  status: string;
   //   slotId: string;
   requestedBy: {
     fullName: string;
@@ -28,6 +41,7 @@ interface InspectionRequest {
   isNegotiating: boolean;
   negotiationPrice: number;
   letterOfIntention: string;
+  sellerCounterOffer?: number;
 }
 
 class BuyerController {
@@ -35,7 +49,7 @@ class BuyerController {
     try {
       const property = await DB.Models.Property.findOne({
         _id: inspectionRequestData.propertyId,
-      }).populate('owner', 'email fullName phoneNumber');
+      }).populate('owner', 'email fullName phoneNumber _id');
       if (!property) {
         throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property Not Found');
       }
@@ -48,6 +62,15 @@ class BuyerController {
           email: inspectionRequestData.requestedBy.email,
           phoneNumber: inspectionRequestData.requestedBy.phoneNumber,
         });
+      }
+
+      console.log(buyer, 'buyer');
+
+      // check the date and time of the inspection if valid
+      const inspectionDate = new Date(inspectionRequestData.inspectionDate);
+      const currentDate = new Date();
+      if (inspectionDate < currentDate) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Inspection date cannot be in the past');
       }
 
       const transaction = await DB.Models.Transaction.create({
@@ -64,12 +87,13 @@ class BuyerController {
         propertyId: inspectionRequestData.propertyId,
         inspectionDate: inspectionRequestData.inspectionDate,
         inspectionTime: inspectionRequestData.inspectionTime,
-        status: inspectionRequestData.status,
+        status: 'pending',
         requestedBy: buyer._id,
         transaction: transaction._id,
         isNegotiating: inspectionRequestData.isNegotiating,
         negotiationPrice: inspectionRequestData.negotiationPrice,
         letterOfIntention: inspectionRequestData.letterOfIntention,
+        owner: (property.owner as any)._id, // ObjectId of the property owner
       });
 
       const mailTemplate = InspectionRequestWithNegotiation(inspectionRequestData.requestedBy.fullName, {
@@ -80,20 +104,169 @@ class BuyerController {
         agentName: (property.owner as any).fullName,
       });
 
+      const sellerTemplate = InspectionRequestWithNegotiationSellerTemplate(
+        inspectionRequestData.requestedBy.fullName,
+        {
+          ...inspectionRequestData,
+          location: `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`,
+          price: property.price,
+          propertyType: property.propertyType,
+          responseLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
+        }
+      );
+
+      const sellerEmailTemplate = generalTemplate(sellerTemplate);
+
       const generalEmailTemplate = generalTemplate(mailTemplate);
 
       await sendEmail({
         to: inspectionRequestData.requestedBy.email,
         // cc: property.owner.email,
-        subject: ` Inspection Request for ${property.propertyType} in ${property.location.state}`,
+        subject: `New Offer Received – Action Required`,
         html: generalEmailTemplate,
         text: generalEmailTemplate,
+      });
+
+      await sendEmail({
+        to: (property.owner as any).email,
+        subject: `Inspection Request submitted`,
+        html: sellerEmailTemplate,
+        text: sellerEmailTemplate,
       });
 
       return {
         message: 'Inspection request created successfully',
         inspectionId: inspection._id.toString(),
       };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async getInspection(inspectionId: string) {
+    try {
+      const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
+        .populate('propertyId', 'title location price propertyType')
+        .populate('requestedBy', 'fullName email phoneNumber')
+        .populate('transaction', 'bank accountNumber accountName transactionReference transactionReceipt');
+
+      if (!inspection) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
+      }
+
+      return inspection;
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async updateInspection(
+    inspectionId: string,
+    updateData: Partial<InspectionRequest> & {
+      status: string;
+      counterOffer?: number;
+      countering?: boolean;
+      negotiationRejected?: boolean;
+    }
+  ) {
+    try {
+      const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
+        .populate('owner', 'email firstName lastName phoneNumber _id')
+        .populate('propertyId', 'title location price propertyType')
+        .populate('requestedBy', 'email fullName phoneNumber _id');
+
+      console.log(inspection, 'inspection');
+
+      if (!inspection) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
+      }
+      let buyerTemplate, sellerTemplate;
+      const sellerName = (inspection.owner as any)?.fullName || (inspection.owner as any)?.firstName;
+      const buyerName = (inspection.requestedBy as any)?.fullName || (inspection.requestedBy as any)?.firstName;
+
+      const mailPayload = {
+        ...inspection.toObject(),
+        location: `${(inspection.propertyId as any).location.state}, ${
+          (inspection.propertyId as any).location.localGovernment
+        }, ${(inspection.propertyId as any).location.area}`,
+        price: (inspection.propertyId as any).price,
+        propertyType: (inspection.propertyId as any).propertyType,
+        sellerCounterOffer: updateData.counterOffer,
+        newDate: updateData.inspectionDate,
+        acceptLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
+        checkLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
+        browse: `${process.env.CLIENT_LINK}/property/${(inspection.propertyId as any)._id.toString()}`,
+        rejectLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
+      };
+
+      if (updateData.status === 'unavailable') {
+        await DB.Models.InspectionBooking.updateOne(
+          {
+            _id: inspectionId,
+          },
+          {
+            status: 'unavailable',
+          }
+        );
+
+        sellerTemplate = unavailableTemplate(sellerName);
+        buyerTemplate = declineTemplate(buyerName, {
+          ...inspection.toObject(),
+        });
+      } else {
+        if (inspection.isNegotiating) {
+          if (!updateData.countering) {
+            if (updateData.negotiationRejected) {
+              sellerTemplate = NegotiationRejectedSellerTemplate(sellerName || sellerName, mailPayload);
+              buyerTemplate = NegotiationRejectedBuyerTemplate(buyerName, mailPayload);
+            } else {
+              sellerTemplate = NegotiationAcceptedSellerTemplate((inspection.owner as any)?.firstName, mailPayload);
+
+              buyerTemplate = NegotiationAcceptedTemplate(buyerName, mailPayload);
+            }
+          } else {
+            sellerTemplate = CounterSellerTemplate(sellerName, mailPayload);
+
+            buyerTemplate = CounterBuyerTemplate(buyerName, mailPayload);
+          }
+        } else {
+          sellerTemplate = confirmTemplate(sellerName, {
+            ...inspection.toObject(),
+          });
+          buyerTemplate = InspectionAcceptedTemplate(buyerName, mailPayload);
+        }
+
+        await DB.Models.InspectionBooking.updateOne(
+          {
+            _id: inspectionId,
+          },
+          {
+            inspectionDate: updateData.inspectionDate,
+            inspectionTime: updateData.inspectionTime,
+            status: updateData.status,
+            sellerCounterOffer: updateData.countering ? updateData.counterOffer : inspection.sellerCounterOffer,
+          }
+        );
+      }
+
+      const sellerEmailTemplate = generalTemplate(sellerTemplate);
+      const buyerEmailTemplate = generalTemplate(buyerTemplate);
+      console.log(inspection.requestedBy, 'requestedBy');
+      console.log((inspection.owner as any)?.email, 'owner email');
+
+      await sendEmail({
+        to: (inspection.requestedBy as any)?.email,
+        subject: `Inspection Request Update`,
+        html: buyerEmailTemplate,
+        text: buyerEmailTemplate,
+      });
+
+      await sendEmail({
+        to: (inspection.owner as any)?.email,
+        subject: `Inspection Request Update`,
+        html: sellerEmailTemplate,
+        text: sellerEmailTemplate,
+      });
     } catch (error) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }

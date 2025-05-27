@@ -646,10 +646,80 @@ export function InspectionRequestWithNegotiation(buyerName: string, propertyData
   return `
     <p>Dear ${buyerName},</p>
     
-    <p style="margin-top: 10px;">
+   ${
+     propertyData.letterOfIntention
+       ? `<p style="margin-top: 10px;">
       Your property inspection has been successfully scheduled, and your Letter of Intent (LOI) has been submitted. 
-      Please allow up to 48 hours for a response from the seller. Kindly be patient. 
+      Please allow up to <span style="color: #FF2539">48 hours</span> for a response from the seller. Kindly be patient. 
       Below are the details of your inspection and LOI submission:
+    </p>`
+       : `<p style="margin-top: 10px;">
+      Your property inspection has been successfully scheduled, and your negotiation offer has been submitted. The seller has up to <span style="color: #FF2539">48 hours</span> to respond, so we appreciate your patience.
+Please find your inspection details and negotiation price information below.
+    </p>`
+   }
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    ${
+      propertyData.isNegotiating
+        ? `
+      <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Negotiation Details:</strong></p>
+        <li><a href=${propertyData.letterOfIntention}>click here</a> to view the document</li>
+      </ul>
+    `
+        : ''
+    }
+
+    ${
+      propertyData.letterOfIntention
+        ? `
+      <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Submitted LOI Document:</strong></p>
+        <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
+      </ul>
+    `
+        : ''
+    }
+
+    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Details:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Agent Name:</strong> ${propertyData.agentName}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      If you have any questions or need to reschedule, please let us know in advance.
+    </p>
+  `;
+}
+
+export function InspectionRequestWithNegotiationSellerTemplate(sellerName: string, propertyData: any): string {
+  // Calculate deadline: 48 hours from inspectionDate
+  const inspectionDate = new Date(propertyData.inspectionDate);
+  const deadline = new Date(inspectionDate.getTime() + 48 * 60 * 60 * 1000);
+  const deadlineString = deadline.toLocaleString('en-NG', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  return `
+    <p>Dear ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+      A potential buyer has requested an inspection for your property at ${propertyData.location} on ${
+    propertyData.inspectionDate
+  } at ${propertyData.inspectionTime}.
     </p>
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
@@ -675,11 +745,283 @@ export function InspectionRequestWithNegotiation(buyerName: string, propertyData
       <p><strong>Inspection Details:</strong></p>
       <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
       <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
-      <li><strong>Agent Name:</strong> ${propertyData.agentName}</li>
+      <li><strong>Deadline:</strong> ${deadlineString} <span style="color: #FF2539;">(48 hours from now)</span></li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Click here to respond:
+    </p>
+
+    <a href="${
+      propertyData.responseLink
+    }" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+      Confirm Availability
+    </a>
+
+    <p style="margin-top: 15px;">
+      If you have any questions, feel free to contact us.
+    </p>
+  `;
+}
+
+export function confirmTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Dear ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+      You’ve successfully confirmed the inspection date. The appointment is approved!.
+    </p>
+
+    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Details:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
     </ul>
 
     <p style="margin-top: 15px;">
       If you have any questions or need to reschedule, please let us know in advance.
     </p>
+  `;
+}
+
+export function unavailableTemplate(sellerName: string): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+      You have declined the inspection date, and the appointment has been <span style="color=#FF2539;">cancelled</span>.
+    </p>
+
+    <p style="margin-top: 15px;">
+      If you have any questions, feel free to contact us.
+    </p>
+  `;
+}
+
+export function declineTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Dear ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+      We’re sorry to inform you that the seller has <span style="color=#FF2539;">Declined</span> your inspection request for ${propertyData.location}.<br/>Don’t worry we have other properties that may match your needs. <a href="${propertyData.browse}">Browse Listings</a> or <a href="${propertyData.browse}">Submit Your Preferences</a>, and we’ll help you find the perfect match
+    </p>
+
+
+    <p style="margin-top: 15px;">
+      Thank you for your understanding.
+    </p>
+  `;
+}
+
+export function NegotiationAcceptedTemplate(buyerName: string, propertyData: any): string {
+  // Calculate deadline: 48 hours from inspectionDate
+
+  return `
+    <p>Dear ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+     Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${propertyData.location}.
+    </p>
+
+     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Here are the details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Accepted Price:</strong> ₦${propertyData.negotiationPrice}</li>
+      </ul>
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      You’ll receive a reminder before the inspection. If you have any questions, feel free to reach out.
+    </p>
+
+    <p style="margin-top: 15px;">
+      We look forward to seeing you then. If you need to reschedule, please let us know.
+
+    </p>
+
+    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+      Reschedule Inspection
+    </a>
+  `;
+}
+
+export function InspectionAcceptedTemplate(buyerName: string, propertyData: any): string {
+  // Calculate deadline: 48 hours from inspectionDate
+
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+     Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${propertyData.location}.
+    </p>
+
+     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Confirmed Date & Time:</strong></p>
+        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Time:</strong> ₦${propertyData.inspectionTime}</li>
+      </ul>
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      You’ll receive a reminder before the inspection. If you have any questions, feel free to reach out.
+    </p>
+
+    <p style="margin-top: 15px;">
+      We look forward to seeing you then. If you need to reschedule, please let us know.
+
+    </p>
+
+    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+      Reschedule Inspection
+    </a>
+  `;
+}
+
+export function NegotiationAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+     You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+    </p>
+
+     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Offer Accepted:</strong></p>
+        <li><strong>Buyer Price:</strong> ${propertyData.negotiationPrice}</li>
+      </ul>
+
+    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Inspection Details:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      If you have any questions, feel free to contact us.
+    </p>
+  `;
+}
+
+export function CounterSellerTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+     You’ve successfully <span style="color: #1AAD1F;">count offer</span> the buyer’s offer, and the inspection date has been updated by you to a new selection.</p>
+     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style=""><strong>Negotiation:</strong></p>
+        <li><strong>Buyer Price:</strong> #${propertyData.negotiationPrice}</li>
+        <li><strong>Your Count Offer:</strong> #${propertyData.sellerCounterOffer}</li>
+      </ul>
+
+    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Updated Inspection Details:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.newDate}</li>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      If you have any questions, feel free to contact us.
+    </p>
+  `;
+}
+
+export function CounterBuyerTemplate(buyerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+    The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+     </p>
+     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Seller's Counter-Offer:</strong> #${propertyData.sellerCounterOffer}</li>
+      </ul>
+
+      <p style="margin-top: 15px;">Please click below to accept or decline the Offer.</p>
+
+      <div style="display: flex; width: 104px; height: 40px; gap: 16px;">
+        <a href="${propertyData.acceptLink}" style="flex: 1; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Offer</a>
+      </div>
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Thanks for your flexibility!.
+    </p>
+  `;
+}
+
+export function NegotiationRejectedBuyerTemplate(buyerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+    </p>
+
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+      <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
+      <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+    </ul>
+
+    <p style="margin-top: 15px;">Would you like to continue with the inspection?</p>
+
+    <table cellspacing="0" cellpadding="0" style="margin-top: 15px;">
+      <tr>
+        <td style="padding-right: 10px;">
+          <a href="${propertyData.checkLink}" style="display: inline-block; background-color: #1A7F64; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Yes</a>
+        </td>
+        <td style="padding-right: 10px;">
+          <a href="${propertyData.rejectLink}" style="display: inline-block; background-color: #FF2539; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">No</a>
+        </td>
+        <td>
+          <a href="${propertyData.browse}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+export function NegotiationRejectedSellerTemplate(buyerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+    The seller has  your negotiation offer, but there's still an opportunity to inspect the property
+    You’ve successfully <span style="color: #FF2539;">Rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+     </p>
+     <ul style="background-color: #FFE7E5; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #FF2539;"><strong>Offer Rejected:</strong></p>
+        <li><strong>Buyer Price:</strong> ${propertyData.negotiationPrice}</li>
+      </ul>
+
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong> Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      </ul>
+
+      <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
   `;
 }
