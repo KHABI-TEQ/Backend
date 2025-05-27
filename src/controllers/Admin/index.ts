@@ -388,7 +388,7 @@ export class AdminController {
 
       if (!userAcct) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
-      const agent = await DB.Models.Agent.findByIdAndUpdate({ userId: userAcct._id }, { accountApproved: true }).exec();
+      const agent = await DB.Models.Agent.findOneAndUpdate({ userId: userAcct._id }, { accountApproved: true }).exec();
 
       const body = approved ? accountApproved(userAcct.firstName) : accountDisaapproved(userAcct.firstName);
 
