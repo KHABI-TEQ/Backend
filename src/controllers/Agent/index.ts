@@ -46,16 +46,16 @@ export interface IAgentController {
     agentType: string,
     companyAgent: {
       companyName?: string;
-      regNUmber?: string;
-    },
-    individualAgent: {
-      typeOfId: string;
-      // idNumber: string;
+      cacNUmber?: string;
     },
     meansOfId: {
       name: string;
       docImg: string[];
-    }[]
+    }[],
+    govtId: {
+      typeOfId: string;
+      idNumber: string;
+    }
   ) => Promise<any>;
 
   acctUpgrade: (
@@ -87,23 +87,24 @@ export class AgentController implements IAgentController {
     agentType: string,
     companyAgent: {
       companyName?: string;
-      // regNUmber?: string;
+      cacNUmber?: string;
     },
-    individualAgent: {
-      typeOfId: string;
-      // idNumber: string;
-    },
+
     meansOfId: {
       name: string;
       docImg: string[];
-    }[]
+    }[],
+    govtId: {
+      typeOfId: string;
+      idNumber: string;
+    }
   ): Promise<any> {
     email = email.toLowerCase().trim();
     let user = await DB.Models.User.findOne({ email }).exec();
 
     if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
 
-    const agent = await DB.Models.Agent.findOne({ email })
+    const agent = await DB.Models.Agent.findOne({ userId: user._id })
       .populate('userId', 'email firstName lastName phoneNumber _id')
       .exec();
 
@@ -113,7 +114,6 @@ export class AgentController implements IAgentController {
         regionOfOperation,
         agentType,
         companyAgent,
-        individualAgent,
         meansOfId,
         isInActive: false,
         isDeleted: false,
@@ -123,37 +123,25 @@ export class AgentController implements IAgentController {
         isFlagged: false,
         userId: user._id,
         upgradeData: null,
+        govtId: {
+          typeOfId: govtId.typeOfId,
+          idNumber: govtId.idNumber,
+        },
       };
 
       const createdAgent = await DB.Models.Agent.create(newAgent);
     } else {
-      if (agentType === 'Company' && companyAgent) {
-        const updateAgent = await DB.Models.Agent.findOneAndUpdate(
-          { email },
-          {
-            address,
-            regionOfOperation,
-            agentType,
-            companyAgent,
-            meansOfId: meansOfId,
-          },
-          { new: true }
-        );
-      } else if (agentType === 'Individual' && individualAgent) {
-        const updateAgent = await DB.Models.Agent.findOneAndUpdate(
-          { email },
-          {
-            address,
-            regionOfOperation,
-            agentType,
-            individualAgent,
-            meansOfId: meansOfId,
-          },
-          { new: true }
-        );
-      } else {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid agent type');
-      }
+      const updateAgent = await DB.Models.Agent.findOneAndUpdate(
+        { userId: user._id },
+        {
+          address,
+          regionOfOperation,
+          agentType,
+          companyAgent,
+          meansOfId: meansOfId,
+        },
+        { new: true }
+      );
     }
 
     // if (user.agentType) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User already onboarded');

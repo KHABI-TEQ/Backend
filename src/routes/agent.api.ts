@@ -33,7 +33,7 @@ router.use(AuthorizeAction);
 
 router.put('/onboard', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { address, regionOfOperation, agentType, companyAgent, individualAgent, phoneNumber } = req.body;
+    const { address, regionOfOperation, agentType, companyAgent, govtId, meansOfId } = req.body;
     const user = req.user as IUserDoc;
 
     const response = await agentControl.onboard(
@@ -42,8 +42,8 @@ router.put('/onboard', async (req: Request, res: Response, next: NextFunction) =
       regionOfOperation,
       agentType,
       companyAgent,
-      individualAgent,
-      phoneNumber
+      meansOfId,
+      govtId
     );
     return res.status(HttpStatusCodes.OK).json({
       message: 'Agent information updated successfully',

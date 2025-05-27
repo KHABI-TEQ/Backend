@@ -12,11 +12,7 @@ export interface IAgent {
   agentType: string;
   companyAgent: {
     companyName?: string;
-    // regNumber?: string;
-  };
-  individualAgent: {
-    typeOfId: string;
-    // idNumber: string;
+    cacNumber?: string;
   };
   isInActive?: boolean;
   isDeleted?: boolean;
@@ -41,6 +37,10 @@ export interface IAgent {
   };
   isFlagged: boolean;
   userId: string;
+  govtId: {
+    typeOfId: string;
+    idNumber: string;
+  };
 }
 
 export interface IAgentDoc extends IAgent, Document {}
@@ -66,10 +66,6 @@ export class Agent {
           companyName: { type: String },
           // regNumber: { type: String },
         },
-        individualAgent: {
-          typeOfId: { type: String },
-          // idNumber: { type: String },
-        },
         isAccountVerified: { type: Boolean, default: false },
         isInActive: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },
@@ -86,7 +82,7 @@ export class Agent {
         upgradeData: {
           companyAgent: {
             companyName: { type: String },
-            // regNumber: { type: String },
+            cacNumber: { type: String },
           },
           meansOfId: [
             {
@@ -99,6 +95,10 @@ export class Agent {
         },
         isFlagged: { type: Boolean, default: false },
         userId: { type: String, required: true, ref: 'User' }, // Assuming userId is a string, adjust as necessary
+        govtId: {
+          typeOfId: { type: String },
+          idNumber: { type: String },
+        },
       },
       {
         timestamps: true,
