@@ -222,7 +222,10 @@ export class UserController {
       //         ...user.toObject(),
       //       });
       //   }
-      return { user: user.toObject(), token: token };
+      return {
+        user: { ...user.toObject(), agentData: await DB.Models.Agent.findOne({ userId: user._id }) },
+        token: token,
+      };
     } catch (err) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, err.message);
     }
