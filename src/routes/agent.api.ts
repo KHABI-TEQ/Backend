@@ -32,18 +32,7 @@ router.use(authorize);
 
 router.put('/onboard', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const {
-      token,
-      address,
-      regionOfOperation,
-      agentType,
-      companyAgent,
-      individualAgent,
-      meansOfId,
-      phoneNumber,
-      lastName,
-      firstName,
-    } = validator.validate(req.body, 'agentOnboardSchema');
+    const { token, address, regionOfOperation, agentType, companyAgent, individualAgent, phoneNumber } = req.body;
 
     const decodeToken = (await jwt.verify(token, process.env.JWT_SECRET)) as any;
 
@@ -56,10 +45,7 @@ router.put('/onboard', async (req: Request, res: Response, next: NextFunction) =
       agentType,
       companyAgent,
       individualAgent,
-      phoneNumber,
-      lastName,
-      firstName,
-      meansOfId
+      phoneNumber
     );
     return res.status(HttpStatusCodes.OK).json({
       message: 'Agent information updated successfully',

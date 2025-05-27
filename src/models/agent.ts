@@ -1,6 +1,13 @@
 import { Schema, model, Document, Model } from 'mongoose';
 
 export interface IAgent {
+  address: {
+    street: string;
+    // city?: string;
+    homeNo: string;
+    state: string;
+    localGovtArea: string;
+  };
   regionOfOperation: string[];
   agentType: string;
   companyAgent: {
@@ -46,20 +53,13 @@ export class Agent {
   constructor() {
     const schema = new Schema(
       {
-        email: { type: String, required: true, unique: true },
-        password: { type: String },
-        firstName: { type: String },
-        lastName: { type: String },
-        phoneNumber: { type: String },
-        fullName: { type: String },
         address: {
           street: { type: String },
           // city: { type: String },
           state: { type: String },
+          homeNo: { type: String, required: true },
           localGovtArea: { type: String },
         },
-        isAccountInRecovery: { type: Boolean, default: false },
-        profile_picture: { type: String },
         regionOfOperation: { type: [String] },
         agentType: { type: String, enum: ['Individual', 'Company'] },
         companyAgent: {
@@ -98,6 +98,7 @@ export class Agent {
           approvedDate: { type: Date },
         },
         isFlagged: { type: Boolean, default: false },
+        userId: { type: String, required: true, ref: 'User' }, // Assuming userId is a string, adjust as necessary
       },
       {
         timestamps: true,
@@ -105,35 +106,6 @@ export class Agent {
         toObject: { virtuals: true },
       }
     );
-
-    // schema.virtual('fullName').get(function (this: IAgentDoc) {
-    //   return `${this.firstName} ${this.lastName}`;
-    // });
-
-    // schema.pre('updateOne', function (next) {
-    //   const update = (this as any).getUpdate();
-
-    //   // Check if `agentType` is being updated
-    //   if (update && update.agentType) {
-    //     if (update.agentType === 'individual') {
-    //       // Ensure `individualAgent` is provided
-    //       if (!update.individualAgent || !update.individualAgent.typeOfId || !update.individualAgent.idNumber) {
-    //         return next(new Error('For individual agents, typeOfId and idNumber are required.'));
-    //       }
-    //       // Clear `companyAgent` if agent type is individual
-    //       update.companyAgent = undefined;
-    //     } else if (update.agentType === 'company') {
-    //       // Ensure `companyAgent` is provided
-    //       if (!update.companyAgent || !update.companyAgent.companyName || !update.companyAgent.regNUmber) {
-    //         return next(new Error('For company agents, companyName and regNUmber are required.'));
-    //       }
-    //       // Clear `individualAgent` if agent type is company
-    //       update.individualAgent = undefined;
-    //     }
-    //   }
-
-    //   next();
-    // });
 
     this.AgentModel = model<IAgentDoc>('Agent', schema);
   }
