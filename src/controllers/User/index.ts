@@ -80,6 +80,11 @@ export class UserController {
     if (!newUser) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Error creating user');
     }
+
+    if (userType === 'Agent') {
+      await DB.Models.Agent.create({ userId: newUser._id });
+    }
+
     const token = signJwt({ email: newUser.email });
 
     const verificationLink = process.env.CLIENT_LINK + '?access_token=' + token;
@@ -124,6 +129,10 @@ export class UserController {
       accountApproved: userType === 'Landowners' ? true : false,
       accountStatus: userType === 'Landowners' ? 'active' : 'inactive',
     });
+
+    if (userType === 'Agent') {
+      await DB.Models.Agent.create({ userId: newUser._id });
+    }
 
     const token = signJwt({ email: newUser.email, id: newUser._id });
 

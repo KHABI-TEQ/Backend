@@ -57,7 +57,7 @@ export class Agent {
           street: { type: String },
           // city: { type: String },
           state: { type: String },
-          homeNo: { type: String, required: true },
+          homeNo: { type: String },
           localGovtArea: { type: String },
         },
         regionOfOperation: { type: [String] },
