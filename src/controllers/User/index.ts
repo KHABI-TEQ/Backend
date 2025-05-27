@@ -318,6 +318,7 @@ export class UserController {
         street: string;
         state: string;
         localGovtArea: string;
+        homeNo: string;
       };
       profilePicture?: string;
     }
