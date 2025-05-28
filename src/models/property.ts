@@ -72,8 +72,8 @@ export class Property {
         isAvailable: { type: String, default: 'yes' },
         budgetRange: { type: String },
         pictures: [{ type: String }],
-        isApproved: { type: Boolean },
-        isRejected: { type: Boolean },
+        isApproved: { type: Boolean, default: false },
+        isRejected: { type: Boolean, default: false },
         docOnProperty: [
           {
             docName: {
