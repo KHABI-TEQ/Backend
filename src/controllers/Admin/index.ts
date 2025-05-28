@@ -356,16 +356,17 @@ export class AdminController {
 
       if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
-      const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
-      const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
+      // const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
+      // const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
 
-      rentProperties.forEach(async (property) => {
-        await DB.Models.PropertyRent.findByIdAndDelete(property._id).exec();
-      });
+      // rentProperties.forEach(async (property) => {
+      //   await DB.Models.PropertyRent.findByIdAndDelete(property._id).exec();
+      // });
 
-      sellProperties.forEach(async (property) => {
-        await DB.Models.PropertySell.findByIdAndDelete(property._id).exec();
-      });
+      // sellProperties.forEach(async (property) => {
+      //   await DB.Models.PropertySell.findByIdAndDelete(property._id).exec();
+      // });
+      await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
 
       const mailBody = generalTemplate(DeleteAgent(agent.firstName, reason));
 
