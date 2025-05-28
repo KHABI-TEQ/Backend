@@ -32,13 +32,18 @@ export class AdminController {
   private readonly defaultPassword = 'KhabiTeqRealty@123';
 
   public async getAllUsers() {
-    const propertyOwners = await DB.Models.Owner.find().exec();
-
-    const buyerOrRenters = await DB.Models.BuyerOrRent.find().exec();
-
     const agents = await DB.Models.User.find().exec();
 
-    return { propertyOwners, buyerOrRenters, agents };
+    const users = await Promise.all(
+      agents.map(async (agent) => {
+        return {
+          ...agent.toObject(),
+          agentData: await DB.Models.Agent.findOne({ userId: agent._id }).exec(),
+        };
+      })
+    );
+
+    return { users };
   }
 
   public async groupPropsWithOwner(
