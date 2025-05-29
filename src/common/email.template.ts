@@ -653,10 +653,13 @@ export function InspectionRequestWithNegotiation(buyerName: string, propertyData
       Please allow up to <span style="color: #FF2539">48 hours</span> for a response from the seller. Kindly be patient. 
       Below are the details of your inspection and LOI submission:
     </p>`
-       : `<p style="margin-top: 10px;">
+       : propertyData.isNegotiating
+       ? `<p style="margin-top: 10px;">
       Your property inspection has been successfully scheduled, and your negotiation offer has been submitted. The seller has up to <span style="color: #FF2539">48 hours</span> to respond, so we appreciate your patience.
 Please find your inspection details and negotiation price information below.
     </p>`
+       : `<p style="margin-top: 10px;">Your property inspection has been successfully scheduled. It may take up to 48 hours for the seller to respond, so please be patient.
+Below are your inspection details:</p>`
    }
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
@@ -667,22 +670,23 @@ Please find your inspection details and negotiation price information below.
     </ul>
 
     ${
-      propertyData.isNegotiating
+      propertyData.letterOfIntention
         ? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong>Negotiation Details:</strong></p>
-        <li><a href=${propertyData.letterOfIntention}>click here</a> to view the document</li>
+        <p><strong>Submitted LOI Document:</strong></p>
+        <li><a href=${propertyData.letterOfIntention}>click here</a> to view the uploaded document</li>
       </ul>
     `
         : ''
     }
 
     ${
-      propertyData.letterOfIntention
+      propertyData.isNegotiating
         ? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong>Submitted LOI Document:</strong></p>
+        <p><strong>Negotiation Details:</strong></p>
         <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
+        <li><strong>Your Offer:</strong> ₦${propertyData.negotiationPrice}</li>
       </ul>
     `
         : ''
@@ -716,11 +720,21 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
   return `
     <p>Dear ${sellerName},</p>
     
-    <p style="margin-top: 10px;">
-      A potential buyer has requested an inspection for your property at ${propertyData.location} on ${
-    propertyData.inspectionDate
-  } at ${propertyData.inspectionTime}.
-    </p>
+   ${
+     propertyData.letterOfIntention
+       ? `<p style="margin-top: 10px;">
+      A potential developer has submitted an LOI and requested an inspection for your property at ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
+    </p>`
+       : propertyData.isNegotiating
+       ? `<p style="margin-top: 10px;">
+      A potential buyer has negotiated your asking price and requested an inspection of ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
+    </p>`
+       : `<p style="margin-top: 10px;">
+      A potential buyer has requested an inspection for your property at ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
+    </p>`
+   }
+
+    
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
@@ -733,9 +747,22 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
       propertyData.isNegotiating
         ? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong>Negotiation Details:</strong></p>
-        <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
-        <li><strong>Your Offer Price:</strong> ₦${propertyData.negotiationPrice}</li>
+        <p><strong>Offer Details:</strong></p>
+        <li><strong>Proposed Price:</strong> ₦${propertyData.price}</li>
+        <li><strong>Deadline:</strong> ₦${propertyData.negotiationPrice}</li>
+      </ul>
+    `
+        : ''
+    }
+
+    ${
+      propertyData.letterOfIntention
+        ? `
+      <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Submitted LOI Document:</strong></p>
+        <li><a href=${propertyData.letterOfIntention}>click here</a> to view the uploaded document</li>
+        <li><strong>Deadline:</strong> ${deadlineString} <span style="color: #FF2539;">(48 hours from now)</span></li>
+
       </ul>
     `
         : ''
@@ -757,6 +784,14 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
     }" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Confirm Availability
     </a>
+
+      ${
+        propertyData.isNegotiating
+          ? `
+      <p style="margin-top: 15px;">Please <span style="color: #1AAD1F">accept</span> accept, <span style="color: #FF2539">reject</span>, or send a counter-offer<span style="color: #1976D2">counter-offer</span>. Your response is appreciated</p>
+    `
+          : ''
+      }
 
     <p style="margin-top: 15px;">
       If you have any questions, feel free to contact us.
@@ -1008,7 +1043,6 @@ export function NegotiationRejectedSellerTemplate(buyerName: string, propertyDat
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-    The seller has  your negotiation offer, but there's still an opportunity to inspect the property
     You’ve successfully <span style="color: #FF2539;">Rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
      </p>
      <ul style="background-color: #FFE7E5; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
@@ -1023,5 +1057,188 @@ export function NegotiationRejectedSellerTemplate(buyerName: string, propertyDat
       </ul>
 
       <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
+  `;
+}
+
+export function NegotiationLOIRejectedSellerTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+    You’ve successfully <span style="color: #FF2539;">Rejected</span> the Developer LOI, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+     </p>
+
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong> Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      </ul>
+
+      <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
+  `;
+}
+
+export function NegotiationLOIAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+    You’ve successfully <span style="color: #FF2539;">Accepted</span> the Developer LOI, and the inspection date has been updated by you to a new selection.
+     </p>
+
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+         <li><strong>Previous Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Date:</strong> ${propertyData.newDate}</li>
+        <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      </ul>
+
+      <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
+  `;
+}
+
+export function LOIAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+    You’ve successfully <span style="color: #FF2539;">Accepted</span> the buyer's LOI, and the inspection date has been Approved for inspection.
+     </p>
+
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      </ul>
+
+      <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
+  `;
+}
+
+export function LOINegotiationAcceptedTemplate(buyerName: string, propertyData: any): string {
+  // Calculate deadline: 48 hours from inspectionDate
+
+  return `
+    <p>Dear ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+     Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your Letter of Intent (LOI) for the property at ${propertyData.location}.
+    </p>
+
+     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Please find the details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate} ${propertyData.inspectionTime}</li>
+        <li><strong>LOI Offer:</strong> Accepted</li>
+      </ul>
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Our team will follow up with you shortly to ensure a smooth inspection process. <br/><br/>Thank you for using Khabi-Teq Realty. We’re committed to helping you close your deal faster.
+    </p>
+
+    <p style="margin-top: 15px;">You’ll receive a reminder before the inspection. If you have any questions, feel free to reach out.</p>
+
+    <p style="margin-top: 15px;">
+      We look forward to seeing you then. If you need to reschedule, please let us know.
+
+    </p>
+
+    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+      Reschedule Inspection
+    </a>
+  `;
+}
+
+export function LOIRejectedBuyerTemplate(buyerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+      The seller has <span style="color: #FF2539;">rejected</span> your LOI offer, but there's still an opportunity to inspect the property.
+    </p>
+
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+      <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
+      <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+    </ul>
+
+    <p style="margin-top: 15px;">Would you like to continue with the inspection?</p>
+
+    <table cellspacing="0" cellpadding="0" style="margin-top: 15px;">
+      <tr>
+        <td style="padding-right: 10px;">
+          <a href="${propertyData.checkLink}" style="display: inline-block; background-color: #1A7F64; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Yes</a>
+        </td>
+        <td style="padding-right: 10px;">
+          <a href="${propertyData.rejectLink}" style="display: inline-block; background-color: #FF2539; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">No</a>
+        </td>
+        <td>
+          <a href="${propertyData.browse}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
+        </td>
+      </tr>
+    </table>
+  `;
+}
+
+export function LOICounterBuyerTemplate(buyerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+    The seller has reviewed your LOI offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+     </p>
+     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
+        <li><strong>Seller's Counter-Offer:</strong> #${propertyData.sellerCounterOffer}</li>
+      </ul>
+
+      <p style="margin-top: 15px;">Please click below to accept or decline the Offer.</p>
+
+      <div style="display: flex; width: 104px; height: 40px; gap: 16px;">
+        <a href="${propertyData.acceptLink}" style="flex: 1; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Offer</a>
+      </div>
+
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Thanks for your flexibility!.
+    </p>
+  `;
+}
+
+export function LOICounterSellerTemplate(sellerName: string, propertyData: any): string {
+  return `
+    <p>Hi ${sellerName},</p>
+    
+    <p style="margin-top: 10px;">
+     You’ve successfully <span style="color: #1AAD1F;">count offer</span> the buyer’s LOI offer, and the inspection date has been updated by you to a new selection.</p>
+     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style=""><strong>Negotiation:</strong></p>
+        <li><strong>Buyer Price:</strong> #${propertyData.negotiationPrice}</li>
+        <li><strong>Your Count Offer:</strong> #${propertyData.sellerCounterOffer}</li>
+      </ul>
+
+    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Updated Inspection Details:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.newDate}</li>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      If you have any questions, feel free to contact us.
+    </p>
   `;
 }

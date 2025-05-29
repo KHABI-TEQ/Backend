@@ -10,8 +10,15 @@ import {
   InspectionAcceptedTemplate,
   InspectionRequestWithNegotiation,
   InspectionRequestWithNegotiationSellerTemplate,
+  LOIAcceptedSellerTemplate,
+  LOICounterBuyerTemplate,
+  LOICounterSellerTemplate,
+  LOINegotiationAcceptedTemplate,
+  LOIRejectedBuyerTemplate,
   NegotiationAcceptedSellerTemplate,
   NegotiationAcceptedTemplate,
+  NegotiationLOIAcceptedSellerTemplate,
+  NegotiationLOIRejectedSellerTemplate,
   NegotiationRejectedBuyerTemplate,
   NegotiationRejectedSellerTemplate,
   unavailableTemplate,
@@ -111,7 +118,7 @@ class BuyerController {
           location: `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`,
           price: property.price,
           propertyType: property.propertyType,
-          responseLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
+          responseLink: `${process.env.CLIENT_LINK}/seller-negotiation-inspection/${inspection._id.toString()}`,
         }
       );
 
@@ -217,23 +224,44 @@ class BuyerController {
         if (inspection.isNegotiating) {
           if (!updateData.countering) {
             if (updateData.negotiationRejected) {
-              sellerTemplate = NegotiationRejectedSellerTemplate(sellerName || sellerName, mailPayload);
-              buyerTemplate = NegotiationRejectedBuyerTemplate(buyerName, mailPayload);
+              if (inspection.letterOfIntention) {
+                sellerTemplate = NegotiationLOIRejectedSellerTemplate(
+                  (inspection.owner as any)?.firstName,
+                  mailPayload
+                );
+                buyerTemplate = LOIRejectedBuyerTemplate(buyerName, mailPayload);
+              } else {
+                sellerTemplate = NegotiationRejectedSellerTemplate(sellerName || sellerName, mailPayload);
+                buyerTemplate = NegotiationRejectedBuyerTemplate(buyerName, mailPayload);
+              }
             } else {
               sellerTemplate = NegotiationAcceptedSellerTemplate((inspection.owner as any)?.firstName, mailPayload);
 
               buyerTemplate = NegotiationAcceptedTemplate(buyerName, mailPayload);
             }
           } else {
-            sellerTemplate = CounterSellerTemplate(sellerName, mailPayload);
+            if (!inspection.letterOfIntention) {
+              sellerTemplate = CounterSellerTemplate(sellerName, mailPayload);
 
-            buyerTemplate = CounterBuyerTemplate(buyerName, mailPayload);
+              buyerTemplate = CounterBuyerTemplate(buyerName, mailPayload);
+            } else {
+              sellerTemplate = LOICounterSellerTemplate(sellerName, mailPayload);
+
+              buyerTemplate = LOICounterBuyerTemplate(buyerName, mailPayload);
+            }
           }
         } else {
-          sellerTemplate = confirmTemplate(sellerName, {
-            ...inspection.toObject(),
-          });
-          buyerTemplate = InspectionAcceptedTemplate(buyerName, mailPayload);
+          if (inspection.letterOfIntention) {
+            sellerTemplate = LOIAcceptedSellerTemplate(sellerName, {
+              ...inspection.toObject(),
+            });
+            buyerTemplate = LOINegotiationAcceptedTemplate(buyerName, mailPayload);
+          } else {
+            sellerTemplate = confirmTemplate(sellerName, {
+              ...inspection.toObject(),
+            });
+            buyerTemplate = InspectionAcceptedTemplate(buyerName, mailPayload);
+          }
         }
 
         await DB.Models.InspectionBooking.updateOne(
