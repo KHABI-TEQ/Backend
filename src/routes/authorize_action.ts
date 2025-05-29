@@ -12,17 +12,17 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
 
-    if (!authHeader) {
-      req.user = null;
-      next();
-    }
+    // if (!authHeader) {
+    //   req.user = null;
+    //   next();
+    // }
 
     const token = authHeader?.split(' ')[1];
 
-    if (!token) {
-      req.user = null;
-      next();
-    }
+    // if (!token) {
+    //   req.user = null;
+    //   next();
+    // }
 
     if (token) {
       const user = jwt.verify(token, process.env.JWT_SECRET, async (err: any, decoded: { id: string }) => {
@@ -39,7 +39,7 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
           return res.status(401).json({ message: 'User not found' });
         }
 
-        if (req.url !== '/onboard' && !user.accountApproved && user.userType !== 'Landowners') {
+        if (!user.accountApproved && user.userType !== 'Landowners') {
           return res.status(403).json({ message: 'Account not approved, You cannot perform this action' });
         }
 
@@ -48,7 +48,10 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
       });
     }
 
-    // return res.status(401).json({ message: 'Not AuthorizeActiond' });
+    if (!token) {
+      req.user = null;
+      next();
+    }
   } catch (error) {
     console.log('Error exchanging code for tokens:', error.response?.data || error);
     res.status(500).json({

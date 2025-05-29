@@ -1,9 +1,16 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express, { NextFunction, Response } from 'express';
 import { buyerController } from '../controllers/Buyer';
 import { DB } from '../controllers';
 import AuthorizeAction from './authorize_action';
 
 const buyerRouter = express.Router();
+
+interface Request extends Express.Request {
+  user?: any;
+  query?: any;
+  params?: any;
+  body?: any;
+}
 
 buyerRouter.post('/request-inspection', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -40,25 +47,6 @@ buyerRouter.post('/request-inspection', async (req: Request, res: Response, next
   }
 });
 
-buyerRouter.get(
-  '/inspection/:inspectionId',
-  AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { inspectionId } = req.params;
-
-      const inspectionDetails = await buyerController.getInspection(inspectionId);
-
-      return res.status(200).json({
-        success: true,
-        data: inspectionDetails,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
 buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const inspections = await DB.Models.InspectionBooking.find({}).populate([
@@ -75,6 +63,29 @@ buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: Ne
     next(error);
   }
 });
+
+buyerRouter.use(AuthorizeAction);
+
+buyerRouter.get(
+  '/inspection/:inspectionId',
+  // AuthorizeAction,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = (req as any).user as any;
+      console.log('user', user);
+      const { inspectionId } = req.params;
+
+      const inspectionDetails = await buyerController.getInspection(inspectionId, user._id);
+
+      return res.status(200).json({
+        success: true,
+        data: inspectionDetails,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 buyerRouter.post(
   '/update-inspection/:inspectionId',

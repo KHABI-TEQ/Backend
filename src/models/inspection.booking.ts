@@ -38,7 +38,7 @@ export class InspectionBooking {
         status: { type: String, required: true, default: 'pending' },
         slotId: { type: Schema.Types.ObjectId },
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: 'Buyer' },
-        transaction: { type: Schema.Types.ObjectId, required: true },
+        transaction: { type: Schema.Types.ObjectId, required: true, ref: 'Transaction' },
         isNegotiating: { type: Boolean, default: false },
         negotiationPrice: { type: Number, default: 0 },
         letterOfIntention: { type: String },

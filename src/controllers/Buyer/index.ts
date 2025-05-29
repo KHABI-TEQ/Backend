@@ -71,6 +71,16 @@ class BuyerController {
         });
       }
 
+      const existingInspection = await DB.Models.InspectionBooking.findOne({
+        propertyId: inspectionRequestData.propertyId as any,
+        requestedBy: buyer._id,
+        status: { $ne: 'unavailable' }, // Exclude unavailable inspections
+      });
+
+      if (existingInspection) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'You have already requested an inspection for this property');
+      }
+
       console.log(buyer, 'buyer');
 
       // check the date and time of the inspection if valid
@@ -150,21 +160,23 @@ class BuyerController {
     }
   }
 
-  public async getInspection(inspectionId: string) {
-    try {
-      const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
-        .populate('propertyId', 'title location price propertyType')
-        .populate('requestedBy', 'fullName email phoneNumber')
-        .populate('transaction', 'bank accountNumber accountName transactionReference transactionReceipt');
+  public async getInspection(inspectionId: string, userId?: string) {
+    const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
+      .populate('propertyId', 'title location price propertyType briefType _id owner')
+      .populate('requestedBy', 'fullName email phoneNumber')
+      .populate('transaction', 'bank accountNumber accountName transactionReference transactionReceipt');
 
-      if (!inspection) {
-        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
-      }
-
-      return inspection;
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
     }
+
+    console.log(inspection, 'inspection details');
+
+    if (userId && (inspection.propertyId as any).owner.toString() !== userId.toString()) {
+      throw new RouteError(HttpStatusCodes.FORBIDDEN, 'You do not have permission to view this inspection');
+    }
+
+    return inspection;
   }
 
   public async updateInspection(

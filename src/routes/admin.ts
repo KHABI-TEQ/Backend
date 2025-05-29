@@ -92,6 +92,20 @@ AdminRouter.post('/properties', async (req: Request, res: Response, next: NextFu
   }
 });
 
+AdminRouter.get('/query-locations', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { query } = req.query;
+
+    const locations = await fetch(
+      `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${query}&key=AIzaSyComsDDl4oIXcxZc5wmw-6QSDyuiQrxLdA&types=geocode`
+    );
+    const locationsData = await locations.json();
+    return res.status(200).json({ success: true, locationsData });
+  } catch (error) {
+    next(error);
+  }
+});
+
 AdminRouter.get('/request/all', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { page, limit, propertyType } = req.query;
