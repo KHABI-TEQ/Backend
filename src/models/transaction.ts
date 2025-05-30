@@ -22,12 +22,12 @@ export class Transaction {
     const schema = new Schema(
       {
         buyerId: { type: Schema.Types.ObjectId, required: true, ref: 'Buyer' }, // Assuming buyerId is a string, change to ObjectId if needed
-        bank: { type: String, required: true },
-        accountNumber: { type: String, required: true },
-        accountName: { type: String, required: true },
-        transactionReference: { type: String, required: true },
-        transactionReceipt: { type: String, required: true },
-        propertyId: { type: Schema.Types.ObjectId, required: true, ref: 'Property' }, // Assuming propertyId is a string
+        bank: { type: String },
+        accountNumber: { type: String },
+        accountName: { type: String },
+        transactionReference: { type: String },
+        transactionReceipt: { type: String },
+        propertyId: { type: Schema.Types.ObjectId, ref: 'Property' }, // Assuming propertyId is a string
       },
       {
         timestamps: true,
