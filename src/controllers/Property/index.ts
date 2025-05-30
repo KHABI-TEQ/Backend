@@ -1,5 +1,6 @@
 import {
   generalTemplate,
+  generatePropertPreferenceBriefEmail,
   generatePropertyBriefEmail,
   generatePropertyRentBriefEmail,
   generatePropertySellBriefEmail,
@@ -82,12 +83,13 @@ export class PropertyController {
     try {
       const properties = await DB.Models.Property.find({
         briefType,
+        isPreference: false,
       })
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
         .exec();
-      const total = await DB.Models.Property.countDocuments({ briefType }).exec();
+      const total = await DB.Models.Property.countDocuments({ briefType, isPreference: false }).exec();
 
       return {
         data: properties,
@@ -132,6 +134,51 @@ export class PropertyController {
       await sendEmail({
         to: adminEmail,
         subject: 'New Property',
+        text: mailBody1,
+        html: mailBody1,
+      });
+
+      return newProperty;
+    } catch (err) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
+    }
+  }
+
+  public async addPreference(Property: PropertyProps): Promise<IProperty> {
+    try {
+      let owner = await DB.Models.User.findOne({ email: Property.owner.email });
+
+      if (!owner) {
+        owner = await DB.Models.User.create({
+          email: Property.owner.email,
+          firstName: Property.owner.fullName.split(' ')[0],
+          lastName: Property.owner.fullName.split(' ')[1],
+          phoneNumber: Property.owner.phoneNumber,
+        });
+      }
+
+      const newProperty = await DB.Models.Property.create({
+        ...Property,
+        owner: owner._id,
+        isPreference: true,
+      });
+      const mailBody = generatePropertyBriefEmail(Property.owner.fullName, Property);
+
+      const generalMailTemplate = generalTemplate(mailBody);
+
+      const adminEmail = process.env.ADMIN_EMAIL || '';
+
+      await sendEmail({
+        to: owner.email,
+        subject: 'New Property',
+        text: generalMailTemplate,
+        html: generalMailTemplate,
+      });
+      const mailBody1 = generalTemplate(generatePropertPreferenceBriefEmail({ ...Property }));
+
+      await sendEmail({
+        to: adminEmail,
+        subject: 'New Property Preference',
         text: mailBody1,
         html: mailBody1,
       });

@@ -61,6 +61,60 @@ propertyRouter.post('/search', async (req: Request, res: Response, next: NextFun
   }
 });
 
+propertyRouter.post('/preference/new', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const {
+      propertyType,
+      propertyCondition,
+      location,
+      briefType,
+      price,
+      landSize,
+      features,
+      tenantCriteria,
+      areYouTheOwner,
+      isAvailable,
+      budgetRange,
+      pictures,
+      isApproved,
+      isRejected,
+      docOnProperty,
+      additionalFeatures,
+      buildingType,
+      owner,
+      additionalInfo,
+    } = req.body;
+    const response = await propertyControl.addPreference({
+      propertyType,
+      propertyCondition,
+      location,
+      briefType,
+      price,
+      landSize,
+      features,
+      tenantCriteria,
+      areYouTheOwner,
+      isAvailable,
+      budgetRange,
+      pictures,
+      isApproved,
+      isRejected,
+      docOnProperty,
+      additionalFeatures,
+      buildingType,
+      owner: {
+        email: owner.email,
+        fullName: owner.fullName,
+        phoneNumber: owner.phoneNumber,
+      },
+      additionalInfo,
+    });
+    return res.status(HttpStatusCodes.CREATED).json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
 /******************************************************************************
  *                       Add - "POST /api/properties/new"
  ******************************************************************************/

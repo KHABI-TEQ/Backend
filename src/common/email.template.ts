@@ -260,21 +260,86 @@ export function generatePropertySellBriefEmail(data: any) {
                   data.propertyFeatures?.additionalFeatures?.join(', ') ||
                   data.features?.map((f: any) => f.featureName).join(', ')
                 }</p>
-                <p><strong>Tenant Criteria:</strong> ${
-                  data.tenantCriteria?.map((c: any) => c.criteria).join(', ') || 'N/A'
-                }</p>
-                <p><strong>Documents on Property:</strong> ${
-                  data.docOnProperty
-                    ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                    .join(', ') || 'N/A'
-                }</p>
+                ${
+                  data.tenantCriteria.length > 0 &&
+                  `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+                    ?.map((c: any) => c.criteria)
+                    .join(', ')}</p>`
+                }
+               ${
+                 data.docOnProperty.length > 0 &&
+                 `<p><strong>Documents on Property:</strong> ${data.docOnProperty
+                   ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
+                   .join(', ')}</p>`
+               }
                 <p>Owner Email: ${data.owner.email}</p>
                 <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
                 <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
                 <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
-                <p><strong>Usage Options:</strong> ${data.usageOptions?.join(', ') || 'N/A'}</p>
-                <p><strong>Availability:</strong> ${data.isAvailable ? 'Yes' : 'No'}</p>
-                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
+               ${
+                 data.docOnProperty.length > 0 &&
+                 `<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(', ')}</p>`
+               }
+               
+                ${data.budgetRange && `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`}
+            </div>
+    
+            ${
+              data.pictures && data.pictures.length
+                ? `
+            <h3>Property Pictures</h3>
+            <div class="pictures">
+                ${data.pictures
+                  .map(
+                    (pic: any) =>
+                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+                  )
+                  .join('')}
+            </div>
+            `
+                : ''
+            }
+            
+            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            
+        </div>`;
+}
+
+export function generatePropertPreferenceBriefEmail(data: any) {
+  return ` <div class="container">
+            <h2>New Property Preference</h2>
+            <p>A new property preference has been submitted. Here are the details:</p>
+            
+            <div class="details">
+                <p><strong>Property Type:</strong> ${data.propertyType}</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
+    data.location.area
+  }</p>
+                <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
+                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms}</p>
+                <p><strong>Features:</strong> ${
+                  data.propertyFeatures?.additionalFeatures?.join(', ') ||
+                  data.features?.map((f: any) => f.featureName).join(', ')
+                }</p>
+                ${
+                  data.tenantCriteria.length > 0 &&
+                  `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+                    ?.map((c: any) => c.criteria)
+                    .join(', ')}</p>`
+                }
+               ${
+                 data.docOnProperty.length > 0 &&
+                 `<p><strong>Documents on Property:</strong> ${data.docOnProperty
+                   ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
+                   .join(', ')}</p>`
+               }
+               
+               ${
+                 data.docOnProperty.length > 0 &&
+                 `<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(', ')}</p>`
+               }
+               
+                ${data.budgetRange && `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`}
             </div>
     
             ${

@@ -36,6 +36,7 @@ export interface IProperty {
   };
   buildingType?: string;
   additionalInfo?: string;
+  isPreference: boolean;
 }
 
 export interface IPropertyDoc extends IProperty, Document {}
@@ -94,6 +95,7 @@ export class Property {
         },
         buildingType: { type: String },
         additionalInfo: { type: String },
+        isPreference: { type: Boolean, default: false },
       },
       {
         timestamps: true,
