@@ -121,16 +121,13 @@ class BuyerController {
         agentName: (property.owner as any).fullName,
       });
 
-      const sellerTemplate = InspectionRequestWithNegotiationSellerTemplate(
-        inspectionRequestData.requestedBy.fullName,
-        {
-          ...inspectionRequestData,
-          location: `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`,
-          price: property.price,
-          propertyType: property.propertyType,
-          responseLink: `${process.env.CLIENT_LINK}/seller-negotiation-inspection/${inspection._id.toString()}`,
-        }
-      );
+      const sellerTemplate = InspectionRequestWithNegotiationSellerTemplate((property.owner as any).fullName, {
+        ...inspectionRequestData,
+        location: `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`,
+        price: property.price,
+        propertyType: property.propertyType,
+        responseLink: `${process.env.CLIENT_LINK}/seller-negotiation-inspection/${inspection._id.toString()}`,
+      });
 
       const sellerEmailTemplate = generalTemplate(sellerTemplate);
 
