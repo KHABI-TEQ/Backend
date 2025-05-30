@@ -266,9 +266,7 @@ class BuyerController {
             });
             buyerTemplate = LOINegotiationAcceptedTemplate(buyerName, mailPayload);
           } else {
-            sellerTemplate = confirmTemplate(sellerName, {
-              ...inspection.toObject(),
-            });
+            sellerTemplate = confirmTemplate(sellerName, mailPayload);
             buyerTemplate = InspectionAcceptedTemplate(buyerName, mailPayload);
           }
         }
