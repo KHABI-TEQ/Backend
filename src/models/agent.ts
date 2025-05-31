@@ -26,7 +26,7 @@ export interface IAgent {
   upgradeData: {
     companyAgent: {
       companyName?: string;
-      // regNumber?: string;
+      cacNumber?: string;
     };
     meansOfId: {
       name: string;

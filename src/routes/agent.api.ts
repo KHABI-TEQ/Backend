@@ -10,6 +10,7 @@ import authorize from './authorize';
 import cloudinary from '../common/cloudinary';
 import multer from 'multer';
 import AuthorizeAction from './authorize_action';
+import bcrypt from 'bcryptjs';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -85,18 +86,22 @@ router.get('/preferences', async (req: Request, res: Response, next: NextFunctio
 
     const user = req.user as IUserDoc;
 
-    const sellPreferences = await DB.Models.PropertySell.find({
-      ownerModel: 'BuyerOrRenter',
-      'location.state': user.address.state,
-    }).then((properties) =>
-      properties.map((property) => {
-        const { owner, ...propertyData } = property.toObject();
-        return propertyData;
-      })
-    );
+    // const sellPreferences = await DB.Models.PropertySell.find({
+    //   ownerModel: 'BuyerOrRenter',
+    //   'location.state': user.address.state,
+    // }).then((properties) =>
+    //   properties.map((property) => {
+    //     const { owner, ...propertyData } = property.toObject();
+    //     return propertyData;
+    //   })
+    // );
+
+    const preferences = await DB.Models.Property.find({
+      isPreference: true,
+    });
 
     return res.status(200).json({
-      sellPreferences,
+      preferences,
       success: true,
     });
   } catch (error) {
@@ -108,22 +113,27 @@ router.get('/requests', async (req: Request, res: Response, next: NextFunction) 
   try {
     const user = req.user as IAgentDoc;
 
-    const propertiesSells = await DB.Models.PropertySell.find({ owner: user._id });
-    const propertiesRents = await DB.Models.PropertyRent.find({ owner: user._id });
+    // const propertiesSells = await DB.Models.PropertySell.find({ owner: user._id });
+    // const propertiesRents = await DB.Models.PropertyRent.find({ owner: user._id });
 
-    const requests = await DB.Models.PropertyRequest.find({
-      propertyId: { $in: [...propertiesSells.map((p) => p._id), ...propertiesRents.map((p) => p._id)] },
-    })
-      // .populate({ path: 'propertyId' })
-      .populate({ path: 'propertyId' })
-      .populate({ path: 'requestFrom' })
-      .then((requests) =>
-        requests.map((request) => {
-          const { requestFrom, ...otherData } = request.toObject();
+    // const requests = await DB.Models.PropertyRequest.find({
+    //   propertyId: { $in: [...propertiesSells.map((p) => p._id), ...propertiesRents.map((p) => p._id)] },
+    // })
+    //   // .populate({ path: 'propertyId' })
+    //   .populate({ path: 'propertyId' })
+    //   .populate({ path: 'requestFrom' })
+    //   .then((requests) =>
+    //     requests.map((request) => {
+    //       const { requestFrom, ...otherData } = request.toObject();
 
-          return otherData;
-        })
-      );
+    //       return otherData;
+    //     })
+    //   );
+    const requests = await DB.Models.InspectionBooking.find({ owner: user._id }).populate([
+      { path: 'propertyId', model: 'Property' },
+      { path: 'requestedBy', model: 'Buyer' },
+      { path: 'transaction', model: 'Transaction' },
+    ]);
 
     // const property = await DB.Models.PropertySell.findById(requests[0].propertyId);
     // console.log('Property', property);
@@ -141,6 +151,34 @@ router.post('/update-profile', async (req: Request, res: Response, next: NextFun
 
     const response = await agentControl.updateProfile(agent, profileData);
     return res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const agent = req.user as IUserDoc;
+    const { oldPassword, newPassword } = req.body;
+
+    console.log(oldPassword);
+    console.log(agent);
+
+    const compare = await bcrypt.compare(oldPassword, agent.password);
+    console.log('Password comparison result:', compare);
+    if (!compare) {
+      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+        message: 'Old password is incorrect',
+        success: false,
+      });
+    }
+    const hashNew = await bcrypt.hash(newPassword, 10);
+    await DB.Models.User.findByIdAndUpdate(agent._id, { password: hashNew });
+
+    return res.status(200).json({
+      message: 'Password changed successfully',
+      success: true,
+    });
   } catch (error) {
     next(error);
   }

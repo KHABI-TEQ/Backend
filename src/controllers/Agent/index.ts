@@ -277,12 +277,12 @@ export class AgentController implements IAgentController {
     }
   ): Promise<any> {
     try {
-      const user = await DB.Models.Agent.findById({ userId: agent._id })
+      const user = await DB.Models.Agent.findOne({ userId: agent._id })
         .populate('userId', 'email firstName lastName phoneNumber _id')
         .exec();
       if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
 
-      const updatedUser = await DB.Models.Agent.findByIdAndUpdate(
+      const updatedUser = await DB.Models.Agent.findOneAndUpdate(
         { userId: agent._id },
         { isInUpgrade: true, upgradeData: upgradeData },
         { new: true }
