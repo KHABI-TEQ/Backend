@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextFunction, Request, Response } from 'express';
-import { IAgent, IAgentDoc } from '../../models/index';
+import { IAgent, IAgentDoc, IUserDoc } from '../../models/index';
 import { DB } from '../index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -59,7 +59,7 @@ export interface IAgentController {
   ) => Promise<any>;
 
   acctUpgrade: (
-    agent: IAgentDoc,
+    agent: IUserDoc,
     upgradeData: {
       companyAgent: {
         companyName: string;
@@ -234,7 +234,7 @@ export class AgentController implements IAgentController {
   }
 
   public async updateProfile(
-    agent: IAgentDoc,
+    agent: IUserDoc,
     profileData: {
       address?: {
         street: string;
@@ -247,10 +247,14 @@ export class AgentController implements IAgentController {
     }
   ): Promise<any> {
     try {
-      const user = await DB.Models.Agent.findById(agent._id).exec();
+      const user = await DB.Models.Agent.findOne({ userId: agent._id }).exec();
       if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
 
-      const updatedUser = await DB.Models.Agent.findByIdAndUpdate(agent._id, { ...profileData }, { new: true }).exec();
+      const updatedUser = await DB.Models.Agent.findOneAndUpdate(
+        { userId: agent._id },
+        { ...profileData },
+        { new: true }
+      ).exec();
 
       return updatedUser?.toObject();
     } catch (error) {
@@ -260,7 +264,7 @@ export class AgentController implements IAgentController {
   }
 
   public async acctUpgrade(
-    agent: IAgentDoc,
+    agent: IUserDoc,
     upgradeData: {
       companyAgent: {
         companyName: string;
@@ -273,13 +277,13 @@ export class AgentController implements IAgentController {
     }
   ): Promise<any> {
     try {
-      const user = await DB.Models.Agent.findById(agent._id)
+      const user = await DB.Models.Agent.findById({ userId: agent._id })
         .populate('userId', 'email firstName lastName phoneNumber _id')
         .exec();
       if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Agent not found');
 
       const updatedUser = await DB.Models.Agent.findByIdAndUpdate(
-        agent._id,
+        { userId: agent._id },
         { isInUpgrade: true, upgradeData: upgradeData },
         { new: true }
       ).exec();

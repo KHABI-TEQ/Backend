@@ -3,7 +3,7 @@ import { NextFunction, Response, Router } from 'express';
 import { AgentController, DB } from '../controllers';
 import validator from '../common/validator';
 import HttpStatusCodes from '../common/HttpStatusCodes';
-import { IAgentDoc, IUserDoc, PropertyRent, PropertySell } from '../models';
+import { IAgentDoc, IUser, IUserDoc, PropertyRent, PropertySell } from '../models';
 import jwt from 'jsonwebtoken';
 import googleAuthHandler from './googleAuth';
 import authorize from './authorize';
@@ -136,8 +136,8 @@ router.get('/requests', async (req: Request, res: Response, next: NextFunction) 
 
 router.post('/update-profile', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const agent = req.user as IAgentDoc;
-    const profileData = validator.validate(req.body, 'agentProfileUpdateSchema');
+    const agent = req.user as IUserDoc;
+    const profileData = req.body;
 
     const response = await agentControl.updateProfile(agent, profileData);
     return res.status(200).json(response);
@@ -178,8 +178,8 @@ router.post('/upload-profile-pic', upload.single('file'), async (req: Request, r
 
 router.post('/account-upgrade', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const agent = req.user as IAgentDoc;
-    const { companyAgent, meansOfId } = validator.validate(req.body, 'acctUpgradeSchema');
+    const agent = req.user as IUserDoc;
+    const { companyAgent, meansOfId } = req.body;
 
     const response = await agentControl.acctUpgrade(agent, { companyAgent, meansOfId });
     return res.status(200).json({
@@ -197,7 +197,7 @@ router.get('/account', async (req: Request, res: Response, next: NextFunction) =
 
     const { password, isAccountInRecovery, isDeleted, isInActive, ...data } = agent.toObject();
 
-    const agentData = await DB.Models.Agent.findById({ userId: agent._id });
+    const agentData = await DB.Models.Agent.findOne({ userId: agent._id });
 
     return res.status(200).json({
       success: true,
