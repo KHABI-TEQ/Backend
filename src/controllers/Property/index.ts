@@ -161,6 +161,8 @@ export class PropertyController {
         ...Property,
         owner: owner._id,
         isPreference: true,
+        budgetMax: Property.budgetMax || 0,
+        budgetMin: Property.budgetMin || 0,
       });
       const mailBody = generatePropertyBriefEmail(Property.owner.fullName, Property);
 
