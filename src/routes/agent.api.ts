@@ -249,17 +249,25 @@ router.get('/account', async (req: Request, res: Response, next: NextFunction) =
 router.get('/properties', async (req: Request, res: Response, next: NextFunction) => {
   const agent = req.user as IAgentDoc;
 
-  console.log('Agent ID', agent._id);
+  const activeBrief = await DB.Models.Property.find({
+    owner: agent._id,
+    isApproved: true,
+  });
 
-  const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
+  const pendingBrief = await DB.Models.Property.find({
+    owner: agent._id,
+    isApproved: false,
+  });
 
-  const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
+  const totalProperties = await DB.Models.Property.countDocuments({ owner: agent._id });
 
   return res.status(200).json({
     success: true,
     properties: {
-      sellProperties,
-      rentProperties,
+      active: activeBrief,
+      pending: pendingBrief,
+      total: totalProperties,
+      dealsClosed: 0,
     },
   });
 });
