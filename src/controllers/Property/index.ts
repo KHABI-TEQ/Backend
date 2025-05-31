@@ -144,7 +144,7 @@ export class PropertyController {
     }
   }
 
-  public async addPreference(Property: PropertyProps): Promise<IProperty> {
+  public async addPreference(Property: PropertyProps & { budgetMax?: number; budgetMin?: number }): Promise<IProperty> {
     try {
       let owner = await DB.Models.User.findOne({ email: Property.owner.email });
 

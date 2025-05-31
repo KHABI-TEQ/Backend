@@ -500,7 +500,7 @@ export class AdminController {
             isInUpgrade: false,
           };
 
-      await DB.Models.User.findByIdAndUpdate(_id, updateData).exec();
+      await DB.Models.Agent.findByIdAndUpdate(_id, updateData).exec();
 
       const body = approved
         ? accountUpgradeApprovedTemplate(user.firstName)
