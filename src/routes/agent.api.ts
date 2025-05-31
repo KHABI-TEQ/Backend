@@ -198,7 +198,7 @@ router.post('/upload-profile-pic', upload.single('file'), async (req: Request, r
     // Upload to Cloudinary
     const uploadImg = await cloudinary.uploadFile(fileBase64, `${agent._id}/profile-image`, 'profile-images');
 
-    await DB.Models.Agent.findByIdAndUpdate(agent._id, {
+    await DB.Models.Agent.findOneAndUpdate(agent._id, {
       $set: {
         profile_picture: uploadImg,
       },
