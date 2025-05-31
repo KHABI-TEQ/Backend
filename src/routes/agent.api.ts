@@ -95,9 +95,24 @@ router.get('/preferences', async (req: Request, res: Response, next: NextFunctio
     //     return propertyData;
     //   })
     // );
+    const agent = await DB.Models.Agent.findOne({ userId: user._id });
+
+    if (!agent) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        message: 'Not an agent',
+        success: false,
+      });
+    }
+
+    const regionOfOperation = agent.regionOfOperation || [];
 
     const preferences = await DB.Models.Property.find({
       isPreference: true,
+      $or: [
+        { 'location.state': { $in: regionOfOperation } },
+        { 'location.localGovernment': { $in: regionOfOperation } },
+        { 'location.area': { $in: regionOfOperation } },
+      ],
     });
 
     return res.status(200).json({
