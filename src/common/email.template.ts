@@ -761,7 +761,6 @@ Below are your inspection details:</p>`
       <p><strong>Inspection Details:</strong></p>
       <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
       <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
-      <li><strong>Agent Name:</strong> ${propertyData.agentName}</li>
     </ul>
 
     <p style="margin-top: 15px;">
