@@ -200,12 +200,13 @@ class BuyerController {
       const sellerName = (inspection.owner as any)?.fullName || (inspection.owner as any)?.firstName;
       const buyerName = (inspection.requestedBy as any)?.fullName || (inspection.requestedBy as any)?.firstName;
 
+      const formatPrice = (price: number) => price.toLocaleString('en-US');
       const mailPayload = {
         ...inspection.toObject(),
         location: `${(inspection.propertyId as any).location.state}, ${
           (inspection.propertyId as any).location.localGovernment
         }, ${(inspection.propertyId as any).location.area}`,
-        price: (inspection.propertyId as any).price,
+        price: formatPrice((inspection.propertyId as any).price),
         propertyType: (inspection.propertyId as any).propertyType,
         sellerCounterOffer: updateData.counterOffer,
         newDate: updateData.inspectionDate,
