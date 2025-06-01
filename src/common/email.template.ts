@@ -364,53 +364,56 @@ export function generatePropertPreferenceBriefEmail(data: any) {
 }
 
 export function generatePropertyBriefEmail(ownerName: string, data: any) {
+  let details = '';
+
+  if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
+  if (data.propertyType) details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+  if (data.propertyCondition) details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
+  if (data.location)
+    details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+  if (data.price) details += `<p><strong>Price:</strong> ₦${data.price}</p>`;
+  if (data.landSize)
+    details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
+  if (data.buildingType) details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
+  if (data.additionalFeatures?.noOfBedrooms)
+    details += `<p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures.noOfBedrooms}</p>`;
+  if (data.additionalFeatures?.noOfBathrooms)
+    details += `<p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures.noOfBathrooms}</p>`;
+  if (data.additionalFeatures?.noOfToilets)
+    details += `<p><strong>Number of Toilets:</strong> ${data.additionalFeatures.noOfToilets}</p>`;
+  if (data.additionalFeatures?.noOfCarParks)
+    details += `<p><strong>Number of Car Parks:</strong> ${data.additionalFeatures.noOfCarParks}</p>`;
+  if (data.additionalFeatures?.additionalFeatures?.length)
+    details += `<p><strong>Additional Features:</strong> ${data.additionalFeatures.additionalFeatures.join(', ')}</p>`;
+  if (data.features?.length) details += `<p><strong>Features:</strong> ${data.features.join(', ')}</p>`;
+  if (data.tenantCriteria?.length)
+    details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(', ')}</p>`;
+  if (data.docOnProperty?.length)
+    details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty
+      .map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
+      .join(', ')}</p>`;
+  // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
+  // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
+  // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
+  // if (typeof data.areYouTheOwner === 'boolean')
+  //   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
+  // if (typeof data.isAvailable !== 'undefined')
+  //   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
+  // if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
+  // if (typeof data.isApproved === 'boolean')
+  //   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
+  // if (typeof data.isRejected === 'boolean')
+  //   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
+  details += `<p><strong>Under Review:</strong>Yes</p>`;
+
   return `
       <p>Hi ${ownerName},</p>
-        <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
-      
-        <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
-          
-        <p><strong>Brief Type:</strong> ${data.briefType}</p>
-        <p><strong>Property Type:</strong> ${data.propertyType}</p>
-        <p><strong>Property Condition:</strong> ${data.propertyCondition}</p>
-        <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
-        <p><strong>Price:</strong> ₦${data.price}</p>
+      <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+      <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+        ${details}
         ${
-          data.landSize
-            ? `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`
-            : ''
-        }
-        ${data.buildingType ? `<p><strong>Building Type:</strong> ${data.buildingType}</p>` : ''}
-        <p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures?.noOfBedrooms ?? 'N/A'}</p>
-        <p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures?.noOfBathrooms ?? 'N/A'}</p>
-        <p><strong>Number of Toilets:</strong> ${data.additionalFeatures?.noOfToilets ?? 'N/A'}</p>
-        <p><strong>Number of Car Parks:</strong> ${data.additionalFeatures?.noOfCarParks ?? 'N/A'}</p>
-        <p><strong>Additional Features:</strong> ${data.additionalFeatures?.additionalFeatures?.join(', ') || 'N/A'}</p>
-        <p><strong>Features:</strong> ${data.features?.join(', ') || 'N/A'}</p>
-        <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria?.join(', ') || 'N/A'}</p>
-        <p><strong>Documents on Property:</strong> ${
-          data.docOnProperty?.length
-            ? data.docOnProperty
-                .map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                .join(', ')
-            : 'N/A'
-        }</p>
-        <p><strong>Owner Email:</strong> ${data.owner.email}</p>
-        <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
-        <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
-        <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
-        <p><strong>Availability:</strong> ${data.isAvailable ?? 'N/A'}</p>
-        <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
-        <p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>
-        <p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>
-        <p><strong>Under Review:</strong>Yes</p>
-
-    
-      ${
-        data.pictures && data.pictures.length
-          ? `
+          data.pictures && data.pictures.length
+            ? `
         <h3>Property Pictures</h3>
         <div style=" display: flex; flex-wrap: wrap; gap: 10px;">
           ${data.pictures
@@ -421,11 +424,10 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
             .join('')}
         </div>
         `
-          : ''
-      }
-      ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            : ''
+        }
+      
       </ul>
-   
   `;
 }
 
