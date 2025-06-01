@@ -79,8 +79,8 @@ router.get('/verify-email', async (req: Request, res: Response, next: NextFuncti
 
 router.post('/signup/google', googleAuthHandler, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { idToken, userType } = validator.validate(req.body, 'googleSignupSchema');
-    const googleUserInfo = await userControl.googleSignup(idToken, userType);
+    const { code, userType } = validator.validate(req.body, 'googleSignupSchema');
+    const googleUserInfo = await userControl.googleSignup(code, userType);
     return res.status(200).json(googleUserInfo);
   } catch (error) {
     next(error);
@@ -93,8 +93,8 @@ router.post('/signup/google', googleAuthHandler, async (req: Request, res: Respo
 
 router.post('/login/google', googleAuthHandler, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { idToken } = validator.validate(req.body, 'googleSignupSchema');
-    const googleUserInfo = await userControl.googleLogin(idToken as string);
+    const { code } = validator.validate(req.body, 'googleSignupSchema');
+    const googleUserInfo = await userControl.googleLogin(code as string);
     return res.status(200).json(googleUserInfo);
   } catch (error) {
     next(error);

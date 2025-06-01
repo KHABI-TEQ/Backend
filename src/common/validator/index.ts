@@ -115,7 +115,7 @@ class Validator {
   });
 
   private googleSignupSchema = joi.object({
-    idToken: joi.string().required(),
+    code: joi.string().required(),
     userType: joi.string().valid('Agent', 'Landowners').required(),
   });
 
