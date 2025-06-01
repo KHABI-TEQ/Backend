@@ -13,7 +13,7 @@ import { DB } from '../index';
 import sendEmail from '../../common/send.email';
 import { FilterQuery } from 'mongoose';
 
-interface PropertyProps {
+export interface PropertyProps {
   propertyType: string;
   propertyCondition: string;
   location: {
@@ -116,6 +116,8 @@ export class PropertyController {
       const newProperty = await DB.Models.Property.create({
         ...Property,
         owner: owner._id,
+        isPremium: false,
+        isPreference: false,
       });
       const mailBody = generatePropertyBriefEmail(Property.owner.fullName, Property);
 
@@ -161,6 +163,7 @@ export class PropertyController {
         ...Property,
         owner: owner._id,
         isPreference: true,
+        isPremium: false,
         budgetMax: Property.budgetMax || 0,
         budgetMin: Property.budgetMin || 0,
       });

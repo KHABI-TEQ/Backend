@@ -3,6 +3,7 @@ import { AdminController } from '../controllers/Admin';
 import { IAdmin, IAdminDoc } from '../models';
 import { authorizeAdmin } from './admin.authorize';
 import { DB } from '../controllers';
+import HttpStatusCodes from '../common/HttpStatusCodes';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -197,6 +198,60 @@ AdminRouter.put('/agent/flag/:agentId/:status', async (req: Request, res: Respon
     return res
       .status(200)
       .json({ success: true, message: isFlagged ? 'Agent flagged successfully' : 'Agent unflagged successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/property/new', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const {
+      propertyType,
+      propertyCondition,
+      location,
+      briefType,
+      price,
+      landSize,
+      features,
+      tenantCriteria,
+      areYouTheOwner,
+      isAvailable,
+      budgetRange,
+      pictures,
+      isApproved,
+      isRejected,
+      docOnProperty,
+      additionalFeatures,
+      buildingType,
+      owner,
+      additionalInfo,
+    } = req.body;
+    const response = await adminController.add({
+      propertyType,
+      propertyCondition,
+      location,
+      briefType,
+      price,
+      landSize,
+      features,
+      tenantCriteria,
+      areYouTheOwner,
+      isAvailable,
+      budgetRange,
+      pictures,
+      isApproved,
+      isRejected,
+      docOnProperty,
+      additionalFeatures,
+      buildingType,
+      owner: {
+        email: owner.email,
+        fullName: owner.fullName,
+        phoneNumber: owner.phoneNumber,
+      },
+      additionalInfo,
+    });
+    return res.status(HttpStatusCodes.CREATED).json(response);
   } catch (error) {
     next(error);
   }

@@ -6,6 +6,7 @@ import {
   DeactivateOrActivateAgent,
   DeleteAgent,
   generalTemplate,
+  generatePropertyBriefEmail,
   PropertyApprovedOrDisapprovedTemplate,
 } from '../../common/email.template';
 import { DB } from '..';
@@ -19,6 +20,8 @@ import sendEmail from '../../common/send.email';
 import { RouteError, signJwt, signJwtAdmin } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import bcrypt from 'bcryptjs';
+import { PropertyProps } from '../Property';
+import { IProperty } from '../../models';
 
 export class AdminController {
   private agentController = new AgentController();
@@ -517,6 +520,48 @@ export class AdminController {
       return approved ? 'Agent upgrade approved' : 'Agent upgrade disapproved';
     } catch (error) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async add(Property: PropertyProps): Promise<IProperty> {
+    try {
+      const owner = await DB.Models.User.findOne({ email: Property.owner.email });
+
+      if (!owner) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Owner not found');
+      }
+
+      const newProperty = await DB.Models.Property.create({
+        ...Property,
+        owner: owner._id,
+        isPremium: true,
+        isApproved: true,
+        isAvailable: true,
+      });
+      const mailBody = generatePropertyBriefEmail(Property.owner.fullName, Property);
+
+      const generalMailTemplate = generalTemplate(mailBody);
+
+      const adminEmail = process.env.ADMIN_EMAIL || '';
+
+      await sendEmail({
+        to: owner.email,
+        subject: 'New Property',
+        text: generalMailTemplate,
+        html: generalMailTemplate,
+      });
+      // const mailBody1 = generalTemplate(generatePropertySellBriefEmail({ ...Property, isAdmin: true }));
+
+      // await sendEmail({
+      //   to: adminEmail,
+      //   subject: 'New Property',
+      //   text: mailBody1,
+      //   html: mailBody1,
+      // });
+
+      return newProperty;
+    } catch (err) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
     }
   }
 

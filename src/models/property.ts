@@ -39,6 +39,7 @@ export interface IProperty {
   isPreference: boolean;
   budgetMin?: number;
   budgetMax?: number;
+  isPremium?: boolean;
 }
 
 export interface IPropertyDoc extends IProperty, Document {}
@@ -100,6 +101,7 @@ export class Property {
         isPreference: { type: Boolean, default: false },
         budgetMin: { type: Number },
         budgetMax: { type: Number },
+        isPremium: { type: Boolean, default: false },
       },
       {
         timestamps: true,
