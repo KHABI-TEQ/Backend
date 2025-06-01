@@ -113,10 +113,12 @@ class BuyerController {
         owner: (property.owner as any)._id, // ObjectId of the property owner
       });
 
+      const formatPrice = (price: number) => price.toLocaleString('en-US');
+
       const mailTemplate = InspectionRequestWithNegotiation(inspectionRequestData.requestedBy.fullName, {
         ...inspectionRequestData,
         location: `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`,
-        price: property.price,
+        price: formatPrice(property.price),
         propertyType: property.propertyType,
         agentName: (property.owner as any).fullName,
       });
@@ -124,7 +126,7 @@ class BuyerController {
       const sellerTemplate = InspectionRequestWithNegotiationSellerTemplate((property.owner as any).fullName, {
         ...inspectionRequestData,
         location: `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`,
-        price: property.price,
+        price: formatPrice(property.price),
         propertyType: property.propertyType,
         responseLink: `${process.env.CLIENT_LINK}/seller-negotiation-inspection/${inspection._id.toString()}`,
       });
