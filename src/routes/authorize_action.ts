@@ -39,7 +39,7 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
           return res.status(401).json({ message: 'User not found' });
         }
 
-        if (!user.accountApproved && user.userType !== 'Landowners') {
+        if (!user.accountApproved && user.userType !== 'Landowners' && !req.url.includes('onboard')) {
           return res.status(403).json({ message: 'Account not approved, You cannot perform this action' });
         }
 
