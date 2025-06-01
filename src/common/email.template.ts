@@ -389,9 +389,7 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
   if (data.tenantCriteria?.length)
     details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(', ')}</p>`;
   if (data.docOnProperty?.length)
-    details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty
-      .map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-      .join(', ')}</p>`;
+    details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
   // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
   // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
   // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
