@@ -225,6 +225,7 @@ AdminRouter.post('/property/new', async (req: Request, res: Response, next: Next
       buildingType,
       owner,
       additionalInfo,
+      isPremium,
     } = req.body;
     const response = await adminController.add({
       propertyType,
@@ -250,6 +251,7 @@ AdminRouter.post('/property/new', async (req: Request, res: Response, next: Next
         phoneNumber: owner.phoneNumber,
       },
       additionalInfo,
+      isPremium,
     });
     return res.status(HttpStatusCodes.CREATED).json(response);
   } catch (error) {
