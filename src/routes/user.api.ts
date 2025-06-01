@@ -79,7 +79,12 @@ router.get('/verify-email', async (req: Request, res: Response, next: NextFuncti
 
 router.post('/signup/google', googleAuthHandler, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { code, userType } = validator.validate(req.body, 'googleSignupSchema');
+    const { code, userType } = req.body;
+    if (!code) {
+      return res.status(400).json({
+        message: 'Authorization code is required',
+      });
+    }
     const googleUserInfo = await userControl.googleSignup(code, userType);
     return res.status(200).json(googleUserInfo);
   } catch (error) {
@@ -93,7 +98,12 @@ router.post('/signup/google', googleAuthHandler, async (req: Request, res: Respo
 
 router.post('/login/google', googleAuthHandler, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { code } = validator.validate(req.body, 'googleSignupSchema');
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({
+        message: 'Authorization code is required',
+      });
+    }
     const googleUserInfo = await userControl.googleLogin(code as string);
     return res.status(200).json(googleUserInfo);
   } catch (error) {
