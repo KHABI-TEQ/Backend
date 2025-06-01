@@ -53,6 +53,7 @@ export interface PropertyProps {
     phoneNumber: string;
   };
   additionalInfo?: string;
+  isPremium?: boolean;
 }
 
 export class PropertyController {

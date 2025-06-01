@@ -534,9 +534,7 @@ export class AdminController {
       const newProperty = await DB.Models.Property.create({
         ...Property,
         owner: owner._id,
-        isPremium: true,
         isApproved: true,
-        isAvailable: true,
       });
       const mailBody = generatePropertyBriefEmail(Property.owner.fullName, Property);
 
