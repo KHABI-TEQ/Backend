@@ -54,6 +54,10 @@ export interface PropertyProps {
   };
   additionalInfo?: string;
   isPremium?: boolean;
+  preferenceFeeTransaction?: {
+    accountName: string;
+    transactionReciept: string;
+  };
 }
 
 export class PropertyController {

@@ -40,6 +40,10 @@ export interface IProperty {
   budgetMin?: number;
   budgetMax?: number;
   isPremium?: boolean;
+  preferenceFeeTransaction?: {
+    accountName: string;
+    transactionReciept: string;
+  };
 }
 
 export interface IPropertyDoc extends IProperty, Document {}
@@ -102,6 +106,10 @@ export class Property {
         budgetMin: { type: Number },
         budgetMax: { type: Number },
         isPremium: { type: Boolean, default: false },
+        preferenceFeeTransaction: {
+          accountName: { type: String },
+          transactionReciept: { type: String },
+        },
       },
       {
         timestamps: true,

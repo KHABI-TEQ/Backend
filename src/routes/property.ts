@@ -85,6 +85,7 @@ propertyRouter.post('/preference/new', async (req: Request, res: Response, next:
       additionalInfo,
       budgetMax,
       budgetMin,
+      preferenceFeeTransaction,
     } = req.body;
     const response = await propertyControl.addPreference({
       propertyType,
@@ -112,6 +113,7 @@ propertyRouter.post('/preference/new', async (req: Request, res: Response, next:
       additionalInfo,
       budgetMax,
       budgetMin,
+      preferenceFeeTransaction,
     });
     return res.status(HttpStatusCodes.CREATED).json(response);
   } catch (error) {
