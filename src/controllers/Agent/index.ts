@@ -139,6 +139,7 @@ export class AgentController implements IAgentController {
           agentType,
           companyAgent,
           meansOfId: meansOfId,
+          govtId: govtId,
         },
         { new: true }
       );
