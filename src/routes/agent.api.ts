@@ -267,11 +267,13 @@ router.get('/properties', async (req: Request, res: Response, next: NextFunction
   const activeBrief = await DB.Models.Property.find({
     owner: agent._id,
     isApproved: true,
+    isPreference: false,
   });
 
   const pendingBrief = await DB.Models.Property.find({
     owner: agent._id,
     isApproved: false,
+    isPreference: false,
   });
 
   const totalProperties = await DB.Models.Property.countDocuments({ owner: agent._id });
