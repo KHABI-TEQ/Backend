@@ -87,6 +87,8 @@ export class UserController {
 
     const token = signJwt({ email: newUser.email });
 
+    const secondToken = signJwt({ email: newUser.email, id: newUser._id, resendIn: Date.now() + 1000 * 60 * 60 * 24 });
+
     const verificationLink = process.env.CLIENT_LINK + '?access_token=' + token;
     const mailBody = verifyEmailTemplate(firstName, verificationLink);
     const mail = generalTemplate(mailBody);
@@ -97,7 +99,78 @@ export class UserController {
       text: 'Verify Your Email Address',
       html: mail,
     });
-    return { message: 'Signup successful, please verify your email' };
+    return { message: 'Signup successful, please verify your email', token: secondToken };
+  }
+
+  public async changeEmail(token: string, email: string): Promise<any> {
+    try {
+      const { email: oldEmail, id: userId } = jwt.verify(token, process.env.JWT_SECRET as string) as {
+        email: string;
+        id: string;
+      };
+      if (!oldEmail) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid token');
+
+      const user = await DB.Models.User.findOne({ email: oldEmail, _id: userId });
+      if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
+
+      const existingUser = await DB.Models.User.findOne({ email: email.toLowerCase().trim() });
+      if (existingUser) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Email already exists');
+
+      user.email = email.toLowerCase().trim();
+      await user.save();
+
+      const newToken = signJwt({ email: email });
+      const secondToken = signJwt({
+        email: email,
+        id: user._id,
+        resendIn: Date.now() + 1000 * 60 * 60 * 24,
+      });
+      const verificationLink = process.env.CLIENT_LINK + '?access_token=' + newToken;
+      const mailBody = verifyEmailTemplate(user.firstName, verificationLink);
+      const mail = generalTemplate(mailBody);
+
+      await sendEmail({
+        to: email,
+        subject: 'Verify Your Email Address',
+        text: 'Verify Your Email Address',
+        html: mail,
+      });
+
+      return { success: true, message: 'Email changed successfully', token: secondToken };
+    } catch (error) {
+      console.error(error);
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async resendEmailVerification(token: string): Promise<any> {
+    try {
+      const { email, id } = jwt.verify(token, process.env.JWT_SECRET as string) as { email: string; id: string };
+      if (!email) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid token');
+
+      const user = await DB.Models.User.findOne({ email, _id: id });
+      if (!user) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User not found');
+
+      if (user.isAccountVerified) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Account already verified');
+      }
+
+      const verificationLink = process.env.CLIENT_LINK + '?access_token=' + token;
+      const mailBody = verifyEmailTemplate(user.firstName, verificationLink);
+      const mail = generalTemplate(mailBody);
+
+      await sendEmail({
+        to: email,
+        subject: 'Verify Your Email Address',
+        text: 'Verify Your Email Address',
+        html: mail,
+      });
+
+      return { success: true, message: 'Verification email sent' };
+    } catch (error) {
+      console.error(error);
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
   }
 
   public async googleSignup(idToken: string, userType: string): Promise<IUser & { token: string }> {

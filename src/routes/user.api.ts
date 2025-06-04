@@ -42,6 +42,46 @@ router.post('/signup', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
+router.post('/change-email', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, token } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        message: 'Please provide your email',
+      });
+    }
+
+    if (!token) {
+      return res.status(400).json({
+        message: 'Token is required',
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        message: 'Invalid email format',
+      });
+    }
+
+    const response = await userControl.changeEmail(token, email);
+    return res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/resend-verification-email', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { token } = req.query;
+    const response = await userControl.resendEmailVerification(token);
+    return res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/verify-email', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { access_token } = req.query;
