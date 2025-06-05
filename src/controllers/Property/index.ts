@@ -2,6 +2,7 @@ import {
   generalTemplate,
   generatePropertPreferenceBriefEmail,
   generatePropertyBriefEmail,
+  generatePropertyPreferenceBriefEmail,
   generatePropertyRentBriefEmail,
   generatePropertySellBriefEmail,
   PropertyReceivedTemplate,
@@ -172,7 +173,7 @@ export class PropertyController {
         budgetMax: Property.budgetMax || 0,
         budgetMin: Property.budgetMin || 0,
       });
-      const mailBody = generatePropertyBriefEmail(Property.owner.fullName, Property);
+      const mailBody = generatePropertyPreferenceBriefEmail(Property.owner.fullName, Property);
 
       const generalMailTemplate = generalTemplate(mailBody);
 
@@ -180,7 +181,7 @@ export class PropertyController {
 
       await sendEmail({
         to: owner.email,
-        subject: 'New Property',
+        subject: 'New Property Preference',
         text: generalMailTemplate,
         html: generalMailTemplate,
       });

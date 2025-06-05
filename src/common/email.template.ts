@@ -388,8 +388,8 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
   if (data.features?.length) details += `<p><strong>Features:</strong> ${data.features.join(', ')}</p>`;
   if (data.tenantCriteria?.length)
     details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(', ')}</p>`;
-  if (data.docOnProperty?.length)
-    details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
+  // if (data.docOnProperty?.length)
+  //   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
   // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
   // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
   // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
@@ -426,6 +426,47 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
         }
       
       </ul>
+  `;
+}
+
+export function generatePropertyPreferenceBriefEmail(ownerName: string, data: any) {
+  let details = '';
+
+  // if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
+  if (data.propertyType) details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+  if (data.location)
+    details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+  if (data.price) details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - #${data.budgetMin}</p>`;
+  if (data.buildingType) details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
+  details += `<p><strong>Property Features:</strong> ${data.additionalFeatures.additionalFeatures.join(', ')}</p>`;
+  if (data.landSize)
+    details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
+  // if (data.docOnProperty?.length)
+  //   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
+  // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
+  // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
+  // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
+  // if (typeof data.areYouTheOwner === 'boolean')
+  //   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
+  // if (typeof data.isAvailable !== 'undefined')
+  //   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
+  // if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
+  // if (typeof data.isApproved === 'boolean')
+  //   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
+  // if (typeof data.isRejected === 'boolean')
+  //   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
+
+  return `
+      <p>Hi ${ownerName},</p>
+      <p>Thank you for sharing your preferences with Khabi-Teq Realty! We'll match you with property briefs tailored to your needs:</p>
+      <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Submitted Preference: </strong></p>
+        ${details}
+       
+      
+      </ul>
+      <p>Our team will get back to you with the necessary feedback.</p>
+      <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
   `;
 }
 
