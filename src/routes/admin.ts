@@ -25,7 +25,9 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
-AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.use(authorizeAdmin);
+
+AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, firstName, lastName, phoneNumber, address } = req.body;
     const admin = await adminController.createAdmin({
@@ -41,7 +43,7 @@ AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Resp
   }
 });
 
-AdminRouter.post('/change-password', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const admin = req.admin as IAdminDoc;
     const { newPassword } = req.body;

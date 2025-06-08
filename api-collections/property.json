@@ -1,0 +1,101 @@
+{
+  "info": {
+    "name": "Property API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get All Properties",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{SERVER_URL}}/properties/all?page={{PAGE}}&limit={{LIMIT}}&briefType={{BRIEF_TYPE}}",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["properties", "all"],
+          "query": [
+            { "key": "page", "value": "{{PAGE}}" },
+            { "key": "limit", "value": "{{LIMIT}}" },
+            { "key": "briefType", "value": "{{BRIEF_TYPE}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Single Property",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{SERVER_URL}}/properties/{{PROPERTY_ID}}",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["properties", "{{PROPERTY_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "Search Properties",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"location\": \"Ibadan\",\n  \"price\": { \"$lte\": 5000000 }\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/properties/search",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["properties", "search"]
+        }
+      }
+    },
+    {
+      "name": "Add New Property",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"propertyType\": \"Apartment\",\n  \"location\": \"Ibadan\",\n  \"price\": 2500000,\n  \"owner\": {\n    \"email\": \"owner@example.com\",\n    \"fullName\": \"Owner Name\",\n    \"phoneNumber\": \"08012345678\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/properties/new",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["properties", "new"]
+        }
+      }
+    },
+    {
+      "name": "Update Property",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"price\": 3000000,\n  \"owner\": {\n    \"email\": \"owner@example.com\",\n    \"fullName\": \"Owner Name\",\n    \"phoneNumber\": \"08012345678\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/properties/update/{{PROPERTY_ID}}",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["properties", "update", "{{PROPERTY_ID}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Property",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }],
+        "url": {
+          "raw": "{{SERVER_URL}}/properties/delete/{{PROPERTY_ID}}",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["properties", "delete", "{{PROPERTY_ID}}"]
+        }
+      }
+    }
+  ]
+}
