@@ -4,6 +4,7 @@ import { IAdmin, IAdminDoc } from '../models';
 import { authorizeAdmin } from './admin.authorize';
 import { DB } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
+import authorize from './authorize';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -15,6 +16,7 @@ interface Request extends Express.Request {
   admin?: any;
 }
 
+// Allow login and create-admin without auth
 AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
@@ -24,7 +26,6 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 });
-
 AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, firstName, lastName, phoneNumber, address } = req.body;
@@ -40,6 +41,9 @@ AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Resp
     next(error);
   }
 });
+
+// Protect all other admin routes
+AdminRouter.use(authorize);
 
 AdminRouter.post('/change-password', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
