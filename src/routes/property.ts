@@ -267,6 +267,18 @@ propertyRouter.get('/mine/all', async (req: Request, res: Response, next: NextFu
   }
 });
 
+/**
+ *                      Get all preferences - "GET /api/properties/preference"
+ */
+propertyRouter.get('/preference', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const preferences = await DB.Models.Property.find({ isPreference: true }).sort({ createdAt: -1 });
+    return res.status(HttpStatusCodes.OK).json({ preferences });
+  } catch (error) {
+    next(error);
+  }
+});
+
 /******************************************************************************
  *                    Delete - "DELETE /api/properties/delete/:_id"
  ******************************************************************************/
