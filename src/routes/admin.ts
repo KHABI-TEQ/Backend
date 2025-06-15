@@ -96,7 +96,7 @@ AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunc
   }
 });
 
-AdminRouter.post('/properties', async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.post('/properties', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { briefType, ownerType, page, limit } = req.body;
     console.log(briefType, ownerType, page, limit);
