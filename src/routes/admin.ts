@@ -26,6 +26,16 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 });
+
+// Get current admin info
+AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    return res.status(200).json({ success: true, admin: req.admin });
+  } catch (error) {
+    next(error);
+  }
+});
+
 AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, firstName, lastName, phoneNumber, address } = req.body;
