@@ -1,5 +1,5 @@
 export const generalTemplate = (body: string): string => {
-  return `
+	return `
         <html>
 <head>
     <meta charset="UTF-8">
@@ -73,8 +73,11 @@ export const generalTemplate = (body: string): string => {
         `;
 };
 
-export const propertyRequestTemplate = (buyerName: string, propertyAddress: string): string => {
-  return `
+export const propertyRequestTemplate = (
+	buyerName: string,
+	propertyAddress: string
+): string => {
+	return `
                 <html>
                 <body>
                         <p>Dear ${buyerName},</p>
@@ -87,8 +90,11 @@ export const propertyRequestTemplate = (buyerName: string, propertyAddress: stri
         `;
 };
 
-export const agentNotificationTemplate = (agentName: string, propertyAddress: string): string => {
-  return `
+export const agentNotificationTemplate = (
+	agentName: string,
+	propertyAddress: string
+): string => {
+	return `
                         <p>
                         Dear ${agentName},
 
@@ -99,8 +105,12 @@ export const agentNotificationTemplate = (agentName: string, propertyAddress: st
                         `;
 };
 
-export const propertyAvailableTemplate = (agentName: string, propertyAddress: string, calendlyLink: string): string => {
-  return `
+export const propertyAvailableTemplate = (
+	agentName: string,
+	propertyAddress: string,
+	calendlyLink: string
+): string => {
+	return `
                 <html>
                 <body>
                         <p>Dear ${agentName},</p>
@@ -114,8 +124,11 @@ export const propertyAvailableTemplate = (agentName: string, propertyAddress: st
         `;
 };
 
-export const propertyNotAvailableTemplate = (recepientName: string, propertyAddress: string): string => {
-  return `
+export const propertyNotAvailableTemplate = (
+	recepientName: string,
+	propertyAddress: string
+): string => {
+	return `
                 <html>
                 <body>
                         <p>Dear ${recepientName},</p>
@@ -129,8 +142,12 @@ export const propertyNotAvailableTemplate = (recepientName: string, propertyAddr
         `;
 };
 
-export const inspectionScheduledTemplate = (agentName: string, propertyAddress: string, dateTime: string): string => {
-  return `
+export const inspectionScheduledTemplate = (
+	agentName: string,
+	propertyAddress: string,
+	dateTime: string
+): string => {
+	return `
       <div>
           <p>Dear ${agentName},</p>
           <p>The inspection for ${propertyAddress} has been scheduled for ${dateTime}. Please
@@ -141,8 +158,11 @@ export const inspectionScheduledTemplate = (agentName: string, propertyAddress: 
                                 `;
 };
 
-export const verifyEmailTemplate = (name: string, verificationLink: string): string => {
-  return `
+export const verifyEmailTemplate = (
+	name: string,
+	verificationLink: string
+): string => {
+	return `
         <p>Dear ${name},</p>
         <p>Thank you for registering with Khabi-Teq Realty. To complete your onboarding process, please verify your email address by clicking the link below:</p>
         <p>🔗 <a href="${verificationLink}">Verify Email</a></p>
@@ -151,35 +171,35 @@ export const verifyEmailTemplate = (name: string, verificationLink: string): str
 };
 
 export const accountUnderReviewTemplate = (name: string): string => {
-  return `
+	return `
         <p>Hi ${name},</p>
         <p>Thank you for registering with Khabi-Teq Realty. Your agent account is currently <strong>under review</strong>. We are verifying your submitted documents and details. You will receive a confirmation email once your account is approved. If we require any additional information, we will reach out to you.</p>
         `;
 };
 
 export const accountUpgradeTemplate = (name: string): string => {
-  return `
+	return `
                 <p>Hi ${name},</p>
                 <p>Thank you for your recent upgrade request with Khabi-Teq Realty. Your request is currently under review. We will notify you once the review is complete.</p>
                 `;
 };
 
 export const accountUpgradeApprovedTemplate = (name: string): string => {
-  return `
+	return `
                         <p>Dear ${name},</p>
                         <p>Congratulations! Your upgrade request with Khabi-Teq Realty has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
                         `;
 };
 
 export const accountUpgradeDisapprovedTemplate = (name: string): string => {
-  return `
+	return `
                                 <p>Dear ${name},</p>
                                 <p>Thank you for your recent upgrade request with Khabi-Teq Realty. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
                                 `;
 };
 
 export const accountApproved = (name: string): string => {
-  return `
+	return `
                 <p>Dear ${name},</p>
                 <p>Welcome to Khabi-Teq Realty! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
                 <p>Get ready to unlock new opportunities and grow your real estate career with us.</p>
@@ -187,7 +207,7 @@ export const accountApproved = (name: string): string => {
 };
 
 export const accountDisaapproved = (name: string): string => {
-  return `
+	return `
         <p>
         Dear ${name},
 
@@ -199,7 +219,7 @@ export const accountDisaapproved = (name: string): string => {
 };
 
 export function generatePropertyRentBriefEmail(data: any) {
-  return `
+	return `
   <div class="container">
             <h2>New Property Rental Brief Created</h2>
             <p>A new property rental brief has been submitted for rent. Here are the details:</p>
@@ -207,256 +227,377 @@ export function generatePropertyRentBriefEmail(data: any) {
             <div class="details">
                 <p><strong>Property Type:</strong> ${data.propertyType}</p>
                 <p><strong>Condition:</strong> ${data.propertyCondition}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</p>
                 <p><strong>Rental Price:</strong> ₦${data.rentalPrice}</p>
                 <p><strong>Number of Bedrooms:</strong> ${data.noOfBedrooms}</p>
-                <p><strong>Features:</strong> ${data.features.map((f: any) => f.featureName).join(', ')}</p>
-                <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.map((c: any) => c.criteria).join(', ')}</p>
+                <p><strong>Features:</strong> ${data.features
+																	.map((f: any) => f.featureName)
+																	.join(", ")}</p>
+                <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+																	.map((c: any) => c.criteria)
+																	.join(", ")}</p>
                 <p>Owner Email: ${data.owner.email}</p>
                 <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
                 <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
 
-                <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
+                <p><strong>Owner Status:</strong> ${
+																	data.areYouTheOwner ? "Yes" : "No"
+																}</p>
                 <p><strong>Availability:</strong> ${data.isAvailable}</p>
-                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
+                <p><strong>Budget Range:</strong> ${
+																	data.budgetRange || "N/A"
+																}</p>
             </div>
     
             ${
-              data.pictures && data.pictures.length
-                ? `
+													data.pictures && data.pictures.length
+														? `
             <h3>Property Pictures</h3>
             <div class="pictures">
                 ${data.pictures
-                  .map(
-                    (pic: any) =>
-                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                  )
-                  .join('')}
+																	.map(
+																		(pic: any) =>
+																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																	)
+																	.join("")}
             </div>
             `
-                : ''
-            }
+														: ""
+												}
             
-            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            ${
+													data.isAdmin
+														? "<p>Admin, please review and take the necessary actions.</p>"
+														: ""
+												}
         </div>
   `;
 }
 
 export function generatePropertySellBriefEmail(data: any) {
-  return ` <div class="container">
+	return ` <div class="container">
             <h2>New Property Brief Created</h2>
             <p>A new property brief has been submitted for sale. Here are the details:</p>
             
             <div class="details">
                 <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
-                <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
-                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms}</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</p>
+                <p><strong>Price:</strong> ₦${
+																	data.price || data.rentalPrice
+																}</p>
+                <p><strong>Number of Bedrooms:</strong> ${
+																	data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
+																}</p>
                 <p><strong>Features:</strong> ${
-                  data.propertyFeatures?.additionalFeatures?.join(', ') ||
-                  data.features?.map((f: any) => f.featureName).join(', ')
-                }</p>
+																	data.propertyFeatures?.additionalFeatures?.join(", ") ||
+																	data.features?.map((f: any) => f.featureName).join(", ")
+																}</p>
                 ${
-                  data.tenantCriteria.length > 0 &&
-                  `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                    ?.map((c: any) => c.criteria)
-                    .join(', ')}</p>`
-                }
+																	data.tenantCriteria.length > 0 &&
+																	`<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+																		?.map((c: any) => c.criteria)
+																		.join(", ")}</p>`
+																}
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Documents on Property:</strong> ${data.docOnProperty
-                   ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                   .join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Documents on Property:</strong> ${data.docOnProperty
+																	?.map(
+																		(doc: any) =>
+																			`${doc.docName} (${
+																				doc.isProvided ? "Provided" : "Not Provided"
+																			})`
+																	)
+																	.join(", ")}</p>`
+															}
                 <p>Owner Email: ${data.owner.email}</p>
                 <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
                 <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
-                <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
+                <p><strong>Owner Status:</strong> ${
+																	data.areYouTheOwner ? "Yes" : "No"
+																}</p>
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(
+																	", "
+																)}</p>`
+															}
                
-                ${data.budgetRange && `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`}
+                ${
+																	data.budgetRange &&
+																	`<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`
+																}
             </div>
     
             ${
-              data.pictures && data.pictures.length
-                ? `
+													data.pictures && data.pictures.length
+														? `
             <h3>Property Pictures</h3>
             <div class="pictures">
                 ${data.pictures
-                  .map(
-                    (pic: any) =>
-                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                  )
-                  .join('')}
+																	.map(
+																		(pic: any) =>
+																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																	)
+																	.join("")}
             </div>
             `
-                : ''
-            }
+														: ""
+												}
             
-            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            ${
+													data.isAdmin
+														? "<p>Admin, please review and take the necessary actions.</p>"
+														: ""
+												}
             
         </div>`;
 }
 
 export function generatePropertPreferenceBriefEmail(data: any) {
-  return ` <div class="container">
+	return ` <div class="container">
             <h2>New Property Preference</h2>
             <p>A new property preference has been submitted. Here are the details:</p>
             
             <div class="details">
                 <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
-                <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
-                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms}</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</p>
+                <p><strong>Price:</strong> ₦${
+																	data.price || data.rentalPrice
+																}</p>
+                <p><strong>Number of Bedrooms:</strong> ${
+																	data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
+																}</p>
                 <p><strong>Features:</strong> ${
-                  data.propertyFeatures?.additionalFeatures?.join(', ') ||
-                  data.features?.map((f: any) => f.featureName).join(', ')
-                }</p>
+																	data.propertyFeatures?.additionalFeatures?.join(", ") ||
+																	data.features?.map((f: any) => f.featureName).join(", ")
+																}</p>
                 ${
-                  data.tenantCriteria.length > 0 &&
-                  `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                    ?.map((c: any) => c.criteria)
-                    .join(', ')}</p>`
-                }
+																	data.tenantCriteria.length > 0 &&
+																	`<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+																		?.map((c: any) => c.criteria)
+																		.join(", ")}</p>`
+																}
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Documents on Property:</strong> ${data.docOnProperty
-                   ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                   .join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Documents on Property:</strong> ${data.docOnProperty
+																	?.map(
+																		(doc: any) =>
+																			`${doc.docName} (${
+																				doc.isProvided ? "Provided" : "Not Provided"
+																			})`
+																	)
+																	.join(", ")}</p>`
+															}
                
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(
+																	", "
+																)}</p>`
+															}
                
-                ${data.budgetRange && `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`}
+                ${
+																	data.budgetRange &&
+																	`<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`
+																}
             </div>
     
             ${
-              data.pictures && data.pictures.length
-                ? `
+													data.pictures && data.pictures.length
+														? `
             <h3>Property Pictures</h3>
             <div class="pictures">
                 ${data.pictures
-                  .map(
-                    (pic: any) =>
-                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                  )
-                  .join('')}
+																	.map(
+																		(pic: any) =>
+																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																	)
+																	.join("")}
             </div>
             `
-                : ''
-            }
+														: ""
+												}
             
-            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            ${
+													data.isAdmin
+														? "<p>Admin, please review and take the necessary actions.</p>"
+														: ""
+												}
             
         </div>`;
 }
 
 export function generatePropertyBriefEmail(ownerName: string, data: any) {
-  let details = '';
+	let details = "";
 
-  if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
-  if (data.propertyType) details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
-  if (data.propertyCondition) details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
-  if (data.location)
-    details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
-  if (data.price) details += `<p><strong>Price:</strong> ₦${data.price}</p>`;
-  if (data.landSize)
-    details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
-  if (data.buildingType) details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
-  if (data.additionalFeatures?.noOfBedrooms)
-    details += `<p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures.noOfBedrooms}</p>`;
-  if (data.additionalFeatures?.noOfBathrooms)
-    details += `<p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures.noOfBathrooms}</p>`;
-  if (data.additionalFeatures?.noOfToilets)
-    details += `<p><strong>Number of Toilets:</strong> ${data.additionalFeatures.noOfToilets}</p>`;
-  if (data.additionalFeatures?.noOfCarParks)
-    details += `<p><strong>Number of Car Parks:</strong> ${data.additionalFeatures.noOfCarParks}</p>`;
-  if (data.additionalFeatures?.additionalFeatures?.length)
-    details += `<p><strong>Additional Features:</strong> ${data.additionalFeatures.additionalFeatures.join(', ')}</p>`;
-  if (data.features?.length) details += `<p><strong>Features:</strong> ${data.features.join(', ')}</p>`;
-  if (data.tenantCriteria?.length)
-    details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(', ')}</p>`;
-  // if (data.docOnProperty?.length)
-  //   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
-  // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
-  // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
-  // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
-  // if (typeof data.areYouTheOwner === 'boolean')
-  //   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isAvailable !== 'undefined')
-  //   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
-  // if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
-  // if (typeof data.isApproved === 'boolean')
-  //   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isRejected === 'boolean')
-  //   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
-  details += `<p><strong>Under Review:</strong>Yes</p>`;
+	if (data.briefType)
+		details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
+	if (data.propertyType)
+		details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+	if (data.propertyCondition)
+		details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
+	if (data.location)
+		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+	if (data.price) details += `<p><strong>Price:</strong> ₦${data.price}</p>`;
+	if (data.landSize)
+		details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
+	if (data.buildingType)
+		details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
+	if (data.additionalFeatures?.noOfBedrooms)
+		details += `<p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures.noOfBedrooms}</p>`;
+	if (data.additionalFeatures?.noOfBathrooms)
+		details += `<p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures.noOfBathrooms}</p>`;
+	if (data.additionalFeatures?.noOfToilets)
+		details += `<p><strong>Number of Toilets:</strong> ${data.additionalFeatures.noOfToilets}</p>`;
+	if (data.additionalFeatures?.noOfCarParks)
+		details += `<p><strong>Number of Car Parks:</strong> ${data.additionalFeatures.noOfCarParks}</p>`;
+	if (data.additionalFeatures?.additionalFeatures?.length)
+		details += `<p><strong>Additional Features:</strong> ${data.additionalFeatures.additionalFeatures.join(
+			", "
+		)}</p>`;
+	if (data.features?.length)
+		details += `<p><strong>Features:</strong> ${data.features.join(", ")}</p>`;
+	if (data.tenantCriteria?.length)
+		details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(
+			", "
+		)}</p>`;
+	// if (data.docOnProperty?.length)
+	//   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
+	// if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
+	// if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
+	// if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
+	// if (typeof data.areYouTheOwner === 'boolean')
+	//   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
+	// if (typeof data.isAvailable !== 'undefined')
+	//   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
+	// if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
+	// if (typeof data.isApproved === 'boolean')
+	//   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
+	// if (typeof data.isRejected === 'boolean')
+	//   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
+	details += `<p><strong>Under Review:</strong>Yes</p>`;
 
-  return `
+	return `
       <p>Hi ${ownerName},</p>
       <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
         ${details}
         ${
-          data.pictures && data.pictures.length
-            ? `
+									data.pictures && data.pictures.length
+										? `
         <h3>Property Pictures</h3>
         <div style=" display: flex; flex-wrap: wrap; gap: 10px;">
           ${data.pictures
-            .map(
-              (pic: string) =>
-                `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-            )
-            .join('')}
+											.map(
+												(pic: string) =>
+													`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+											)
+											.join("")}
         </div>
         `
-            : ''
-        }
+										: ""
+								}
       
       </ul>
   `;
 }
 
-export function generatePropertyPreferenceBriefEmail(ownerName: string, data: any) {
-  let details = '';
+export function generatePropertyPreferenceBriefEmail(
+	ownerName: string,
+	data: any
+) {
+	let details = "";
 
-  // if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
-  if (data.propertyType) details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
-  if (data.location)
-    details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
-  if (data.price) details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - #${data.budgetMin}</p>`;
-  if (data.buildingType) details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
-  details += `<p><strong>Property Features:</strong> ${data.additionalFeatures.additionalFeatures.join(', ')}</p>`;
-  if (data.landSize)
-    details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
-  // if (data.docOnProperty?.length)
-  //   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
-  // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
-  // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
-  // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
-  // if (typeof data.areYouTheOwner === 'boolean')
-  //   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isAvailable !== 'undefined')
-  //   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
-  // if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
-  // if (typeof data.isApproved === 'boolean')
-  //   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isRejected === 'boolean')
-  //   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
+	// if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
+	if (data.propertyType)
+		details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+	if (data.location)
+		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+	if (data.price)
+		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - #${data.budgetMin}</p>`;
+	if (data.buildingType)
+		details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
+	if (
+		data.additionalFeatures &&
+		Object.keys(data.additionalFeatures).length > 0
+	) {
+		const featuresList = Object.entries(data.additionalFeatures)
+			.map(([key, value]) => {
+				// Convert camelCase to Title Case with spaces
+				const title = key
+					.replace(/([A-Z])/g, " $1")
+					.replace(/^./, (str) => str.toUpperCase());
+				return `${title}: ${value}`;
+			})
+			.join(", ");
 
-  return `
+		details += `<p><strong>Property Features:</strong> ${featuresList}</p>`;
+	}
+	if (data.features?.length)
+		details += `<p><strong>Property Features:</strong> ${data.features.join(
+			", "
+		)}</p>`;
+
+	if (data.budgetMin && data.budgetMax)
+		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - ₦${data.budgetMax}</p>`;
+
+	if (data.landSize)
+		details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
+	if (Array.isArray(data.docOnProperty) && data.docOnProperty.length > 0) {
+		const providedDocs = data.docOnProperty
+			.filter((doc: any) => doc.isProvided)
+			.map((doc: any) => doc.docName);
+		if (providedDocs.length > 0) {
+			details += `<p><strong>Documents on Property:</strong> ${providedDocs.join(
+				", "
+			)}</p>`;
+		}
+	}
+
+	// Owner details
+	if (data.owner?.email)
+		details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
+	if (data.owner?.fullName)
+		details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
+	if (data.owner?.phoneNumber)
+		details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
+
+	// Boolean fields
+	if (typeof data.areYouTheOwner === "boolean") {
+		details += `<p><strong>Owner Status:</strong> ${
+			data.areYouTheOwner ? "Yes" : "No"
+		}</p>`;
+	}
+	if (typeof data.isAvailable === "boolean") {
+		details += `<p><strong>Availability:</strong> ${
+			data.isAvailable ? "Yes" : "No"
+		}</p>`;
+	}
+	if (typeof data.isApproved === "boolean") {
+		details += `<p><strong>Approved:</strong> ${
+			data.isApproved ? "Yes" : "No"
+		}</p>`;
+	}
+	if (typeof data.isRejected === "boolean") {
+		details += `<p><strong>Rejected:</strong> ${
+			data.isRejected ? "Yes" : "No"
+		}</p>`;
+	}
+
+	// Optional budget range (fallback to budgetMin/Max if needed)
+	if (data.budgetMin || data.budgetMax) {
+		const min = data.budgetMin ? `₦${data.budgetMin}` : "Not specified";
+		const max = data.budgetMax ? `₦${data.budgetMax}` : "Not specified";
+		details += `<p><strong>Budget Range:</strong> ${min} - ${max}</p>`;
+	}
+
+	return `
       <p>Hi ${ownerName},</p>
       <p>Thank you for sharing your preferences with Khabi-Teq Realty! We'll match you with property briefs tailored to your needs:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
@@ -471,31 +612,44 @@ export function generatePropertyPreferenceBriefEmail(ownerName: string, data: an
 }
 
 export function propertySellPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>A property preference for sale with the following details was submitted:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Price Range:</strong> ₦${data.price}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Price Range:</strong> ₦${
+																																																									data.price
+																																																								}</li>
                                                         <li><strong>Usage Options:</strong> ${
-                                                          data.usageOptions?.join(', ') || 'N/A'
-                                                        }</li>
+																																																									data.usageOptions?.join(
+																																																										", "
+																																																									) || "N/A"
+																																																								}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${Object.entries(
-                                                                                          data.propertyFeatures
-                                                                                        )
-                                                                                          .map(
-                                                                                            ([key, value]) =>
-                                                                                              `<li>${key}: ${value}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									data.propertyFeatures
+																																																																																								)
+																																																																																									.map(
+																																																																																										([
+																																																																																											key,
+																																																																																											value,
+																																																																																										]) =>
+																																																																																											`<li>${key}: ${value}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -506,29 +660,41 @@ export function propertySellPreferenceTemplate(data: any) {
 }
 
 export function propertyRentPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>A property preference for rent with the following details was submitted:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Rental Price:</strong> ₦${data.rentalPrice}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Rental Price:</strong> ₦${
+																																																									data.rentalPrice
+																																																								}</li>
                                                         <li><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                                                          .map((c: any) => c.criteria)
-                                                          .join(', ')}</li>
+																																																									.map(
+																																																										(c: any) => c.criteria
+																																																									)
+																																																									.join(", ")}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${data.features
-                                                                                          .map(
-                                                                                            (feature: any) =>
-                                                                                              `<li>${feature.featureName}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									.map(
+																																																																																										(
+																																																																																											feature: any
+																																																																																										) =>
+																																																																																											`<li>${feature.featureName}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -539,29 +705,41 @@ export function propertyRentPreferenceTemplate(data: any) {
 }
 
 export function buyerPropertyRentPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>Thank you for submitting your property rent preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Rental Price:</strong> ₦${data.rentalPrice}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Rental Price:</strong> ₦${
+																																																									data.rentalPrice
+																																																								}</li>
                                                         <li><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                                                          .map((c: any) => c.criteria)
-                                                          .join(', ')}</li>
+																																																									.map(
+																																																										(c: any) => c.criteria
+																																																									)
+																																																									.join(", ")}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${data.features
-                                                                                          .map(
-                                                                                            (feature: any) =>
-                                                                                              `<li>${feature.featureName}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									.map(
+																																																																																										(
+																																																																																											feature: any
+																																																																																										) =>
+																																																																																											`<li>${feature.featureName}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -572,31 +750,44 @@ export function buyerPropertyRentPreferenceTemplate(data: any) {
 }
 
 export function buyerPropertySellPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>Thank you for submitting your property preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Brief: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Price Range:</strong> ₦${data.price}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Price Range:</strong> ₦${
+																																																									data.price
+																																																								}</li>
                                                         <li><strong>Usage Options:</strong> ${
-                                                          data.usageOptions?.join(', ') || 'N/A'
-                                                        }</li>
+																																																									data.usageOptions?.join(
+																																																										", "
+																																																									) || "N/A"
+																																																								}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${Object.entries(
-                                                                                          data.propertyFeatures
-                                                                                        )
-                                                                                          .map(
-                                                                                            ([key, value]) =>
-                                                                                              `<li>${key}: ${value}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									data.propertyFeatures
+																																																																																								)
+																																																																																									.map(
+																																																																																										([
+																																																																																											key,
+																																																																																											value,
+																																																																																										]) =>
+																																																																																											`<li>${key}: ${value}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -606,8 +797,11 @@ export function buyerPropertySellPreferenceTemplate(data: any) {
                         `;
 }
 
-export function ForgotPasswordVerificationTemplate(email: string, verificationLink: string): string {
-  return `
+export function ForgotPasswordVerificationTemplate(
+	email: string,
+	verificationLink: string
+): string {
+	return `
                         <div>
                                 <p>Dear ${email},</p>
                                 <p>You requested to reset your password. Please click the link below to reset your password:</p>
@@ -619,98 +813,150 @@ export function ForgotPasswordVerificationTemplate(email: string, verificationLi
                 `;
 }
 
-export function PropertyApprovedOrDisapprovedTemplate(name: string, status: string, data: any): string {
-  return `
+export function PropertyApprovedOrDisapprovedTemplate(
+	name: string,
+	status: string,
+	data: any
+): string {
+	return `
 <div class="">
                         <h1> Hello ${name},</h1>
                                 <h2>Property ${status}</h2>
                                 <p>Your property was ${status}. Here are the details:</p>
                                 
                                 <div class="details">
-                                        <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                                        <p><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment ? data.location.localGovernment + ', ' : ''
-  }${data.location.area}</p>
-                                        <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
+                                        <p><strong>Property Type:</strong> ${
+																																									data.propertyType
+																																								}</p>
+                                        <p><strong>Location:</strong> ${
+																																									data.location.state
+																																								}, ${
+		data.location.localGovernment ? data.location.localGovernment + ", " : ""
+	}${data.location.area}</p>
+                                        <p><strong>Price:</strong> ₦${
+																																									data.price || data.rentalPrice
+																																								}</p>
                                         <p><strong>Number of Bedrooms:</strong> ${
-                                          data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
-                                        }</p>
+																																									data.propertyFeatures?.noOfBedrooms ||
+																																									data.noOfBedrooms
+																																								}</p>
                                         <p><strong>Features:</strong> ${
-                                          data.propertyFeatures?.additionalFeatures?.join(', ') ||
-                                          data.features?.map((f: any) => f.featureName).join(', ')
-                                        }</p>
+																																									data.propertyFeatures?.additionalFeatures?.join(
+																																										", "
+																																									) ||
+																																									data.features
+																																										?.map((f: any) => f.featureName)
+																																										.join(", ")
+																																								}</p>
                                         <p><strong>Tenant Criteria:</strong> ${
-                                          data.tenantCriteria?.map((c: any) => c.criteria).join(', ') || 'N/A'
-                                        }</p>
+																																									data.tenantCriteria
+																																										?.map((c: any) => c.criteria)
+																																										.join(", ") || "N/A"
+																																								}</p>
                                         <p><strong>Documents on Property:</strong> ${
-                                          data.docOnProperty
-                                            ?.map(
-                                              (doc: any) =>
-                                                `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`
-                                            )
-                                            .join(', ') || 'N/A'
-                                        }</p>
-                                        <p><strong>Usage Options:</strong> ${data.usageOptions?.join(', ') || 'N/A'}</p>
-                                        <p><strong>Availability:</strong> ${data.isAvailable ? 'Yes' : 'No'}</p>
-                                        <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
+																																									data.docOnProperty
+																																										?.map(
+																																											(doc: any) =>
+																																												`${doc.docName} (${
+																																													doc.isProvided
+																																														? "Provided"
+																																														: "Not Provided"
+																																												})`
+																																										)
+																																										.join(", ") || "N/A"
+																																								}</p>
+                                        <p><strong>Usage Options:</strong> ${
+																																									data.usageOptions?.join(", ") || "N/A"
+																																								}</p>
+                                        <p><strong>Availability:</strong> ${
+																																									data.isAvailable ? "Yes" : "No"
+																																								}</p>
+                                        <p><strong>Budget Range:</strong> ${
+																																									data.budgetRange || "N/A"
+																																								}</p>
                                 </div>
                                 
                                 ${
-                                  data.pictures && data.pictures.length
-                                    ? `
+																																	data.pictures && data.pictures.length
+																																		? `
                                 <h3>Property Pictures</h3>
                                 <div class="pictures">
                                         ${data.pictures
-                                          .map(
-                                            (pic: any) =>
-                                              `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                                          )
-                                          .join('')}
+																																									.map(
+																																										(pic: any) =>
+																																											`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																																									)
+																																									.join("")}
                                 </div>
                                 `
-                                    : ''
-                                }
+																																		: ""
+																																}
 </div>
   `;
 }
-export function DeactivateOrActivateAgent(name: string, status: boolean, reason: string): string {
-  return `
+export function DeactivateOrActivateAgent(
+	name: string,
+	status: boolean,
+	reason: string
+): string {
+	return `
                         <div class="">
                         <h1> Hello ${name},</h1>
-                                <h2>Agent ${status ? 'Deactivated' : 'Activated'}</h2>
-                                <p>Your agent account has been ${status ? 'deactivated or suspended' : 'activated'}</p>
-                                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                                <h2>Agent ${
+																																	status ? "Deactivated" : "Activated"
+																																}</h2>
+                                <p>Your agent account has been ${
+																																	status
+																																		? "deactivated or suspended"
+																																		: "activated"
+																																}</p>
+                                ${
+																																	reason
+																																		? `<p><strong>Reason:</strong> ${reason}</p>`
+																																		: ""
+																																}
                                    `;
 }
 export function DeleteAgent(name: string, reason: string): string {
-  return `
+	return `
                                 <div class="">
                                 <h1> Hello ${name},</h1>
                                         <h2>Agent Deleted</h2>
                                         <p>Your agent account has been deleted. Due to: </p>
-                                        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                                        ${
+																																									reason
+																																										? `<p><strong>Reason:</strong> ${reason}</p>`
+																																										: ""
+																																								}
                                            `;
 }
 
-export function PropertyReceivedTemplate(ownerName: string, property: any): string {
-  return ` 
+export function PropertyReceivedTemplate(
+	ownerName: string,
+	property: any
+): string {
+	return ` 
         <p>Hi ${ownerName},</p>
         <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
       
         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
           <p>Submitted Brief: </p>
-                <li><strong>Property Type:</strong> ${property.propertyType}</li>
+                <li><strong>Property Type:</strong> ${
+																	property.propertyType
+																}</li>
               
-                <li><strong>Location:</strong> ${property.location.state}, ${property.location.localGovernment}, ${
-    property.location.area
-  }</li>
+                <li><strong>Location:</strong> ${property.location.state}, ${
+		property.location.localGovernment
+	}, ${property.location.area}</li>
                 <li><strong>Price Range:</strong> ₦${property.price}</li>
-                <li><strong>Usage Options:</strong> ${property.usageOptions?.join(', ') || 'N/A'}</li>
+                <li><strong>Usage Options:</strong> ${
+																	property.usageOptions?.join(", ") || "N/A"
+																}</li>
                 <li><strong>Property Features:</strong>
                 <ul>
                         ${Object.entries(property.propertyFeatures)
-                          .map(([key, value]) => `<li>${key}: ${value}</li>`)
-                          .join('')}
+																									.map(([key, value]) => `<li>${key}: ${value}</li>`)
+																									.join("")}
                 </ul>
                 </li>
       
@@ -720,25 +966,34 @@ export function PropertyReceivedTemplate(ownerName: string, property: any): stri
             `;
 }
 
-export function PropertyRentReceivedTemplate(ownerName: string, property: any): string {
-  return `
+export function PropertyRentReceivedTemplate(
+	ownerName: string,
+	property: any
+): string {
+	return `
         <p>Hi ${ownerName},</p>
         <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
       
         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
           <p>Submitted Brief: </p>
-                <li><strong>Property Type:</strong> ${property.propertyType}</li>
+                <li><strong>Property Type:</strong> ${
+																	property.propertyType
+																}</li>
               
-                <li><strong>Location:</strong> ${property.location.state}, ${property.location.localGovernment}, ${
-    property.location.area
-  }</li>
+                <li><strong>Location:</strong> ${property.location.state}, ${
+		property.location.localGovernment
+	}, ${property.location.area}</li>
                 <li><strong>Price Range:</strong> ₦${property.rentalPrice}</li>
                 <li><strong>Tenant Criteria:</strong> ${
-                  property.tenantCriteria?.map((p: any) => p.criteria).join(', ') || 'N/A'
-                }</li>
+																	property.tenantCriteria
+																		?.map((p: any) => p.criteria)
+																		.join(", ") || "N/A"
+																}</li>
                 <li><strong>Property Features:</strong>
               
-                        ${property.features.map((f: any) => f.featureName).join(', ')}
+                        ${property.features
+																									.map((f: any) => f.featureName)
+																									.join(", ")}
               
                 </li>
       
@@ -748,25 +1003,28 @@ export function PropertyRentReceivedTemplate(ownerName: string, property: any): 
         `;
 }
 
-export function InspectionRequestWithNegotiation(buyerName: string, propertyData: any): string {
-  return `
+export function InspectionRequestWithNegotiation(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Dear ${buyerName},</p>
     
    ${
-     propertyData.letterOfIntention
-       ? `<p style="margin-top: 10px;">
+				propertyData.letterOfIntention
+					? `<p style="margin-top: 10px;">
       Your property inspection has been successfully scheduled, and your Letter of Intent (LOI) has been submitted. 
       Please allow up to <span style="color: #FF2539">48 hours</span> for a response from the seller. Kindly be patient. 
       Below are the details of your inspection and LOI submission:
     </p>`
-       : propertyData.isNegotiating
-       ? `<p style="margin-top: 10px;">
+					: propertyData.isNegotiating
+					? `<p style="margin-top: 10px;">
       Your property inspection has been successfully scheduled, and your negotiation offer has been submitted. The seller has up to <span style="color: #FF2539">48 hours</span> to respond, so we appreciate your patience.
 Please find your inspection details and negotiation price information below.
     </p>`
-       : `<p style="margin-top: 10px;">Your property inspection has been successfully scheduled. It may take up to 48 hours for the seller to respond, so please be patient.
+					: `<p style="margin-top: 10px;">Your property inspection has been successfully scheduled. It may take up to 48 hours for the seller to respond, so please be patient.
 Below are your inspection details:</p>`
-   }
+			}
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
@@ -776,27 +1034,27 @@ Below are your inspection details:</p>`
     </ul>
 
     ${
-      propertyData.letterOfIntention
-        ? `
+					propertyData.letterOfIntention
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Submitted LOI Document:</strong></p>
         <li><a href=${propertyData.letterOfIntention}>click here</a> to view the uploaded document</li>
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     ${
-      propertyData.isNegotiating
-        ? `
+					propertyData.isNegotiating
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Negotiation Details:</strong></p>
         <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
         <li><strong>Your Offer:</strong> ₦${propertyData.negotiationPrice}</li>
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Details:</strong></p>
@@ -810,34 +1068,37 @@ Below are your inspection details:</p>`
   `;
 }
 
-export function InspectionRequestWithNegotiationSellerTemplate(sellerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
-  const inspectionDate = new Date(propertyData.inspectionDate);
-  const deadline = new Date(inspectionDate.getTime() + 48 * 60 * 60 * 1000);
-  const deadlineString = deadline.toLocaleString('en-NG', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+export function InspectionRequestWithNegotiationSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	// Calculate deadline: 48 hours from inspectionDate
+	const inspectionDate = new Date(propertyData.inspectionDate);
+	const deadline = new Date(inspectionDate.getTime() + 48 * 60 * 60 * 1000);
+	const deadlineString = deadline.toLocaleString("en-NG", {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 
-  return `
+	return `
     <p>Dear ${sellerName},</p>
     
    ${
-     propertyData.letterOfIntention
-       ? `<p style="margin-top: 10px;">
+				propertyData.letterOfIntention
+					? `<p style="margin-top: 10px;">
       A potential developer has submitted an LOI and requested an inspection for your property at ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
     </p>`
-       : propertyData.isNegotiating
-       ? `<p style="margin-top: 10px;">
+					: propertyData.isNegotiating
+					? `<p style="margin-top: 10px;">
       A potential buyer has negotiated your asking price and requested an inspection of ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
     </p>`
-       : `<p style="margin-top: 10px;">
+					: `<p style="margin-top: 10px;">
       A potential buyer has requested an inspection for your property at ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
     </p>`
-   }
+			}
 
     
 
@@ -849,20 +1110,20 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
     </ul>
 
     ${
-      propertyData.isNegotiating
-        ? `
+					propertyData.isNegotiating
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Offer Details:</strong></p>
         <li><strong>Proposed Price:</strong> ₦${propertyData.price}</li>
         <li><strong>Deadline:</strong> ₦${propertyData.negotiationPrice}</li>
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     ${
-      propertyData.letterOfIntention
-        ? `
+					propertyData.letterOfIntention
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Submitted LOI Document:</strong></p>
         <li><a href=${propertyData.letterOfIntention}>click here</a> to view the uploaded document</li>
@@ -870,8 +1131,8 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
 
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Details:</strong></p>
@@ -885,18 +1146,18 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
     </p>
 
     <a href="${
-      propertyData.responseLink
-    }" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+					propertyData.responseLink
+				}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Confirm Availability
     </a>
 
       ${
-        propertyData.isNegotiating
-          ? `
+							propertyData.isNegotiating
+								? `
       <p style="margin-top: 15px;">Please <span style="color: #1AAD1F">accept</span> accept, <span style="color: #FF2539">reject</span>, or send a counter-offer<span style="color: #1976D2">counter-offer</span>. Your response is appreciated</p>
     `
-          : ''
-      }
+								: ""
+						}
 
     <p style="margin-top: 15px;">
       If you have any questions, feel free to contact us.
@@ -905,7 +1166,7 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
 }
 
 export function confirmTemplate(sellerName: string, propertyData: any): string {
-  return `
+	return `
     <p>Dear ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -925,7 +1186,7 @@ export function confirmTemplate(sellerName: string, propertyData: any): string {
 }
 
 export function unavailableTemplate(sellerName: string): string {
-  return `
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -939,7 +1200,7 @@ export function unavailableTemplate(sellerName: string): string {
 }
 
 export function declineTemplate(sellerName: string, propertyData: any): string {
-  return `
+	return `
     <p>Dear ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -953,10 +1214,13 @@ export function declineTemplate(sellerName: string, propertyData: any): string {
   `;
 }
 
-export function NegotiationAcceptedTemplate(buyerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
+export function NegotiationAcceptedTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	// Calculate deadline: 48 hours from inspectionDate
 
-  return `
+	return `
     <p>Dear ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -991,10 +1255,13 @@ export function NegotiationAcceptedTemplate(buyerName: string, propertyData: any
   `;
 }
 
-export function InspectionAcceptedTemplate(buyerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
+export function InspectionAcceptedTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	// Calculate deadline: 48 hours from inspectionDate
 
-  return `
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1029,8 +1296,11 @@ export function InspectionAcceptedTemplate(buyerName: string, propertyData: any)
   `;
 }
 
-export function NegotiationAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function NegotiationAcceptedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1054,8 +1324,11 @@ export function NegotiationAcceptedSellerTemplate(sellerName: string, propertyDa
   `;
 }
 
-export function CounterSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function CounterSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1079,8 +1352,11 @@ export function CounterSellerTemplate(sellerName: string, propertyData: any): st
   `;
 }
 
-export function CounterBuyerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function CounterBuyerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1111,8 +1387,11 @@ export function CounterBuyerTemplate(buyerName: string, propertyData: any): stri
   `;
 }
 
-export function NegotiationRejectedBuyerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function NegotiationRejectedBuyerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1143,8 +1422,11 @@ export function NegotiationRejectedBuyerTemplate(buyerName: string, propertyData
   `;
 }
 
-export function NegotiationRejectedSellerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function NegotiationRejectedSellerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1165,8 +1447,11 @@ export function NegotiationRejectedSellerTemplate(buyerName: string, propertyDat
   `;
 }
 
-export function NegotiationLOIRejectedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function NegotiationLOIRejectedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1183,8 +1468,11 @@ export function NegotiationLOIRejectedSellerTemplate(sellerName: string, propert
   `;
 }
 
-export function NegotiationLOIAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function NegotiationLOIAcceptedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1202,8 +1490,11 @@ export function NegotiationLOIAcceptedSellerTemplate(sellerName: string, propert
   `;
 }
 
-export function LOIAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function LOIAcceptedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1220,10 +1511,13 @@ export function LOIAcceptedSellerTemplate(sellerName: string, propertyData: any)
   `;
 }
 
-export function LOINegotiationAcceptedTemplate(buyerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
+export function LOINegotiationAcceptedTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	// Calculate deadline: 48 hours from inspectionDate
 
-  return `
+	return `
     <p>Dear ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1259,8 +1553,11 @@ export function LOINegotiationAcceptedTemplate(buyerName: string, propertyData: 
   `;
 }
 
-export function LOIRejectedBuyerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function LOIRejectedBuyerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1291,8 +1588,11 @@ export function LOIRejectedBuyerTemplate(buyerName: string, propertyData: any): 
   `;
 }
 
-export function LOICounterBuyerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function LOICounterBuyerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1323,8 +1623,11 @@ export function LOICounterBuyerTemplate(buyerName: string, propertyData: any): s
   `;
 }
 
-export function LOICounterSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function LOICounterSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
