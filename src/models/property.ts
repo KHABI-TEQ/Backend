@@ -103,6 +103,7 @@ export class Property {
 				buildingType: { type: String },
 				additionalInfo: { type: String },
 				isPreference: { type: Boolean, default: false },
+				
 				budgetMin: { type: Number },
 				budgetMax: { type: Number },
 				isPremium: { type: Boolean, default: false },

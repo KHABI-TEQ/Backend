@@ -27,6 +27,12 @@ import {
   IBuyer,
   Buyer,
   IBuyerModel,
+  Preference,
+  IPreference,
+  BriefMatch,
+  IBriefMatch,
+  IPreferenceModel,
+  IBriefMatchModel,
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
 
@@ -44,6 +50,8 @@ declare interface IModels {
   Property: IPropertyModel;
   Transaction: ITransactionModel;
   Buyer: IBuyerModel;
+  Preference:IPreferenceModel;
+  BriefMatch:IBriefMatchModel;
 }
 
 export class DB {
@@ -76,6 +84,8 @@ export class DB {
       Property: new Property().model,
       Transaction: new Transaction().model,
       Buyer: new Buyer().model,
+      Preference: new Preference().model,
+      BriefMatch: new BriefMatch().model,
     };
   }
 

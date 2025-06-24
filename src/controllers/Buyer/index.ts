@@ -24,6 +24,7 @@ import {
   unavailableTemplate,
 } from '../../common/email.template';
 import sendEmail from '../../common/send.email';
+import mongoose from 'mongoose';
 
 interface InspectionRequest {
   propertyId: string;
@@ -52,6 +53,57 @@ interface InspectionRequest {
 }
 
 class BuyerController {
+  // =======================================================
+  public async submitPreference(data: any) {
+    try {
+      const { email, fullName, phoneNumber, ...preferenceData } = data;
+
+      let buyer = await DB.Models.Buyer.findOne({ email });
+
+      if (!buyer) {
+        buyer = await DB.Models.Buyer.create({ email, fullName, phoneNumber });
+      }
+
+      const preference = await DB.Models.Preference.create({
+        ...preferenceData,
+        buyer: buyer._id,
+      });
+
+      return {
+        message: 'Preference submitted successfully',
+        preference,
+      };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  
+  public async getBriefMatchesByPreference(preferenceId: string) {
+  try {
+    const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId)
+    const preference = await DB.Models.Preference.findById(preferenceObjectId);
+    if (!preference) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
+    }
+
+    const briefMatches = await DB.Models.BriefMatch.find({
+      preference: preferenceId,
+      status: 'sent',
+    })
+      .populate('brief')
+      .populate('preference');
+
+    return {
+      briefMatches,
+    };
+  } catch (error) {
+    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+  }
+}
+
+
+  // ============================================================
   public async requestInspection(inspectionRequestData: InspectionRequest) {
     try {
       const property = await DB.Models.Property.findOne({

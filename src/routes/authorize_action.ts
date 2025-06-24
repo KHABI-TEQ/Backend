@@ -12,10 +12,11 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
 	try {
 		const authHeader = req.headers.authorization || req.headers.Authorization;
 
-		// if (!authHeader) {
-		//   req.user = null;
-		//   next();
-		// }
+		if (!authHeader) {
+		console.log(`[AUTH][$${req.url}] No Authorization header`);
+		  req.user = null;
+		  next();
+		}
 
 		const token = authHeader?.split(" ")[1];
 

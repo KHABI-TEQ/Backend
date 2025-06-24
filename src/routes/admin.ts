@@ -294,4 +294,64 @@ AdminRouter.put('/property/:propertyId', async (req: Request, res: Response, nex
   }
 });
 
+//====================================================================
+AdminRouter.get('/buyers-with-preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getAllBuyersWithPreferences();
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/preferences/:buyerId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getPreferencesByBuyerId(req.params.buyerId);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/agent-submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const briefs = await adminController.getAgentSubmittedBriefs();
+    return res.status(200).json({ success: true, data: briefs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/match-briefs-to-preference', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { preferenceId, briefIds } = req.body;
+
+    const result = await adminController.matchBriefsToPreference(preferenceId, briefIds);
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/agent-accepted-briefs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const briefs = await adminController.getAgentAcceptedBriefs();
+    return res.status(200).json({ success: true, data: briefs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/reject-agent-briefs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { briefIds } = req.body;
+    const result = await adminController.rejectAgentBriefs(briefIds);
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+//====================================================================
+
 export default AdminRouter;
