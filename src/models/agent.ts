@@ -1,4 +1,4 @@
-import { Schema, model, Document, Model } from 'mongoose';
+import { Schema, model, Document, Model, Types } from 'mongoose';
 
 export interface IAgent {
   address: {
@@ -36,7 +36,7 @@ export interface IAgent {
     approvedDate?: Date;
   };
   isFlagged: boolean;
-  userId: string;
+  userId:String;
   govtId: {
     typeOfId: string;
     idNumber: string;
