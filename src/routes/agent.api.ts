@@ -29,13 +29,13 @@ interface Request extends Express.Request {
 const router =  Router();
 const agentControl = new AgentController();
 
-router.use(AuthorizeAction);
+// router.use(AuthorizeAction);
 
 /******************************************************************************
  *                      onboard agent - "POST /api/auth/onboard"
  ******************************************************************************/
 
-router.put('/onboard', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/onboard',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { address, regionOfOperation, agentType, companyAgent, govtId, meansOfId } = req.body;
     const user = req.user as IUserDoc;
@@ -64,7 +64,7 @@ router.put('/onboard', async (req: Request, res: Response, next: NextFunction) =
  * Confirms Property Availability for Inspection  - "POST /api/agent/confirm-property"
  */
 
-router.post('/confirm-property', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/confirm-property',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { requestId, isAvailable } = req.body;
     const response = await agentControl.confirmPropertyAvailability(requestId, isAvailable);
@@ -80,7 +80,7 @@ router.post('/confirm-property', async (req: Request, res: Response, next: NextF
 /******************************************************************************
  * All preferences from buyers/renters  - "POST /api/agent/preferences"
  */
-router.get('/my-location-preferences', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
    const user = req.user as IUserDoc;
    const preferences = await agentController.getMatchingPreferences(user)
@@ -106,7 +106,30 @@ router.get('/all-preferences', async (req: Request, res: Response, next: NextFun
   }
 });
 
-router.get('/requests', async (req: Request, res: Response, next: NextFunction) => {
+router.post(
+   '/create-brief',
+  AuthorizeAction,
+  upload.array('pictures'), // handles multiple file uploads with name `pictures`
+  async (req: Request, res: Response) => {
+    try {
+      const user = req.user;
+      const files = req.files as Express.Multer.File[];
+
+      const property = await agentController.createBriefProperty(user, req.body, files);
+
+      return res.status(HttpStatusCodes.CREATED).json({
+        message: 'Brief created successfully',
+        data: property,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(error.status || 500).json({ message: error.message || 'Internal Server Error' });
+    }
+  }
+);
+
+
+router.get('/requests', AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user as IAgentDoc;
 
@@ -141,7 +164,7 @@ router.get('/requests', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
-router.post('/update-profile', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/update-profile', AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
     const profileData = req.body;
@@ -153,7 +176,7 @@ router.post('/update-profile', async (req: Request, res: Response, next: NextFun
   }
 });
 
-router.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/change-password',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
     const { oldPassword, newPassword } = req.body;
@@ -181,7 +204,7 @@ router.post('/change-password', async (req: Request, res: Response, next: NextFu
   }
 });
 
-router.post('/upload-profile-pic', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/upload-profile-pic',AuthorizeAction, upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
@@ -211,7 +234,7 @@ router.post('/upload-profile-pic', upload.single('file'), async (req: Request, r
   }
 });
 
-router.post('/account-upgrade', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/account-upgrade',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
     const { companyAgent, meansOfId } = req.body;
@@ -226,7 +249,7 @@ router.post('/account-upgrade', async (req: Request, res: Response, next: NextFu
   }
 });
 
-router.get('/account', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/account',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
 
@@ -243,7 +266,7 @@ router.get('/account', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-router.get('/properties', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/properties',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   const agent = req.user as IAgentDoc;
 
   const activeBrief = await DB.Models.Property.find({

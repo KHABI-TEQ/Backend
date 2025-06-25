@@ -1,6 +1,8 @@
 import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { DB } from "../controllers";
+import { RouteError } from '../common/classes';
+import HttpStatusCodes from '../common/HttpStatusCodes';
 
 interface Request extends Express.Request {
 	user?: any; // Add the user property to the Request interface
@@ -13,9 +15,7 @@ const AuthorizeAction = (req: Request, res: Response, next: NextFunction) => {
 		const authHeader = req.headers.authorization || req.headers.Authorization;
 
 		if (!authHeader) {
-		console.log(`[AUTH][$${req.url}] No Authorization header`);
-		  req.user = null;
-		  next();
+		 throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Authorization header missing');
 		}
 
 		const token = authHeader?.split(" ")[1];
