@@ -1,6 +1,7 @@
 import { NextFunction, Response, Router } from 'express';
 
-import { AgentController, DB } from '../controllers';
+import {AgentController} from '../controllers/Agent'
+import { DB } from '../controllers';
 import validator from '../common/validator';
 import HttpStatusCodes from '../common/HttpStatusCodes';
 import { IAgentDoc, IUser, IUserDoc, PropertyRent, PropertySell } from '../models';
@@ -16,6 +17,8 @@ const upload = multer({
   storage: multer.memoryStorage(),
 });
 
+const agentController = new AgentController()
+
 interface Request extends Express.Request {
   user?: any;
   body?: any;
@@ -23,7 +26,7 @@ interface Request extends Express.Request {
 }
 
 // Init shared
-const router = Router();
+const router =  Router();
 const agentControl = new AgentController();
 
 router.use(AuthorizeAction);
@@ -77,44 +80,23 @@ router.post('/confirm-property', async (req: Request, res: Response, next: NextF
 /******************************************************************************
  * All preferences from buyers/renters  - "POST /api/agent/preferences"
  */
-
-router.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/my-location-preferences', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // const rentPreferences = await DB.Models.PropertyRent.find({
-    //   ownerModel: 'BuyerOrRenter',
-    // });
-
-    const user = req.user as IUserDoc;
-
-    // const sellPreferences = await DB.Models.PropertySell.find({
-    //   ownerModel: 'BuyerOrRenter',
-    //   'location.state': user.address.state,
-    // }).then((properties) =>
-    //   properties.map((property) => {
-    //     const { owner, ...propertyData } = property.toObject();
-    //     return propertyData;
-    //   })
-    // );
-    const agent = await DB.Models.Agent.findOne({ userId: user._id });
-
-    if (!agent) {
-      return res.status(HttpStatusCodes.NOT_FOUND).json({
-        message: 'Not an agent',
-        success: false,
-      });
-    }
-
-    const regionOfOperation = agent.regionOfOperation || [];
-
-    const preferences = await DB.Models.Property.find({
-      isPreference: true,
-      $or: [
-        { 'location.state': { $in: regionOfOperation } },
-        { 'location.localGovernment': { $in: regionOfOperation } },
-        { 'location.area': { $in: regionOfOperation } },
-      ],
+   const user = req.user as IUserDoc;
+   const preferences = await agentController.getMatchingPreferences(user)
+    return res.status(200).json({
+      preferences,
+      success: true,
     });
+  } catch (error) {
+    next(error);
+  }
+});
 
+router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+   const user = req.user as IUserDoc;
+   const preferences = await agentController.getAllPreferences(user)
     return res.status(200).json({
       preferences,
       success: true,

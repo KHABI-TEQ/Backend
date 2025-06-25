@@ -304,4 +304,45 @@ export class AgentController implements IAgentController {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }
+
+  //============================================================
+  public async getMatchingPreferences(agentUser: IUserDoc) {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+
+  if (!agent) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+  }
+
+  const regionOfOperation = agent.regionOfOperation || [];
+
+  let preferences = await DB.Models.Preference.find({
+    $or: [
+      { 'location.state': { $in: regionOfOperation } },
+      { 'location.localGovernment': { $in: regionOfOperation } },
+      { 'location.area': { $in: regionOfOperation } },
+    ],
+  }).populate('buyer').exec();
+
+  // If no preference matches regionOfOperation, fallback to agent's LGA
+  if (preferences.length === 0 && agent.address?.localGovtArea) {
+    preferences = await DB.Models.Preference.find({
+      'location.localGovernment': agent.address.localGovtArea,
+    }).populate('buyer').exec();
+  }
+
+  return preferences;
+}
+
+public async getAllPreferences(agentUser: IUserDoc) {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+
+  if (!agent) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+  }
+  
+  const preferences = await DB.Models.Preference.find({}).populate('buyer').exec();
+  return preferences;
+}
+
+//========================================================
 }
