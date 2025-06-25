@@ -334,12 +334,7 @@ export class AgentController implements IAgentController {
   return preferences;
 }
 
-public async getAllPreferences(agentUser: IUserDoc) {
-  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
-
-  if (!agent) {
-    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-  }
+public async getAllPreferences() {
   
   const preferences = await DB.Models.Preference.find({}).populate('buyer').exec();
   return preferences;

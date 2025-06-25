@@ -95,8 +95,7 @@ router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res:
 
 router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
   try {
-   const user = req.user as IUserDoc;
-   const preferences = await agentController.getAllPreferences(user)
+   const preferences = await agentController.getAllPreferences()
     return res.status(200).json({
       preferences,
       success: true,
