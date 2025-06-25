@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextFunction, Request, Response } from 'express';
-import { IAgent, IAgentDoc, IUserDoc } from '../../models/index';
+import { IAgent, IAgentDoc, IPropertyDoc, IUserDoc } from '../../models/index';
 import { DB } from '../index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import cloudinary from '../../common/cloudinary';
 import { otherConstants } from '../../common/constants';
 import { getMimeType, RouteError, signJwt } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
@@ -343,6 +344,37 @@ public async getAllPreferences(agentUser: IUserDoc) {
   const preferences = await DB.Models.Preference.find({}).populate('buyer').exec();
   return preferences;
 }
+
+
+public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.Multer.File[]): Promise<IPropertyDoc> {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+  if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+
+  data.owner = agentUser._id;
+
+  if (!data.propertyType || !data.location || !data.briefType || !data.price) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Missing required fields');
+  }
+
+  // Handle file uploads (pictures)
+  const pictureUrls: string[] = [];
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const fileBase64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      const fileName = `brief-${Date.now()}`;
+      const uploaded = await cloudinary.uploadFile(fileBase64, fileName, 'brief-pictures');
+      pictureUrls.push(uploaded);
+    }
+  }
+
+  data.pictures = pictureUrls;
+
+  const newProperty = await DB.Models.Property.create(data);
+  return newProperty;
+}
+
+
+
 
 //========================================================
 }
