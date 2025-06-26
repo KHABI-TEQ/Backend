@@ -12,3 +12,5 @@ export * from './user';
 export * from './property';
 export * from './buyers';
 export * from './transaction';
+export * from './preference';
+export * from './briefMatch';

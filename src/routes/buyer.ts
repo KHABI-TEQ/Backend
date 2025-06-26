@@ -66,6 +66,41 @@ buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: Ne
   }
 });
 
+
+buyerRouter.post('/submit-preference', async (req: Request, res: Response, next:NextFunction) => {
+  try {
+    const result = await buyerController.submitPreference(req.body);
+    return res.status(201).json({
+      success: true,
+      message: result.message,
+      data: result.preference,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+// ✅ New route to get matched briefs using preferenceId
+buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { preferenceId } = req.query;
+    if (!preferenceId) {
+      return res.status(400).json({ success: false, message: 'Missing preferenceId in query' });
+    }
+
+    const briefMatches = await buyerController.getBriefMatchesByPreference(preferenceId as string);
+
+    return res.status(200).json({
+      success: true,
+      data: briefMatches,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 buyerRouter.get(
   '/new-inspection/:inspectionId',
   // AuthorizeAction,
@@ -131,7 +166,6 @@ buyerRouter.post(
     }
   }
 );
-
 
 // New endpoint for Counter Offer
 buyerRouter.post(

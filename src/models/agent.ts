@@ -1,4 +1,4 @@
-import { Schema, model, Document, Model } from 'mongoose';
+import { Schema, model, Document, Model, Types } from 'mongoose';
 
 export interface IAgent {
   address: {
@@ -36,7 +36,7 @@ export interface IAgent {
     approvedDate?: Date;
   };
   isFlagged: boolean;
-  userId: string;
+  userId:Types.ObjectId;
   govtId: {
     typeOfId: string;
     idNumber: string;
@@ -94,7 +94,7 @@ export class Agent {
           approvedDate: { type: Date },
         },
         isFlagged: { type: Boolean, default: false },
-        userId: { type: String, required: true, ref: 'User' }, // Assuming userId is a string, adjust as necessary
+        userId: { type:Schema.Types.ObjectId, required: true, ref: 'User' }, // Assuming userId is a string, adjust as necessary
         govtId: {
           typeOfId: { type: String },
           idNumber: { type: String },

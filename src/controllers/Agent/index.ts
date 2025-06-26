@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextFunction, Request, Response } from 'express';
-import { IAgent, IAgentDoc, IUserDoc } from '../../models/index';
+import { IAgent, IAgentDoc, IPropertyDoc, IUserDoc } from '../../models/index';
 import { DB } from '../index';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import cloudinary from '../../common/cloudinary';
 import { otherConstants } from '../../common/constants';
 import { getMimeType, RouteError, signJwt } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
@@ -17,6 +18,7 @@ import {
   ForgotPasswordVerificationTemplate,
   generalTemplate,
   propertyAvailableTemplate,
+  briefSubmissionAcknowledgementTemplate,
   verifyEmailTemplate,
 } from '../../common/email.template';
 import sendEmail from '../../common/send.email';
@@ -319,4 +321,106 @@ export class AgentController implements IAgentController {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }
+
+  //============================================================
+  public async getMatchingPreferences(agentUser: IUserDoc) {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+
+  if (!agent) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+  }
+
+  const regionOfOperation = agent.regionOfOperation || [];
+
+  let preferences = await DB.Models.Preference.find({
+    $or: [
+      { 'location.state': { $in: regionOfOperation } },
+      { 'location.localGovernment': { $in: regionOfOperation } },
+      { 'location.area': { $in: regionOfOperation } },
+    ],
+  }).populate('buyer').exec();
+
+  // If no preference matches regionOfOperation, fallback to agent's LGA
+  if (preferences.length === 0 && agent.address?.localGovtArea) {
+    preferences = await DB.Models.Preference.find({
+      'location.localGovernment': agent.address.localGovtArea,
+    }).populate('buyer').exec();
+  }
+
+  return preferences;
+}
+
+public async getAllPreferences() {
+  
+  const preferences = await DB.Models.Preference.find({}).populate('buyer').exec();
+  return preferences;
+}
+
+
+// import { briefSubmissionAcknowledgementTemplate, generalTemplate } from '../../common/email.template';
+
+public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.Multer.File[], preferenceId?: string): Promise<IPropertyDoc> {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).populate('userId').exec();
+  if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+
+  data.owner = agentUser._id;
+
+  if (!data.propertyType || !data.location || !data.briefType || !data.price) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Missing required fields');
+  }
+
+  // Check if it's a preference brief and validate preferenceId
+  const isPreference = data.isPreference === true || data.isPreference === 'true';
+  if (isPreference) {
+    if (!preferenceId) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'preferenceId is required for preference briefs');
+    }
+
+    const preference = await DB.Models.Preference.findById(preferenceId).exec();
+    if (!preference) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid preference ID');
+
+    data.preferenceId = preferenceId;
+  }
+
+  // Handle file uploads (pictures)
+  const pictureUrls: string[] = [];
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const fileBase64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+      const fileName = `brief-${Date.now()}`;
+      const uploaded = await cloudinary.uploadFile(fileBase64, fileName, 'brief-pictures');
+      pictureUrls.push(uploaded);
+    }
+  }
+
+  data.pictures = pictureUrls;
+
+  const newProperty = await DB.Models.Property.create(data);
+
+  // Send email notification to the agent
+  const emailHtml = generalTemplate(
+    briefSubmissionAcknowledgementTemplate(
+      (agent.userId as any).firstName,
+      {
+        propertyType: data.propertyType,
+        location: data.location,
+        priceRange: data.budgetRange || `${data.budgetMin} - ${data.budgetMax}`,
+        briefType: data.briefType,
+        features: data.features,
+        landSize: data.landSize,
+      }
+    )
+  );
+
+  await sendEmail({
+    to: (agent.userId as any).email,
+    subject: 'Your Property Brief Submission Was Received',
+    html: emailHtml,
+    text: emailHtml,
+  });
+
+  return newProperty;
+}
+
+//========================================================
 }

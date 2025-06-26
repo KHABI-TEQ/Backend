@@ -8,11 +8,15 @@ interface Request extends Express.Request {
   url?: string;
 }
 
-export default function authorize(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Authorization header missing' });
-  }
+const authorize = (req: Request, res: Response, next: NextFunction) => {
+	try {
+		const authHeader = req.headers.authorization || req.headers.Authorization;
+		// 🔹 No Authorization header — just proceed (unauthenticated)
+		if (!authHeader) {
+			console.log(`[AUTH][$${req.url}] No Authorization header`);
+		req.user = null;
+		return next();
+		}
 
   const token = authHeader.split(' ')[1];
   if (!token) {

@@ -1,12 +1,12 @@
 import { NextFunction, Response, Router } from 'express';
 
-import { AgentController, DB } from '../controllers';
+import {AgentController} from '../controllers/Agent'
+import { DB } from '../controllers';
 import validator from '../common/validator';
 import HttpStatusCodes from '../common/HttpStatusCodes';
 import { IAgentDoc, IUser, IUserDoc, PropertyRent, PropertySell } from '../models';
 import jwt from 'jsonwebtoken';
 import googleAuthHandler from './googleAuth';
-import authorize from './authorize';
 import cloudinary from '../common/cloudinary';
 import multer from 'multer';
 import AuthorizeAction from './authorize_action';
@@ -16,23 +16,35 @@ const upload = multer({
   storage: multer.memoryStorage(),
 });
 
+const agentController = new AgentController()
+
 interface Request extends Express.Request {
   user?: any;
   body?: any;
   query?: any;
+  params?:any;
 }
 
 // Init shared
-const router = Router();
+const router =  Router();
 const agentControl = new AgentController();
-
-router.use(AuthorizeAction);
 
 /******************************************************************************
  *                      onboard agent - "POST /api/auth/onboard"
  ******************************************************************************/
+router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+   const preferences = await agentController.getAllPreferences()
+    return res.status(200).json({
+      preferences,
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.put('/onboard', async (req: Request, res: Response, next: NextFunction) => {
+router.put('/onboard',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { address, regionOfOperation, agentType, companyAgent, govtId, meansOfId } = req.body;
     const user = req.user as IUserDoc;
@@ -61,7 +73,7 @@ router.put('/onboard', async (req: Request, res: Response, next: NextFunction) =
  * Confirms Property Availability for Inspection  - "POST /api/agent/confirm-property"
  */
 
-router.post('/confirm-property', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/confirm-property',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { requestId, isAvailable } = req.body;
     const response = await agentControl.confirmPropertyAvailability(requestId, isAvailable);
@@ -77,44 +89,10 @@ router.post('/confirm-property', async (req: Request, res: Response, next: NextF
 /******************************************************************************
  * All preferences from buyers/renters  - "POST /api/agent/preferences"
  */
-
-router.get('/preferences', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // const rentPreferences = await DB.Models.PropertyRent.find({
-    //   ownerModel: 'BuyerOrRenter',
-    // });
-
-    const user = req.user as IUserDoc;
-
-    // const sellPreferences = await DB.Models.PropertySell.find({
-    //   ownerModel: 'BuyerOrRenter',
-    //   'location.state': user.address.state,
-    // }).then((properties) =>
-    //   properties.map((property) => {
-    //     const { owner, ...propertyData } = property.toObject();
-    //     return propertyData;
-    //   })
-    // );
-    const agent = await DB.Models.Agent.findOne({ userId: user._id });
-
-    if (!agent) {
-      return res.status(HttpStatusCodes.NOT_FOUND).json({
-        message: 'Not an agent',
-        success: false,
-      });
-    }
-
-    const regionOfOperation = agent.regionOfOperation || [];
-
-    const preferences = await DB.Models.Property.find({
-      isPreference: true,
-      $or: [
-        { 'location.state': { $in: regionOfOperation } },
-        { 'location.localGovernment': { $in: regionOfOperation } },
-        { 'location.area': { $in: regionOfOperation } },
-      ],
-    });
-
+   const user = req.user as IUserDoc;
+   const preferences = await agentController.getMatchingPreferences(user)
     return res.status(200).json({
       preferences,
       success: true,
@@ -124,7 +102,32 @@ router.get('/preferences', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
-router.get('/requests', async (req: Request, res: Response, next: NextFunction) => {
+
+router.post(
+  '/create-brief/:preferenceId?', // preferenceId is optional
+  AuthorizeAction,
+  upload.array('pictures'),
+  async (req: Request, res: Response) => {
+    try {
+      const user = req.user;
+      const files = req.files as Express.Multer.File[];
+      const preferenceId = req.params.preferenceId;
+
+      const property = await agentController.createBriefProperty(user, req.body, files, preferenceId);
+
+      return res.status(HttpStatusCodes.CREATED).json({
+        message: 'Brief created successfully',
+        data: property,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(error.status || 500).json({ message: error.message || 'Internal Server Error' });
+    }
+  }
+);
+
+
+router.get('/requests', AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user as IAgentDoc;
 
@@ -159,7 +162,7 @@ router.get('/requests', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
-router.post('/update-profile', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/update-profile', AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
     const profileData = req.body;
@@ -171,7 +174,7 @@ router.post('/update-profile', async (req: Request, res: Response, next: NextFun
   }
 });
 
-router.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/change-password',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
     const { oldPassword, newPassword } = req.body;
@@ -199,7 +202,7 @@ router.post('/change-password', async (req: Request, res: Response, next: NextFu
   }
 });
 
-router.post('/upload-profile-pic', upload.single('file'), async (req: Request, res: Response) => {
+router.post('/upload-profile-pic',AuthorizeAction, upload.single('file'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
@@ -229,7 +232,7 @@ router.post('/upload-profile-pic', upload.single('file'), async (req: Request, r
   }
 });
 
-router.post('/account-upgrade', async (req: Request, res: Response, next: NextFunction) => {
+router.post('/account-upgrade',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
     const { companyAgent, meansOfId } = req.body;
@@ -244,7 +247,7 @@ router.post('/account-upgrade', async (req: Request, res: Response, next: NextFu
   }
 });
 
-router.get('/account', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/account',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const agent = req.user as IUserDoc;
 
@@ -261,7 +264,7 @@ router.get('/account', async (req: Request, res: Response, next: NextFunction) =
   }
 });
 
-router.get('/properties', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/properties',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   const agent = req.user as IAgentDoc;
 
   const activeBrief = await DB.Models.Property.find({
