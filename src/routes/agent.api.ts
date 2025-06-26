@@ -7,7 +7,6 @@ import HttpStatusCodes from '../common/HttpStatusCodes';
 import { IAgentDoc, IUser, IUserDoc, PropertyRent, PropertySell } from '../models';
 import jwt from 'jsonwebtoken';
 import googleAuthHandler from './googleAuth';
-import authorize from './authorize';
 import cloudinary from '../common/cloudinary';
 import multer from 'multer';
 import AuthorizeAction from './authorize_action';
@@ -29,11 +28,20 @@ interface Request extends Express.Request {
 const router =  Router();
 const agentControl = new AgentController();
 
-// router.use(AuthorizeAction);
-
 /******************************************************************************
  *                      onboard agent - "POST /api/auth/onboard"
  ******************************************************************************/
+router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+   const preferences = await agentController.getAllPreferences()
+    return res.status(200).json({
+      preferences,
+      success: true,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.put('/onboard',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -93,17 +101,6 @@ router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res:
   }
 });
 
-router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-   const preferences = await agentController.getAllPreferences()
-    return res.status(200).json({
-      preferences,
-      success: true,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 router.post(
    '/create-brief',
