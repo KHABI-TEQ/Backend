@@ -107,6 +107,7 @@ export class Property {
 				budgetMin: { type: Number },
 				budgetMax: { type: Number },
 				isPremium: { type: Boolean, default: false },
+				preferenceId: { type: Schema.Types.ObjectId, ref: 'Preference'},
 				preferenceFeeTransaction: {
 					accountName: { type: String },
 					transactionReciept: { type: String },

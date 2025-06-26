@@ -22,6 +22,7 @@ interface Request extends Express.Request {
   user?: any;
   body?: any;
   query?: any;
+  params?:any;
 }
 
 // Init shared
@@ -103,15 +104,16 @@ router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res:
 
 
 router.post(
-   '/create-brief',
+  '/create-brief/:preferenceId?', // preferenceId is optional
   AuthorizeAction,
-  upload.array('pictures'), // handles multiple file uploads with name `pictures`
+  upload.array('pictures'),
   async (req: Request, res: Response) => {
     try {
       const user = req.user;
       const files = req.files as Express.Multer.File[];
+      const preferenceId = req.params.preferenceId;
 
-      const property = await agentController.createBriefProperty(user, req.body, files);
+      const property = await agentController.createBriefProperty(user, req.body, files, preferenceId);
 
       return res.status(HttpStatusCodes.CREATED).json({
         message: 'Brief created successfully',
