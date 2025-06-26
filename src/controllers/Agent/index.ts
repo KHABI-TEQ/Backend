@@ -341,7 +341,12 @@ public async getAllPreferences() {
 }
 
 
-public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.Multer.File[]): Promise<IPropertyDoc> {
+public async createBriefProperty(
+  agentUser: IUserDoc,
+  data: any,
+  files: Express.Multer.File[],
+  preferenceId?: string
+): Promise<IPropertyDoc> {
   const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
   if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
@@ -351,7 +356,20 @@ public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Missing required fields');
   }
 
-  // Handle file uploads (pictures)
+  // Check if it's a preference brief and validate preferenceId
+  const isPreference = data.isPreference === true || data.isPreference === 'true';
+  if (isPreference) {
+    if (!preferenceId) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'preferenceId is required for preference briefs');
+    }
+
+    const preference = await DB.Models.Preference.findById(preferenceId).exec();
+    if (!preference) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid preference ID');
+
+    data.preferenceId = preferenceId;
+  }
+
+  // Handle file uploads
   const pictureUrls: string[] = [];
   if (files && files.length > 0) {
     for (const file of files) {
