@@ -18,6 +18,7 @@ import {
   ForgotPasswordVerificationTemplate,
   generalTemplate,
   propertyAvailableTemplate,
+  briefSubmissionAcknowledgementTemplate,
   verifyEmailTemplate,
 } from '../../common/email.template';
 import sendEmail from '../../common/send.email';
@@ -341,13 +342,10 @@ public async getAllPreferences() {
 }
 
 
-public async createBriefProperty(
-  agentUser: IUserDoc,
-  data: any,
-  files: Express.Multer.File[],
-  preferenceId?: string
-): Promise<IPropertyDoc> {
-  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+// import { briefSubmissionAcknowledgementTemplate, generalTemplate } from '../../common/email.template';
+
+public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.Multer.File[], preferenceId?: string): Promise<IPropertyDoc> {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).populate('userId').exec();
   if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
   data.owner = agentUser._id;
@@ -369,7 +367,7 @@ public async createBriefProperty(
     data.preferenceId = preferenceId;
   }
 
-  // Handle file uploads
+  // Handle file uploads (pictures)
   const pictureUrls: string[] = [];
   if (files && files.length > 0) {
     for (const file of files) {
@@ -383,11 +381,31 @@ public async createBriefProperty(
   data.pictures = pictureUrls;
 
   const newProperty = await DB.Models.Property.create(data);
+
+  // Send email notification to the agent
+  const emailHtml = generalTemplate(
+    briefSubmissionAcknowledgementTemplate(
+      (agent.userId as any).firstName,
+      {
+        propertyType: data.propertyType,
+        location: data.location,
+        priceRange: data.budgetRange || `${data.budgetMin} - ${data.budgetMax}`,
+        briefType: data.briefType,
+        features: data.features,
+        landSize: data.landSize,
+      }
+    )
+  );
+
+  await sendEmail({
+    to: (agent.userId as any).email,
+    subject: 'Your Property Brief Submission Was Received',
+    html: emailHtml,
+    text: emailHtml,
+  });
+
   return newProperty;
 }
-
-
-
 
 //========================================================
 }
