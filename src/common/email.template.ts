@@ -1725,3 +1725,32 @@ export const preferenceMatchingTemplate = (body: string): string =>{
 </html>
         `;
 };
+
+
+export function briefSubmissionAcknowledgementTemplate(agentName: string, data: {
+  propertyType: string;
+  location: { state: string; localGovernment: string; area: string };
+  priceRange: string;
+  briefType: string;
+  features?: string[];
+  landSize?: { measurementType: string; size: number };
+}): string {
+  return `
+    <p>Hi ${agentName},</p>
+
+    <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+
+    <ul>
+      <li><strong>Property Type:</strong> ${data.propertyType}</li>
+      <li><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</li>
+      <li><strong>Price Range:</strong> ${data.priceRange}</li>
+      <li><strong>Usage Options:</strong> ${data.briefType}</li>
+      ${data.features?.length ? `<li><strong>Property Features:</strong> ${data.features.join(', ')}</li>` : ''}
+      ${data.landSize ? `<li><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</li>` : ''}
+    </ul>
+
+    <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
+
+    <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+  `;
+}
