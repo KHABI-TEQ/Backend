@@ -28,13 +28,27 @@ export class PropertyRequestController implements IPropertRequestController {
     if (propertyType !== 'PropertySell' && propertyType !== 'PropertyRent') {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid property type');
     }
-    const property = await DB.Models[propertyType]
-      .findById(propertyId)
-      .populate({
-        path: 'owner',
-        select: 'email fullName firstName',
-      })
-      .exec();
+
+    // Type-safe way to handle dynamic model access
+    let property;
+    if (propertyType === 'PropertyRent') {
+      property = await DB.Models.PropertyRent
+        .findById(propertyId)
+        .populate({
+          path: 'owner',
+          select: 'email fullName firstName',
+        })
+        .exec();
+    } else {
+      property = await DB.Models.PropertySell
+        .findById(propertyId)
+        .populate({
+          path: 'owner',
+          select: 'email fullName firstName',
+        })
+        .exec();
+    }
+
     if (!property) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
     }
@@ -112,13 +126,27 @@ export class PropertyRequestController implements IPropertRequestController {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property Request not found');
     }
 
-    const property = await DB.Models[propertyRequest.propertyModel]
-      .findById(propertyRequest.propertyId)
-      .populate({
-        path: 'owner',
-        select: 'email fullName',
-      })
-      .exec();
+    // Type-safe way to handle dynamic model access
+    let property;
+    if (propertyRequest.propertyModel === 'PropertyRent') {
+      property = await DB.Models.PropertyRent
+        .findById(propertyRequest.propertyId)
+        .populate({
+          path: 'owner',
+          select: 'email fullName',
+        })
+        .exec();
+    } else if (propertyRequest.propertyModel === 'PropertySell') {
+      property = await DB.Models.PropertySell
+        .findById(propertyRequest.propertyId)
+        .populate({
+          path: 'owner',
+          select: 'email fullName',
+        })
+        .exec();
+    } else {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid property model');
+    }
 
     if (!property || !property.isAvailable) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Property not available');

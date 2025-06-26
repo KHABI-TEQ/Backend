@@ -63,7 +63,7 @@ export interface PropertyProps {
 
 export class PropertyController {
 	/**
-	 * @param id
+	 * @param id 
 	 */
 	public async getOne(_id: string): Promise<IProperty | null> {
 		try {

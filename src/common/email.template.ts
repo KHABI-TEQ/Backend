@@ -1165,25 +1165,127 @@ export function InspectionRequestWithNegotiationSellerTemplate(
   `;
 }
 
+function formatPrice(price: number | string): string {
+  if (typeof price === 'string') {
+    price = parseFloat(price);
+  }
+  if (isNaN(price)) {
+    return 'N/A'; // Handle cases where price is not a valid number
+  }
+  return `₦${price.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function confirmTemplate(sellerName: string, propertyData: any): string {
-	return `
+  const {
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    sellerCounterOffer,
+    price,
+    inspectionDateTime
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  // Determine the accepted offer to display
+  const acceptedOffer = sellerCounterOffer ? formatPrice(sellerCounterOffer) : (price ? formatPrice(price) : 'N/A');
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and approved
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer, and the inspection date has been <strong style="color: #34A853;">Approved for inspection</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    inspectionDetailsBgColor = '#EEF7FF'; // Keeping default blue as it's an accepted outcome (modified)
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer. The previously proposed inspection date was countered, and a <strong style="color: #34A853;">new inspection date has been approved</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Approved Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Approved Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    // The request states "unavailable should only show newdate and newtime" and have light red background.
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer. The originally proposed inspection date was unavailable. Please review the updated details below.
+    `;
+    
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+        inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Details:</strong></p>
+            <li><strong>Date:</strong> ${inspectionDate}</li>
+            <li><strong>Time:</strong> ${inspectionTime}</li>
+        </ul>
+        `;
+    } else {
+        inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fall back to general acceptance message showing newDate/newTime if available
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer. Please review the inspection details.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
     <p>Dear ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-      You’ve successfully confirmed the inspection date. The appointment is approved!.
+      ${introMessage}
     </p>
 
-    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-      <p><strong>Inspection Details:</strong></p>
-      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    <ul style="background-color: #8DDB9033; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p style="color: #34A853;"><strong>Offer accepted:</strong></p>
+      <li><strong>Buyer’s Accepted Offer:</strong> ${acceptedOffer}</li>
     </ul>
+
+    ${inspectionDetailsHtml}
 
     <p style="margin-top: 15px;">
       If you have any questions or need to reschedule, please let us know in advance.
     </p>
   `;
 }
+
 
 export function unavailableTemplate(sellerName: string): string {
 	return `
@@ -1215,29 +1317,116 @@ export function declineTemplate(sellerName: string, propertyData: any): string {
 }
 
 export function NegotiationAcceptedTemplate(
-	buyerName: string,
-	propertyData: any
+  buyerName: string,
+  propertyData: any
 ): string {
-	// Calculate deadline: 48 hours from inspectionDate
+  const {
+    location,
+    price,
+    negotiationPrice,
+    propertyType,
+    responseLink,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
 
-	return `
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let confirmedDateTimeHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray as in the provided template
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and accepted
+    introMessage = `
+      Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${location}.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Here are the details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    inspectionDetailsBgColor = '#FAFAFA'; // Keeping light gray for a confirmed outcome
+    introMessage = `
+        Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer. The originally requested inspection date was countered, and a <strong style="color: #1AAD1F;">new date and time have been confirmed</strong> for the inspection at ${location}.
+      `;
+    confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Here are the details:</strong></p>
+          <li><strong>Original Inspection Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+          <li><strong>Original Inspection Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+          <li style="margin-top: 10px;"><strong>New Confirmed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+          <li><strong>New Confirmed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+        </ul>
+      `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    introMessage = `
+        The seller has <span style="color: #D32F2F;">accepted</span> your negotiation offer for the property at ${location}, however, the originally requested inspection date was unavailable. Please check for new proposals or follow up if needed.
+      `;
+
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>A new date and time has been suggested: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Please refer to your dashboard for confirmation or alternative arrangements.</li>
+        </ul>
+        `;
+    } else {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fall back to general acceptance message
+    introMessage = `
+      Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${location}. Please review the details below.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Here are the details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
     <p>Dear ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-     Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${propertyData.location}.
+     ${introMessage}
     </p>
 
-     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong>Here are the details:</strong></p>
-        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Accepted Price:</strong> ₦${propertyData.negotiationPrice}</li>
-      </ul>
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Offer Details:</strong></p>
+        <li><strong>Accepted Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
+    </ul>
+
+    ${confirmedDateTimeHtml}
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
-      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
-      <li><strong>Location:</strong> ${propertyData.location}</li>
-      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+      <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+      <li><strong>Location:</strong> ${location || 'N/A'}</li>
+      <li><strong>Original Price:</strong> ${formatPrice(price) || 'N/A'}</li>
     </ul>
 
     <p style="margin-top: 15px;">
@@ -1246,39 +1435,119 @@ export function NegotiationAcceptedTemplate(
 
     <p style="margin-top: 15px;">
       We look forward to seeing you then. If you need to reschedule, please let us know.
-
     </p>
 
-    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+    <a href="${propertyData.buyerResponseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Reschedule Inspection
     </a>
   `;
 }
 
 export function InspectionAcceptedTemplate(
-	buyerName: string,
-	propertyData: any
+  buyerName: string,
+  propertyData: any
 ): string {
-	// Calculate deadline: 48 hours from inspectionDate
+  const {
+    location,
+    price,
+    propertyType,
+    responseLink,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
 
-	return `
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let confirmedDateTimeHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and accepted
+    introMessage = `
+      Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Confirmed Date & Time:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    inspectionDetailsBgColor = '#EEF7FF'; // Keeping default blue as it's an accepted outcome (modified)
+    introMessage = `
+        Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}. The originally requested date was unavailable, and a <strong style="color: #1AAD1F;">new date and time have been confirmed</strong>.
+      `;
+    confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Confirmed Date & Time:</strong></p>
+          <li><strong>Original Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+          <li><strong>Original Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+          <li style="margin-top: 10px;"><strong>New Confirmed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+          <li><strong>New Confirmed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+        </ul>
+      `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    // The request states "unavailable should only show newdate and newtime" and have light red background.
+    introMessage = `
+        The seller has <span style="color: #D32F2F;">responded</span> to your inspection request for ${location}. The originally requested date was unavailable. Please check for new proposals or follow up if needed.
+      `;
+
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Confirmed Date & Time:</strong></p>
+            <li><strong>Date:</strong> ${inspectionDate}</li>
+            <li><strong>Time:</strong> ${inspectionTime}</li>
+        </ul>
+        `;
+    } else {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fall back to general acceptance message
+    introMessage = `
+      Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}. Please review the details below.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Confirmed Date & Time:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-     Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${propertyData.location}.
+     ${introMessage}
     </p>
 
-     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong>Confirmed Date & Time:</strong></p>
-        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Time:</strong> ₦${propertyData.inspectionTime}</li>
-      </ul>
+    ${confirmedDateTimeHtml}
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
-      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
-      <li><strong>Location:</strong> ${propertyData.location}</li>
-      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+      <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+      <li><strong>Location:</strong> ${location || 'N/A'}</li>
+      <li><strong>Price:</strong> ${formatPrice(price) || 'N/A'}</li>
     </ul>
 
     <p style="margin-top: 15px;">
@@ -1287,35 +1556,123 @@ export function InspectionAcceptedTemplate(
 
     <p style="margin-top: 15px;">
       We look forward to seeing you then. If you need to reschedule, please let us know.
-
     </p>
 
-    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+    <a href="${propertyData.buyerResponseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Reschedule Inspection
     </a>
   `;
 }
 
 export function NegotiationAcceptedSellerTemplate(
-	sellerName: string,
-	propertyData: any
+  sellerName: string,
+  propertyData: any
 ): string {
-	return `
+  const {
+    negotiationPrice,
+    propertyType,
+    location,
+    price,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and approved
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer. The previously proposed inspection date was countered, and a <strong style="color: #1AAD1F;">new inspection date has been approved</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Approved Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Approved Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer. The originally proposed inspection date was unavailable. Please review the updated details below.
+    `;
+
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>A new date and time has been suggested: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Awaiting buyer's confirmation or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-     You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+     ${introMessage}
     </p>
 
-     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p style="color: #34A853;"><strong>Offer Accepted:</strong></p>
-        <li><strong>Buyer Price:</strong> ${propertyData.negotiationPrice}</li>
-      </ul>
+        <li><strong>Buyer Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
+    </ul>
 
-    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
-      <p><strong>Inspection Details:</strong></p>
-      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    ${inspectionDetailsHtml}
+
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+      <li><strong>Location:</strong> ${location || 'N/A'}</li>
+      <li><strong>Original Price:</strong> ${formatPrice(price) || 'N/A'}</li>
     </ul>
 
     <p style="margin-top: 15px;">
@@ -1325,26 +1682,106 @@ export function NegotiationAcceptedSellerTemplate(
 }
 
 export function CounterSellerTemplate(
-	sellerName: string,
-	propertyData: any
+  sellerName: string,
+  propertyData: any
 ): string {
-	return `
+  const {
+    negotiationPrice,
+    sellerCounterOffer,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue for inspection details
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Offer countered, and inspection date is available and confirmed
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Offer countered, and a new inspection date/time has been proposed/approved by seller
+    // This implies both original and new dates/times are relevant.
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer. You have also <strong style="color: #1AAD1F;">proposed new inspection details</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Proposed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Proposed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    // Scenario 3: Offer countered, but the originally requested inspection date was unavailable.
+    // Display only the new suggested date/time if available, otherwise a generic message.
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status in this context
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer. The originally proposed inspection date was unavailable. Please review the updated details below.
+    `;
+    
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>You have suggested a new date and time: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Awaiting buyer's confirmation or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fallback
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer, and the inspection date has been updated by you to a new selection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-     You’ve successfully <span style="color: #1AAD1F;">count offer</span> the buyer’s offer, and the inspection date has been updated by you to a new selection.</p>
-     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p style=""><strong>Negotiation:</strong></p>
-        <li><strong>Buyer Price:</strong> #${propertyData.negotiationPrice}</li>
-        <li><strong>Your Count Offer:</strong> #${propertyData.sellerCounterOffer}</li>
-      </ul>
+     ${introMessage}
+    </p>
 
-    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
-      <p><strong>Updated Inspection Details:</strong></p>
-      <li><strong>Date:</strong> ${propertyData.newDate}</li>
-      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p style=""><strong>Negotiation:</strong></p>
+      <li><strong>Buyer Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
+      <li><strong>Your Counter Offer:</strong> ${formatPrice(sellerCounterOffer) || 'N/A'}</li>
     </ul>
+
+    ${inspectionDetailsHtml}
 
     <p style="margin-top: 15px;">
       If you have any questions, feel free to contact us.
@@ -1353,56 +1790,221 @@ export function CounterSellerTemplate(
 }
 
 export function CounterBuyerTemplate(
-	buyerName: string,
-	propertyData: any
+  buyerName: string,
+  propertyData: any
 ): string {
-	return `
+  const {
+    sellerCounterOffer,
+    acceptLink,
+    propertyType,
+    location,
+    price,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Seller countered, and inspection date is available and approved
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Seller countered, and they also proposed new inspection details
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. They have also <strong style="color: #34A853;">proposed new inspection details</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Proposed Inspection Details:</strong></p>
+        <li><strong>Original Requested Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Original Requested Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Proposed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Proposed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. However, the originally requested inspection date was unavailable.
+    `;
+    
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>A new date and time has been suggested: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Please review your dashboard for confirmation or alternative arrangements.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fallback
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+
+  return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-    The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+     ${introMessage}
      </p>
      <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p style="color: #34A853;"><strong>Details:</strong></p>
-        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Seller's Counter-Offer:</strong> #${propertyData.sellerCounterOffer}</li>
+        <p style="color: #34A853;"><strong>Offer Details:</strong></p>
+        <li><strong>Seller's Counter-Offer:</strong> ${formatPrice(sellerCounterOffer) || 'N/A'}</li>
       </ul>
+
+      <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Property Details:</strong></p>
+        <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+        <li><strong>Location:</strong> ${location || 'N/A'}</li>
+        <li><strong>Original Price:</strong> ${formatPrice(price) || 'N/A'}</li>
+      </ul>
+
+      ${inspectionDetailsHtml}
 
       <p style="margin-top: 15px;">Please click below to accept or decline the Offer.</p>
 
       <div style="display: flex; width: 104px; height: 40px; gap: 16px;">
-        <a href="${propertyData.acceptLink}" style="flex: 1; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Offer</a>
+        <a href="${propertyData.buyerResponseLink}" style="flex: 1; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Offer</a>
       </div>
 
-    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
-      <p><strong>Property Details:</strong></p>
-      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
-      <li><strong>Location:</strong> ${propertyData.location}</li>
-      <li><strong>Price:</strong> ₦${propertyData.price}</li>
-    </ul>
-
-    <p style="margin-top: 15px;">
-      Thanks for your flexibility!.
-    </p>
+      <p style="margin-top: 15px;">
+        Thanks for your flexibility!.
+      </p>
   `;
 }
 
 export function NegotiationRejectedBuyerTemplate(
-	buyerName: string,
-	propertyData: any
+  buyerName: string,
+  propertyData: any
 ): string {
-	return `
+  const {
+    checkLink,
+    rejectLink,
+    browse,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray as in the provided template
+
+  if (inspectionDateStatus === 'available') {
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+        <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+        <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer. However, they have <strong style="color: #34A853;">proposed new inspection details</strong> for the property.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+        <p style="color: #34A853;"><strong>Here are the proposed inspection details:</strong></p>
+        <li><strong>Original Requested Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Original Requested Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Proposed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Proposed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+        <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer. Unfortunately, the originally requested inspection date was also unavailable.
+    `;
+    
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>However, a new date and time has been suggested for your convenience: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Please refer to your dashboard for confirmation or alternative arrangements.</li>
+            <li>You can submit a new offer after the inspection if you’re still interested.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+            <li>You can submit a new offer after the inspection if you’re still interested.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+        <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+        <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+      </ul>
+    `;
+  }
+
+  return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+      ${introMessage}
     </p>
 
-    <ul style="background-color: #FAFAFA; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
-      <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
-      <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
-    </ul>
+    ${inspectionDetailsHtml}
 
     <p style="margin-top: 15px;">Would you like to continue with the inspection?</p>
 
@@ -1415,7 +2017,7 @@ export function NegotiationRejectedBuyerTemplate(
           <a href="${propertyData.rejectLink}" style="display: inline-block; background-color: #FF2539; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">No</a>
         </td>
         <td>
-          <a href="${propertyData.browse}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
+          <a href="${propertyData.browseLink}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
         </td>
       </tr>
     </table>
@@ -1423,25 +2025,103 @@ export function NegotiationRejectedBuyerTemplate(
 }
 
 export function NegotiationRejectedSellerTemplate(
-	buyerName: string,
-	propertyData: any
+  sellerName: string,
+  propertyData: any
 ): string {
-	return `
-    <p>Hi ${buyerName},</p>
+  const {
+    negotiationPrice,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray for inspection details
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Offer rejected, but inspection date is available and approved
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Offer rejected, but a new inspection date/time has been proposed/approved (countered)
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer. The previously proposed inspection date was unavailable, and a <strong style="color: #1AAD1F;">new inspection date has been approved</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Approved Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Approved Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    // Scenario 3: Offer rejected, and the inspection date was unavailable.
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status in this context
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer. The originally proposed inspection date was also unavailable. Please review the details below.
+    `;
+    
+    // Check if new date/time exists for this 'unavailable' case (e.g., if seller proposed one), otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>You have suggested a new date and time: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Awaiting buyer's confirmation or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fallback
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
+    <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-    You’ve successfully <span style="color: #FF2539;">Rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
-     </p>
+     ${introMessage}
+    </p>
+
      <ul style="background-color: #FFE7E5; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p style="color: #FF2539;"><strong>Offer Rejected:</strong></p>
-        <li><strong>Buyer Price:</strong> ${propertyData.negotiationPrice}</li>
+        <li><strong>Buyer Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
       </ul>
 
-        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong> Inspection Details:</strong></p>
-        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
-      </ul>
+    ${inspectionDetailsHtml}
 
       <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
   `;
@@ -1581,7 +2261,7 @@ export function LOIRejectedBuyerTemplate(
           <a href="${propertyData.rejectLink}" style="display: inline-block; background-color: #FF2539; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">No</a>
         </td>
         <td>
-          <a href="${propertyData.browse}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
+          <a href="${propertyData.browseLink}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
         </td>
       </tr>
     </table>
