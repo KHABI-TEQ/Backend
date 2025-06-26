@@ -222,6 +222,10 @@ export class PropertyRentController implements IPropertyRentController {
     try {
       const property = await DB.Models.PropertyRent.findById(_id).exec();
 
+      if (!property) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+      }
+
       let owner;
 
       if (property.ownerModel === 'Agent') {
@@ -229,7 +233,8 @@ export class PropertyRentController implements IPropertyRentController {
           throw new RouteError(HttpStatusCodes.UNAUTHORIZED, 'Unauthorized access, please login');
       }
 
-      await property.delete();
+      // Use deleteOne() instead of remove() - modern Mongoose approach
+      await property.deleteOne();
     } catch (err) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
     }

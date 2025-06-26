@@ -4,6 +4,7 @@ import { IAdmin, IAdminDoc } from '../models';
 import { authorizeAdmin } from './admin.authorize';
 import { DB } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
+import authorize from './authorize';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -15,6 +16,7 @@ interface Request extends Express.Request {
   admin?: any;
 }
 
+// Allow login and create-admin without auth
 AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
@@ -26,6 +28,15 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
 });
 
 AdminRouter.use(authorizeAdmin);
+
+// Get current admin info
+AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    return res.status(200).json({ success: true, admin: req.admin });
+  } catch (error) {
+    next(error);
+  }
+});
 
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -43,12 +54,18 @@ AdminRouter.post('/create-admin', async (req: Request, res: Response, next: Next
   }
 });
 
+
+// Protect all other admin routes
+AdminRouter.use(authorize);
+
 AdminRouter.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const admin = req.admin as IAdminDoc;
     const { newPassword } = req.body;
 
-    const response = await adminController.changePassword(admin._id, newPassword);
+    const adminID = admin._id.toString();
+
+    const response = await adminController.changePassword(adminID, newPassword);
 
     return res.status(200).json({ success: true, message: response });
   } catch (error) {
@@ -84,7 +101,7 @@ AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunc
   }
 });
 
-AdminRouter.post('/properties', async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.post('/properties', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { briefType, ownerType, page, limit } = req.body;
     console.log(briefType, ownerType, page, limit);

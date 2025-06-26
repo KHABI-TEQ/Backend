@@ -615,13 +615,14 @@ export class AdminController {
         email: admin.email,
         role: admin.role,
         id: admin._id,
+        isAdmin: true
       };
 
       admin.isAccountInRecovery = false;
 
       await admin.save();
 
-      const token = signJwtAdmin(payload);
+      const token = signJwt(payload);
 
       return { admin: admin.toObject(), token: token };
     } catch (err) {

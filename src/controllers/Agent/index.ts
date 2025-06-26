@@ -123,7 +123,7 @@ export class AgentController implements IAgentController {
         accountStatus: 'active',
         isInUpgrade: false,
         isFlagged: false,
-        userId: user._id,
+        userId: user._id.toString(),
         upgradeData: null,
         govtId: {
           typeOfId: govtId.typeOfId,
@@ -171,42 +171,54 @@ export class AgentController implements IAgentController {
   public async confirmPropertyAvailability(requestId: string, isAvailable: boolean): Promise<string> {
     try {
       const propertyRequested = await DB.Models.PropertyRequest.findById(requestId).exec();
-      let mailBody, message;
-
+      let mailBody: string;
+      let message: string;
+  
       if (!propertyRequested) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Property request not found');
-
-      const property = await DB.Models[propertyRequested.propertyModel].findById(propertyRequested.propertyId).exec();
-
+  
+      const { propertyModel, propertyId } = propertyRequested;
+  
+      // Narrowing down the model type
+      let property: any = null;
+      if (propertyModel === 'PropertyRent') {
+        property = await DB.Models.PropertyRent.findById(propertyId).exec();
+      } else if (propertyModel === 'PropertySell') {
+        property = await DB.Models.PropertySell.findById(propertyId).exec();
+      } else {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Unsupported property model');
+      }
+  
       if (!property) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Property not found');
-
+  
       const requester = await DB.Models.BuyerOrRent.findById(propertyRequested.requestFrom).exec();
-
+  
       if (!requester) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Requester not found');
-
+  
       if (!isAvailable) {
         mailBody = propertyNotAvailableTemplate(
           requester.email,
           `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`
         );
-
+      
         await DB.Models.PropertyRequest.findByIdAndUpdate(requestId, { status: 'Rejected' }).exec();
-        await DB.Models[propertyRequested.propertyModel]
-          .updateOne({ _id: propertyRequested.propertyId }, { $set: { isAvailable: false } })
-          .exec();
-
+      
+        if (propertyModel === 'PropertyRent') {
+          await DB.Models.PropertyRent.updateOne({ _id: propertyId }, { $set: { isAvailable: false } }).exec();
+        } else if (propertyModel === 'PropertySell') {
+          await DB.Models.PropertySell.updateOne({ _id: propertyId }, { $set: { isAvailable: false } }).exec();
+        }
+      
         message = 'Property is not available for inspection';
       } else {
         const encodedData = jwt.sign(
-          {
-            requestId,
-          },
+          { requestId },
           process.env.JWT_SECRET as string,
           { expiresIn: '3d' }
         );
-
+      
         const calendlyLink = `${process.env.CLIENT_LINK}/slots?token=${encodedData}`;
         console.log('calendlyLink', calendlyLink);
-
+      
         mailBody = generalTemplate(
           propertyAvailableTemplate(
             requester.fullName || requester.email,
@@ -214,27 +226,30 @@ export class AgentController implements IAgentController {
             calendlyLink
           )
         );
-
+      
         await DB.Models.PropertyRequest.findByIdAndUpdate(requestId, { status: 'Accepted' }).exec();
-        await DB.Models[propertyRequested.propertyModel]
-          .updateOne({ _id: propertyRequested.propertyId }, { $set: { isAvailable: true } })
-          .exec();
-
+      
+        if (propertyModel === 'PropertyRent') {
+          await DB.Models.PropertyRent.updateOne({ _id: propertyId }, { $set: { isAvailable: true } }).exec();
+        } else if (propertyModel === 'PropertySell') {
+          await DB.Models.PropertySell.updateOne({ _id: propertyId }, { $set: { isAvailable: true } }).exec();
+        }
+      
         message = 'Property is available for inspection';
-      }
-
+      }      
+  
       await sendEmail({
         to: requester.email,
         subject: 'Schedule Your Property Inspection',
         text: 'Schedule Your Property Inspection',
         html: mailBody,
       });
-
+  
       return message;
-    } catch (error) {
+    } catch (error: any) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
-  }
+  }  
 
   public async updateProfile(
     agent: IUserDoc,
