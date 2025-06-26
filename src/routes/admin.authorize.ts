@@ -30,23 +30,13 @@ export const authorizeAdmin = (
 			return res.status(401).json({ message: "Token missing" });
 		}
 
-		jwt.verify(
-			token,
-			process.env.JWT_SECRET_ADMIN,
-			async (err: any, decoded: { id: string }) => {
-				if (err) {
-					console.log(err);
-					return res.status(401).json({ message: "Token is not valid" });
-				}
-    jwt.verify(token, process.env.JWT_SECRET, async (err: any, decoded: any) => {
+    const user = jwt.verify(token, process.env.JWT_SECRET_ADMIN, async (err: any, decoded: { id: string }) => {
       if (err) {
+        console.log(err);
         return res.status(401).json({ message: 'Token is not valid' });
       }
 
-				console.log("Decoded:", decoded);
-      if (!decoded.isAdmin) {
-        return res.status(403).json({ message: 'Access denied. Admin privileges required.' });
-      }
+      console.log('Decoded:', decoded);
 
 				const admin = await DB.Models.Admin.findById(decoded.id);
 
@@ -58,18 +48,17 @@ export const authorizeAdmin = (
         return res.status(403).json({ message: 'Access denied' });
       }
 
-      if (!admin.isAccountVerified) {
-        return res.status(403).json({ message: 'Admin account not verified' });
-      }
-
       req.admin = admin;
+
       next();
     });
+
+    // return res.status(401).json({ message: 'Not Authorized' });
   } catch (error) {
-    console.log('Error in admin authorization:', error);
+    console.log('Error exchanging code for tokens:', error.response?.data || error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during authorization',
+      message: 'Failed to exchange authorization code for tokens',
     });
   }
 };

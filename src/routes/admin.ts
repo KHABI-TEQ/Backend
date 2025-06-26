@@ -27,6 +27,8 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
+AdminRouter.use(authorizeAdmin);
+
 // Get current admin info
 AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -36,7 +38,7 @@ AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next:
   }
 });
 
-AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, firstName, lastName, phoneNumber, address } = req.body;
     const admin = await adminController.createAdmin({
@@ -52,10 +54,11 @@ AdminRouter.post('/create-admin', authorizeAdmin, async (req: Request, res: Resp
   }
 });
 
+
 // Protect all other admin routes
 AdminRouter.use(authorize);
 
-AdminRouter.post('/change-password', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const admin = req.admin as IAdminDoc;
     const { newPassword } = req.body;
