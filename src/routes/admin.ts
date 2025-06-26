@@ -60,7 +60,9 @@ AdminRouter.post('/change-password', authorizeAdmin, async (req: Request, res: R
     const admin = req.admin as IAdminDoc;
     const { newPassword } = req.body;
 
-    const response = await adminController.changePassword(admin._id, newPassword);
+    const adminID = admin._id.toString();
+
+    const response = await adminController.changePassword(adminID, newPassword);
 
     return res.status(200).json({ success: true, message: response });
   } catch (error) {

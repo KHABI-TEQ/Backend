@@ -1,0 +1,134 @@
+{
+  "info": {
+    "name": "User API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Sign Up",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"abdulsalamasheem@gmail.com\",\n  \"password\": \"password123\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": \"08012345678\"\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/user/signup",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "signup"]
+        }
+      }
+    },
+    {
+      "name": "Verify Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{SERVER_URL}}/user/verify-email?access_token=your_token_here",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "verify-email"],
+          "query": [{ "key": "access_token", "value": "your_token_here" }]
+        }
+      }
+    },
+    {
+      "name": "Sign Up with Google",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"your_google_id_token\"\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/user/signup/google",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "signup", "google"]
+        }
+      }
+    },
+    {
+      "name": "Login with Google",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"idToken\": \"your_google_id_token\"\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/user/login/google",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "login", "google"]
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/user/login",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "login"]
+        }
+      }
+    },
+    {
+      "name": "Request Password Reset",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"user@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/user/request-password-reset",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "request-password-reset"]
+        }
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"token\": \"reset_token_here\",\n  \"password\": \"newPassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{SERVER_URL}}/user/reset-password",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "reset-password"]
+        }
+      }
+    },
+    {
+      "name": "Get Current User (Me)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer your_jwt_token"
+          }
+        ],
+        "url": {
+          "raw": "{{SERVER_URL}}/user/me",
+          "host": ["{{SERVER_URL}}"],
+          "path": ["user", "me"]
+        }
+      }
+    }
+  ]
+}

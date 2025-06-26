@@ -1,5 +1,5 @@
 export const generalTemplate = (body: string): string => {
-  return `
+	return `
         <html>
 <head>
     <meta charset="UTF-8">
@@ -73,8 +73,11 @@ export const generalTemplate = (body: string): string => {
         `;
 };
 
-export const propertyRequestTemplate = (buyerName: string, propertyAddress: string): string => {
-  return `
+export const propertyRequestTemplate = (
+	buyerName: string,
+	propertyAddress: string
+): string => {
+	return `
                 <html>
                 <body>
                         <p>Dear ${buyerName},</p>
@@ -87,8 +90,11 @@ export const propertyRequestTemplate = (buyerName: string, propertyAddress: stri
         `;
 };
 
-export const agentNotificationTemplate = (agentName: string, propertyAddress: string): string => {
-  return `
+export const agentNotificationTemplate = (
+	agentName: string,
+	propertyAddress: string
+): string => {
+	return `
                         <p>
                         Dear ${agentName},
 
@@ -99,8 +105,12 @@ export const agentNotificationTemplate = (agentName: string, propertyAddress: st
                         `;
 };
 
-export const propertyAvailableTemplate = (agentName: string, propertyAddress: string, calendlyLink: string): string => {
-  return `
+export const propertyAvailableTemplate = (
+	agentName: string,
+	propertyAddress: string,
+	calendlyLink: string
+): string => {
+	return `
                 <html>
                 <body>
                         <p>Dear ${agentName},</p>
@@ -114,8 +124,11 @@ export const propertyAvailableTemplate = (agentName: string, propertyAddress: st
         `;
 };
 
-export const propertyNotAvailableTemplate = (recepientName: string, propertyAddress: string): string => {
-  return `
+export const propertyNotAvailableTemplate = (
+	recepientName: string,
+	propertyAddress: string
+): string => {
+	return `
                 <html>
                 <body>
                         <p>Dear ${recepientName},</p>
@@ -129,8 +142,12 @@ export const propertyNotAvailableTemplate = (recepientName: string, propertyAddr
         `;
 };
 
-export const inspectionScheduledTemplate = (agentName: string, propertyAddress: string, dateTime: string): string => {
-  return `
+export const inspectionScheduledTemplate = (
+	agentName: string,
+	propertyAddress: string,
+	dateTime: string
+): string => {
+	return `
       <div>
           <p>Dear ${agentName},</p>
           <p>The inspection for ${propertyAddress} has been scheduled for ${dateTime}. Please
@@ -141,8 +158,11 @@ export const inspectionScheduledTemplate = (agentName: string, propertyAddress: 
                                 `;
 };
 
-export const verifyEmailTemplate = (name: string, verificationLink: string): string => {
-  return `
+export const verifyEmailTemplate = (
+	name: string,
+	verificationLink: string
+): string => {
+	return `
         <p>Dear ${name},</p>
         <p>Thank you for registering with Khabi-Teq Realty. To complete your onboarding process, please verify your email address by clicking the link below:</p>
         <p>🔗 <a href="${verificationLink}">Verify Email</a></p>
@@ -151,35 +171,35 @@ export const verifyEmailTemplate = (name: string, verificationLink: string): str
 };
 
 export const accountUnderReviewTemplate = (name: string): string => {
-  return `
+	return `
         <p>Hi ${name},</p>
         <p>Thank you for registering with Khabi-Teq Realty. Your agent account is currently <strong>under review</strong>. We are verifying your submitted documents and details. You will receive a confirmation email once your account is approved. If we require any additional information, we will reach out to you.</p>
         `;
 };
 
 export const accountUpgradeTemplate = (name: string): string => {
-  return `
+	return `
                 <p>Hi ${name},</p>
                 <p>Thank you for your recent upgrade request with Khabi-Teq Realty. Your request is currently under review. We will notify you once the review is complete.</p>
                 `;
 };
 
 export const accountUpgradeApprovedTemplate = (name: string): string => {
-  return `
+	return `
                         <p>Dear ${name},</p>
                         <p>Congratulations! Your upgrade request with Khabi-Teq Realty has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
                         `;
 };
 
 export const accountUpgradeDisapprovedTemplate = (name: string): string => {
-  return `
+	return `
                                 <p>Dear ${name},</p>
                                 <p>Thank you for your recent upgrade request with Khabi-Teq Realty. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
                                 `;
 };
 
 export const accountApproved = (name: string): string => {
-  return `
+	return `
                 <p>Dear ${name},</p>
                 <p>Welcome to Khabi-Teq Realty! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
                 <p>Get ready to unlock new opportunities and grow your real estate career with us.</p>
@@ -187,7 +207,7 @@ export const accountApproved = (name: string): string => {
 };
 
 export const accountDisaapproved = (name: string): string => {
-  return `
+	return `
         <p>
         Dear ${name},
 
@@ -199,7 +219,7 @@ export const accountDisaapproved = (name: string): string => {
 };
 
 export function generatePropertyRentBriefEmail(data: any) {
-  return `
+	return `
   <div class="container">
             <h2>New Property Rental Brief Created</h2>
             <p>A new property rental brief has been submitted for rent. Here are the details:</p>
@@ -207,256 +227,377 @@ export function generatePropertyRentBriefEmail(data: any) {
             <div class="details">
                 <p><strong>Property Type:</strong> ${data.propertyType}</p>
                 <p><strong>Condition:</strong> ${data.propertyCondition}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</p>
                 <p><strong>Rental Price:</strong> ₦${data.rentalPrice}</p>
                 <p><strong>Number of Bedrooms:</strong> ${data.noOfBedrooms}</p>
-                <p><strong>Features:</strong> ${data.features.map((f: any) => f.featureName).join(', ')}</p>
-                <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.map((c: any) => c.criteria).join(', ')}</p>
+                <p><strong>Features:</strong> ${data.features
+																	.map((f: any) => f.featureName)
+																	.join(", ")}</p>
+                <p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+																	.map((c: any) => c.criteria)
+																	.join(", ")}</p>
                 <p>Owner Email: ${data.owner.email}</p>
                 <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
                 <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
 
-                <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
+                <p><strong>Owner Status:</strong> ${
+																	data.areYouTheOwner ? "Yes" : "No"
+																}</p>
                 <p><strong>Availability:</strong> ${data.isAvailable}</p>
-                <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
+                <p><strong>Budget Range:</strong> ${
+																	data.budgetRange || "N/A"
+																}</p>
             </div>
     
             ${
-              data.pictures && data.pictures.length
-                ? `
+													data.pictures && data.pictures.length
+														? `
             <h3>Property Pictures</h3>
             <div class="pictures">
                 ${data.pictures
-                  .map(
-                    (pic: any) =>
-                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                  )
-                  .join('')}
+																	.map(
+																		(pic: any) =>
+																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																	)
+																	.join("")}
             </div>
             `
-                : ''
-            }
+														: ""
+												}
             
-            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            ${
+													data.isAdmin
+														? "<p>Admin, please review and take the necessary actions.</p>"
+														: ""
+												}
         </div>
   `;
 }
 
 export function generatePropertySellBriefEmail(data: any) {
-  return ` <div class="container">
+	return ` <div class="container">
             <h2>New Property Brief Created</h2>
             <p>A new property brief has been submitted for sale. Here are the details:</p>
             
             <div class="details">
                 <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
-                <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
-                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms}</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</p>
+                <p><strong>Price:</strong> ₦${
+																	data.price || data.rentalPrice
+																}</p>
+                <p><strong>Number of Bedrooms:</strong> ${
+																	data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
+																}</p>
                 <p><strong>Features:</strong> ${
-                  data.propertyFeatures?.additionalFeatures?.join(', ') ||
-                  data.features?.map((f: any) => f.featureName).join(', ')
-                }</p>
+																	data.propertyFeatures?.additionalFeatures?.join(", ") ||
+																	data.features?.map((f: any) => f.featureName).join(", ")
+																}</p>
                 ${
-                  data.tenantCriteria.length > 0 &&
-                  `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                    ?.map((c: any) => c.criteria)
-                    .join(', ')}</p>`
-                }
+																	data.tenantCriteria.length > 0 &&
+																	`<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+																		?.map((c: any) => c.criteria)
+																		.join(", ")}</p>`
+																}
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Documents on Property:</strong> ${data.docOnProperty
-                   ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                   .join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Documents on Property:</strong> ${data.docOnProperty
+																	?.map(
+																		(doc: any) =>
+																			`${doc.docName} (${
+																				doc.isProvided ? "Provided" : "Not Provided"
+																			})`
+																	)
+																	.join(", ")}</p>`
+															}
                 <p>Owner Email: ${data.owner.email}</p>
                 <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
                 <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
-                <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>
+                <p><strong>Owner Status:</strong> ${
+																	data.areYouTheOwner ? "Yes" : "No"
+																}</p>
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(
+																	", "
+																)}</p>`
+															}
                
-                ${data.budgetRange && `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`}
+                ${
+																	data.budgetRange &&
+																	`<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`
+																}
             </div>
     
             ${
-              data.pictures && data.pictures.length
-                ? `
+													data.pictures && data.pictures.length
+														? `
             <h3>Property Pictures</h3>
             <div class="pictures">
                 ${data.pictures
-                  .map(
-                    (pic: any) =>
-                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                  )
-                  .join('')}
+																	.map(
+																		(pic: any) =>
+																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																	)
+																	.join("")}
             </div>
             `
-                : ''
-            }
+														: ""
+												}
             
-            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            ${
+													data.isAdmin
+														? "<p>Admin, please review and take the necessary actions.</p>"
+														: ""
+												}
             
         </div>`;
 }
 
 export function generatePropertPreferenceBriefEmail(data: any) {
-  return ` <div class="container">
+	return ` <div class="container">
             <h2>New Property Preference</h2>
             <p>A new property preference has been submitted. Here are the details:</p>
             
             <div class="details">
                 <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${
-    data.location.area
-  }</p>
-                <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
-                <p><strong>Number of Bedrooms:</strong> ${data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms}</p>
+                <p><strong>Location:</strong> ${data.location.state}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</p>
+                <p><strong>Price:</strong> ₦${
+																	data.price || data.rentalPrice
+																}</p>
+                <p><strong>Number of Bedrooms:</strong> ${
+																	data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
+																}</p>
                 <p><strong>Features:</strong> ${
-                  data.propertyFeatures?.additionalFeatures?.join(', ') ||
-                  data.features?.map((f: any) => f.featureName).join(', ')
-                }</p>
+																	data.propertyFeatures?.additionalFeatures?.join(", ") ||
+																	data.features?.map((f: any) => f.featureName).join(", ")
+																}</p>
                 ${
-                  data.tenantCriteria.length > 0 &&
-                  `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                    ?.map((c: any) => c.criteria)
-                    .join(', ')}</p>`
-                }
+																	data.tenantCriteria.length > 0 &&
+																	`<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
+																		?.map((c: any) => c.criteria)
+																		.join(", ")}</p>`
+																}
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Documents on Property:</strong> ${data.docOnProperty
-                   ?.map((doc: any) => `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`)
-                   .join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Documents on Property:</strong> ${data.docOnProperty
+																	?.map(
+																		(doc: any) =>
+																			`${doc.docName} (${
+																				doc.isProvided ? "Provided" : "Not Provided"
+																			})`
+																	)
+																	.join(", ")}</p>`
+															}
                
                ${
-                 data.docOnProperty.length > 0 &&
-                 `<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(', ')}</p>`
-               }
+																data.docOnProperty.length > 0 &&
+																`<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(
+																	", "
+																)}</p>`
+															}
                
-                ${data.budgetRange && `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`}
+                ${
+																	data.budgetRange &&
+																	`<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`
+																}
             </div>
     
             ${
-              data.pictures && data.pictures.length
-                ? `
+													data.pictures && data.pictures.length
+														? `
             <h3>Property Pictures</h3>
             <div class="pictures">
                 ${data.pictures
-                  .map(
-                    (pic: any) =>
-                      `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                  )
-                  .join('')}
+																	.map(
+																		(pic: any) =>
+																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																	)
+																	.join("")}
             </div>
             `
-                : ''
-            }
+														: ""
+												}
             
-            ${data.isAdmin ? '<p>Admin, please review and take the necessary actions.</p>' : ''}
+            ${
+													data.isAdmin
+														? "<p>Admin, please review and take the necessary actions.</p>"
+														: ""
+												}
             
         </div>`;
 }
 
 export function generatePropertyBriefEmail(ownerName: string, data: any) {
-  let details = '';
+	let details = "";
 
-  if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
-  if (data.propertyType) details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
-  if (data.propertyCondition) details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
-  if (data.location)
-    details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
-  if (data.price) details += `<p><strong>Price:</strong> ₦${data.price}</p>`;
-  if (data.landSize)
-    details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
-  if (data.buildingType) details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
-  if (data.additionalFeatures?.noOfBedrooms)
-    details += `<p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures.noOfBedrooms}</p>`;
-  if (data.additionalFeatures?.noOfBathrooms)
-    details += `<p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures.noOfBathrooms}</p>`;
-  if (data.additionalFeatures?.noOfToilets)
-    details += `<p><strong>Number of Toilets:</strong> ${data.additionalFeatures.noOfToilets}</p>`;
-  if (data.additionalFeatures?.noOfCarParks)
-    details += `<p><strong>Number of Car Parks:</strong> ${data.additionalFeatures.noOfCarParks}</p>`;
-  if (data.additionalFeatures?.additionalFeatures?.length)
-    details += `<p><strong>Additional Features:</strong> ${data.additionalFeatures.additionalFeatures.join(', ')}</p>`;
-  if (data.features?.length) details += `<p><strong>Features:</strong> ${data.features.join(', ')}</p>`;
-  if (data.tenantCriteria?.length)
-    details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(', ')}</p>`;
-  // if (data.docOnProperty?.length)
-  //   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
-  // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
-  // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
-  // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
-  // if (typeof data.areYouTheOwner === 'boolean')
-  //   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isAvailable !== 'undefined')
-  //   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
-  // if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
-  // if (typeof data.isApproved === 'boolean')
-  //   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isRejected === 'boolean')
-  //   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
-  details += `<p><strong>Under Review:</strong>Yes</p>`;
+	if (data.briefType)
+		details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
+	if (data.propertyType)
+		details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+	if (data.propertyCondition)
+		details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
+	if (data.location)
+		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+	if (data.price) details += `<p><strong>Price:</strong> ₦${data.price}</p>`;
+	if (data.landSize)
+		details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
+	if (data.buildingType)
+		details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
+	if (data.additionalFeatures?.noOfBedrooms)
+		details += `<p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures.noOfBedrooms}</p>`;
+	if (data.additionalFeatures?.noOfBathrooms)
+		details += `<p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures.noOfBathrooms}</p>`;
+	if (data.additionalFeatures?.noOfToilets)
+		details += `<p><strong>Number of Toilets:</strong> ${data.additionalFeatures.noOfToilets}</p>`;
+	if (data.additionalFeatures?.noOfCarParks)
+		details += `<p><strong>Number of Car Parks:</strong> ${data.additionalFeatures.noOfCarParks}</p>`;
+	if (data.additionalFeatures?.additionalFeatures?.length)
+		details += `<p><strong>Additional Features:</strong> ${data.additionalFeatures.additionalFeatures.join(
+			", "
+		)}</p>`;
+	if (data.features?.length)
+		details += `<p><strong>Features:</strong> ${data.features.join(", ")}</p>`;
+	if (data.tenantCriteria?.length)
+		details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(
+			", "
+		)}</p>`;
+	// if (data.docOnProperty?.length)
+	//   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
+	// if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
+	// if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
+	// if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
+	// if (typeof data.areYouTheOwner === 'boolean')
+	//   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
+	// if (typeof data.isAvailable !== 'undefined')
+	//   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
+	// if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
+	// if (typeof data.isApproved === 'boolean')
+	//   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
+	// if (typeof data.isRejected === 'boolean')
+	//   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
+	details += `<p><strong>Under Review:</strong>Yes</p>`;
 
-  return `
+	return `
       <p>Hi ${ownerName},</p>
       <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
         ${details}
         ${
-          data.pictures && data.pictures.length
-            ? `
+									data.pictures && data.pictures.length
+										? `
         <h3>Property Pictures</h3>
         <div style=" display: flex; flex-wrap: wrap; gap: 10px;">
           ${data.pictures
-            .map(
-              (pic: string) =>
-                `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-            )
-            .join('')}
+											.map(
+												(pic: string) =>
+													`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+											)
+											.join("")}
         </div>
         `
-            : ''
-        }
+										: ""
+								}
       
       </ul>
   `;
 }
 
-export function generatePropertyPreferenceBriefEmail(ownerName: string, data: any) {
-  let details = '';
+export function generatePropertyPreferenceBriefEmail(
+	ownerName: string,
+	data: any
+) {
+	let details = "";
 
-  // if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
-  if (data.propertyType) details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
-  if (data.location)
-    details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
-  if (data.price) details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - #${data.budgetMin}</p>`;
-  if (data.buildingType) details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
-  details += `<p><strong>Property Features:</strong> ${data.additionalFeatures.additionalFeatures.join(', ')}</p>`;
-  if (data.landSize)
-    details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
-  // if (data.docOnProperty?.length)
-  //   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
-  // if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
-  // if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
-  // if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
-  // if (typeof data.areYouTheOwner === 'boolean')
-  //   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isAvailable !== 'undefined')
-  //   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
-  // if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
-  // if (typeof data.isApproved === 'boolean')
-  //   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
-  // if (typeof data.isRejected === 'boolean')
-  //   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
+	// if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
+	if (data.propertyType)
+		details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+	if (data.location)
+		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+	if (data.price)
+		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - #${data.budgetMin}</p>`;
+	if (data.buildingType)
+		details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
+	if (
+		data.additionalFeatures &&
+		Object.keys(data.additionalFeatures).length > 0
+	) {
+		const featuresList = Object.entries(data.additionalFeatures)
+			.map(([key, value]) => {
+				// Convert camelCase to Title Case with spaces
+				const title = key
+					.replace(/([A-Z])/g, " $1")
+					.replace(/^./, (str) => str.toUpperCase());
+				return `${title}: ${value}`;
+			})
+			.join(", ");
 
-  return `
+		details += `<p><strong>Property Features:</strong> ${featuresList}</p>`;
+	}
+	if (data.features?.length)
+		details += `<p><strong>Property Features:</strong> ${data.features.join(
+			", "
+		)}</p>`;
+
+	if (data.budgetMin && data.budgetMax)
+		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - ₦${data.budgetMax}</p>`;
+
+	if (data.landSize)
+		details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
+	if (Array.isArray(data.docOnProperty) && data.docOnProperty.length > 0) {
+		const providedDocs = data.docOnProperty
+			.filter((doc: any) => doc.isProvided)
+			.map((doc: any) => doc.docName);
+		if (providedDocs.length > 0) {
+			details += `<p><strong>Documents on Property:</strong> ${providedDocs.join(
+				", "
+			)}</p>`;
+		}
+	}
+
+	// Owner details
+	if (data.owner?.email)
+		details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
+	if (data.owner?.fullName)
+		details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
+	if (data.owner?.phoneNumber)
+		details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
+
+	// Boolean fields
+	if (typeof data.areYouTheOwner === "boolean") {
+		details += `<p><strong>Owner Status:</strong> ${
+			data.areYouTheOwner ? "Yes" : "No"
+		}</p>`;
+	}
+	if (typeof data.isAvailable === "boolean") {
+		details += `<p><strong>Availability:</strong> ${
+			data.isAvailable ? "Yes" : "No"
+		}</p>`;
+	}
+	if (typeof data.isApproved === "boolean") {
+		details += `<p><strong>Approved:</strong> ${
+			data.isApproved ? "Yes" : "No"
+		}</p>`;
+	}
+	if (typeof data.isRejected === "boolean") {
+		details += `<p><strong>Rejected:</strong> ${
+			data.isRejected ? "Yes" : "No"
+		}</p>`;
+	}
+
+	// Optional budget range (fallback to budgetMin/Max if needed)
+	if (data.budgetMin || data.budgetMax) {
+		const min = data.budgetMin ? `₦${data.budgetMin}` : "Not specified";
+		const max = data.budgetMax ? `₦${data.budgetMax}` : "Not specified";
+		details += `<p><strong>Budget Range:</strong> ${min} - ${max}</p>`;
+	}
+
+	return `
       <p>Hi ${ownerName},</p>
       <p>Thank you for sharing your preferences with Khabi-Teq Realty! We'll match you with property briefs tailored to your needs:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
@@ -471,31 +612,44 @@ export function generatePropertyPreferenceBriefEmail(ownerName: string, data: an
 }
 
 export function propertySellPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>A property preference for sale with the following details was submitted:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Price Range:</strong> ₦${data.price}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Price Range:</strong> ₦${
+																																																									data.price
+																																																								}</li>
                                                         <li><strong>Usage Options:</strong> ${
-                                                          data.usageOptions?.join(', ') || 'N/A'
-                                                        }</li>
+																																																									data.usageOptions?.join(
+																																																										", "
+																																																									) || "N/A"
+																																																								}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${Object.entries(
-                                                                                          data.propertyFeatures
-                                                                                        )
-                                                                                          .map(
-                                                                                            ([key, value]) =>
-                                                                                              `<li>${key}: ${value}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									data.propertyFeatures
+																																																																																								)
+																																																																																									.map(
+																																																																																										([
+																																																																																											key,
+																																																																																											value,
+																																																																																										]) =>
+																																																																																											`<li>${key}: ${value}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -506,29 +660,41 @@ export function propertySellPreferenceTemplate(data: any) {
 }
 
 export function propertyRentPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>A property preference for rent with the following details was submitted:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Rental Price:</strong> ₦${data.rentalPrice}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Rental Price:</strong> ₦${
+																																																									data.rentalPrice
+																																																								}</li>
                                                         <li><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                                                          .map((c: any) => c.criteria)
-                                                          .join(', ')}</li>
+																																																									.map(
+																																																										(c: any) => c.criteria
+																																																									)
+																																																									.join(", ")}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${data.features
-                                                                                          .map(
-                                                                                            (feature: any) =>
-                                                                                              `<li>${feature.featureName}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									.map(
+																																																																																										(
+																																																																																											feature: any
+																																																																																										) =>
+																																																																																											`<li>${feature.featureName}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -539,29 +705,41 @@ export function propertyRentPreferenceTemplate(data: any) {
 }
 
 export function buyerPropertyRentPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>Thank you for submitting your property rent preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Rental Price:</strong> ₦${data.rentalPrice}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Rental Price:</strong> ₦${
+																																																									data.rentalPrice
+																																																								}</li>
                                                         <li><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-                                                          .map((c: any) => c.criteria)
-                                                          .join(', ')}</li>
+																																																									.map(
+																																																										(c: any) => c.criteria
+																																																									)
+																																																									.join(", ")}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${data.features
-                                                                                          .map(
-                                                                                            (feature: any) =>
-                                                                                              `<li>${feature.featureName}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									.map(
+																																																																																										(
+																																																																																											feature: any
+																																																																																										) =>
+																																																																																											`<li>${feature.featureName}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -572,31 +750,44 @@ export function buyerPropertyRentPreferenceTemplate(data: any) {
 }
 
 export function buyerPropertySellPreferenceTemplate(data: any) {
-  return `
+	return `
                         <p>Hi ${data.fullName},</p>
                         <p>Thank you for submitting your property preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Brief: </p>
-                                                        <li><strong>Property Type:</strong> ${data.propertyType}</li>
+                                                        <li><strong>Property Type:</strong> ${
+																																																									data.propertyType
+																																																								}</li>
                                                 
-                                                        <li><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment
-  }, ${data.location.area}</li>
-                                                        <li><strong>Price Range:</strong> ₦${data.price}</li>
+                                                        <li><strong>Location:</strong> ${
+																																																									data.location.state
+																																																								}, ${
+		data.location.localGovernment
+	}, ${data.location.area}</li>
+                                                        <li><strong>Price Range:</strong> ₦${
+																																																									data.price
+																																																								}</li>
                                                         <li><strong>Usage Options:</strong> ${
-                                                          data.usageOptions?.join(', ') || 'N/A'
-                                                        }</li>
+																																																									data.usageOptions?.join(
+																																																										", "
+																																																									) || "N/A"
+																																																								}</li>
                                                         <li><strong>Property Features:</strong>
                                                         <ul>
                                                                                         ${Object.entries(
-                                                                                          data.propertyFeatures
-                                                                                        )
-                                                                                          .map(
-                                                                                            ([key, value]) =>
-                                                                                              `<li>${key}: ${value}</li>`
-                                                                                          )
-                                                                                          .join('')}
+																																																																																									data.propertyFeatures
+																																																																																								)
+																																																																																									.map(
+																																																																																										([
+																																																																																											key,
+																																																																																											value,
+																																																																																										]) =>
+																																																																																											`<li>${key}: ${value}</li>`
+																																																																																									)
+																																																																																									.join(
+																																																																																										""
+																																																																																									)}
                                                         </ul>
                                                         </li>
                 
@@ -606,8 +797,11 @@ export function buyerPropertySellPreferenceTemplate(data: any) {
                         `;
 }
 
-export function ForgotPasswordVerificationTemplate(email: string, verificationLink: string): string {
-  return `
+export function ForgotPasswordVerificationTemplate(
+	email: string,
+	verificationLink: string
+): string {
+	return `
                         <div>
                                 <p>Dear ${email},</p>
                                 <p>You requested to reset your password. Please click the link below to reset your password:</p>
@@ -619,98 +813,150 @@ export function ForgotPasswordVerificationTemplate(email: string, verificationLi
                 `;
 }
 
-export function PropertyApprovedOrDisapprovedTemplate(name: string, status: string, data: any): string {
-  return `
+export function PropertyApprovedOrDisapprovedTemplate(
+	name: string,
+	status: string,
+	data: any
+): string {
+	return `
 <div class="">
                         <h1> Hello ${name},</h1>
                                 <h2>Property ${status}</h2>
                                 <p>Your property was ${status}. Here are the details:</p>
                                 
                                 <div class="details">
-                                        <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                                        <p><strong>Location:</strong> ${data.location.state}, ${
-    data.location.localGovernment ? data.location.localGovernment + ', ' : ''
-  }${data.location.area}</p>
-                                        <p><strong>Price:</strong> ₦${data.price || data.rentalPrice}</p>
+                                        <p><strong>Property Type:</strong> ${
+																																									data.propertyType
+																																								}</p>
+                                        <p><strong>Location:</strong> ${
+																																									data.location.state
+																																								}, ${
+		data.location.localGovernment ? data.location.localGovernment + ", " : ""
+	}${data.location.area}</p>
+                                        <p><strong>Price:</strong> ₦${
+																																									data.price || data.rentalPrice
+																																								}</p>
                                         <p><strong>Number of Bedrooms:</strong> ${
-                                          data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
-                                        }</p>
+																																									data.propertyFeatures?.noOfBedrooms ||
+																																									data.noOfBedrooms
+																																								}</p>
                                         <p><strong>Features:</strong> ${
-                                          data.propertyFeatures?.additionalFeatures?.join(', ') ||
-                                          data.features?.map((f: any) => f.featureName).join(', ')
-                                        }</p>
+																																									data.propertyFeatures?.additionalFeatures?.join(
+																																										", "
+																																									) ||
+																																									data.features
+																																										?.map((f: any) => f.featureName)
+																																										.join(", ")
+																																								}</p>
                                         <p><strong>Tenant Criteria:</strong> ${
-                                          data.tenantCriteria?.map((c: any) => c.criteria).join(', ') || 'N/A'
-                                        }</p>
+																																									data.tenantCriteria
+																																										?.map((c: any) => c.criteria)
+																																										.join(", ") || "N/A"
+																																								}</p>
                                         <p><strong>Documents on Property:</strong> ${
-                                          data.docOnProperty
-                                            ?.map(
-                                              (doc: any) =>
-                                                `${doc.docName} (${doc.isProvided ? 'Provided' : 'Not Provided'})`
-                                            )
-                                            .join(', ') || 'N/A'
-                                        }</p>
-                                        <p><strong>Usage Options:</strong> ${data.usageOptions?.join(', ') || 'N/A'}</p>
-                                        <p><strong>Availability:</strong> ${data.isAvailable ? 'Yes' : 'No'}</p>
-                                        <p><strong>Budget Range:</strong> ${data.budgetRange || 'N/A'}</p>
+																																									data.docOnProperty
+																																										?.map(
+																																											(doc: any) =>
+																																												`${doc.docName} (${
+																																													doc.isProvided
+																																														? "Provided"
+																																														: "Not Provided"
+																																												})`
+																																										)
+																																										.join(", ") || "N/A"
+																																								}</p>
+                                        <p><strong>Usage Options:</strong> ${
+																																									data.usageOptions?.join(", ") || "N/A"
+																																								}</p>
+                                        <p><strong>Availability:</strong> ${
+																																									data.isAvailable ? "Yes" : "No"
+																																								}</p>
+                                        <p><strong>Budget Range:</strong> ${
+																																									data.budgetRange || "N/A"
+																																								}</p>
                                 </div>
                                 
                                 ${
-                                  data.pictures && data.pictures.length
-                                    ? `
+																																	data.pictures && data.pictures.length
+																																		? `
                                 <h3>Property Pictures</h3>
                                 <div class="pictures">
                                         ${data.pictures
-                                          .map(
-                                            (pic: any) =>
-                                              `<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-                                          )
-                                          .join('')}
+																																									.map(
+																																										(pic: any) =>
+																																											`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
+																																									)
+																																									.join("")}
                                 </div>
                                 `
-                                    : ''
-                                }
+																																		: ""
+																																}
 </div>
   `;
 }
-export function DeactivateOrActivateAgent(name: string, status: boolean, reason: string): string {
-  return `
+export function DeactivateOrActivateAgent(
+	name: string,
+	status: boolean,
+	reason: string
+): string {
+	return `
                         <div class="">
                         <h1> Hello ${name},</h1>
-                                <h2>Agent ${status ? 'Deactivated' : 'Activated'}</h2>
-                                <p>Your agent account has been ${status ? 'deactivated or suspended' : 'activated'}</p>
-                                ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                                <h2>Agent ${
+																																	status ? "Deactivated" : "Activated"
+																																}</h2>
+                                <p>Your agent account has been ${
+																																	status
+																																		? "deactivated or suspended"
+																																		: "activated"
+																																}</p>
+                                ${
+																																	reason
+																																		? `<p><strong>Reason:</strong> ${reason}</p>`
+																																		: ""
+																																}
                                    `;
 }
 export function DeleteAgent(name: string, reason: string): string {
-  return `
+	return `
                                 <div class="">
                                 <h1> Hello ${name},</h1>
                                         <h2>Agent Deleted</h2>
                                         <p>Your agent account has been deleted. Due to: </p>
-                                        ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+                                        ${
+																																									reason
+																																										? `<p><strong>Reason:</strong> ${reason}</p>`
+																																										: ""
+																																								}
                                            `;
 }
 
-export function PropertyReceivedTemplate(ownerName: string, property: any): string {
-  return ` 
+export function PropertyReceivedTemplate(
+	ownerName: string,
+	property: any
+): string {
+	return ` 
         <p>Hi ${ownerName},</p>
         <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
       
         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
           <p>Submitted Brief: </p>
-                <li><strong>Property Type:</strong> ${property.propertyType}</li>
+                <li><strong>Property Type:</strong> ${
+																	property.propertyType
+																}</li>
               
-                <li><strong>Location:</strong> ${property.location.state}, ${property.location.localGovernment}, ${
-    property.location.area
-  }</li>
+                <li><strong>Location:</strong> ${property.location.state}, ${
+		property.location.localGovernment
+	}, ${property.location.area}</li>
                 <li><strong>Price Range:</strong> ₦${property.price}</li>
-                <li><strong>Usage Options:</strong> ${property.usageOptions?.join(', ') || 'N/A'}</li>
+                <li><strong>Usage Options:</strong> ${
+																	property.usageOptions?.join(", ") || "N/A"
+																}</li>
                 <li><strong>Property Features:</strong>
                 <ul>
                         ${Object.entries(property.propertyFeatures)
-                          .map(([key, value]) => `<li>${key}: ${value}</li>`)
-                          .join('')}
+																									.map(([key, value]) => `<li>${key}: ${value}</li>`)
+																									.join("")}
                 </ul>
                 </li>
       
@@ -720,25 +966,34 @@ export function PropertyReceivedTemplate(ownerName: string, property: any): stri
             `;
 }
 
-export function PropertyRentReceivedTemplate(ownerName: string, property: any): string {
-  return `
+export function PropertyRentReceivedTemplate(
+	ownerName: string,
+	property: any
+): string {
+	return `
         <p>Hi ${ownerName},</p>
         <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
       
         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
           <p>Submitted Brief: </p>
-                <li><strong>Property Type:</strong> ${property.propertyType}</li>
+                <li><strong>Property Type:</strong> ${
+																	property.propertyType
+																}</li>
               
-                <li><strong>Location:</strong> ${property.location.state}, ${property.location.localGovernment}, ${
-    property.location.area
-  }</li>
+                <li><strong>Location:</strong> ${property.location.state}, ${
+		property.location.localGovernment
+	}, ${property.location.area}</li>
                 <li><strong>Price Range:</strong> ₦${property.rentalPrice}</li>
                 <li><strong>Tenant Criteria:</strong> ${
-                  property.tenantCriteria?.map((p: any) => p.criteria).join(', ') || 'N/A'
-                }</li>
+																	property.tenantCriteria
+																		?.map((p: any) => p.criteria)
+																		.join(", ") || "N/A"
+																}</li>
                 <li><strong>Property Features:</strong>
               
-                        ${property.features.map((f: any) => f.featureName).join(', ')}
+                        ${property.features
+																									.map((f: any) => f.featureName)
+																									.join(", ")}
               
                 </li>
       
@@ -748,25 +1003,28 @@ export function PropertyRentReceivedTemplate(ownerName: string, property: any): 
         `;
 }
 
-export function InspectionRequestWithNegotiation(buyerName: string, propertyData: any): string {
-  return `
+export function InspectionRequestWithNegotiation(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Dear ${buyerName},</p>
     
    ${
-     propertyData.letterOfIntention
-       ? `<p style="margin-top: 10px;">
+				propertyData.letterOfIntention
+					? `<p style="margin-top: 10px;">
       Your property inspection has been successfully scheduled, and your Letter of Intent (LOI) has been submitted. 
       Please allow up to <span style="color: #FF2539">48 hours</span> for a response from the seller. Kindly be patient. 
       Below are the details of your inspection and LOI submission:
     </p>`
-       : propertyData.isNegotiating
-       ? `<p style="margin-top: 10px;">
+					: propertyData.isNegotiating
+					? `<p style="margin-top: 10px;">
       Your property inspection has been successfully scheduled, and your negotiation offer has been submitted. The seller has up to <span style="color: #FF2539">48 hours</span> to respond, so we appreciate your patience.
 Please find your inspection details and negotiation price information below.
     </p>`
-       : `<p style="margin-top: 10px;">Your property inspection has been successfully scheduled. It may take up to 48 hours for the seller to respond, so please be patient.
+					: `<p style="margin-top: 10px;">Your property inspection has been successfully scheduled. It may take up to 48 hours for the seller to respond, so please be patient.
 Below are your inspection details:</p>`
-   }
+			}
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
@@ -776,27 +1034,27 @@ Below are your inspection details:</p>`
     </ul>
 
     ${
-      propertyData.letterOfIntention
-        ? `
+					propertyData.letterOfIntention
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Submitted LOI Document:</strong></p>
         <li><a href=${propertyData.letterOfIntention}>click here</a> to view the uploaded document</li>
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     ${
-      propertyData.isNegotiating
-        ? `
+					propertyData.isNegotiating
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Negotiation Details:</strong></p>
         <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
         <li><strong>Your Offer:</strong> ₦${propertyData.negotiationPrice}</li>
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Details:</strong></p>
@@ -810,34 +1068,37 @@ Below are your inspection details:</p>`
   `;
 }
 
-export function InspectionRequestWithNegotiationSellerTemplate(sellerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
-  const inspectionDate = new Date(propertyData.inspectionDate);
-  const deadline = new Date(inspectionDate.getTime() + 48 * 60 * 60 * 1000);
-  const deadlineString = deadline.toLocaleString('en-NG', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+export function InspectionRequestWithNegotiationSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	// Calculate deadline: 48 hours from inspectionDate
+	const inspectionDate = new Date(propertyData.inspectionDate);
+	const deadline = new Date(inspectionDate.getTime() + 48 * 60 * 60 * 1000);
+	const deadlineString = deadline.toLocaleString("en-NG", {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 
-  return `
+	return `
     <p>Dear ${sellerName},</p>
     
    ${
-     propertyData.letterOfIntention
-       ? `<p style="margin-top: 10px;">
+				propertyData.letterOfIntention
+					? `<p style="margin-top: 10px;">
       A potential developer has submitted an LOI and requested an inspection for your property at ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
     </p>`
-       : propertyData.isNegotiating
-       ? `<p style="margin-top: 10px;">
+					: propertyData.isNegotiating
+					? `<p style="margin-top: 10px;">
       A potential buyer has negotiated your asking price and requested an inspection of ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
     </p>`
-       : `<p style="margin-top: 10px;">
+					: `<p style="margin-top: 10px;">
       A potential buyer has requested an inspection for your property at ${propertyData.location} on ${propertyData.inspectionDate} at ${propertyData.inspectionTime}.
     </p>`
-   }
+			}
 
     
 
@@ -849,20 +1110,20 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
     </ul>
 
     ${
-      propertyData.isNegotiating
-        ? `
+					propertyData.isNegotiating
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Offer Details:</strong></p>
         <li><strong>Proposed Price:</strong> ₦${propertyData.price}</li>
         <li><strong>Deadline:</strong> ₦${propertyData.negotiationPrice}</li>
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     ${
-      propertyData.letterOfIntention
-        ? `
+					propertyData.letterOfIntention
+						? `
       <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Submitted LOI Document:</strong></p>
         <li><a href=${propertyData.letterOfIntention}>click here</a> to view the uploaded document</li>
@@ -870,8 +1131,8 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
 
       </ul>
     `
-        : ''
-    }
+						: ""
+				}
 
     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Details:</strong></p>
@@ -885,18 +1146,18 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
     </p>
 
     <a href="${
-      propertyData.responseLink
-    }" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+					propertyData.responseLink
+				}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Confirm Availability
     </a>
 
       ${
-        propertyData.isNegotiating
-          ? `
+							propertyData.isNegotiating
+								? `
       <p style="margin-top: 15px;">Please <span style="color: #1AAD1F">accept</span> accept, <span style="color: #FF2539">reject</span>, or send a counter-offer<span style="color: #1976D2">counter-offer</span>. Your response is appreciated</p>
     `
-          : ''
-      }
+								: ""
+						}
 
     <p style="margin-top: 15px;">
       If you have any questions, feel free to contact us.
@@ -904,19 +1165,120 @@ export function InspectionRequestWithNegotiationSellerTemplate(sellerName: strin
   `;
 }
 
+function formatPrice(price: number | string): string {
+  if (typeof price === 'string') {
+    price = parseFloat(price);
+  }
+  if (isNaN(price)) {
+    return 'N/A'; // Handle cases where price is not a valid number
+  }
+  return `₦${price.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export function confirmTemplate(sellerName: string, propertyData: any): string {
+  const {
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    sellerCounterOffer,
+    price,
+    inspectionDateTime
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  // Determine the accepted offer to display
+  const acceptedOffer = sellerCounterOffer ? formatPrice(sellerCounterOffer) : (price ? formatPrice(price) : 'N/A');
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and approved
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer, and the inspection date has been <strong style="color: #34A853;">Approved for inspection</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    inspectionDetailsBgColor = '#EEF7FF'; // Keeping default blue as it's an accepted outcome (modified)
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer. The previously proposed inspection date was countered, and a <strong style="color: #34A853;">new inspection date has been approved</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Approved Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Approved Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    // The request states "unavailable should only show newdate and newtime" and have light red background.
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer. The originally proposed inspection date was unavailable. Please review the updated details below.
+    `;
+    
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+        inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Details:</strong></p>
+            <li><strong>Date:</strong> ${inspectionDate}</li>
+            <li><strong>Time:</strong> ${inspectionTime}</li>
+        </ul>
+        `;
+    } else {
+        inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fall back to general acceptance message showing newDate/newTime if available
+    introMessage = `
+      You’ve successfully <span style="color: #34A853;">accepted</span> the buyer’s offer. Please review the inspection details.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
   return `
     <p>Dear ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-      You’ve successfully confirmed the inspection date. The appointment is approved!.
+      ${introMessage}
     </p>
 
-    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-      <p><strong>Inspection Details:</strong></p>
-      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    <ul style="background-color: #8DDB9033; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p style="color: #34A853;"><strong>Offer accepted:</strong></p>
+      <li><strong>Buyer’s Accepted Offer:</strong> ${acceptedOffer}</li>
     </ul>
+
+    ${inspectionDetailsHtml}
 
     <p style="margin-top: 15px;">
       If you have any questions or need to reschedule, please let us know in advance.
@@ -924,8 +1286,9 @@ export function confirmTemplate(sellerName: string, propertyData: any): string {
   `;
 }
 
+
 export function unavailableTemplate(sellerName: string): string {
-  return `
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -939,7 +1302,7 @@ export function unavailableTemplate(sellerName: string): string {
 }
 
 export function declineTemplate(sellerName: string, propertyData: any): string {
-  return `
+	return `
     <p>Dear ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -953,27 +1316,117 @@ export function declineTemplate(sellerName: string, propertyData: any): string {
   `;
 }
 
-export function NegotiationAcceptedTemplate(buyerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
+export function NegotiationAcceptedTemplate(
+  buyerName: string,
+  propertyData: any
+): string {
+  const {
+    location,
+    price,
+    negotiationPrice,
+    propertyType,
+    responseLink,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let confirmedDateTimeHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray as in the provided template
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and accepted
+    introMessage = `
+      Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${location}.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Here are the details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    inspectionDetailsBgColor = '#FAFAFA'; // Keeping light gray for a confirmed outcome
+    introMessage = `
+        Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer. The originally requested inspection date was countered, and a <strong style="color: #1AAD1F;">new date and time have been confirmed</strong> for the inspection at ${location}.
+      `;
+    confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Here are the details:</strong></p>
+          <li><strong>Original Inspection Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+          <li><strong>Original Inspection Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+          <li style="margin-top: 10px;"><strong>New Confirmed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+          <li><strong>New Confirmed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+        </ul>
+      `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    introMessage = `
+        The seller has <span style="color: #D32F2F;">accepted</span> your negotiation offer for the property at ${location}, however, the originally requested inspection date was unavailable. Please check for new proposals or follow up if needed.
+      `;
+
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>A new date and time has been suggested: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Please refer to your dashboard for confirmation or alternative arrangements.</li>
+        </ul>
+        `;
+    } else {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fall back to general acceptance message
+    introMessage = `
+      Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${location}. Please review the details below.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Here are the details:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
 
   return `
     <p>Dear ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-     Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your negotiation offer and confirmed the inspection for the property at ${propertyData.location}.
+     ${introMessage}
     </p>
 
-     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong>Here are the details:</strong></p>
-        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Accepted Price:</strong> ₦${propertyData.negotiationPrice}</li>
-      </ul>
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Offer Details:</strong></p>
+        <li><strong>Accepted Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
+    </ul>
+
+    ${confirmedDateTimeHtml}
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
-      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
-      <li><strong>Location:</strong> ${propertyData.location}</li>
-      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+      <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+      <li><strong>Location:</strong> ${location || 'N/A'}</li>
+      <li><strong>Original Price:</strong> ${formatPrice(price) || 'N/A'}</li>
     </ul>
 
     <p style="margin-top: 15px;">
@@ -982,36 +1435,119 @@ export function NegotiationAcceptedTemplate(buyerName: string, propertyData: any
 
     <p style="margin-top: 15px;">
       We look forward to seeing you then. If you need to reschedule, please let us know.
-
     </p>
 
-    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+    <a href="${propertyData.buyerResponseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Reschedule Inspection
     </a>
   `;
 }
 
-export function InspectionAcceptedTemplate(buyerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
+export function InspectionAcceptedTemplate(
+  buyerName: string,
+  propertyData: any
+): string {
+  const {
+    location,
+    price,
+    propertyType,
+    responseLink,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
 
-  return `
-    <p>Hi ${buyerName},</p>
-    
-    <p style="margin-top: 10px;">
-     Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${propertyData.location}.
-    </p>
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
 
-     <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+  let introMessage = '';
+  let confirmedDateTimeHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and accepted
+    introMessage = `
+      Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p><strong>Confirmed Date & Time:</strong></p>
-        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Time:</strong> ₦${propertyData.inspectionTime}</li>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
       </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    inspectionDetailsBgColor = '#EEF7FF'; // Keeping default blue as it's an accepted outcome (modified)
+    introMessage = `
+        Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}. The originally requested date was unavailable, and a <strong style="color: #1AAD1F;">new date and time have been confirmed</strong>.
+      `;
+    confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Confirmed Date & Time:</strong></p>
+          <li><strong>Original Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+          <li><strong>Original Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+          <li style="margin-top: 10px;"><strong>New Confirmed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+          <li><strong>New Confirmed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+        </ul>
+      `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    // The request states "unavailable should only show newdate and newtime" and have light red background.
+    introMessage = `
+        The seller has <span style="color: #D32F2F;">responded</span> to your inspection request for ${location}. The originally requested date was unavailable. Please check for new proposals or follow up if needed.
+      `;
+
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Confirmed Date & Time:</strong></p>
+            <li><strong>Date:</strong> ${inspectionDate}</li>
+            <li><strong>Time:</strong> ${inspectionTime}</li>
+        </ul>
+        `;
+    } else {
+      confirmedDateTimeHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fall back to general acceptance message
+    introMessage = `
+      Good news! The seller has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}. Please review the details below.
+    `;
+    confirmedDateTimeHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Confirmed Date & Time:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+  return `
+    <p>Hi ${buyerName},</p>
+    
+    <p style="margin-top: 10px;">
+     ${introMessage}
+    </p>
+
+    ${confirmedDateTimeHtml}
 
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Property Details:</strong></p>
-      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
-      <li><strong>Location:</strong> ${propertyData.location}</li>
-      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+      <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+      <li><strong>Location:</strong> ${location || 'N/A'}</li>
+      <li><strong>Price:</strong> ${formatPrice(price) || 'N/A'}</li>
     </ul>
 
     <p style="margin-top: 15px;">
@@ -1020,32 +1556,123 @@ export function InspectionAcceptedTemplate(buyerName: string, propertyData: any)
 
     <p style="margin-top: 15px;">
       We look forward to seeing you then. If you need to reschedule, please let us know.
-
     </p>
 
-    <a href="${propertyData.responseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
+    <a href="${propertyData.buyerResponseLink}" style="display: inline-block; width: 162px; height: 40px; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold; gap: 8px; padding: 8px 16px;">
       Reschedule Inspection
     </a>
   `;
 }
 
-export function NegotiationAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
+export function NegotiationAcceptedSellerTemplate(
+  sellerName: string,
+  propertyData: any
+): string {
+  const {
+    negotiationPrice,
+    propertyType,
+    location,
+    price,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Inspection date is available and approved
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Inspection date was unavailable, and a new date/time has been proposed/approved (countered)
+    // This implies both old and new dates/times are relevant.
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer. The previously proposed inspection date was countered, and a <strong style="color: #1AAD1F;">new inspection date has been approved</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Approved Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Approved Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+
+    // Scenario 3: Inspection date was unavailable, and seller is confirming this or providing a *new* single suggested date.
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer. The originally proposed inspection date was unavailable. Please review the updated details below.
+    `;
+
+    // Check if new date/time exists for this 'unavailable' case, otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>A new date and time has been suggested: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Awaiting buyer's confirmation or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+            <p><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
   return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-     You’ve successfully <span style="color: #1AAD1F;">accepted</span> the buyer’s offer, and the inspection date has been Approved for inspection.
+     ${introMessage}
     </p>
 
-     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p style="color: #34A853;"><strong>Offer Accepted:</strong></p>
-        <li><strong>Buyer Price:</strong> ${propertyData.negotiationPrice}</li>
-      </ul>
+        <li><strong>Buyer Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
+    </ul>
 
-    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
-      <p><strong>Inspection Details:</strong></p>
-      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    ${inspectionDetailsHtml}
+
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+      <li><strong>Location:</strong> ${location || 'N/A'}</li>
+      <li><strong>Original Price:</strong> ${formatPrice(price) || 'N/A'}</li>
     </ul>
 
     <p style="margin-top: 15px;">
@@ -1054,24 +1681,107 @@ export function NegotiationAcceptedSellerTemplate(sellerName: string, propertyDa
   `;
 }
 
-export function CounterSellerTemplate(sellerName: string, propertyData: any): string {
+export function CounterSellerTemplate(
+  sellerName: string,
+  propertyData: any
+): string {
+  const {
+    negotiationPrice,
+    sellerCounterOffer,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#EEF7FF'; // Default light blue for inspection details
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Offer countered, and inspection date is available and confirmed
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Offer countered, and a new inspection date/time has been proposed/approved by seller
+    // This implies both original and new dates/times are relevant.
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer. You have also <strong style="color: #1AAD1F;">proposed new inspection details</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Proposed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Proposed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    // Scenario 3: Offer countered, but the originally requested inspection date was unavailable.
+    // Display only the new suggested date/time if available, otherwise a generic message.
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status in this context
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer. The originally proposed inspection date was unavailable. Please review the updated details below.
+    `;
+    
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>You have suggested a new date and time: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Awaiting buyer's confirmation or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fallback
+    introMessage = `
+      You’ve successfully <span style="color: #1AAD1F;">countered</span> the buyer’s offer, and the inspection date has been updated by you to a new selection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Updated Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
   return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-     You’ve successfully <span style="color: #1AAD1F;">count offer</span> the buyer’s offer, and the inspection date has been updated by you to a new selection.</p>
-     <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p style=""><strong>Negotiation:</strong></p>
-        <li><strong>Buyer Price:</strong> #${propertyData.negotiationPrice}</li>
-        <li><strong>Your Count Offer:</strong> #${propertyData.sellerCounterOffer}</li>
-      </ul>
+     ${introMessage}
+    </p>
 
-    <ul style="background-color: #EEF7FF; padding: 25px 20px; gap: 10px; border-radius: 10px;">
-      <p><strong>Updated Inspection Details:</strong></p>
-      <li><strong>Date:</strong> ${propertyData.newDate}</li>
-      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p style=""><strong>Negotiation:</strong></p>
+      <li><strong>Buyer Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
+      <li><strong>Your Counter Offer:</strong> ${formatPrice(sellerCounterOffer) || 'N/A'}</li>
     </ul>
+
+    ${inspectionDetailsHtml}
 
     <p style="margin-top: 15px;">
       If you have any questions, feel free to contact us.
@@ -1079,51 +1789,222 @@ export function CounterSellerTemplate(sellerName: string, propertyData: any): st
   `;
 }
 
-export function CounterBuyerTemplate(buyerName: string, propertyData: any): string {
+export function CounterBuyerTemplate(
+  buyerName: string,
+  propertyData: any
+): string {
+  const {
+    sellerCounterOffer,
+    acceptLink,
+    propertyType,
+    location,
+    price,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Seller countered, and inspection date is available and approved
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Seller countered, and they also proposed new inspection details
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. They have also <strong style="color: #34A853;">proposed new inspection details</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Proposed Inspection Details:</strong></p>
+        <li><strong>Original Requested Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Original Requested Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Proposed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Proposed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. However, the originally requested inspection date was unavailable.
+    `;
+    
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>A new date and time has been suggested: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Please review your dashboard for confirmation or alternative arrangements.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fallback
+    introMessage = `
+      The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p style="color: #34A853;"><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
+
   return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-    The seller has reviewed your offer and responded with a <span style="color: #1976D2;">counter-offer</span>. The inspection has also been approved.
+     ${introMessage}
      </p>
      <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p style="color: #34A853;"><strong>Details:</strong></p>
-        <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Seller's Counter-Offer:</strong> #${propertyData.sellerCounterOffer}</li>
+        <p style="color: #34A853;"><strong>Offer Details:</strong></p>
+        <li><strong>Seller's Counter-Offer:</strong> ${formatPrice(sellerCounterOffer) || 'N/A'}</li>
       </ul>
+
+      <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
+        <p><strong>Property Details:</strong></p>
+        <li><strong>Property Type:</strong> ${propertyType || 'N/A'}</li>
+        <li><strong>Location:</strong> ${location || 'N/A'}</li>
+        <li><strong>Original Price:</strong> ${formatPrice(price) || 'N/A'}</li>
+      </ul>
+
+      ${inspectionDetailsHtml}
 
       <p style="margin-top: 15px;">Please click below to accept or decline the Offer.</p>
 
       <div style="display: flex; width: 104px; height: 40px; gap: 16px;">
-        <a href="${propertyData.acceptLink}" style="flex: 1; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Offer</a>
+        <a href="${propertyData.buyerResponseLink}" style="flex: 1; background-color: #1A7F64; color: #fff; text-align: center; line-height: 40px; border-radius: 6px; text-decoration: none; font-weight: bold;">View Offer</a>
       </div>
 
-    <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
-      <p><strong>Property Details:</strong></p>
-      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
-      <li><strong>Location:</strong> ${propertyData.location}</li>
-      <li><strong>Price:</strong> ₦${propertyData.price}</li>
-    </ul>
-
-    <p style="margin-top: 15px;">
-      Thanks for your flexibility!.
-    </p>
+      <p style="margin-top: 15px;">
+        Thanks for your flexibility!.
+      </p>
   `;
 }
 
-export function NegotiationRejectedBuyerTemplate(buyerName: string, propertyData: any): string {
+export function NegotiationRejectedBuyerTemplate(
+  buyerName: string,
+  propertyData: any
+): string {
+  const {
+    checkLink,
+    rejectLink,
+    browse,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray as in the provided template
+
+  if (inspectionDateStatus === 'available') {
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+        <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+        <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer. However, they have <strong style="color: #34A853;">proposed new inspection details</strong> for the property.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+        <p style="color: #34A853;"><strong>Here are the proposed inspection details:</strong></p>
+        <li><strong>Original Requested Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Original Requested Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Proposed Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Proposed Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+        <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer. Unfortunately, the originally requested inspection date was also unavailable.
+    `;
+    
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>However, a new date and time has been suggested for your convenience: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Please refer to your dashboard for confirmation or alternative arrangements.</li>
+            <li>You can submit a new offer after the inspection if you’re still interested.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Please refer to your dashboard or recent communications for alternative arrangements.</li>
+            <li>You can submit a new offer after the inspection if you’re still interested.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status
+    introMessage = `
+      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
+        <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
+        <li><strong>Inspection Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Inspection Time:</strong> ${inspectionTime || 'N/A'}</li>
+        <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
+      </ul>
+    `;
+  }
+
   return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
-      The seller has <span style="color: #FF2539;">rejected</span> your negotiation offer, but there's still an opportunity to inspect the property.
+      ${introMessage}
     </p>
 
-    <ul style="background-color: #FAFAFA; padding: 25px 20px; border-radius: 10px; margin-top: 15px; list-style: none;">
-      <p style="color: #34A853;"><strong>Here are the next steps:</strong></p>
-      <li><strong>Inspection Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>You can submit a new offer after the inspection if you’re still interested.</strong></li>
-    </ul>
+    ${inspectionDetailsHtml}
 
     <p style="margin-top: 15px;">Would you like to continue with the inspection?</p>
 
@@ -1136,37 +2017,121 @@ export function NegotiationRejectedBuyerTemplate(buyerName: string, propertyData
           <a href="${propertyData.rejectLink}" style="display: inline-block; background-color: #FF2539; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">No</a>
         </td>
         <td>
-          <a href="${propertyData.browse}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
+          <a href="${propertyData.browseLink}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
         </td>
       </tr>
     </table>
   `;
 }
 
-export function NegotiationRejectedSellerTemplate(buyerName: string, propertyData: any): string {
+export function NegotiationRejectedSellerTemplate(
+  sellerName: string,
+  propertyData: any
+): string {
+  const {
+    negotiationPrice,
+    inspectionDateStatus,
+    isDateTimeUpdated,
+    inspectionDateTime,
+  } = propertyData;
+
+  // Extract newDate and newTime from inspectionDateTime.newDateTime for easier access
+  const inspectionDate = inspectionDateTime?.newDateTime?.newDate;
+  const inspectionTime = inspectionDateTime?.newDateTime?.newTime;
+
+  let introMessage = '';
+  let inspectionDetailsHtml = '';
+  let inspectionDetailsBgColor = '#FAFAFA'; // Default light gray for inspection details
+
+  if (inspectionDateStatus === 'available') {
+    // Scenario 1: Offer rejected, but inspection date is available and approved
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'countered') {
+    // Scenario 2: Offer rejected, but a new inspection date/time has been proposed/approved (countered)
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer. The previously proposed inspection date was unavailable, and a <strong style="color: #1AAD1F;">new inspection date has been approved</strong>.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Previous Date:</strong> ${inspectionDateTime?.oldDateTime?.newDate || 'N/A'}</li>
+        <li><strong>Previous Time:</strong> ${inspectionDateTime?.oldDateTime?.oldTime || 'N/A'}</li>
+        <li style="margin-top: 10px;"><strong>New Approved Date:</strong> ${inspectionDateTime?.newDateTime?.newDate || 'N/A'}</li>
+        <li><strong>New Approved Time:</strong> ${inspectionDateTime?.newDateTime?.newTime || 'N/A'}</li>
+      </ul>
+    `;
+  } else if (inspectionDateStatus === 'unavailable') {
+    // Scenario 3: Offer rejected, and the inspection date was unavailable.
+    inspectionDetailsBgColor = '#FFECED'; // Light red for unavailable status in this context
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer. The originally proposed inspection date was also unavailable. Please review the details below.
+    `;
+    
+    // Check if new date/time exists for this 'unavailable' case (e.g., if seller proposed one), otherwise show generic message
+    if (inspectionDate && inspectionTime) {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>You have suggested a new date and time: <strong>${inspectionDate} at ${inspectionTime}</strong>.</li>
+            <li>Awaiting buyer's confirmation or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    } else {
+      inspectionDetailsHtml = `
+        <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+            <p style="color: #D32F2F;"><strong>Inspection Status:</strong></p>
+            <li>The requested inspection date was unavailable.</li>
+            <li>Awaiting new proposals or further communication regarding the inspection.</li>
+        </ul>
+        `;
+    }
+  } else {
+    // Default or unknown status - fallback
+    introMessage = `
+      You’ve successfully <span style="color: #FF2539;">rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
+    `;
+    inspectionDetailsHtml = `
+      <ul style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+        <p><strong>Inspection Details:</strong></p>
+        <li><strong>Date:</strong> ${inspectionDate || 'N/A'}</li>
+        <li><strong>Time:</strong> ${inspectionTime || 'N/A'}</li>
+      </ul>
+    `;
+  }
+
   return `
-    <p>Hi ${buyerName},</p>
+    <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
-    You’ve successfully <span style="color: #FF2539;">Rejected</span> the buyer’s offer, and the inspection date has been <span style="color: #1AAD1F;">Approved</span> for inspection.
-     </p>
+     ${introMessage}
+    </p>
+
      <ul style="background-color: #FFE7E5; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
         <p style="color: #FF2539;"><strong>Offer Rejected:</strong></p>
-        <li><strong>Buyer Price:</strong> ${propertyData.negotiationPrice}</li>
+        <li><strong>Buyer Price:</strong> ${formatPrice(negotiationPrice) || 'N/A'}</li>
       </ul>
 
-        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
-        <p><strong> Inspection Details:</strong></p>
-        <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-        <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
-      </ul>
+    ${inspectionDetailsHtml}
 
       <p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>
   `;
 }
 
-export function NegotiationLOIRejectedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function NegotiationLOIRejectedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1183,8 +2148,11 @@ export function NegotiationLOIRejectedSellerTemplate(sellerName: string, propert
   `;
 }
 
-export function NegotiationLOIAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function NegotiationLOIAcceptedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1202,8 +2170,11 @@ export function NegotiationLOIAcceptedSellerTemplate(sellerName: string, propert
   `;
 }
 
-export function LOIAcceptedSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function LOIAcceptedSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1220,10 +2191,13 @@ export function LOIAcceptedSellerTemplate(sellerName: string, propertyData: any)
   `;
 }
 
-export function LOINegotiationAcceptedTemplate(buyerName: string, propertyData: any): string {
-  // Calculate deadline: 48 hours from inspectionDate
+export function LOINegotiationAcceptedTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	// Calculate deadline: 48 hours from inspectionDate
 
-  return `
+	return `
     <p>Dear ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1259,8 +2233,11 @@ export function LOINegotiationAcceptedTemplate(buyerName: string, propertyData: 
   `;
 }
 
-export function LOIRejectedBuyerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function LOIRejectedBuyerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1284,15 +2261,18 @@ export function LOIRejectedBuyerTemplate(buyerName: string, propertyData: any): 
           <a href="${propertyData.rejectLink}" style="display: inline-block; background-color: #FF2539; color: #ffffff; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">No</a>
         </td>
         <td>
-          <a href="${propertyData.browse}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
+          <a href="${propertyData.browseLink}" style="display: inline-block; border: 1px solid #000000; color: #000000; text-align: center; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold;">Browse Other Listings</a>
         </td>
       </tr>
     </table>
   `;
 }
 
-export function LOICounterBuyerTemplate(buyerName: string, propertyData: any): string {
-  return `
+export function LOICounterBuyerTemplate(
+	buyerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${buyerName},</p>
     
     <p style="margin-top: 10px;">
@@ -1323,8 +2303,11 @@ export function LOICounterBuyerTemplate(buyerName: string, propertyData: any): s
   `;
 }
 
-export function LOICounterSellerTemplate(sellerName: string, propertyData: any): string {
-  return `
+export function LOICounterSellerTemplate(
+	sellerName: string,
+	propertyData: any
+): string {
+	return `
     <p>Hi ${sellerName},</p>
     
     <p style="margin-top: 10px;">

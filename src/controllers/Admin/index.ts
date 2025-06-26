@@ -143,8 +143,8 @@ export class AdminController {
     } else if (userType === 'landlord') {
       return await this.groupPropsWithOwner('PropertyRent', 'propertyowners', page, limit);
     } else if (userType === 'buyer') {
-      const rentPrefencees = await this.groupPropsWithOwner('PropertyRent', 'buyerorrenters', page, limit);
-      const sellPreferences = await this.groupPropsWithOwner('PropertySell', 'buyerorrenters', page, limit);
+      const rentPrefencees = await this.groupPropsWithOwner('PropertyRent', 'BuyerOrRenter', page, limit);
+      const sellPreferences = await this.groupPropsWithOwner('PropertySell', 'BuyerOrRenter', page, limit);
 
       return { rentPrefencees, sellPreferences };
     } else if (userType === 'agent') {
@@ -693,3 +693,4 @@ export class AdminController {
     }
   }
 }
+
