@@ -24,6 +24,7 @@ import HttpStatusCodes from '../../common/HttpStatusCodes';
 import bcrypt from 'bcryptjs';
 import { PropertyProps } from '../Property';
 import { IBriefMatchModel, IPreference, IProperty } from '../../models';
+import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
 
 export class AdminController {
   private agentController = new AgentController();
@@ -719,15 +720,113 @@ public async getPreferencesByBuyerId(buyerId: string) {
 }
 
 
+  public async getSubmittedBriefs(userType?: string) {
+  const pipeline: any[] = [
+    { $match: { isApproved: false, isRejected: false } },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'owner',
+        foreignField: '_id',
+        as: 'owner',
+      },
+    },
+    { $unwind: '$owner' },
+  ];
 
-  // 1. Fetch briefs submitted by agents that are intended for preference matching
-  public async getAgentSubmittedBriefs() {
-    const briefs = await DB.Models.Property.find({ isPreference: true, isApproved: false, isRejected: false })
+  if( !userType || !['Landowners', 'Agent'].includes(userType)){
+    throw new RouteError(HttpStatusCodes.NOT_ACCEPTABLE, "Invalid User type")
+  }
+
+  if (userType) {
+    pipeline.push({ $match: { 'owner.userType': userType } });
+  }
+
+  pipeline.push({
+    $lookup: {
+      from: 'preferences',
+      localField: 'preferenceId',
+      foreignField: '_id',
+      as: 'preferenceId',
+    },
+  });
+
+  pipeline.push({ $unwind: { path: '$preferenceId', preserveNullAndEmptyArrays: true } });
+
+  pipeline.push({ $sort: { createdAt: -1 } });
+
+  const briefs = await DB.Models.Property.aggregate(pipeline);
+  return briefs;
+}
+
+
+
+  public async approveBrief(briefId: string) {
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(briefId)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid brief ID');
+    }
+
+    const brief = await DB.Models.Property.findById(briefId);
+    if (!brief) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Brief not found');
+    }
+
+    if (brief.isApproved) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Brief is already approved');
+    }
+
+    brief.isApproved = true;
+    brief.isRejected = false;
+    await brief.save();
+
+    return {
+      message: 'Brief approved successfully',
+      briefId: brief._id,
+    };
+  }
+
+   public async rejectBrief(briefId: string) {
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(briefId)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid brief ID');
+    }
+
+    const brief = await DB.Models.Property.findById(briefId);
+    if (!brief) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Brief not found');
+    }
+
+    if (brief.isRejected) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Brief is already rejected');
+    }
+
+    brief.isRejected = true;
+    brief.isApproved = false;
+    await brief.save();
+
+    return {
+      message: 'Brief rejected successfully',
+      briefId: brief._id,
+    };
+  }
+
+  public async getApprovedBriefs() {
+    const briefs = await DB.Models.Property.find({isApproved: true, isRejected: false })
       .populate('owner', 'email fullName phoneNumber')
       .sort({ createdAt: -1 });
 
     return briefs;
   }
+
+  public async getRejectedBriefs() {
+    const briefs = await DB.Models.Property.find({isApproved: false, isRejected: true })
+      .populate('owner', 'email fullName phoneNumber')
+      .sort({ createdAt: -1 });
+
+    return briefs;
+  }
+
 
   // 2. Admin selects briefs to match a buyer's preference and notify the buyer
   public async matchBriefsToPreference(preferenceId: string, briefIds: string[]) {
@@ -739,10 +838,12 @@ public async getPreferencesByBuyerId(buyerId: string) {
 
   const preference = await DB.Models.Preference.findById(preferenceObjectId)
     .populate('buyer', 'email fullName')
-    .lean<PopulatedPreference>();
 
   if (!preference) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
 
+  const buyer = preference.buyer as any
+  let theStatus = preference.status as string
+  
   const briefMatches = [];
   const BriefMatchModel = DB.Models.BriefMatch as IBriefMatchModel;
 
@@ -771,15 +872,18 @@ public async getPreferencesByBuyerId(buyerId: string) {
 
   if (briefMatches.length > 0) {
     const emailHtml = preferenceMatchingTemplate(`
-      <p>Dear ${preference.buyer.fullName},</p>
+      <p>Dear ${buyer.fullName},</p>
       <p>Good news! We’ve found the perfect property brief for you.</p>
       <p>Please click the button below to view it.</p>
       <p><a href="${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}">View Property</a></p>
       <p>If you have any questions, feel free to contact us.</p>
     `);
 
+    theStatus  = 'matched'
+    await preference.save()
+
     await sendEmail({
-      to: preference.buyer.email,
+      to:buyer.email,
       subject: 'Matching Properties Found',
       html: emailHtml,
       text: emailHtml,
@@ -792,27 +896,5 @@ public async getPreferencesByBuyerId(buyerId: string) {
   };
 }
 
-  // 3. Fetch agent-accepted briefs that are open to rejection
-  public async getAgentAcceptedBriefs() {
-    const acceptedBriefs = await DB.Models.Property.find({ isPreference: true, isApproved: true, isRejected: false })
-      .populate('owner', 'email fullName phoneNumber')
-      .sort({ createdAt: -1 });
-
-    return acceptedBriefs;
-  }
-
-  // 4. Reject one or more agent-accepted briefs
-  public async rejectAgentBriefs(briefIds: string[]) {
-    const result = await DB.Models.Property.updateMany(
-      { _id: { $in: briefIds }, isApproved: true },
-      { $set: { isRejected: true } }
-    );
-
-    return {
-      message: 'Selected briefs have been rejected.',
-    };
-  }
-
-  //==================================================================
 }
 

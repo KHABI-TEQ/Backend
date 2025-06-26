@@ -60,7 +60,7 @@ export class Preference {
         assignedAgent: { type: Schema.Types.ObjectId, ref: 'Agent' },
         status: {
           type: String,
-          enum: ['pending', 'assigned', 'closed'],
+          enum: ['pending', 'matched', 'closed'],
           default: 'pending',
         },
       },

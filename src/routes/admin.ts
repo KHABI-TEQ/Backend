@@ -313,9 +313,52 @@ AdminRouter.get('/preferences/:buyerId', async (req: Request, res: Response, nex
   }
 });
 
-AdminRouter.get('/agent-submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const briefs = await adminController.getAgentSubmittedBriefs();
+    const {userType} = req.params
+    const briefs = await adminController.getSubmittedBriefs(userType);
+    return res.status(200).json({ success: true, data: briefs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.patch('/approve-brief/:briefId', async (req: Request, res: Response) => {
+  try {
+    const { briefId } = req.params;
+    const result = await adminController.approveBrief(briefId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(error.status || 500).json({ message: error.message || 'Internal Server Error' });
+  }
+});
+
+AdminRouter.patch('/reject-brief/:briefId', async (req: Request, res: Response) => {
+  try {
+    const { briefId } = req.params;
+    const result = await adminController.rejectBrief(briefId);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(error.status || 500).json({ message: error.message || 'Internal Server Error' });
+  }
+});
+
+AdminRouter.get('/approved-briefs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const briefs = await adminController.getApprovedBriefs();
+    return res.status(200).json({ success: true, data: briefs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/rejected-briefs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const briefs = await adminController.getRejectedBriefs();
     return res.status(200).json({ success: true, data: briefs });
   } catch (error) {
     next(error);
@@ -333,25 +376,5 @@ AdminRouter.post('/match-briefs-to-preference', async (req: Request, res: Respon
   }
 });
 
-AdminRouter.get('/agent-accepted-briefs', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const briefs = await adminController.getAgentAcceptedBriefs();
-    return res.status(200).json({ success: true, data: briefs });
-  } catch (error) {
-    next(error);
-  }
-});
-
-AdminRouter.post('/reject-agent-briefs', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { briefIds } = req.body;
-    const result = await adminController.rejectAgentBriefs(briefIds);
-    return res.status(200).json({ success: true, ...result });
-  } catch (error) {
-    next(error);
-  }
-});
-
-//====================================================================
 
 export default AdminRouter;
