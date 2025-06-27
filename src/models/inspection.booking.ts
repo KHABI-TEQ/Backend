@@ -1,27 +1,19 @@
 import { model, Model, Schema, ObjectId, Document } from 'mongoose';
 
+/**
+ * Interface for Inspection Booking records.
+ */
 export interface IInspectionBooking {
   propertyId: ObjectId;
-  // propertyModel: string;
   bookedBy: ObjectId;
   bookedByModel: string;
   inspectionDate: Date;
   inspectionTime: string;
-  /**
-   * Status of the inspection/negotiation process.
-   * - 'pending_inspection': Initial state, inspection requested.
-   * - 'inspection_approved': Inspection date/time confirmed.
-   * - 'inspection_rescheduled': Inspection date/time changed.
-   * - 'inspection_rejected_by_seller': Seller rejected the inspection request.
-   * - 'inspection_rejected_by_buyer': Buyer rejected the inspection.
-   * - 'negotiation_countered': A counter offer has been made (by either buyer or seller).
-   * - 'negotiation_accepted': Negotiation concluded successfully, offer accepted.
-   * - 'negotiation_rejected': Negotiation concluded, offer rejected (by either buyer or seller).
-   * - 'negotiation_cancelled': Negotiation cancelled by either party.
-   * - 'completed': Inspection or entire process successfully completed.
-   * - 'cancelled': Overall booking/process cancelled.
-   */
+
+  
   status:
+    | 'pending_transaction'
+    | 'transaction_failed'
     | 'pending_inspection'
     | 'inspection_approved'
     | 'inspection_rescheduled'
@@ -33,6 +25,7 @@ export interface IInspectionBooking {
     | 'negotiation_cancelled'
     | 'completed'
     | 'cancelled';
+
   slotId: ObjectId;
   requestedBy: ObjectId;
   transaction: ObjectId;
@@ -41,20 +34,12 @@ export interface IInspectionBooking {
   letterOfIntention: string;
   owner: ObjectId;
   sellerCounterOffer?: number;
-  /**
-   * Indicates whose response is currently pending in the negotiation/inspection flow.
-   * 'buyer': Awaiting a response from the buyer.
-   * 'seller': Awaiting a response from the seller.
-   * 'none': No response is currently pending (e.g., negotiation concluded or initial state).
-   */
+
+ 
   pendingResponseFrom?: 'buyer' | 'seller' | 'none';
-  /**
-   * Represents the current stage of the booking process.
-   * - 'inspection': The process is currently focused on inspection.
-   * - 'negotiation': The process is currently focused on negotiation.
-   * - 'LOI': The process is at the Letter of Intention stage.
-   */
-  stage: 'inspection' | 'negotiation' | 'LOI'; // Added this field
+
+  
+  stage: 'inspection' | 'negotiation' | 'LOI';
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {}
@@ -76,7 +61,8 @@ export class InspectionBooking {
           type: String,
           required: true,
           enum: [
-            'pending',
+            'pending_transaction',
+            'transaction_failed',
             'pending_inspection',
             'inspection_approved',
             'inspection_rescheduled',
@@ -89,7 +75,7 @@ export class InspectionBooking {
             'completed',
             'cancelled',
           ],
-          default: 'pending',
+          default: 'pending_transaction',
         },
         slotId: { type: Schema.Types.ObjectId },
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: 'Buyer' },

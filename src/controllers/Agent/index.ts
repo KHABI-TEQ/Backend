@@ -23,6 +23,7 @@ import {
 } from '../../common/email.template';
 import sendEmail from '../../common/send.email';
 import { propertyNotAvailableTemplate } from '../../common/email.template';
+import { Types } from 'mongoose';
 
 const ADMINS = [
   'khabiteqrealty@gmail.com',
@@ -123,7 +124,7 @@ export class AgentController implements IAgentController {
         accountStatus: 'active',
         isInUpgrade: false,
         isFlagged: false,
-        userId: user._id.toString(),
+        userId: user._id as Types.ObjectId,
         upgradeData: null,
         govtId: {
           typeOfId: govtId.typeOfId,

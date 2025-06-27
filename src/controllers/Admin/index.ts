@@ -9,7 +9,7 @@ import {
   generatePropertyBriefEmail,
   PropertyApprovedOrDisapprovedTemplate,
   preferenceMatchingTemplate,
-} from '../../common/email.template';
+} from '../../common/email.template'; 
 import { DB } from '..';
 import mongoose from "mongoose"
 import { AgentController } from '../Agent';
@@ -600,36 +600,40 @@ export class AdminController {
   }
 
   public async login(adminCred: { email: string; password: string }): Promise<any> {
-    try {
-      const { password } = adminCred;
-
-      const email = adminCred.email.toLowerCase().trim();
-      const admin = await DB.Models.Admin.findOne({ email });
-      if (!admin) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin not found');
-
-      if (!admin.password) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid Password');
-
-      const isMatch = await bcrypt.compare(password, admin.password);
-      if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid password');
-
-      const payload = {
-        email: admin.email,
-        role: admin.role,
-        id: admin._id,
-        isAdmin: true
-      };
-
-      admin.isAccountInRecovery = false;
-
-      await admin.save();
-
-      const token = signJwt(payload);
-
-      return { admin: admin.toObject(), token: token };
-    } catch (err) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, err.message);
+  try {
+    if (!adminCred || !adminCred.email || !adminCred.password) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Email and password are required');
     }
+
+    const email = adminCred.email.toLowerCase().trim();
+    const password = adminCred.password;
+
+    const admin = await DB.Models.Admin.findOne({ email });
+    if (!admin) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin not found');
+
+    if (!admin.password) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid Password');
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid password');
+
+    const payload = {
+      email: admin.email,
+      role: admin.role,
+      id: admin._id,
+      isAdmin: true,
+    };
+
+    admin.isAccountInRecovery = false;
+    await admin.save();
+
+    const token = signJwt(payload);
+
+    return { admin: admin.toObject(), token };
+  } catch (err: any) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, err.message || 'Login failed');
   }
+}
+
 
   public async createAdmin(adminCred: {
     email: string;
@@ -637,19 +641,22 @@ export class AdminController {
     lastName: string;
     phoneNumber: string;
     address: string;
+    password?: string; // optional password
   }) {
     try {
-      const { email, firstName, lastName, phoneNumber, address } = adminCred;
+      const { email, firstName, lastName, phoneNumber, address, password } = adminCred;
 
-      const existingAdmin = await DB.Models.Admin.findOne({ email: email.toLowerCase().trim() }).exec();
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const existingAdmin = await DB.Models.Admin.findOne({ email: normalizedEmail }).exec();
       if (existingAdmin) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin with this email already exists');
       }
 
-      const hashedPassword = await bcrypt.hash(this.defaultPassword, 10);
+      const hashedPassword = await bcrypt.hash(password || this.defaultPassword, 10);
 
       const newAdmin = new DB.Models.Admin({
-        email: email.toLowerCase().trim(),
+        email: normalizedEmail,
         firstName,
         lastName,
         phoneNumber,
@@ -659,11 +666,15 @@ export class AdminController {
 
       await newAdmin.save();
 
-      return { message: 'Admin created successfully', admin: newAdmin.toObject() };
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+      return {
+        message: 'Admin created successfully',
+        admin: newAdmin.toObject(),
+      };
+    } catch (error: any) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to create admin');
     }
   }
+
 
   public async changePassword(adminId: string, newPassword: string) {
     try {

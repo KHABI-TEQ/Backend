@@ -76,7 +76,6 @@ interface UpdateInspectionRequest {
 
 
 class BuyerController {
-<<<<<<< HEAD
 
    // Helper method to generate all relevant links dynamically
    private generateInspectionLinks(inspectionId: string): {
@@ -226,7 +225,7 @@ class BuyerController {
           propertyId,
           inspectionDate: inspectionRequestData.inspectionDate,
           inspectionTime: inspectionRequestData.inspectionTime,
-          status: isNegotiating ? 'negotiation_countered' : 'pending_inspection',
+          status: 'pending_transaction',
           pendingResponseFrom: 'seller',
           requestedBy: buyer._id,
           transaction: transaction._id,
@@ -235,61 +234,7 @@ class BuyerController {
           letterOfIntention: inspectionRequestData.letterOfIntention,
           owner: (foundProperty.owner as any)._id,
         });
-
-        const formatPrice = (price: number | undefined | null): string => {
-          if (typeof price === 'number' && !isNaN(price)) {
-            return price.toLocaleString('en-US');
-          }
-          return 'N/A'; // Or '0' or any other default string
-        };
-
-        const location = `${foundProperty.location.state}, ${foundProperty.location.localGovernment}, ${foundProperty.location.area}`;
-        const formattedPrice = formatPrice(foundProperty.price); // Now safe even if foundProperty.price is undefined
-        const ownerName = (foundProperty.owner as any).fullName || (foundProperty.owner as any).firstName;
-
-        const propertyEmailData = {
-          propertyType: foundProperty.propertyType,
-          location,
-          price: formattedPrice,
-          inspectionDate: inspectionRequestData.inspectionDate,
-          inspectionTime: inspectionRequestData.inspectionTime,
-          isNegotiating: typeof negotiationPrice === 'number',
-          negotiationPrice: formatPrice(negotiationPrice), // Now safe even if negotiationPrice is undefined
-          letterOfIntention: inspectionRequestData.letterOfIntention,
-          agentName: (foundProperty.owner as any).fullName,
-        };
-
-        // ✅ Send buyer email
-        const mailTemplate = InspectionRequestWithNegotiation(
-          buyer.fullName,
-          propertyEmailData
-        );
-
-        // ✅ Send seller email
-        const sellerTemplate = InspectionRequestWithNegotiationSellerTemplate(
-          ownerName,
-          {
-            ...propertyEmailData,
-            responseLink: `${process.env.CLIENT_LINK}/seller-negotiation-inspection/${inspection._id.toString()}`,
-          }
-        );
-
-        await sendEmail({
-          to: inspectionRequestData.requestedBy.email,
-          // cc: property.owner.email,
-          subject: `New Offer Received – Action Required`,
-          html: generalTemplate(mailTemplate),
-          text: generalTemplate(mailTemplate),
-        });
-
-        await sendEmail({
-          to: 'gatukurh1+2@gmail.com',
-          // to: (property.owner as any).email,
-          subject: `Inspection Request submitted`,
-          html: generalTemplate(sellerTemplate),
-          text: generalTemplate(sellerTemplate),
-        });
-
+        
         inspectionResponses.push(inspection);
       }
 
@@ -568,8 +513,7 @@ class BuyerController {
       });
 
       await sendEmail({
-        to: "gatukurh1+4@gmail.com",
-        // to: (inspection.owner as any)?.email, // Email to Seller (who just made the counter)
+        to: (inspection.owner as any)?.email, // Email to Seller (who just made the counter)
         subject: `Your Counter Offer Has Been Sent Successfully`, // Subject for Seller
         html: generalTemplate(sellerTemplate),
         text: generalTemplate(sellerTemplate),
@@ -710,8 +654,8 @@ class BuyerController {
       });
 
       await sendEmail({
-        to: "gatukurh1+4@gmail.com",
-        // to: (inspection.owner as any)?.email, // Send to actual owner
+        // to: "gatukurh1+4@gmail.com",
+        to: (inspection.owner as any)?.email, // Send to actual owner
         subject: `Your Offer Has Been Accepted`,
         html: generalTemplate(sellerTemplate),
         text: generalTemplate(sellerTemplate),
@@ -857,8 +801,8 @@ class BuyerController {
       });
 
       await sendEmail({
-        to: "gatukurh1+4@gmail.com",
-        // to: (inspection.owner as any)?.email, // Send to actual owner
+        // to: "gatukurh1+4@gmail.com",
+        to: (inspection.owner as any)?.email, // Send to actual owner
         subject: `Your Offer Has Been Rejected`,
         html: generalTemplate(sellerTemplate),
         text: generalTemplate(sellerTemplate),

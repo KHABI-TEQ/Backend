@@ -70,16 +70,15 @@ async function deleteInspectionByEmails(emails: string[]): Promise<{ message: st
 (async () => {
     // ⚠️⚠️⚠️ IMPORTANT: Specify the emails you want to delete here! ⚠️⚠️⚠️
     const emailsToPurge = [
-        'gatukurh1@gmail.com',
-        // 'gatukurh1+1@gmail.com',
-        // 'gatukurh1+2@gmail.com',
-        // 'gatukurh1+3@gmail.com',
-        // 'gatukurh1+4@gmail.com',
-        // 'gatukurh1+5@gmail.com',
-        // 'gatukurh1+6@gmail.com',
-        // 'gatukurh1+7@gmail.com',
-        // 'gatukurh1+8@gmail.com',
-        // 'gatukurh1+9@gmail.com',
+        // 'gatukurh1@gmail.com',
+        ''
+        // 'stephenadeosun411@gmail.com',
+        // 'agbeloba4sem2019@gmail.com',
+        // 'Ajaydy2k6@gmail.com',
+        // 'tahir84@lopvede.com',
+        // 'dimplatlearn@gmail.com',
+        // 'ayowoledamilola25@gmail.com',
+        // 'obolanle961@gmail.com',
     ];
 
     console.log(`Starting data purge for emails: ${emailsToPurge.join(', ')} at ${new Date().toLocaleString()}`);

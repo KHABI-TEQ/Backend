@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import googleAuthHandler from './googleAuth';
-import authorize from './authorize';
+import { authorize } from './authorize';
 import cloudinary from '../common/cloudinary';
 import multer from 'multer';
 import { NextFunction, Router, Response } from 'express';
