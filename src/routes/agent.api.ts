@@ -109,7 +109,7 @@ router.post(
   upload.array('pictures'),
   async (req: Request, res: Response) => {
     try {
-      const user = req.user;
+      const user = req.user as IUserDoc;
       const files = req.files as Express.Multer.File[];
       const preferenceId = req.params.preferenceId;
 
