@@ -2426,8 +2426,8 @@ export function briefSubmissionAcknowledgementTemplate(agentName: string, data: 
       <li><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</li>
       <li><strong>Price Range:</strong> ₦${data.budgetMin} - ₦${data.budgetMax}</li>
       <li><strong>Usage Options:</strong> ${data.briefType}</li>
-      ${data.features?.length ? `<li><strong>Property Features:</strong> ${data.features.join(', ')}</li>` : 'N/A'}
-      ${data.landSize?.size ? `<li><strong>Land Size:</strong> ${data?.landSize?.size } ${data.landSize?.measurementType}</li>` : 'N/A'}
+      ${data.features?.length ? `<li><strong>Property Features:</strong> ${data.features.join(', ')}</li>` : ''}
+      ${data?.landSize?.size ? `<li><strong>Land Size:</strong> ${data?.landSize?.size } ${data.landSize?.measurementType}</li>` : ''}
     </ul>
 
     <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
