@@ -115,7 +115,8 @@ router.post(
 
       const property = await agentController.createBriefProperty(user, req.body, files, preferenceId);
 
-      return res.status(HttpStatusCodes.CREATED).json({
+      return res.status(201).json({
+        success:true,
         message: 'Brief created successfully',
         data: property,
       });
