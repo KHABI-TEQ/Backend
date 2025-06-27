@@ -362,6 +362,8 @@ public async getAllPreferences() {
 
 public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.Multer.File[], preferenceId?: string): Promise<IPropertyDoc> {
   const agent = await DB.Models.Agent.findOne({ userId: agentUser._id.toString()}).populate('userId').exec();
+  console.log("userId", agentUser._id.toString())
+  
   if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
   data.owner = agentUser._id;
