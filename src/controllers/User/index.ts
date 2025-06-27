@@ -296,7 +296,7 @@ export class UserController {
       //       });
       //   }
       return {
-        user: { ...user.toObject(), agentData: await DB.Models.Agent.findOne({ userId: user._id }) },
+        user: { ...user.toObject(), agentData: await DB.Models.Agent.findOne({ userId: user._id.toString()}) },
         token: token,
       };
     } catch (err) {
