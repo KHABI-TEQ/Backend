@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { DB } from "../controllers";
 
 interface Request extends Express.Request {
-  user?: any; // Add the user property to the Request interface
+  user?: any;
   headers?: any;
   url?: string;
 }
@@ -13,54 +13,84 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization || req.headers.Authorization;
     // 🔹 No Authorization header — just proceed (unauthenticated)
     if (!authHeader) {
-      console.log(`[AUTH][$${req.url}] No Authorization header`);
+      console.log(`[AUTH][${req.url}] No Authorization header`); // ✅ FIXED: Changed $${} to ${}
       req.user = null;
       return next();
     }
 
-    const token = authHeader.split(" ")[1];
-
+    const token = authHeader.split(' ')[1];
     if (!token) {
-      return res.status(401).json({ message: "Token missing" });
+      return res.status(401).json({ message: 'Token missing' });
     }
 
-    const user = jwt.verify(
-      token,
-      process.env.JWT_SECRET,
-      async (err: any, decoded: { id: string }) => {
-        if (err) {
-          console.log(err);
-          return res.status(401).json({ message: "Token is not valid" });
+    // Try admin secret first
+    jwt.verify(token, process.env.JWT_SECRET_ADMIN, async (err: any, decoded: any) => {
+      if (!err && decoded) {
+        const admin = await DB.Models.Admin.findById(decoded.id);
+        if (!admin) {
+          return res.status(401).json({ message: 'Admin not found' });
+        }
+        req.user = admin;
+        return next();
+      }
+
+      // Fallback to agent (user) secret
+      jwt.verify(token, process.env.JWT_SECRET, async (err2: any, decoded2: any) => {
+        if (err2) {
+          return res.status(401).json({ message: 'Token is not valid' });
         }
 
-        console.log("Decoded:", decoded);
-
-        const agent = await DB.Models.Agent.findById(decoded.id);
-
+        const agent = await DB.Models.Agent.findById(decoded2.id);
         if (!agent) {
-          return res.status(401).json({ message: "Agent not found" });
+          return res.status(401).json({ message: 'Agent not found' });
         }
 
-        if (req.url !== "/onboard" && !agent.accountApproved) {
-          return res.status(403).json({
-            message: "Account not approved, You cannot perform this action",
-          });
+        if (req.url !== '/onboard' && !agent.accountApproved) {
+          return res.status(403).json({ message: 'Account not approved, You cannot perform this action' });
         }
 
         req.user = agent;
         next();
-      }
-    );
-  } catch (error) {
-    console.log(
-      "Error exchanging code for tokens:",
-      error.response?.data || error
-    );
-    res.status(500).json({
-      success: false,
-      message: "Failed to exchange authorization code for tokens",
+      });
     });
+  } catch (error) { // ✅ ADDED: Proper error handling
+    console.error('[AUTH] Error in authorization middleware:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-export default authorize;
+export { authorize };
+
+// ✅ OPTIONAL: Admin-specific middleware for stricter admin-only routes
+export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Authorization required' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Token missing' });
+    }
+
+    // Only check admin secret (no fallback to agent)
+    jwt.verify(token, process.env.JWT_SECRET_ADMIN, async (err: any, decoded: any) => {
+      if (err) {
+        return res.status(401).json({ message: 'Invalid admin token' });
+      }
+
+      const admin = await DB.Models.Admin.findById(decoded.id);
+      if (!admin) {
+        return res.status(401).json({ message: 'Admin not found' });
+      }
+
+      req.user = admin;
+      return next();
+    });
+  } catch (error) {
+    console.error('[AUTH] Error in admin-only middleware:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

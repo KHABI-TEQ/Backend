@@ -62,7 +62,7 @@ export class DB {
 
   constructor() {
     try {
-      connect(process.env.MONGO_URL as string, { useNewUrlParser: true, useUnifiedTopology: true });
+      connect(process.env.MONGO_URL as string);
     } catch (err) {
       console.error(err, 'Error connecting to MongoDB');
     }
