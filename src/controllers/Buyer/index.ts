@@ -1,6 +1,6 @@
-import { RouteError } from '../../common/classes';
-import { DB } from '..';
-import HttpStatusCodes from '../../common/HttpStatusCodes';
+import { RouteError } from "../../common/classes";
+import { DB } from "..";
+import HttpStatusCodes from "../../common/HttpStatusCodes";
 import {
   confirmTemplate,
   CounterBuyerTemplate,
@@ -22,9 +22,10 @@ import {
   NegotiationRejectedBuyerTemplate,
   NegotiationRejectedSellerTemplate,
   unavailableTemplate,
-} from '../../common/email.template';
-import sendEmail from '../../common/send.email';
-import mongoose from 'mongoose';
+} from "../../common/email.template";
+import sendEmail from "../../common/send.email";
+import mongoose from "mongoose";
+import { IInspectionBooking } from "../../models/inspection.booking";
 
 interface InspectionRequest {
   properties: Array<{
@@ -73,6 +74,35 @@ interface UpdateInspectionRequest {
   sellerCounterOffer?: number;
 }
 
+interface InspectionProperty {
+  propertyId: string;
+  negotiationPrice?: number;
+}
+
+
+// transaction,
+//         isNegotiating,
+//         negotiationPrice,
+//         letterOfIntention,
+//         status,
+//         counterOffer,
+//         countering,
+//         negotiationRejected,
+
+ type UpdateInspectionInput = {
+  propertyId?: any;
+  inspectionDate?: Date;
+  inspectionTime?: string;
+  requestedBy?:any;
+  transaction?:any;
+  isNegotiating?:Boolean;
+  negotiationPrice?:Number;
+  letterOfIntention?:String;
+  status: IInspectionBooking['status']; // strictly typed to valid values
+  counterOffer?: number;
+  countering?: boolean;
+  negotiationRejected?: boolean;
+};
 
 
 class BuyerController {
@@ -135,29 +165,33 @@ class BuyerController {
       });
 
       return {
-        message: 'Preference submitted successfully',
+        message: "Preference submitted successfully",
         preference,
       };
     } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        error.message
+      );
     }
   }
 
-  
   public async getBriefMatchesByPreference(preferenceId: string) {
-  try {
-    const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId)
-    const preference = await DB.Models.Preference.findById(preferenceObjectId);
-    if (!preference) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
-    }
+    try {
+      const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId);
+      const preference = await DB.Models.Preference.findById(
+        preferenceObjectId
+      );
+      if (!preference) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found");
+      }
 
-    const briefMatches = await DB.Models.BriefMatch.find({
-      preference: preferenceId,
-      status: 'sent',
-    })
-      .populate('brief')
-      .populate('preference');
+      const briefMatches = await DB.Models.BriefMatch.find({
+        preference: preferenceId,
+        status: "sent",
+      })
+        .populate("brief")
+        .populate("preference");
 
     return {
       briefMatches,
@@ -168,86 +202,87 @@ class BuyerController {
 }
 
   public async requestInspection(inspectionRequestData: InspectionRequest) {
-    try {
+  try {
+    const buyerEmail = inspectionRequestData.requestedBy.email;
 
-      const buyerEmail = inspectionRequestData.requestedBy.email;
+    // Ensure buyer exists
+    let buyer = await DB.Models.Buyer.findOne({ email: buyerEmail });
 
-      // Ensure buyer exists
-      let buyer = await DB.Models.Buyer.findOne({ email: buyerEmail });
-
-      if (!buyer) {
-        buyer = await DB.Models.Buyer.create({
-          fullName: inspectionRequestData.requestedBy.fullName,
-          email: buyerEmail,
-          phoneNumber: inspectionRequestData.requestedBy.phoneNumber,
-        });
-      }
-
-      const inspectionResponses = [];
-
-      for (const property of inspectionRequestData.properties) {
-        const { propertyId, negotiationPrice } = property;
-
-        const existingInspection = await DB.Models.InspectionBooking.findOne({
-          propertyId,
-          requestedBy: buyer._id,
-          status: { $ne: 'unavailable' },
-        });
-
-        if (existingInspection) {
-          continue; // Skip if already exists
-        }
-
-        const foundProperty = await DB.Models.Property.findOne({ _id: propertyId }).populate('owner', 'email firstName lastName fullName phoneNumber _id');
-
-        if (!foundProperty) {
-          continue; // Skip if property not found
-        }
-
-        // Validate inspection date
-        const inspectionDate = new Date(inspectionRequestData.inspectionDate);
-        if (inspectionDate < new Date()) {
-          throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Inspection date cannot be in the past');
-        }
-
-        // Create transaction
-        const transaction = await DB.Models.Transaction.create({
-          buyerId: buyer._id,
-          transactionReceipt: inspectionRequestData.transaction.transactionReceipt,
-          fullName: inspectionRequestData.transaction.fullName,
-          propertyId,
-        });
-
-        const isNegotiating = typeof negotiationPrice === 'number' && negotiationPrice !== 0;
-
-        // Create inspection
-        const inspection = await DB.Models.InspectionBooking.create({
-          propertyId,
-          inspectionDate: inspectionRequestData.inspectionDate,
-          inspectionTime: inspectionRequestData.inspectionTime,
-          status: 'pending_transaction',
-          pendingResponseFrom: 'seller',
-          requestedBy: buyer._id,
-          transaction: transaction._id,
-          isNegotiating,
-          negotiationPrice,
-          letterOfIntention: inspectionRequestData.letterOfIntention,
-          owner: (foundProperty.owner as any)._id,
-        });
-        
-        inspectionResponses.push(inspection);
-      }
-
-      return {
-        message: 'Inspection requests created successfully',
-        inspectionIds: inspectionResponses,
-      };
-    } catch (error) {
-      // It's good practice to log the full error here for debugging
-      console.error("Error in requestInspection:", error);
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    if (!buyer) {
+      buyer = await DB.Models.Buyer.create({
+        fullName: inspectionRequestData.requestedBy.fullName,
+        email: buyerEmail,
+        phoneNumber: inspectionRequestData.requestedBy.phoneNumber,
+      });
     }
+
+    const inspectionResponses = [];
+
+    for (const property of inspectionRequestData.properties as InspectionProperty[]) {
+      const { propertyId, negotiationPrice } = property;
+
+       const existingInspection = await DB.Models.InspectionBooking.findOne({
+        propertyId,
+        requestedBy: buyer._id,
+        status: { $ne: 'cancelled' },
+      });
+      if (existingInspection) {
+        continue; // Skip if already exists
+      }
+
+      const foundProperty = await DB.Models.Property.findOne({ _id: propertyId }).populate(
+        'owner',
+        'email firstName lastName fullName phoneNumber _id'
+      );
+
+      if (!foundProperty) {
+        continue; // Skip if property not found
+      }
+
+      // Validate inspection date
+      const inspectionDate = new Date(inspectionRequestData.inspectionDate);
+      if (inspectionDate < new Date()) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Inspection date cannot be in the past');
+      }
+
+      // Create transaction
+      const transaction = await DB.Models.Transaction.create({
+        buyerId: buyer._id,
+        transactionReceipt: inspectionRequestData.transaction.transactionReceipt,
+        fullName: inspectionRequestData.transaction.fullName,
+        propertyId,
+      });
+
+      const isNegotiating = typeof negotiationPrice === 'number' && negotiationPrice !== 0;
+
+      // Create inspection
+      const inspection = await DB.Models.InspectionBooking.create({
+        propertyId,
+        inspectionDate: inspectionRequestData.inspectionDate,
+        inspectionTime: inspectionRequestData.inspectionTime,
+        status: 'pending_transaction',
+        pendingResponseFrom: 'seller',
+        requestedBy: buyer._id,
+        transaction: transaction._id,
+        isNegotiating,
+        negotiationPrice,
+        letterOfIntention: inspectionRequestData.letterOfIntention,
+        owner: (foundProperty.owner as any)._id,
+      });
+
+      inspectionResponses.push(inspection);
+    }
+
+    return {
+      message: 'Inspection requests created successfully',
+      inspectionIds: inspectionResponses,
+    };
+  } catch (error) {
+    console.error("Error in requestInspection:", error);
+    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
   }
+}
+
   
   public async getInspection(inspectionId: string, userId?: string) {
     const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
@@ -257,43 +292,51 @@ class BuyerController {
       .populate('transaction', 'bank accountNumber accountName transactionReference transactionReceipt');
  
     if (!inspection) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
 
-    console.log(inspection, 'inspection details');
+    console.log(inspection, "inspection details");
 
-    if (userId && (inspection.propertyId as any).owner.toString() !== userId.toString()) {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, 'You do not have permission to view this inspection');
+    if (
+      userId &&
+      (inspection.propertyId as any).owner.toString() !== userId.toString()
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "You do not have permission to view this inspection"
+      );
     }
 
     return inspection;
   }
 
+
   public async updateInspection(
     inspectionId: string,
-    updateData: Partial<UpdateInspectionRequest> & {
-      status: string;
-      counterOffer?: number;
-      countering?: boolean;
-      negotiationRejected?: boolean;
-    }
+    updateData:UpdateInspectionInput
   ) {
     try {
-      const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
-        .populate('owner', 'email firstName lastName phoneNumber _id')
-        .populate('propertyId', 'title location price propertyType')
-        .populate('requestedBy', 'email fullName phoneNumber _id');
+      const inspection = await DB.Models.InspectionBooking.findById(
+        inspectionId
+      )
+        .populate("owner", "email firstName lastName phoneNumber _id")
+        .populate("propertyId", "title location price propertyType")
+        .populate("requestedBy", "email fullName phoneNumber _id");
 
-      console.log(inspection, 'inspection');
+      console.log(inspection, "inspection");
 
       if (!inspection) {
-        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
       }
       let buyerTemplate, sellerTemplate;
-      const sellerName = (inspection.owner as any)?.fullName || (inspection.owner as any)?.firstName;
-      const buyerName = (inspection.requestedBy as any)?.fullName || (inspection.requestedBy as any)?.firstName;
+      const sellerName =
+        (inspection.owner as any)?.fullName ||
+        (inspection.owner as any)?.firstName;
+      const buyerName =
+        (inspection.requestedBy as any)?.fullName ||
+        (inspection.requestedBy as any)?.firstName;
 
-      const formatPrice = (price: number) => price.toLocaleString('en-US');
+      const formatPrice = (price: number) => price.toLocaleString("en-US");
       const mailPayload = {
         ...inspection.toObject(),
         location: `${(inspection.propertyId as any).location.state}, ${
@@ -303,19 +346,27 @@ class BuyerController {
         propertyType: (inspection.propertyId as any).propertyType,
         sellerCounterOffer: updateData.counterOffer,
         newDate: updateData.inspectionDate,
-        acceptLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
-        checkLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
-        browse: `${process.env.CLIENT_LINK}/property/${(inspection.propertyId as any)._id.toString()}`,
-        rejectLink: `${process.env.CLIENT_LINK}/property/inspection/${inspection._id.toString()}`,
+        acceptLink: `${
+          process.env.CLIENT_LINK
+        }/property/inspection/${inspection._id.toString()}`,
+        checkLink: `${
+          process.env.CLIENT_LINK
+        }/property/inspection/${inspection._id.toString()}`,
+        browse: `${process.env.CLIENT_LINK}/property/${(
+          inspection.propertyId as any
+        )._id.toString()}`,
+        rejectLink: `${
+          process.env.CLIENT_LINK
+        }/property/inspection/${inspection._id.toString()}`,
       };
 
-      if (updateData.status === 'unavailable') {
+      if (updateData.status === "unavailable") {
         await DB.Models.InspectionBooking.updateOne(
           {
             _id: inspectionId,
           },
           {
-            status: 'unavailable',
+            status: "unavailable",
           }
         );
 
@@ -332,15 +383,30 @@ class BuyerController {
                   (inspection.owner as any)?.firstName,
                   mailPayload
                 );
-                buyerTemplate = LOIRejectedBuyerTemplate(buyerName, mailPayload);
+                buyerTemplate = LOIRejectedBuyerTemplate(
+                  buyerName,
+                  mailPayload
+                );
               } else {
-                sellerTemplate = NegotiationRejectedSellerTemplate(sellerName || sellerName, mailPayload);
-                buyerTemplate = NegotiationRejectedBuyerTemplate(buyerName, mailPayload);
+                sellerTemplate = NegotiationRejectedSellerTemplate(
+                  sellerName || sellerName,
+                  mailPayload
+                );
+                buyerTemplate = NegotiationRejectedBuyerTemplate(
+                  buyerName,
+                  mailPayload
+                );
               }
             } else {
-              sellerTemplate = NegotiationAcceptedSellerTemplate((inspection.owner as any)?.firstName, mailPayload);
+              sellerTemplate = NegotiationAcceptedSellerTemplate(
+                (inspection.owner as any)?.firstName,
+                mailPayload
+              );
 
-              buyerTemplate = NegotiationAcceptedTemplate(buyerName, mailPayload);
+              buyerTemplate = NegotiationAcceptedTemplate(
+                buyerName,
+                mailPayload
+              );
             }
           } else {
             if (!inspection.letterOfIntention) {
@@ -348,7 +414,10 @@ class BuyerController {
 
               buyerTemplate = CounterBuyerTemplate(buyerName, mailPayload);
             } else {
-              sellerTemplate = LOICounterSellerTemplate(sellerName, mailPayload);
+              sellerTemplate = LOICounterSellerTemplate(
+                sellerName,
+                mailPayload
+              );
 
               buyerTemplate = LOICounterBuyerTemplate(buyerName, mailPayload);
             }
@@ -358,7 +427,10 @@ class BuyerController {
             sellerTemplate = LOIAcceptedSellerTemplate(sellerName, {
               ...inspection.toObject(),
             });
-            buyerTemplate = LOINegotiationAcceptedTemplate(buyerName, mailPayload);
+            buyerTemplate = LOINegotiationAcceptedTemplate(
+              buyerName,
+              mailPayload
+            );
           } else {
             sellerTemplate = confirmTemplate(sellerName, mailPayload);
             buyerTemplate = InspectionAcceptedTemplate(buyerName, mailPayload);
@@ -373,15 +445,17 @@ class BuyerController {
             inspectionDate: updateData.inspectionDate,
             inspectionTime: updateData.inspectionTime,
             status: updateData.status,
-            sellerCounterOffer: updateData.countering ? updateData.counterOffer : inspection.sellerCounterOffer,
+            sellerCounterOffer: updateData.countering
+              ? updateData.counterOffer
+              : inspection.sellerCounterOffer,
           }
         );
       }
 
       const sellerEmailTemplate = generalTemplate(sellerTemplate);
       const buyerEmailTemplate = generalTemplate(buyerTemplate);
-      console.log(inspection.requestedBy, 'requestedBy');
-      console.log((inspection.owner as any)?.email, 'owner email');
+      console.log(inspection.requestedBy, "requestedBy");
+      console.log((inspection.owner as any)?.email, "owner email");
 
       await sendEmail({
         to: (inspection.requestedBy as any)?.email,
@@ -397,7 +471,10 @@ class BuyerController {
         text: sellerEmailTemplate,
       });
     } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        error.message
+      );
     }
   }
 
