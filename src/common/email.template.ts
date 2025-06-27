@@ -2410,7 +2410,8 @@ export const preferenceMatchingTemplate = (body: string): string =>{
 export function briefSubmissionAcknowledgementTemplate(agentName: string, data: {
   propertyType: string;
   location: { state: string; localGovernment: string; area: string };
-  priceRange: string;
+  budgetMin: number;
+  budgetMax: number;
   briefType: string;
   features?: string[];
   landSize?: { measurementType: string; size: number };
@@ -2423,10 +2424,10 @@ export function briefSubmissionAcknowledgementTemplate(agentName: string, data: 
     <ul>
       <li><strong>Property Type:</strong> ${data.propertyType}</li>
       <li><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</li>
-      <li><strong>Price Range:</strong> ${data.priceRange}</li>
+      <li><strong>Price Range:</strong> ₦${data.budgetMin} - ₦${data.budgetMax}</li>
       <li><strong>Usage Options:</strong> ${data.briefType}</li>
       ${data.features?.length ? `<li><strong>Property Features:</strong> ${data.features.join(', ')}</li>` : ''}
-      ${data.landSize ? `<li><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</li>` : ''}
+      ${data?.landSize?.size ? `<li><strong>Land Size:</strong> ${data?.landSize?.size } ${data.landSize?.measurementType}</li>` : ''}
     </ul>
 
     <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>

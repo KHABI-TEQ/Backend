@@ -407,7 +407,8 @@ public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.
       {
         propertyType: data.propertyType,
         location: data.location,
-        priceRange: data.budgetRange || `${data.budgetMin} - ${data.budgetMax}`,
+        budgetMin:data.budgetMin,
+        budgetMax:data.budgetMax,
         briefType: data.briefType,
         features: data.features,
         landSize: data.landSize,
