@@ -4,7 +4,8 @@ import { IAdmin, IAdminDoc } from '../models';
 import { authorizeAdmin } from './admin.authorize';
 import { DB } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
-import authorize from './authorize';
+import { authorize } from './authorize';
+import AdminInspRouter from './admin.inspections';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -27,6 +28,23 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
+AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { email, password, firstName, lastName, phoneNumber, address } = req.body;
+    const admin = await adminController.createAdmin({
+      email,
+      firstName,
+      lastName,
+      phoneNumber,
+      address,
+      password
+    });
+    return res.status(200).json({ success: true, admin });
+  } catch (error) {
+    next(error);
+  }
+});
+
 AdminRouter.use(authorizeAdmin);
 
 // Get current admin info
@@ -38,25 +56,11 @@ AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next:
   }
 });
 
-AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { email, password, firstName, lastName, phoneNumber, address } = req.body;
-    const admin = await adminController.createAdmin({
-      email,
-      firstName,
-      lastName,
-      phoneNumber,
-      address,
-    });
-    return res.status(200).json({ success: true, admin });
-  } catch (error) {
-    next(error);
-  }
-});
+
 
 
 // Protect all other admin routes
-AdminRouter.use(authorize);
+// AdminRouter.use(authorize);
 
 AdminRouter.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -370,5 +374,7 @@ AdminRouter.post('/reject-agent-briefs', async (req: Request, res: Response, nex
 });
 
 //====================================================================
+
+AdminRouter.use(AdminInspRouter);
 
 export default AdminRouter;

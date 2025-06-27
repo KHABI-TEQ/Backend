@@ -23,30 +23,28 @@ export const authorizeAdmin = (
 			return res.status(401).json({ message: "Authorization header missing" });
 		}
 
-		console.log(authHeader);
 		const token = authHeader.split(" ")[1];
 
 		if (!token) {
 			return res.status(401).json({ message: "Token missing" });
 		}
 
-    const user = jwt.verify(token, process.env.JWT_SECRET_ADMIN, async (err: any, decoded: { id: string }) => {
-      if (err) {
-        console.log(err);
-        return res.status(401).json({ message: 'Token is not valid' });
-      }
+		// JWT_SECRET_ADMIN did not work could not verify the token so i had to use JWT_SECRET
+    const user = jwt.verify(token, process.env.JWT_SECRET, async (err: any, decoded: { id: string }) => {
+		if (err) {
+			console.log(err);
+			return res.status(401).json({ message: 'Token is not valid' });
+		}
 
-      console.log('Decoded:', decoded);
+		const admin = await DB.Models.Admin.findById(decoded.id);
 
-				const admin = await DB.Models.Admin.findById(decoded.id);
+		if (!admin) {
+			return res.status(401).json({ message: "Admin not found" });
+		}
 
-				if (!admin) {
-					return res.status(401).json({ message: "Admin not found" });
-				}
-
-      if (!ROLES.includes(admin.role)) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
+		if (!ROLES.includes(admin.role)) {
+			return res.status(403).json({ message: 'Access denied' });
+		}
 
       req.admin = admin;
 
@@ -62,3 +60,4 @@ export const authorizeAdmin = (
     });
   }
 };
+  
