@@ -332,7 +332,7 @@ AdminRouter.get('/preferences/:buyerId', async (req: Request, res: Response, nex
 
 AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const {userType} = req.params
+    const {userType} = req.query
     const briefs = await adminController.getSubmittedBriefs(userType);
     return res.status(200).json({ success: true, data: briefs });
   } catch (error) {
@@ -340,7 +340,7 @@ AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: N
   }
 });
 
-AdminRouter.patch('/approve-brief/:briefId', async (req: Request, res: Response) => {
+AdminRouter.post('/approve-brief/:briefId', async (req: Request, res: Response) => {
   try {
     const { briefId } = req.params;
     const result = await adminController.approveBrief(briefId);
@@ -352,7 +352,7 @@ AdminRouter.patch('/approve-brief/:briefId', async (req: Request, res: Response)
   }
 });
 
-AdminRouter.patch('/reject-brief/:briefId', async (req: Request, res: Response) => {
+AdminRouter.post('/reject-brief/:briefId', async (req: Request, res: Response) => {
   try {
     const { briefId } = req.params;
     const result = await adminController.rejectBrief(briefId);
