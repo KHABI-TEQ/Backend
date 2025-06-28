@@ -34,15 +34,17 @@ const agentControl = new AgentController();
  ******************************************************************************/
 router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
   try {
-   const preferences = await agentController.getAllPreferences()
+    const result = await agentController.getAllPreferences(req.query);
+
     return res.status(200).json({
-      preferences,
+      ...result,
       success: true,
     });
   } catch (error) {
     next(error);
   }
 });
+
 
 router.put('/onboard',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -92,7 +94,8 @@ router.post('/confirm-property',AuthorizeAction, async (req: Request, res: Respo
 router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
    const user = req.user as IUserDoc;
-   const preferences = await agentController.getMatchingPreferences(user)
+   const query = req.query
+   const preferences = await agentController.getMatchingPreferences(user, query)
     return res.status(200).json({
       preferences,
       success: true,
