@@ -34,15 +34,17 @@ const agentControl = new AgentController();
  ******************************************************************************/
 router.get('/all-preferences', async (req: Request, res: Response, next: NextFunction) => {
   try {
-   const preferences = await agentController.getAllPreferences()
+    const result = await agentController.getAllPreferences(req.query);
+
     return res.status(200).json({
-      preferences,
+      ...result,
       success: true,
     });
   } catch (error) {
     next(error);
   }
 });
+
 
 router.put('/onboard',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -92,7 +94,8 @@ router.post('/confirm-property',AuthorizeAction, async (req: Request, res: Respo
 router.get('/my-location-preferences',AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
   try {
    const user = req.user as IUserDoc;
-   const preferences = await agentController.getMatchingPreferences(user)
+   const query = req.query
+   const preferences = await agentController.getMatchingPreferences(user, query)
     return res.status(200).json({
       preferences,
       success: true,
@@ -109,13 +112,14 @@ router.post(
   upload.array('pictures'),
   async (req: Request, res: Response) => {
     try {
-      const user = req.user;
+      const user = req.user as IUserDoc;
       const files = req.files as Express.Multer.File[];
       const preferenceId = req.params.preferenceId;
 
       const property = await agentController.createBriefProperty(user, req.body, files, preferenceId);
 
-      return res.status(HttpStatusCodes.CREATED).json({
+      return res.status(201).json({
+        success:true,
         message: 'Brief created successfully',
         data: property,
       });
@@ -291,5 +295,34 @@ router.get('/properties',AuthorizeAction, async (req: Request, res: Response, ne
     },
   });
 });
+
+router.get('/my-briefs-count', AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const counts = await agentController.getAgentBriefCounts(req.user); // assuming `req.user` contains authenticated user
+    return res.status(200).json({ 
+      success: true,
+      message:"Successful fetching of briefs count",
+      data: counts 
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+
+// router.post('/convert-userId', async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const result = await agentController.convertAgentUserIdsToObjectId();
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Successfully updated agents with ObjectId userId',
+//       result
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
 
 export default router;

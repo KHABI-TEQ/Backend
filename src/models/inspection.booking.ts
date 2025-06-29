@@ -1,10 +1,10 @@
-import { model, Model, Schema, ObjectId, Document } from 'mongoose';
+import { model, Model, Schema, ObjectId, Types, Document } from 'mongoose';
 
 /**
  * Interface for Inspection Booking records.
  */
 export interface IInspectionBooking {
-  propertyId: ObjectId;
+  propertyId:Types.ObjectId;
   bookedBy: ObjectId;
   bookedByModel: string;
   inspectionDate: Date;
@@ -24,6 +24,7 @@ export interface IInspectionBooking {
     | 'negotiation_rejected'
     | 'negotiation_cancelled'
     | 'completed'
+    | 'unavailable'
     | 'cancelled';
 
   slotId: ObjectId;

@@ -324,44 +324,189 @@ export class AgentController implements IAgentController {
   }
 
   //============================================================
-  public async getMatchingPreferences(agentUser: IUserDoc) {
+  public async getMatchingPreferences(agentUser: IUserDoc, query: any) {
   const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
-
   if (!agent) {
     throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
   }
 
   const regionOfOperation = agent.regionOfOperation || [];
 
-  let preferences = await DB.Models.Preference.find({
+  const {
+    locationSearch,
+    landSize,
+    documents,
+    budgetMin,
+    budgetMax,
+    features,
+    propertyType,
+    propertyCondition,
+    preferenceType,
+    noOfBedrooms,
+    noOfBathrooms,
+    page = 1,
+    limit = 12,
+  } = query;
+
+  const filters: any = {
     $or: [
       { 'location.state': { $in: regionOfOperation } },
       { 'location.localGovernment': { $in: regionOfOperation } },
       { 'location.area': { $in: regionOfOperation } },
-    ],
-  }).populate('buyer').exec();
+    ]
+  };
 
-  // If no preference matches regionOfOperation, fallback to agent's LGA
+  // Override with flexible search if locationSearch is passed
+  if (locationSearch) {
+    const regex = new RegExp(locationSearch, 'i');
+    filters.$or = [
+      { 'location.state': regex },
+      { 'location.localGovernment': regex },
+      { 'location.area': regex },
+    ];
+  }
+
+  if (propertyType) filters.propertyType = propertyType;
+  if (propertyCondition) filters.propertyCondition = propertyCondition;
+  if (preferenceType) filters.preferenceType = preferenceType;
+  if (noOfBedrooms) filters.noOfBedrooms = Number(noOfBedrooms);
+  if (noOfBathrooms) filters.noOfBathrooms = Number(noOfBathrooms);
+  if (landSize) filters.landSize = Number(landSize);
+
+  if (budgetMin || budgetMax) {
+    filters.$and = [];
+    if (budgetMin) filters.$and.push({ budgetMin: { $gte: Number(budgetMin) } });
+    if (budgetMax) filters.$and.push({ budgetMax: { $lte: Number(budgetMax) } });
+  }
+
+  if (documents) {
+    filters.documents = Array.isArray(documents)
+      ? { $all: documents }
+      : { $all: [documents] };
+  }
+
+  if (features) {
+    filters.features = Array.isArray(features)
+      ? { $all: features }
+      : { $all: [features] };
+  }
+
+  const skip = (Number(page) - 1) * Number(limit);
+
+  let preferences = await DB.Models.Preference.find(filters)
+    .populate('buyer')
+    .skip(skip)
+    .limit(Number(limit))
+    .exec();
+
+  // Fallback if nothing found
   if (preferences.length === 0 && agent.address?.localGovtArea) {
     preferences = await DB.Models.Preference.find({
       'location.localGovernment': agent.address.localGovtArea,
-    }).populate('buyer').exec();
+    })
+      .populate('buyer')
+      .skip(skip)
+      .limit(Number(limit))
+      .exec();
   }
 
-  return preferences;
+  const total = await DB.Models.Preference.countDocuments(filters);
+
+  return {
+    preferences,
+    pagination: {
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: Math.ceil(total / Number(limit)),
+    },
+  };
 }
 
-public async getAllPreferences() {
-  
-  const preferences = await DB.Models.Preference.find({}).populate('buyer').exec();
-  return preferences;
+
+public async getAllPreferences(query: any) {
+  const {
+    page = 1,
+    limit = 12,
+    locationSearch,
+    landSize,
+    documents,
+    budgetMin,
+    budgetMax,
+    features,
+    propertyType,
+    propertyCondition,
+    preferenceType,
+    noOfBedrooms,
+    noOfBathrooms,
+  } = query;
+
+  const filters: any = {};
+
+  // Flexible location search
+  if (locationSearch) {
+    const regex = new RegExp(locationSearch, 'i');
+    filters.$or = [
+      { 'location.state': regex },
+      { 'location.localGovernment': regex },
+      { 'location.area': regex },
+    ];
+  }
+
+  // Direct match
+  if (propertyType) filters.propertyType = propertyType;
+  if (propertyCondition) filters.propertyCondition = propertyCondition;
+  if (preferenceType) filters.preferenceType = preferenceType;
+  if (noOfBedrooms) filters.noOfBedrooms = Number(noOfBedrooms);
+  if (noOfBathrooms) filters.noOfBathrooms = Number(noOfBathrooms);
+  if (landSize) filters.landSize = Number(landSize);
+
+  // Budget range
+  if (budgetMin || budgetMax) {
+    filters.$and = [];
+    if (budgetMin) filters.$and.push({ budgetMin: { $gte: Number(budgetMin) } });
+    if (budgetMax) filters.$and.push({ budgetMax: { $lte: Number(budgetMax) } });
+  }
+
+  // Documents array match
+  if (documents) {
+    filters.documents = Array.isArray(documents)
+      ? { $all: documents }
+      : { $all: [documents] };
+  }
+
+  // Features array match
+  if (features) {
+    filters.features = Array.isArray(features)
+      ? { $all: features }
+      : { $all: [features] };
+  }
+
+  const preferences = await DB.Models.Preference.find(filters)
+    .populate('buyer')
+    .skip((Number(page) - 1) * Number(limit))
+    .limit(Number(limit))
+    .exec();
+
+  const totalCount = await DB.Models.Preference.countDocuments(filters);
+
+  return {
+    data: preferences,
+    currentPage: Number(page),
+    totalPages: Math.ceil(totalCount / Number(limit)),
+    totalItems: totalCount,
+  };
 }
+
+
 
 
 // import { briefSubmissionAcknowledgementTemplate, generalTemplate } from '../../common/email.template';
 
 public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.Multer.File[], preferenceId?: string): Promise<IPropertyDoc> {
-  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id.toString()}).populate('userId').exec();
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id}).populate('userId').exec();
+  console.log("userId", agentUser._id.toString())
+  
   if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
 
   data.owner = agentUser._id;
@@ -405,7 +550,8 @@ public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.
       {
         propertyType: data.propertyType,
         location: data.location,
-        priceRange: data.budgetRange || `${data.budgetMin} - ${data.budgetMax}`,
+        budgetMin:data.budgetMin,
+        budgetMax:data.budgetMax,
         briefType: data.briefType,
         features: data.features,
         landSize: data.landSize,
@@ -423,5 +569,64 @@ public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.
   return newProperty;
 }
 
+
+public async getAgentBriefCounts(agentUser: IUserDoc) {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+  if (!agent) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+  }
+
+  const [active, pending, dealClosed] = await Promise.all([
+    DB.Models.Property.countDocuments({ owner: agent._id, isAvailable: 'yes', isApproved: true }),
+    DB.Models.Property.countDocuments({ owner: agent._id, isAvailable: 'yes', isApproved: false, isRejected: false }),
+    DB.Models.Property.countDocuments({ owner: agent._id, isAvailable: 'no' }),
+  ]);
+
+  const total = active + pending;
+
+  return {
+    active,
+    pending,
+    total,
+    dealClosed,
+  };
+}
+
+
+
+// public async convertAgentUserIdsToObjectId() {
+//   try {
+//     const result = await DB.Models.Agent.updateMany(
+//       { userId: { $type: 'string' } },
+//       [
+//         {
+//           $set: {
+//             userId: {
+//               $convert: {
+//                 input: '$userId',
+//                 to: 'objectId',
+//                 onError: '$userId',
+//                 onNull: '$userId',
+//               },
+//             },
+//           },
+//         },
+//       ]
+//     );
+
+//     return result
+
+//   } catch (error) {
+//     console.error(error);
+//     throw new RouteError(
+//       HttpStatusCodes.INTERNAL_SERVER_ERROR,
+//       error.message
+//     );
+//   }
+// }
+
+
 //========================================================
 }
+
+
