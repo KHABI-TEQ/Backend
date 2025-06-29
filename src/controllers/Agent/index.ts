@@ -569,5 +569,64 @@ public async createBriefProperty(agentUser: IUserDoc, data: any, files: Express.
   return newProperty;
 }
 
+
+public async getAgentBriefCounts(agentUser: IUserDoc) {
+  const agent = await DB.Models.Agent.findOne({ userId: agentUser._id }).exec();
+  if (!agent) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+  }
+
+  const [active, pending, dealClosed] = await Promise.all([
+    DB.Models.Property.countDocuments({ owner: agent._id, isAvailable: 'yes', isApproved: true }),
+    DB.Models.Property.countDocuments({ owner: agent._id, isAvailable: 'yes', isApproved: false, isRejected: false }),
+    DB.Models.Property.countDocuments({ owner: agent._id, isAvailable: 'no' }),
+  ]);
+
+  const total = active + pending;
+
+  return {
+    active,
+    pending,
+    total,
+    dealClosed,
+  };
+}
+
+
+
+// public async convertAgentUserIdsToObjectId() {
+//   try {
+//     const result = await DB.Models.Agent.updateMany(
+//       { userId: { $type: 'string' } },
+//       [
+//         {
+//           $set: {
+//             userId: {
+//               $convert: {
+//                 input: '$userId',
+//                 to: 'objectId',
+//                 onError: '$userId',
+//                 onNull: '$userId',
+//               },
+//             },
+//           },
+//         },
+//       ]
+//     );
+
+//     return result
+
+//   } catch (error) {
+//     console.error(error);
+//     throw new RouteError(
+//       HttpStatusCodes.INTERNAL_SERVER_ERROR,
+//       error.message
+//     );
+//   }
+// }
+
+
 //========================================================
 }
+
+
