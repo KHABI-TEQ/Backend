@@ -37,20 +37,187 @@ export class AdminController {
 
   private readonly defaultPassword = 'KhabiTeqRealty@123';
 
-  public async getAllUsers() {
-    const agents = await DB.Models.User.find().exec();
+  public async getAllUsers(params: {
+    page: number;
+    limit: number;
+    filters?: any;
+    search?: string;
+  }) {
+    const { page = 1, limit = 10, filters = {}, search = '' } = params;
+
+    const query: any = {};
+
+    // 🔍 Optional filters
+    if (filters?.email) query.email = { $regex: filters.email, $options: 'i' };
+    if (filters?.role) query.role = filters.role;
+    if (filters?.status) query.status = filters.status;
+
+    // 🔎 Optional search on multiple fields
+    if (search.trim()) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const total = await DB.Models.User.countDocuments(query);
+
+    const usersRaw = await DB.Models.User.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .exec();
 
     const users = await Promise.all(
-      agents.map(async (agent) => {
+      usersRaw.map(async (user) => {
+        const agentData = await DB.Models.Agent.findOne({ userId: user._id }).exec();
         return {
-          ...agent.toObject(),
-          agentData: await DB.Models.Agent.findOne({ userId: agent._id }).exec(),
+          ...user.toObject(),
+          agentData,
         };
       })
     );
 
-    return { users };
+    return {
+      page,
+      limit,
+      total,
+      users,
+    };
   }
+
+
+  public async getUsersByType(params: {
+    userType: 'Agent' | 'Landowners';
+    page: number;
+    limit: number;
+    search?: string;
+    filters?: Record<string, any>;
+  }) {
+    const { userType, page = 1, limit = 10, search = '', filters = {} } = params;
+
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.max(1, limit);
+    const skip = (safePage - 1) * safeLimit;
+
+    const query: any = {
+      $or: [
+        { userType: { $regex: `^${userType}$`, $options: 'i' } },
+        { role: { $regex: `^${userType}$`, $options: 'i' } },
+      ],
+    };
+
+    // 🔍 Search filters
+    if (search.trim()) {
+      query.$and = [
+        {
+          $or: [
+            { email: { $regex: search, $options: 'i' } },
+            { firstName: { $regex: search, $options: 'i' } },
+            { lastName: { $regex: search, $options: 'i' } },
+            { phoneNumber: { $regex: search, $options: 'i' } },
+          ],
+        },
+      ];
+    }
+
+    // ✅ Extra filters
+    if (filters?.accountStatus && filters.accountStatus !== 'null') {
+      query.accountStatus = filters.accountStatus;
+    }
+
+    if (filters?.isFlagged !== undefined && filters.isFlagged !== 'null') {
+      query.isFlagged = filters.isFlagged === 'true';
+    }
+
+    if (filters?.excludeInactive !== false) {
+      query.isInActive = false;
+    }
+
+    const total = await DB.Models.User.countDocuments(query);
+
+    const users = await DB.Models.User.find(query)
+      .skip(skip)
+      .limit(safeLimit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const pagination = {
+      page: safePage,
+      limit: safeLimit,
+      total,
+      totalPages: Math.ceil(total / safeLimit),
+    };
+
+    return {
+      users,
+      pagination,
+    };
+  }
+
+
+  public async getAgentProfile(userId: string) {
+    const user = await DB.Models.User.findById(userId).lean();
+    if (!user || user.userType !== 'Agent') throw new Error('Agent not found');
+
+    const agentData = await DB.Models.Agent.findOne({ userId }).lean();
+    const properties = await DB.Models.Property.find({ owner: userId }).lean();
+    const transactions = await DB.Models.Transaction.find({ buyerId: userId }).lean();
+    const inspections = await DB.Models.InspectionBooking.find({ bookedBy: userId }).lean();
+
+    // Financial summary
+    const totalSpent = 0;
+    // const totalSpent = transactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
+    const completedInspections = inspections.filter(i => i.status === 'completed');
+
+    return {
+      user,
+      agentData,
+      properties,
+      transactions,
+      inspections,
+      stats: {
+        totalProperties: properties.length,
+        totalTransactions: transactions.length,
+        totalSpent,
+        completedInspections: completedInspections.length,
+        ongoingNegotiations: inspections.filter(i => i.stage === 'negotiation').length,
+      },
+    };
+  }
+
+
+  public async getLandownerProfile(userId: string) {
+    const user = await DB.Models.User.findById(userId).lean();
+    if (!user || user.userType !== 'Landowners') throw new Error('Landowner not found');
+
+    const properties = await DB.Models.Property.find({ owner: userId }).lean();
+    const propertyIds = properties.map(p => p._id);
+
+    const inspections = await DB.Models.InspectionBooking.find({ propertyId: { $in: propertyIds } }).lean();
+    const transactions = await DB.Models.Transaction.find({ propertyId: { $in: propertyIds } }).lean();
+
+    const totalEarned = 0;
+    // const totalEarned = transactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
+    const completedInspections = inspections.filter(i => i.status === 'completed');
+
+    return {
+      user,
+      properties,
+      transactions,
+      inspections,
+      stats: {
+        totalProperties: properties.length,
+        totalTransactions: transactions.length,
+        totalEarned,
+        completedInspections: completedInspections.length,
+        pendingNegotiations: inspections.filter(i => i.stage === 'negotiation').length,
+      },
+    };
+  }
+
 
   public async groupPropsWithOwner(
     ownerModel: 'PropertySell' | 'PropertyRent',
@@ -600,39 +767,56 @@ export class AdminController {
   }
 
   public async login(adminCred: { email: string; password: string }): Promise<any> {
-  try {
-    if (!adminCred || !adminCred.email || !adminCred.password) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Email and password are required');
+    try {
+      const { email, password } = adminCred || {};
+
+      if (!email || !password) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Email and password are required.');
+      }
+
+      const normalizedEmail = email.toLowerCase().trim();
+      const admin = await DB.Models.Admin.findOne({ email: normalizedEmail });
+
+      if (!admin) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'No account found with this email.');
+      }
+
+      if (!admin.isAccountVerified) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Your admin account is not yet verified.');
+      }
+
+      if (!admin.password) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'This account has no password set.');
+      }
+
+      const isMatch = await bcrypt.compare(password, admin.password);
+      if (!isMatch) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Incorrect password. Please try again.');
+      }
+
+      admin.isAccountInRecovery = false;
+      await admin.save();
+
+      const payload = {
+        id: admin._id,
+        email: admin.email,
+        role: admin.role,
+        isAdmin: true,
+      };
+
+      const token = signJwt(payload);
+
+      return {
+        admin: admin.toObject(),
+        token,
+      };
+    } catch (err: any) {
+      const message =
+        err instanceof RouteError ? err.message : 'An unexpected error occurred during login.';
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, message);
     }
-
-    const email = adminCred.email.toLowerCase().trim();
-    const password = adminCred.password;
-
-    const admin = await DB.Models.Admin.findOne({ email });
-    if (!admin) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin not found');
-
-    if (!admin.password) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid Password');
-
-    const isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid password');
-
-    const payload = {
-      email: admin.email,
-      role: admin.role,
-      id: admin._id,
-      isAdmin: true,
-    };
-
-    admin.isAccountInRecovery = false;
-    await admin.save();
-
-    const token = signJwt(payload);
-
-    return { admin: admin.toObject(), token };
-  } catch (err: any) {
-    throw new RouteError(HttpStatusCodes.BAD_REQUEST, err.message || 'Login failed');
   }
-}
+
 
 
   public async createAdmin(adminCred: {
@@ -674,6 +858,65 @@ export class AdminController {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to create admin');
     }
   }
+
+
+  // In AdminController.ts
+  public async getAdmins(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    filters?: Record<string, any>;
+  }) {
+    const { page = 1, limit = 10, search = '', filters = {} } = params;
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+
+    // 🔍 Search by name, email, or phone
+    if (search.trim()) {
+      query.$or = [
+        { email: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // ✅ Apply filters
+    if (filters.role) query.role = filters.role;
+    if (filters.isAccountVerified !== undefined) {
+      query.isAccountVerified = filters.isAccountVerified === 'true';
+    }
+    if (filters.isAccountInRecovery !== undefined) {
+      query.isAccountInRecovery = filters.isAccountInRecovery === 'true';
+    }
+
+    const total = await DB.Models.Admin.countDocuments(query);
+    const admins = await DB.Models.Admin.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const pagination = {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { admins, pagination };
+  }
+
+
+  public async deleteAdmin(adminId: string) {
+    const deleted = await DB.Models.Admin.findByIdAndDelete(adminId);
+    if (!deleted) {
+      throw new RouteError(404, 'Admin account not found or already deleted.');
+    }
+    return { message: 'Admin account deleted successfully.' };
+  }
+
 
 
   public async changePassword(adminId: string, newPassword: string) {

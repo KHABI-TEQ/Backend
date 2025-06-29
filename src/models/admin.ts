@@ -17,6 +17,7 @@ export interface IAdmin {
   profile_picture: string;
   role: string;
   isVerifed: boolean;
+  isAccountVerified: boolean;
 }
 
 export interface IAdminDoc extends IAdmin, Document {}

@@ -57,10 +57,11 @@ export class AdminInspectionController {
         success: true,
         message: 'Inspections fetched successfully',
         data: inspections,
-        meta: {
+        pagination: {
           total,
           page: currentPage,
           limit: perPage,
+          totalPages: Math.ceil(total / perPage),
         },
       });
     } catch (error: any) {
