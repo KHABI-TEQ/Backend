@@ -296,4 +296,33 @@ router.get('/properties',AuthorizeAction, async (req: Request, res: Response, ne
   });
 });
 
+router.get('/my-briefs-count', AuthorizeAction, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const counts = await agentController.getAgentBriefCounts(req.user); // assuming `req.user` contains authenticated user
+    return res.status(200).json({ 
+      success: true,
+      message:"Successful fetching of briefs count",
+      data: counts 
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+
+// router.post('/convert-userId', async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     const result = await agentController.convertAgentUserIdsToObjectId();
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Successfully updated agents with ObjectId userId',
+//       result
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// });
+
+
 export default router;
