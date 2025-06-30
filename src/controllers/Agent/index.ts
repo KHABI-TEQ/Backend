@@ -24,6 +24,7 @@ import {
 import sendEmail from '../../common/send.email';
 import { propertyNotAvailableTemplate } from '../../common/email.template';
 import { Types } from 'mongoose';
+import { date } from 'joi/lib';
 
 const ADMINS = [
   'khabiteqrealty@gmail.com',
@@ -397,6 +398,7 @@ export class AgentController implements IAgentController {
     .populate('buyer')
     .skip(skip)
     .limit(Number(limit))
+    .sort({createdAt:"desc"})
     .exec();
 
   // Fallback if nothing found
@@ -486,6 +488,7 @@ public async getAllPreferences(query: any) {
     .populate('buyer')
     .skip((Number(page) - 1) * Number(limit))
     .limit(Number(limit))
+    .sort({createdAt:"desc"})
     .exec();
 
   const totalCount = await DB.Models.Preference.countDocuments(filters);
