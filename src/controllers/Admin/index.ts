@@ -59,7 +59,7 @@ export class AdminController {
 
     // Randomly assign buyers
     const updates = preferences.map((pref) => {
-      const randomBuyer = buyers[Math.floor(Math.random() * buyers.length)];
+      const randomBuyer:any = buyers[Math.floor(Math.random() * buyers.length)];
       return {
         updateOne: {
           filter: { _id: pref._id },

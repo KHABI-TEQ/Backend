@@ -186,6 +186,7 @@ class BuyerController {
 				generatePropertPreferenceBriefEmail(data)
 			);
 
+      
 			await sendEmail({
 				to: adminEmail,
 				subject: "New Property Preference",
