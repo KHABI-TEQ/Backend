@@ -4,7 +4,6 @@ import { IAdmin, IAdminDoc } from '../models';
 import { authorizeAdmin } from './admin.authorize';
 import { DB } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
-import { authorize } from './authorize';
 import AdminInspRouter from './admin.inspections';
 
 const AdminRouter = express.Router();
@@ -16,6 +15,19 @@ interface Request extends Express.Request {
   query?: any;
   admin?: any;
 }
+
+//=================================
+
+AdminRouter.post('/assign-buyers-to-preferences', async (req, res, next) => {
+  try {
+    const result = await adminController.randomlyAssignBuyersToPreferences();
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+//================================
 
 // Allow login and create-admin without auth
 AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunction) => {

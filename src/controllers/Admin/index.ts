@@ -11,7 +11,7 @@ import {
   preferenceMatchingTemplate,
 } from '../../common/email.template'; 
 import { DB } from '..';
-import mongoose from "mongoose"
+import mongoose, { Types } from "mongoose"
 import { AgentController } from '../Agent';
 import { PropertyRentController } from '../Property.Rent';
 import { BuyerOrRentPropertyRentController } from '../Property.Rent.Request';
@@ -36,6 +36,53 @@ export class AdminController {
   private readonly ownerTypes = ['PropertyOwner', 'BuyerOrRenter', 'Agent'];
 
   private readonly defaultPassword = 'KhabiTeqRealty@123';
+
+  //==================================
+
+  public async randomlyAssignBuyersToPreferences() {
+  try {
+    // Fetch all buyer IDs
+    const buyers = await DB.Models.Buyer.find({}, '_id').lean().exec();
+    if (!buyers.length) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'No buyers found');
+    }
+
+    // Fetch all preferences where buyer is null
+    const preferences = await DB.Models.Preference.find().exec();
+
+    if (!preferences.length) {
+      return {
+        message: 'No preferences to update',
+        updatedCount: 0,
+      };
+    }
+
+    // Randomly assign buyers
+    const updates = preferences.map((pref) => {
+      const randomBuyer = buyers[Math.floor(Math.random() * buyers.length)];
+      return {
+        updateOne: {
+          filter: { _id: pref._id },
+          update: { buyer: new mongoose.Types.ObjectId(randomBuyer._id) },
+        },
+      };
+    });
+
+    // Perform bulk write
+    const result = await DB.Models.Preference.bulkWrite(updates);
+
+    return {
+      message: 'Buyers assigned successfully to preferences',
+      updatedCount: result.modifiedCount || 0,
+    };
+  } catch (error) {
+    console.error(error);
+    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+  }
+}
+
+
+  // =================================
 
   public async getAllUsers() {
     const agents = await DB.Models.User.find().exec();
