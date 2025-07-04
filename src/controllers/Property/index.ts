@@ -84,31 +84,106 @@ export class PropertyController {
 		page: number,
 		limit: number,
 		briefType: string,
-		isApproved?: boolean
-	): Promise<{ data: IProperty[]; total: number; currentPage: number }> {
+		filters: {
+			location?: string;
+			priceRange?: { min?: number; max?: number };
+			documentType?: string[];
+			bedroom?: number;
+			bathroom?: number;
+			landSizeType?: string;
+			landSize?: number;
+			desireFeature?: string[];
+			homeCondition?: string;
+			tenantCriteria?: string[];
+			type?: string;
+		} = {}
+		): Promise<{ data: IProperty[]; total: number; currentPage: number }> {
 		try {
-			const properties = await DB.Models.Property.find({
-				briefType,
-				isPreference: false,
-			})
-				.skip((page - 1) * limit)
-				.limit(limit)
-				.sort({ createdAt: -1 })
-				.exec();
-			const total = await DB.Models.Property.countDocuments({
-				briefType,
-				isPreference: false,
-			}).exec();
+			const query: any = {
+			briefType,
+			isPreference: false,
+			isApproved: true,
+			};
+
+			// Location filter - match string against state, LGA, or area
+			if (filters.location) {
+			const locationSearch = new RegExp(filters.location, 'i');
+			query.$or = [
+				{ "location.state": locationSearch },
+				{ "location.localGovernment": locationSearch },
+				{ "location.area": locationSearch },
+			];
+			}
+
+			if (filters.priceRange) {
+			query.price = {};
+			if (filters.priceRange.min !== undefined)
+				query.price.$gte = filters.priceRange.min;
+			if (filters.priceRange.max !== undefined)
+				query.price.$lte = filters.priceRange.max;
+			}
+
+			if (filters.documentType?.length) {
+			query.docOnProperty = {
+				$elemMatch: {
+				docName: { $in: filters.documentType },
+				isProvided: true,
+				},
+			};
+			}
+
+			if (filters.bedroom !== undefined) {
+			query["additionalFeatures.noOfBedrooms"] = filters.bedroom;
+			}
+
+			if (filters.bathroom !== undefined) {
+			query["additionalFeatures.noOfBathrooms"] = filters.bathroom;
+			}
+
+			if (filters.landSizeType) {
+			query["landSize.measurementType"] = filters.landSizeType;
+			}
+
+			if (filters.landSize !== undefined) {
+			query["landSize.size"] = filters.landSize;
+			}
+
+			if (filters.desireFeature?.length) {
+			query["additionalFeatures.additionalFeatures"] = {
+				$all: filters.desireFeature,
+			};
+			}
+
+			if (filters.homeCondition) {
+			query.propertyCondition = filters.homeCondition;
+			}
+
+			if (filters.tenantCriteria?.length) {
+			query.tenantCriteria = { $all: filters.tenantCriteria };
+			}
+
+			if (filters.type) {
+			query.propertyType = filters.type;
+			}
+
+			const properties = await DB.Models.Property.find(query)
+			.skip((page - 1) * limit)
+			.limit(limit)
+			.sort({ createdAt: -1 })
+			.exec();
+
+			const total = await DB.Models.Property.countDocuments(query).exec();
 
 			return {
-				data: properties,
-				total,
-				currentPage: page,
+			data: properties,
+			total,
+			currentPage: page,
 			};
-		} catch (err) {
+		} catch (err: any) {
 			throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
 		}
 	}
+
 
 	/**
 	 *
