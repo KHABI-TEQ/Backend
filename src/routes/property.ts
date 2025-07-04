@@ -21,24 +21,75 @@ const propertyControl = new PropertyController();
 /******************************************************************************
  *                      Get All propertys - "GET /api/properties/all"
  ******************************************************************************/
-
-propertyRouter.get(
+	propertyRouter.get(
 	"/all",
 	async (req: Request, res: Response, next: NextFunction) => {
 		try {
-			const { page, limit, briefType } = req.query as ParamsDictionary;
-			const propertys = await propertyControl.all(
-				Number(page),
-				Number(limit),
-				briefType,
-				true
-			);
-			return res.status(HttpStatusCodes.OK).send(propertys);
+		const {
+			page = "1",
+			limit = "10",
+			briefType,
+			location,
+			priceRange,
+			documentType,
+			bedroom,
+			bathroom,
+			landSizeType,
+			landSize,
+			desireFeature,
+			homeCondition,
+			tenantCriteria,
+			type,
+		} = req.query as Record<string, string>;
+
+		// Ensure briefType is provided
+		if (!briefType) {
+			return res
+			.status(HttpStatusCodes.BAD_REQUEST)
+			.json({ error: "briefType is required" });
+		}
+
+		// Prepare filters to pass to controller
+		const filters = {
+			location: location || undefined,
+
+			priceRange: priceRange ? JSON.parse(priceRange) : undefined,
+			documentType: documentType ? documentType.split(",") : undefined,
+			desireFeature: desireFeature ? desireFeature.split(",") : undefined,
+			tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
+
+			homeCondition: homeCondition || undefined,
+			landSizeType: landSizeType || undefined,
+			type: type || undefined,
+
+			bedroom: bedroom ? Number(bedroom) : undefined,
+			bathroom: bathroom ? Number(bathroom) : undefined,
+			landSize: landSize ? Number(landSize) : undefined,
+		};
+
+		const result = await propertyControl.all(
+			Number(page),
+			Number(limit),
+			briefType,
+			filters
+		);
+
+		return res.status(HttpStatusCodes.OK).json({
+			success: true,
+			data: result.data,
+			pagination: {
+			total: result.total,
+			currentPage: result.currentPage,
+			totalPages: Math.ceil(result.total / Number(limit)),
+			perPage: Number(limit),
+			},
+		});
 		} catch (error) {
-			next(error);
+		next(error);
 		}
 	}
-);
+	);
+
 
 propertyRouter.get(
 	"/preference",

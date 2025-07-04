@@ -40,6 +40,23 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
+
+AdminRouter.use(authorizeAdmin);
+
+// Get current admin info
+AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    return res.status(200).json({ success: true, admin: req.admin });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+// Protect all other admin routes
+// AdminRouter.use(authorize);
+
+
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, firstName, lastName, phoneNumber, address } = req.body;
@@ -57,22 +74,41 @@ AdminRouter.post('/create-admin', async (req: Request, res: Response, next: Next
   }
 });
 
-AdminRouter.use(authorizeAdmin);
+AdminRouter.get('/admins', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page, limit, search, ...filters } = req.query;
 
-// Get current admin info
-AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+    const admins = await adminController.getAdmins({
+      page: parseInt(page as string) || 1,
+      limit: parseInt(limit as string) || 10,
+      search: search as string,
+      filters,
+    });
+
+    return res.status(200).json({ success: true, ...admins });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE: Delete admin account by ID
+AdminRouter.delete('/admins/:adminId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { adminId } = req.params;
+    const result = await adminController.deleteAdmin(adminId);
+    return res.status(200).json({ success: true, ...result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+AdminRouter.get('/profile', async (req: Request, res: Response, next: NextFunction) => {
   try {
     return res.status(200).json({ success: true, admin: req.admin });
   } catch (error) {
     next(error);
   }
 });
-
-
-
-
-// Protect all other admin routes
-// AdminRouter.use(authorize);
 
 AdminRouter.post('/change-password', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -110,12 +146,76 @@ AdminRouter.get('/agent/:agentId/properties', async (req: Request, res: Response
 
 AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await adminController.getAllUsers();
-    return res.status(200).json({ success: true, users });
+    const { page = '1', limit = '10', ...filters } = req.query;
+
+    const result = await adminController.getAllUsers({
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      filters,
+    });
+
+    return res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
 });
+
+
+AdminRouter.get('/agents', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page = '1', limit = '10', search = '', ...filters } = req.query;
+
+    const result = await adminController.getUsersByType({
+      userType: 'Agent',
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      search: search as string,
+      filters,
+    });
+
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/landowners', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page = '1', limit = '10', search = '', ...filters } = req.query;
+
+    const result = await adminController.getUsersByType({
+      userType: 'Landowners',
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      search: search as string,
+      filters,
+    });
+
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+AdminRouter.get('/agents/:id', async (req, res, next) => {
+  try {
+    const result = await adminController.getAgentProfile(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+AdminRouter.get('/landowners/:id', async (req, res, next) => {
+  try {
+    const result = await adminController.getLandownerProfile(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 AdminRouter.post('/properties', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
