@@ -325,6 +325,34 @@ AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFun
 });
 
 
+AdminRouter.get(
+  '/upgrade-agent',
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { page = '1', limit = '10' } = req.query;
+
+      const result = await adminController.getAllUpgradeRequests(
+        Number(page),
+        Number(limit)
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: result.data,
+        pagination: {
+          total: result.total,
+          currentPage: result.currentPage,
+          totalPages: Math.ceil(result.total / Number(limit)),
+          perPage: Number(limit),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
 AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agentId, approved } = req.body;

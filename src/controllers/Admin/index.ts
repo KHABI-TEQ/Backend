@@ -23,7 +23,7 @@ import { RouteError, signJwt, signJwtAdmin } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import bcrypt from 'bcryptjs';
 import { PropertyProps } from '../Property';
-import { IBriefMatchModel, IPreference, IProperty } from '../../models';
+import { IAgentDoc, IBriefMatchModel, IPreference, IProperty } from '../../models';
 import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
 
 export class AdminController {
@@ -715,6 +715,33 @@ export class AdminController {
       currentPage: page,
     };
   }
+
+  public async getAllUpgradeRequests(
+    page: number,
+    limit: number
+  ): Promise<{ data: IAgentDoc[]; total: number; currentPage: number }> {
+    try {
+      const query = { isInUpgrade: true };
+
+      const agents = await DB.Models.Agent.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ 'upgradeData.requestDate': -1 })
+        .populate('userId', 'email firstName lastName phoneNumber fullName')
+        .exec();
+
+      const total = await DB.Models.Agent.countDocuments(query).exec();
+
+      return {
+        data: agents,
+        total,
+        currentPage: page,
+      };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
 
 
   public async approveUpgradeRequest(_id: string, approved: boolean) {
