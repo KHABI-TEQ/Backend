@@ -484,15 +484,36 @@ AdminRouter.get('/preferences/:buyerId', async (req: Request, res: Response, nex
   }
 });
 
-AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const {userType} = req.query
-    const briefs = await adminController.getSubmittedBriefs(userType);
-    return res.status(200).json({ success: true, data: briefs });
-  } catch (error) {
-    next(error);
-  }
-});
+  
+  AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { userType, isApproved, isRejected, isAvailable, page, limit } = req.query;
+
+      const filters = {
+        isApproved: isApproved as string,
+        isRejected: isRejected as string,
+        isAvailable: isAvailable as string,
+        page: page as string,
+        limit: limit as string,
+      };
+
+      const briefs = await adminController.getSubmittedBriefs(userType as string, filters);
+
+      return res.status(200).json({
+        success: true,
+        data: briefs.data,
+        pagination: {
+          total: briefs.total,
+          currentPage: briefs.currentPage,
+          totalPages: briefs.totalPages,
+          perPage: briefs.perPage,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
 
 AdminRouter.post('/approve-brief/:briefId', async (req: Request, res: Response) => {
   try {
