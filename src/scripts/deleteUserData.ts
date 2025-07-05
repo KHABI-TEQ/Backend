@@ -70,8 +70,13 @@ async function deleteInspectionByEmails(emails: string[]): Promise<{ message: st
 (async () => {
     // ⚠️⚠️⚠️ IMPORTANT: Specify the emails you want to delete here! ⚠️⚠️⚠️
     const emailsToPurge = [
-        // 'gatukurh1@gmail.com',
-        ''
+        'gatukurh1@gmail.com',
+        'gatukurh1+2@gmail.com',
+        'gatukurh1+3@gmail.com',
+        'gatukurh1+4@gmail.com',
+        'gatukurh1+5@gmail.com',
+        'gatukurh1+6@gmail.com',
+        // ''
         // 'stephenadeosun411@gmail.com',
         // 'agbeloba4sem2019@gmail.com',
         // 'Ajaydy2k6@gmail.com',

@@ -1,4 +1,4 @@
-import { IUser, IUserDoc, IUserModel } from '../../models';
+import { IProperty, IUser, IUserDoc, IUserModel } from '../../models';
 import { DB } from '..';
 import { getMimeType, RouteError, signJwt } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
@@ -424,4 +424,148 @@ export class UserController {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }
+
+  public async getBriefsByOwner(
+    page: number,
+    limit: number,
+    filters: {
+      location?: string;
+      priceRange?: { min?: number; max?: number };
+      documentType?: string[];
+      bedroom?: number;
+      bathroom?: number;
+      landSizeType?: string;
+      landSize?: number;
+      desireFeature?: string[];
+      homeCondition?: string;
+      tenantCriteria?: string[];
+      type?: string[];
+      briefType?: string[];
+      isPremium?: boolean;
+      isPreference?: boolean;
+      status?: "approved" | "pending" | "all";
+      owner: string;
+    }
+  ): Promise<{ data: IProperty[]; total: number; currentPage: number }> {
+    try {
+      const query: any = {
+        owner: filters.owner,
+        isPreference: filters.isPreference ?? false,
+      };
+
+      if (filters.briefType?.length) {
+        query.briefType = { $in: filters.briefType };
+      }
+
+      if (filters.status) {
+        if (filters.status === "approved") query.isApproved = true;
+        else if (filters.status === "pending") query.isApproved = false;
+      }
+
+      if (filters.isPremium !== undefined) {
+        query.isPremium = filters.isPremium;
+      }
+
+      if (filters.location) {
+        const locationSearch = new RegExp(filters.location, "i");
+        query.$or = [
+          { "location.state": locationSearch },
+          { "location.localGovernment": locationSearch },
+          { "location.area": locationSearch },
+        ];
+      }
+
+      if (filters.priceRange) {
+        query.price = {};
+        if (filters.priceRange.min !== undefined) {
+          query.price.$gte = filters.priceRange.min;
+        }
+        if (filters.priceRange.max !== undefined) {
+          query.price.$lte = filters.priceRange.max;
+        }
+      }
+
+      if (filters.documentType?.length) {
+        query.docOnProperty = {
+          $elemMatch: {
+            docName: { $in: filters.documentType },
+            isProvided: true,
+          },
+        };
+      }
+
+      if (filters.bedroom !== undefined) {
+        query["additionalFeatures.noOfBedrooms"] = filters.bedroom;
+      }
+
+      if (filters.bathroom !== undefined) {
+        query["additionalFeatures.noOfBathrooms"] = filters.bathroom;
+      }
+
+      if (filters.landSizeType) {
+        query["landSize.measurementType"] = filters.landSizeType;
+      }
+
+      if (filters.landSize !== undefined) {
+        query["landSize.size"] = filters.landSize;
+      }
+
+      if (filters.desireFeature?.length) {
+        query["additionalFeatures.additionalFeatures"] = {
+          $all: filters.desireFeature,
+        };
+      }
+
+      if (filters.homeCondition) {
+        query.propertyCondition = filters.homeCondition;
+      }
+
+      if (filters.tenantCriteria?.length) {
+        query.tenantCriteria = { $all: filters.tenantCriteria };
+      }
+
+      if (filters.type?.length) {
+        query.propertyType = { $in: filters.type };
+      }
+
+      const properties = await DB.Models.Property.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .exec();
+
+      const total = await DB.Models.Property.countDocuments(query).exec();
+
+      return {
+        data: properties,
+        total,
+        currentPage: page,
+      };
+    } catch (err: any) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
+    }
+  }
+
+
+  public async getBriefById(id: string): Promise<IProperty | null> {
+    try {
+      const brief = await DB.Models.Property.findById(id)
+        .populate('owner', 'firstName lastName email phoneNumber profile_picture')
+        .exec();
+
+      if (!brief) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Brief not found");
+      }
+
+      return brief;
+    } catch (err: any) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, err.message);
+    }
+  }
+
+  public async deleteBriefById(_id: string): Promise<boolean> {
+    const result = await DB.Models.Property.findByIdAndDelete(_id);
+    return !!result;
+  }
+
 }
