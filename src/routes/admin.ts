@@ -305,15 +305,25 @@ AdminRouter.delete('/delete-agent/:id', async (req: Request, res: Response, next
   }
 });
 
+
 AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { page, limit, type, userType } = req.query;
-    const agents = await adminController.getAgents(Number(page), Number(limit), type, userType);
-    return res.status(200).json({ success: true, agents });
+    const { page = '1', limit = '10', type, userType, approved } = req.query;
+
+    const agents = await adminController.getAgents(
+      Number(page),
+      Number(limit),
+      type as string,
+      userType as string,
+      approved as string
+    );
+
+    return res.status(200).json({ success: true, ...agents });
   } catch (error) {
     next(error);
   }
 });
+
 
 AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: NextFunction) => {
   try {

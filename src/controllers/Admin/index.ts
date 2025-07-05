@@ -637,51 +637,74 @@ export class AdminController {
     }
   }
 
-  public async getAgents(page: number, limit: number, type: string, userType: string) {
+  public async getAgents(page: number, limit: number, type: string, userType: string, approved?: string) {
+    const isApproved = approved === 'true' ? true : approved === 'false' ? false : undefined;
+
+    // Stats
     const totalActiveAgents = await DB.Models.User.countDocuments({
       isInActive: false,
       accountApproved: true,
       userType,
     });
-    const totalInactiveAgents = await DB.Models.User.countDocuments({ isInActive: true }).exec();
-    const totalAgents = await DB.Models.User.countDocuments({}).exec();
-    const totalFlaggedAgents = await DB.Models.User.countDocuments({ isFlagged: true, userType }).exec();
 
-    let agents;
+    const totalInactiveAgents = await DB.Models.User.countDocuments({
+      isInActive: true,
+      accountApproved: true,
+      userType,
+    });
 
-    if (type === 'active') {
-      agents = await DB.Models.User.find({ isInActive: false, accountApproved: true, userType })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .exec();
-    } else if (type === 'inactive') {
-      agents = await DB.Models.User.find({ isInActive: true, accountApproved: true, userType })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .exec();
-    } else if (type === 'flagged') {
-      agents = await DB.Models.User.find({ isFlagged: true, accountApproved: true, userType })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .exec();
-    } else if (type === 'all') {
-      agents = await DB.Models.User.find({})
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .exec();
-    } else if (type === 'onboarding') {
-      agents = await DB.Models.Agent.find({
-        agentType: {
-          $nin: ['Individual', 'Company'],
-        },
-      })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .populate('userId', 'email firstName lastName phoneNumber fullName')
-        .exec();
-    } else {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid agent type');
+    const totalFlaggedAgents = await DB.Models.User.countDocuments({
+      isFlagged: true,
+      accountApproved: true,
+      userType,
+    });
+
+    const totalAgents = await DB.Models.User.countDocuments({ userType }).exec();
+
+    // Filters
+    const filter: any = { userType };
+    if (isApproved !== undefined) {
+      filter.accountApproved = isApproved;
     }
+
+    switch (type) {
+      case 'active':
+        filter.isInActive = false;
+        break;
+      case 'inactive':
+        filter.isInActive = true;
+        break;
+      case 'flagged':
+        filter.isFlagged = true;
+        break;
+      case 'all':
+        // allow `accountApproved = false` if explicitly passed
+        break;
+      case 'onboarding':
+        const onboarding = await DB.Models.Agent.find({
+          agentType: { $nin: ['Individual', 'Company'] },
+        })
+          .skip((page - 1) * limit)
+          .limit(limit)
+          .populate('userId', 'email firstName lastName phoneNumber fullName')
+          .exec();
+
+        return {
+          data: onboarding,
+          totalActiveAgents,
+          totalInactiveAgents,
+          totalFlaggedAgents,
+          totalAgents,
+          currentPage: page,
+        };
+      default:
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid agent type');
+    }
+
+    const agents = await DB.Models.User.find(filter)
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .exec();
 
     return {
       data: agents,
@@ -692,6 +715,7 @@ export class AdminController {
       currentPage: page,
     };
   }
+
 
   public async approveUpgradeRequest(_id: string, approved: boolean) {
     try {
