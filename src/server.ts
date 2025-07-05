@@ -78,7 +78,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   // Fallback for other error types
   // console.error('Unexpected Error:', err);
   res.status(500).json({
-    error: 'Internal Server Error',
+    error:err.message,
     message: err.message,
   });
 });

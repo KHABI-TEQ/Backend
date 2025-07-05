@@ -27,7 +27,7 @@
 // import mongoose from "mongoose";
 
 
-// class DocumentVerirfcationController {
+// class DocumentVerificationController {
 
 //    public async submitDocumentVerification(req: Request, res: Response){
 //   const { email, phoneNumber, address } = req.body;
@@ -66,4 +66,4 @@
 // }
 
 
-// export const documentVerirfcationController = new DocumentVerirfcationController();
+// export const documentVerificationController = new DocumentVerificationController();
