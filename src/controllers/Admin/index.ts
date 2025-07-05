@@ -1073,44 +1073,88 @@ public async getPreferencesByBuyerId(buyerId: string) {
 }
 
 
-  public async getSubmittedBriefs(userType?: string) {
-  const pipeline: any[] = [
-    { $match: { isApproved: false, isRejected: false } },
-    {
-      $lookup: {
-        from: 'users',
-        localField: 'owner',
-        foreignField: '_id',
-        as: 'owner',
+  public async getSubmittedBriefs(
+    userType: string,
+    filters?: {
+      isApproved?: string;
+      isRejected?: string;
+      isAvailable?: string;
+      page?: string;
+      limit?: string;
+    }
+  ) {
+    if (!userType || !['Landowners', 'Agent'].includes(userType)) {
+      throw new RouteError(HttpStatusCodes.NOT_ACCEPTABLE, 'Invalid User type');
+    }
+
+    const matchStage: any = {
+      'owner.userType': userType,
+    };
+
+    if (filters?.isApproved !== undefined) {
+      matchStage.isApproved = filters.isApproved === 'true';
+    }
+
+    if (filters?.isRejected !== undefined) {
+      matchStage.isRejected = filters.isRejected === 'true';
+    }
+
+    if (filters?.isAvailable !== undefined) {
+      matchStage.isAvailable = filters.isAvailable;
+    }
+
+    const page = parseInt(filters?.page || '1');
+    const limit = parseInt(filters?.limit || '10');
+    const skip = (page - 1) * limit;
+
+    const pipeline: any[] = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'owner',
+        },
       },
-    },
-    { $unwind: '$owner' },
-  ];
+      { $unwind: '$owner' },
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'preferences',
+          localField: 'preferenceId',
+          foreignField: '_id',
+          as: 'preferenceId',
+        },
+      },
+      {
+        $unwind: {
+          path: '$preferenceId',
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ];
 
-  if( !userType || !['Landowners', 'Agent'].includes(userType)){
-    throw new RouteError(HttpStatusCodes.NOT_ACCEPTABLE, "Invalid User type")
+    const result = await DB.Models.Property.aggregate(pipeline);
+    const data = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    return {
+      data,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+    };
   }
-
-  if (userType) {
-    pipeline.push({ $match: { 'owner.userType': userType } });
-  }
-
-  pipeline.push({
-    $lookup: {
-      from: 'preferences',
-      localField: 'preferenceId',
-      foreignField: '_id',
-      as: 'preferenceId',
-    },
-  });
-
-  pipeline.push({ $unwind: { path: '$preferenceId', preserveNullAndEmptyArrays: true } });
-
-  pipeline.push({ $sort: { createdAt: -1 } });
-
-  const briefs = await DB.Models.Property.aggregate(pipeline);
-  return briefs;
-}
 
 
 
