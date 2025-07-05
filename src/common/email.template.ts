@@ -358,80 +358,51 @@ export function generatePropertySellBriefEmail(data: any) {
 }
 
 export function generatePropertPreferenceBriefEmail(data: any) {
-	return ` <div class="container">
-            <h2>New Property Preference</h2>
-            <p>A new property preference has been submitted. Here are the details:</p>
-            
-            <div class="details">
-                <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${
-		data.location.localGovernment
-	}, ${data.location.area}</p>
-                <p><strong>Price:</strong> ₦${
-																	data.price || data.rentalPrice
-																}</p>
-                <p><strong>Number of Bedrooms:</strong> ${
-																	data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
-																}</p>
-                <p><strong>Features:</strong> ${
-																	data.propertyFeatures?.additionalFeatures?.join(", ") ||
-																	data.features?.map((f: any) => f.featureName).join(", ")
-																}</p>
-                ${
-																	data.tenantCriteria.length > 0 &&
-																	`<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-																		?.map((c: any) => c.criteria)
-																		.join(", ")}</p>`
-																}
-               ${
-																data.docOnProperty.length > 0 &&
-																`<p><strong>Documents on Property:</strong> ${data.docOnProperty
-																	?.map(
-																		(doc: any) =>
-																			`${doc.docName} (${
-																				doc.isProvided ? "Provided" : "Not Provided"
-																			})`
-																	)
-																	.join(", ")}</p>`
-															}
-               
-               ${
-																data.docOnProperty.length > 0 &&
-																`<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(
-																	", "
-																)}</p>`
-															}
-               
-                ${
-																	data.budgetRange &&
-																	`<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`
-																}
-            </div>
-    
-            ${
-													data.pictures && data.pictures.length
-														? `
-            <h3>Property Pictures</h3>
-            <div class="pictures">
-                ${data.pictures
-																	.map(
-																		(pic: any) =>
-																			`<img src="${pic}" alt="Property Image" width="400px" height="400px" style="margin-top: 10px; border-radius: 5px;">`
-																	)
-																	.join("")}
-            </div>
-            `
-														: ""
-												}
-            
-            ${
-													data.isAdmin
-														? "<p>Admin, please review and take the necessary actions.</p>"
-														: ""
-												}
-            
-        </div>`;
+	let details = "";
+
+  if (data.preferenceTYpe)
+		details += `<p><strong>Preference Type:</strong> ${data.preferenceType}</p>`;
+
+  if (data.propertyType)
+		details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
+if (data.propertyCondition)
+		details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
+
+if (data.location)
+		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
+  
+if (data.noOfBedrooms)
+		details += `<p><strong>Number of Bedrooms:</strong> ${data.noOfBedrooms}</p>`;
+  
+if (data.noOfBathrooms)
+		details += `<p><strong>Number of Bathrooms:</strong> ${data.noOfBathrooms}</p>`;
+
+if (data.budgetMin && data.budgetMax)
+		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - ₦${data.budgetMax}</p>`;
+
+  if (data.features?.length)
+		details += `<p><strong>Property Features:</strong> ${data.features.join(", ")}</p>`;
+
+	if (data.landSize)
+		details += `<p><strong>Land Size:</strong> ${data.landSize} ${data.measurementType}</p>`;
+
+	if (data.documents?.length > 0) 
+		details += `<p><strong>Documents:</strong> ${data.documents.join(", ")}</p>`;
+		
+	return `
+      <p>Hi Admin,</p>
+      <p>A potential buyer just submitted a preference:</p>
+      <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
+      <p><strong>Preference Details: </strong></p>
+        ${details}
+      </ul>
+      <p>Please, login to match the preference with a brief.</p>
+      <p>Thank you.</p>
+  `;
 }
+
+
+
 
 export function generatePropertyBriefEmail(ownerName: string, data: any) {
 	let details = "";
@@ -509,96 +480,42 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
 }
 
 export function generatePropertyPreferenceBriefEmail(
-	ownerName: string,
-	data: any
+  fullName:string,
+  data: any
 ) {
 	let details = "";
 
-	// if (data.briefType) details += `<p><strong>Brief Type:</strong> ${data.briefType}</p>`;
-	if (data.propertyType)
+  if (data.preferenceTYpe)
+		details += `<p><strong>Preference Type:</strong> ${data.preferenceType}</p>`;
+
+  if (data.propertyType)
 		details += `<p><strong>Property Type:</strong> ${data.propertyType}</p>`;
-	if (data.location)
+if (data.propertyCondition)
+		details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
+
+if (data.location)
 		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
-	if (data.price)
-		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - #${data.budgetMin}</p>`;
-	if (data.buildingType)
-		details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
-	if (
-		data.additionalFeatures &&
-		Object.keys(data.additionalFeatures).length > 0
-	) {
-		const featuresList = Object.entries(data.additionalFeatures)
-			.map(([key, value]) => {
-				// Convert camelCase to Title Case with spaces
-				const title = key
-					.replace(/([A-Z])/g, " $1")
-					.replace(/^./, (str) => str.toUpperCase());
-				return `${title}: ${value}`;
-			})
-			.join(", ");
+  
+if (data.noOfBedrooms)
+		details += `<p><strong>Number of Bedrooms:</strong> ${data.noOfBedrooms}</p>`;
+  
+if (data.noOfBathrooms)
+		details += `<p><strong>Number of Bathrooms:</strong> ${data.noOfBathrooms}</p>`;
 
-		details += `<p><strong>Property Features:</strong> ${featuresList}</p>`;
-	}
-	if (data.features?.length)
-		details += `<p><strong>Property Features:</strong> ${data.features.join(
-			", "
-		)}</p>`;
-
-	if (data.budgetMin && data.budgetMax)
+if (data.budgetMin && data.budgetMax)
 		details += `<p><strong>Price Range:</strong> ₦${data.budgetMin} - ₦${data.budgetMax}</p>`;
 
+  if (data.features?.length)
+		details += `<p><strong>Property Features:</strong> ${data.features.join(", ")}</p>`;
+
 	if (data.landSize)
-		details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
-	if (Array.isArray(data.docOnProperty) && data.docOnProperty.length > 0) {
-		const providedDocs = data.docOnProperty
-			.filter((doc: any) => doc.isProvided)
-			.map((doc: any) => doc.docName);
-		if (providedDocs.length > 0) {
-			details += `<p><strong>Documents on Property:</strong> ${providedDocs.join(
-				", "
-			)}</p>`;
-		}
-	}
+		details += `<p><strong>Land Size:</strong> ${data.landSize} ${data.measurementType}</p>`;
 
-	// Owner details
-	if (data.owner?.email)
-		details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
-	if (data.owner?.fullName)
-		details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
-	if (data.owner?.phoneNumber)
-		details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
-
-	// Boolean fields
-	if (typeof data.areYouTheOwner === "boolean") {
-		details += `<p><strong>Owner Status:</strong> ${
-			data.areYouTheOwner ? "Yes" : "No"
-		}</p>`;
-	}
-	if (typeof data.isAvailable === "boolean") {
-		details += `<p><strong>Availability:</strong> ${
-			data.isAvailable ? "Yes" : "No"
-		}</p>`;
-	}
-	if (typeof data.isApproved === "boolean") {
-		details += `<p><strong>Approved:</strong> ${
-			data.isApproved ? "Yes" : "No"
-		}</p>`;
-	}
-	if (typeof data.isRejected === "boolean") {
-		details += `<p><strong>Rejected:</strong> ${
-			data.isRejected ? "Yes" : "No"
-		}</p>`;
-	}
-
-	// Optional budget range (fallback to budgetMin/Max if needed)
-	if (data.budgetMin || data.budgetMax) {
-		const min = data.budgetMin ? `₦${data.budgetMin}` : "Not specified";
-		const max = data.budgetMax ? `₦${data.budgetMax}` : "Not specified";
-		details += `<p><strong>Budget Range:</strong> ${min} - ${max}</p>`;
-	}
-
+	if (data.documents?.length > 0) 
+		details += `<p><strong>Documents:</strong> ${data.documents.join(", ")}</p>`;
+		
 	return `
-      <p>Hi ${ownerName},</p>
+      <p>Hi ${fullName},</p>
       <p>Thank you for sharing your preferences with Khabi-Teq Realty! We'll match you with property briefs tailored to your needs:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Submitted Preference: </strong></p>

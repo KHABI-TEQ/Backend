@@ -7,6 +7,8 @@ import {
   CounterSellerTemplate,
   declineTemplate,
   generalTemplate,
+  generatePropertPreferenceBriefEmail,
+  generatePropertyPreferenceBriefEmail,
   InspectionAcceptedTemplate,
   InspectionRequestWithNegotiation,
   InspectionRequestWithNegotiationSellerTemplate,
@@ -163,6 +165,34 @@ class BuyerController {
         ...preferenceData,
         buyer: buyer._id,
       });
+
+
+      const mailBody = generatePropertyPreferenceBriefEmail(
+        fullName,
+        preference
+			);
+
+			const generalMailTemplate = generalTemplate(mailBody);
+
+			const adminEmail = process.env.ADMIN_EMAIL || "";
+
+			await sendEmail({
+				to:email,
+				subject: "New Property Preference",
+				text: generalMailTemplate,
+				html: generalMailTemplate,
+			});
+			const mailBody1 = generalTemplate(
+				generatePropertPreferenceBriefEmail(data)
+			);
+
+      
+			await sendEmail({
+				to: adminEmail,
+				subject: "New Property Preference",
+				text: mailBody1,
+				html: mailBody1,
+			});
 
       return {
         message: "Preference submitted successfully",
