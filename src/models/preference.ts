@@ -3,7 +3,7 @@ import { Schema, model, ObjectId, Document, Model, Types } from 'mongoose';
 export interface IPreference {
   buyer: Types.ObjectId;
   propertyType?: string;
-  propertyCondition?: 'Brand New' | 'Good Condition' | 'null';
+  propertyCondition?:string;
   preferenceType: 'buy' | 'joint-venture' | 'rent';
   location?: {
     state?: string;
@@ -37,7 +37,7 @@ export class Preference {
       {
         buyer: { type: Schema.Types.ObjectId, ref: 'Buyer', required: false },
         propertyType: { type: String },
-        propertyCondition: { type: String, enum: ['Brand New', 'Good Condition', "null"] , default:"null"},
+        propertyCondition: { type: String},
         preferenceType: {
           type: String,
           enum: ['buy', 'joint-venture', 'rent'],
