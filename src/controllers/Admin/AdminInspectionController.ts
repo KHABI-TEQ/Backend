@@ -198,7 +198,8 @@ export class AdminInspectionController {
       });
 
       await sendEmail({
-        to: owner.email, // Replace with owner.email in prod
+        to: "gatukurh1+4@gmail.com",
+        // to: owner.email, // Replace with owner.email in prod
         subject: `Inspection Request Submitted`,
         html: generalTemplate(sellerEmailHtml),
         text: generalTemplate(sellerEmailHtml),

@@ -7,22 +7,29 @@ import { NextFunction, Router, Response } from 'express';
 import validator from '../common/validator';
 import { UserController } from '../controllers/User';
 import { DB } from '../controllers';
-import { IUserDoc } from '../models';
+import { IAgentDoc, IUserDoc } from '../models';
+import { ParamsDictionary } from "express-serve-static-core";
 import AuthorizeAction from './authorize_action';
+import mongoose from 'mongoose';
 
 const upload = multer({
   storage: multer.memoryStorage(),
 });
 
 interface Request extends Express.Request {
-  user?: any;
-  body?: any;
-  query?: any;
+	user?: any;
+	query?: any;
+	params?: any;
+	body?: any;
 }
 
 // Init shared
 const router = Router();
 const userControl = new UserController();
+
+const validStatus = ["approved", "pending", "all"] as const;
+type ValidStatus = typeof validStatus[number];
+
 
 /******************************************************************************
  *                      add user - "POST /api/auth/register"
@@ -230,4 +237,201 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
     next(error);
   }
 });
+
+
+router.get(
+  "/dashboard",
+  AuthorizeAction,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const landlord = req.user as IUserDoc;
+
+      if (landlord.userType !== "Landowners") {
+        return res.status(403).json({ success: false, message: "Access denied" });
+      }
+
+      const matchOwner = { owner: landlord._id };
+
+      const totalBriefs = await DB.Models.Property.countDocuments(matchOwner);
+
+      const totalActiveBriefs = await DB.Models.Property.countDocuments({
+        ...matchOwner,
+        isApproved: true,
+      });
+
+      const totalInactiveBriefs = await DB.Models.Property.countDocuments({
+        ...matchOwner,
+        isApproved: false,
+      });
+
+      const propertySold = await DB.Models.Property.countDocuments({
+        ...matchOwner,
+        isAvailable: "no", // Or whatever logic represents "sold"
+      });
+
+      const totalViews = await DB.Models.Property.aggregate([
+        { $match: { owner: landlord._id } },
+        { $group: { _id: null, total: { $sum: "$views" } } },
+      ]);
+
+      const recentBriefs = await DB.Models.Property.find({
+        ...matchOwner,
+        isApproved: true,
+      })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("location.price propertyType pictures isApproved");
+
+      const newPendingBriefs = await DB.Models.Property.find({
+        ...matchOwner,
+        isApproved: false,
+      })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("location.price propertyType pictures isApproved");
+
+      return res.status(200).json({
+        success: true,
+        dashboard: {
+          totalBriefs,
+          totalActiveBriefs,
+          totalInactiveBriefs,
+          propertySold,
+          totalViews: totalViews[0]?.total || 0,
+          recentBriefs,
+          newPendingBriefs,
+        },
+      });
+    } catch (error) {
+      console.error("Dashboard error:", error);
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while fetching dashboard data.",
+      });
+    }
+  }
+);
+
+router.get(
+  "/briefs",
+  AuthorizeAction,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user as IUserDoc | IAgentDoc;
+
+      const {
+        page = "1",
+        limit = "10",
+        briefType,
+        location,
+        priceRange,
+        documentType,
+        bedroom,
+        bathroom,
+        landSizeType,
+        landSize,
+        desireFeature,
+        homeCondition,
+        tenantCriteria,
+        type,
+        isPremium,
+        isPreference,
+        status,
+      } = req.query as Record<string, string>;
+
+      const parsedStatus = validStatus.includes(status as ValidStatus)
+        ? (status as ValidStatus)
+        : undefined;
+
+      const filters = {
+        location: location || undefined,
+        priceRange: priceRange ? JSON.parse(priceRange) : undefined,
+        documentType: documentType ? documentType.split(",") : undefined,
+        desireFeature: desireFeature ? desireFeature.split(",") : undefined,
+        tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
+        homeCondition: homeCondition || undefined,
+        landSizeType: landSizeType || undefined,
+        status: parsedStatus,
+        bedroom: bedroom ? Number(bedroom) : undefined,
+        bathroom: bathroom ? Number(bathroom) : undefined,
+        landSize: landSize ? Number(landSize) : undefined,
+        isPremium: isPremium ? isPremium === "true" : undefined,
+        isPreference: isPreference ? isPreference === "true" : undefined,
+        briefType: briefType ? briefType.split(",") : undefined,
+        type: type ? type.split(",") : undefined,
+        owner: user._id.toString(),
+      };
+
+      const result = await userControl.getBriefsByOwner(
+        Number(page),
+        Number(limit),
+        filters
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: result.data,
+        filtersUsed: filters, // 🔥 Attach filters here
+        pagination: {
+          total: result.total,
+          currentPage: result.currentPage,
+          totalPages: Math.ceil(result.total / Number(limit)),
+          perPage: Number(limit),
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+
+router.get(
+  "/briefs/:_id",
+  AuthorizeAction,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { _id } = req.params;
+
+      const property = await userControl.getBriefById(_id);
+
+      return res.status(200).send({
+        success: true,
+        data: property
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.delete(
+  "/briefs/:_id",
+  AuthorizeAction,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { _id } = req.params;
+
+      // Optional: Validate ObjectId
+      if (!mongoose.isValidObjectId(_id)) {
+        return res.status(400).json({ error: "Invalid property ID." });
+      }
+
+      const deleted = await userControl.deleteBriefById(_id);
+
+      if (!deleted) {
+        return res.status(404).json({ error: "Brief not found or already deleted." });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Brief deleted successfully.",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
 export { router as UserRouter };
