@@ -35,6 +35,8 @@ import {
   IBriefMatchModel,
   IDocumentVerification,
   DocumentVerification,
+  InspectionActivityLog,
+  IInspectionActivityLogModel
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
 
@@ -46,6 +48,7 @@ declare interface IModels {
   BuyerOrRent: IBuyerOrRentModel;
   PropertyRequest: IPropertyRequestModel;
   InspectionSlot: IInspectionSlotModel;
+  InspectionActivityLog: IInspectionActivityLogModel;
   InspectionBooking: IInspectionBookingModel;
   Admin: IAdminModel;
   User: IUserModel;
@@ -81,6 +84,7 @@ export class DB {
       BuyerOrRent: new BuyerOrRent().model,
       PropertyRequest: new PropertyRequest().model,
       InspectionSlot: new InspectionSlot().model,
+      InspectionActivityLog: new InspectionActivityLog().model,
       InspectionBooking: new InspectionBooking().model,
       Admin: new Admin().model,
       User: new User().model,

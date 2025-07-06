@@ -436,6 +436,54 @@ AdminRouter.delete('/agents/:agentId/delete', async (req: Request, res: Response
   }
 });
 
+AdminRouter.get('/buyers', async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, status } = req.query;
+    const data = await adminController.getAllBuyers({
+      page: Number(page),
+      limit: Number(limit),
+      status: status as string,
+    });
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/buyers/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const data = await adminController.getSingleBuyer(id);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/buyers/:id/preferences', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const data = await adminController.getBuyerPreferences(id, Number(page), Number(limit));
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/buyers/:id/inspections', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    const data = await adminController.getBuyerInspections(id, Number(page), Number(limit));
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 
 

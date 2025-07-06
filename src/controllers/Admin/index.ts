@@ -727,37 +727,121 @@ export class AdminController {
   }
 
   public async deleteAgent(agentId: string, reason: string) {
-  try {
-    const agent = await DB.Models.User.findById(agentId).exec();
+    try {
+      const agent = await DB.Models.User.findById(agentId).exec();
 
-    if (!agent) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // Delete associated Agent record
+      await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
+
+      // Delete all properties owned by the agent
+      // await DB.Models.Property.deleteMany({ owner: agent._id }).exec();
+
+      // Delete the User
+      await DB.Models.User.findByIdAndDelete(agent._id).exec();
+
+      // Send email notification
+      const mailBody = generalTemplate(DeleteAgent(agent.firstName || agent.lastName || agent.email, reason));
+
+      await sendEmail({
+        to: agent.email,
+        subject: 'Account Deleted',
+        text: mailBody,
+        html: mailBody,
+      });
+
+      return 'Agent and associated records deleted successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
-
-    // Delete associated Agent record
-    await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
-
-    // Delete all properties owned by the agent
-    // await DB.Models.Property.deleteMany({ owner: agent._id }).exec();
-
-    // Delete the User
-    await DB.Models.User.findByIdAndDelete(agent._id).exec();
-
-    // Send email notification
-    const mailBody = generalTemplate(DeleteAgent(agent.firstName || agent.lastName || agent.email, reason));
-
-    await sendEmail({
-      to: agent.email,
-      subject: 'Account Deleted',
-      text: mailBody,
-      html: mailBody,
-    });
-
-    return 'Agent and associated records deleted successfully';
-  } catch (error) {
-    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
   }
-}
+
+  public async getAllBuyers({
+    page = 1,
+    limit = 10,
+    status,
+  }: {
+    page: number;
+    limit: number;
+    status?: string;
+  }) {
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (status) filter.status = status;
+
+    const [buyers, total] = await Promise.all([
+      DB.Models.Buyer.find(filter).skip(skip).limit(limit).lean(),
+      DB.Models.Buyer.countDocuments(filter),
+    ]);
+
+    return {
+      data: buyers,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+  public async getSingleBuyer(id: string) {
+    const buyer = await DB.Models.Buyer.findById(id).lean();
+    if (!buyer) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Buyer not found');
+    return buyer;
+  }
+
+  public async getBuyerPreferences(buyerId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [preferences, total] = await Promise.all([
+      DB.Models.Preference.find({ buyer: buyerId })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      DB.Models.Preference.countDocuments({ buyer: buyerId }),
+    ]);
+
+    return {
+      data: preferences,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+  public async getBuyerInspections(buyerId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [inspections, total] = await Promise.all([
+      DB.Models.InspectionBooking.find({ requestedBy: buyerId })
+        .populate('propertyId', 'title location')
+        .populate('owner', 'firstName lastName email')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean(),
+      DB.Models.InspectionBooking.countDocuments({ requestedBy: buyerId }),
+    ]);
+
+    return {
+      data: inspections,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+
 
 
 
