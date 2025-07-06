@@ -27,6 +27,7 @@ import { IAgentDoc, IBriefMatchModel, IPreference, IProperty, IUserDoc } from '.
 import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
 import { Model } from 'mongoose';
 import { formatAgentDataForTable, formatLandOwnerDataForTable, formatUpgradeAgentForTable } from '../../utils/userFormatters';
+import { formatPropertyDataForTable } from '../../utils/propertyFormatters';
 
 
 export class AdminController {
@@ -440,6 +441,133 @@ export class AdminController {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
   }
+
+  public async approveAgentOnboarding(_id: string, approved: boolean) {
+    try {
+      // 1. Update the user’s approval status
+      const userAcct = await DB.Models.User.findByIdAndUpdate(
+        _id,
+        { accountApproved: approved },
+        { new: true }
+      ).exec();
+
+      if (!userAcct) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // 2. Update the corresponding agent’s approval status
+      await DB.Models.Agent.findOneAndUpdate(
+        { userId: userAcct._id },
+        { accountApproved: approved },
+        { new: true }
+      ).exec();
+
+      // 3. Compose the email
+      const subject = approved
+        ? 'Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!'
+        : 'Update on Your KhabiTeqRealty Application';
+
+      const emailBody = generalTemplate(
+        approved
+          ? accountApproved(userAcct.firstName)
+          : accountDisaapproved(userAcct.firstName)
+      );
+
+      // 4. Send the email
+      await sendEmail({
+        to: userAcct.email,
+        subject,
+        text: emailBody,
+        html: emailBody,
+      });
+
+      return approved ? 'Agent onboarding approved successfully' : 'Agent onboarding rejected successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async flagOrUnflagAgent(agentId: string, status: boolean) {
+    try {
+      const isFlagged = status;
+
+      const agent = await DB.Models.Agent.findByIdAndUpdate(
+        agentId,
+        { isFlagged },
+        { new: true }
+      ).exec();
+
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // Optional: Also update the associated User's isFlagged field
+      await DB.Models.User.findByIdAndUpdate(agent.userId, { isFlagged }).exec();
+
+      return isFlagged
+        ? 'Agent flagged successfully'
+        : 'Agent unflagged successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  };
+
+  public async flagOrUnflagLandowner(userId: string, status: boolean) {
+    try {
+      const isFlagged = status;
+
+      const user = await DB.Models.User.findOneAndUpdate(
+        { _id: userId, userType: 'Landowners' },
+        { isFlagged },
+        { new: true }
+      ).exec();
+
+      if (!user) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Landowner not found');
+      }
+
+      return isFlagged
+        ? 'Landowner flagged successfully'
+        : 'Landowner unflagged successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async getPropertiesByUser(userId: string, page: number = 1, limit: number = 10) {
+    const user = await DB.Models.User.findById(userId).lean();
+    if (!user || !['Agent', 'Landowners'].includes(user.userType)) {
+      throw new Error('User not found or not eligible');
+    }
+
+    const query = { owner: userId };
+
+    const properties = await DB.Models.PropertySell.find(query)
+      .populate('owner', 'email firstName lastName fullName phoneNumber userType')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const total = await DB.Models.PropertySell.countDocuments(query);
+
+    return {
+      data: properties.map(formatPropertyDataForTable),
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+
+
+
+
+
+
 
 
 
@@ -907,34 +1035,8 @@ export class AdminController {
     }
   }
 
-  public async approveAgent(_id: string, approved: boolean) {
-    try {
-      const userAcct = await DB.Models.User.findByIdAndUpdate(_id, { accountApproved: approved }).exec();
+  
 
-      if (!userAcct) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-
-      const agent = await DB.Models.Agent.findOneAndUpdate({ userId: userAcct._id }, { accountApproved: true }).exec();
-
-      const body = approved ? accountApproved(userAcct.firstName) : accountDisaapproved(userAcct.firstName);
-
-      const subject = approved
-        ? 'Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!'
-        : 'Update on Your KhabiTeqRealty Application';
-
-      const mailBody = generalTemplate(body);
-
-      await sendEmail({
-        to: userAcct.email,
-        subject: subject,
-        text: mailBody,
-        html: mailBody,
-      });
-
-      return 'Agent approved';
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
 
   public async getAgents(page: number, limit: number, type: string, userType: string, approved?: string) {
     const isApproved = approved === 'true' ? true : approved === 'false' ? false : undefined;
