@@ -198,8 +198,8 @@ export class AdminInspectionController {
       });
 
       await sendEmail({
-        to: "gatukurh1+4@gmail.com",
-        // to: owner.email, // Replace with owner.email in prod
+        // to: "gatukurh1+4@gmail.com",
+        to: owner.email, // Replace with owner.email in prod
         subject: `Inspection Request Submitted`,
         html: generalTemplate(sellerEmailHtml),
         text: generalTemplate(sellerEmailHtml),
@@ -212,6 +212,59 @@ export class AdminInspectionController {
       data: inspection,
     });
   }
+
+
+  public async getInspectionStats(req: Request, res: Response): Promise<Response> {
+    try {
+      // 1. Count total inspections
+      const totalInspections = await DB.Models.InspectionBooking.countDocuments();
+
+      // 2. Count pending inspections
+      const totalPendingInspections = await DB.Models.InspectionBooking.countDocuments({
+        status: 'pending_transaction',
+      });
+
+      // 3. Count completed inspections
+      const totalCompletedInspections = await DB.Models.InspectionBooking.countDocuments({
+        status: 'completed',
+      });
+
+      // 4. Count cancelled inspections
+      const totalCancelledInspections = await DB.Models.InspectionBooking.countDocuments({
+        status: 'cancelled',
+      });
+
+      // 5. Count active negotiations
+      const activeNegotiationStatuses: IInspectionBooking['status'][] = [
+        'pending_inspection',
+        'inspection_approved',
+        'inspection_rescheduled',
+        'negotiation_countered',
+        'negotiation_accepted',
+        'negotiation_rejected',
+        'negotiation_cancelled',
+      ];
+
+      const totalActiveNegotiations = await DB.Models.InspectionBooking.countDocuments({
+        status: { $in: activeNegotiationStatuses },
+      });
+
+      // 6. Return as structured response
+      return res.status(200).json({
+        success: true,
+        data: {
+          totalInspections,
+          totalPendingInspections,
+          totalCompletedInspections,
+          totalCancelledInspections,
+          totalActiveNegotiations,
+        },
+      });
+    } catch (error: any) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Error getting stats');
+    }
+  }
+
 
 
 }
