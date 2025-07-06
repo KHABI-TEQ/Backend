@@ -1,3 +1,4 @@
+import { number } from 'joi/lib';
 import { Schema, model, Document, Model } from 'mongoose';
 
 export interface IDocumentVerification {
@@ -5,10 +6,17 @@ export interface IDocumentVerification {
   email: string;
   phoneNumber: string;
   address: string;
-  documents: string[];
+  amountPaid: number;
+  transactionReceipt?: string;
+  documents: {
+    documentType: string;
+    documentNumber: string;
+    documentUrl: string;
+  }[];
   resultDocuments: string[];
-  status: 'pending' | 'approved' | 'uploaded';
+  status: 'pending' | 'confirmed' | 'rejected' | 'successful';
 }
+
 
 export interface IDocumentVerificationDoc extends IDocumentVerification, Document {}
 
@@ -21,14 +29,20 @@ export class DocumentVerification {
     const schema = new Schema(
       {
         fullName: { type: String, required: true },
-        email: { type: String, required: true, unique: true },
+        email: { type: String, required: true},
         phoneNumber: { type: String, required: true },
         address: { type: String, required: true },
-        documents: [{ type: String, required: true }],
+        amountPaid:{type:Number,required: true},
+        transactionReceipt:{type:String},
+        documents: [{ 
+          documentType:{type: String, required: true },
+          documentNumber:{type:String, required: true},
+          documentUrl:{type:String, required: true},
+        }],
         resultDocuments: [{ type: String }],
         status: {
           type: String,
-          enum: ['pending', 'approved', 'uploaded'],
+          enum: ['pending', 'confirmed', "rejected", 'successful'],
           default: 'pending',
         },
       },

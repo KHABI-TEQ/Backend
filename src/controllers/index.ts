@@ -24,16 +24,13 @@ import {
   IPropertyModel,
   ITransactionModel,
   Transaction,
-  IBuyer,
   Buyer,
   IBuyerModel,
   Preference,
-  IPreference,
-  BriefMatch,
-  IBriefMatch,
   IPreferenceModel,
+  BriefMatch,
   IBriefMatchModel,
-  IDocumentVerification,
+  IDocumentVerificationModel,
   DocumentVerification,
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
@@ -54,7 +51,7 @@ declare interface IModels {
   Buyer: IBuyerModel;
   Preference:IPreferenceModel;
   BriefMatch:IBriefMatchModel;
-  // DocumentVerification:IDocumentVerification;
+  DocumentVerification:IDocumentVerificationModel;
 }
 
 export class DB {
@@ -89,7 +86,7 @@ export class DB {
       Buyer: new Buyer().model,
       Preference: new Preference().model,
       BriefMatch: new BriefMatch().model,
-      // DocumentVerification: new DocumentVerification().model,
+      DocumentVerification: new DocumentVerification().model,
     };
   }
 
