@@ -221,19 +221,104 @@ AdminRouter.get('/landowners', async (req: Request, res: Response, next: NextFun
   }
 });
 
-AdminRouter.get('/agents/:id', async (req, res, next) => {
+AdminRouter.get('/agents/:userId', async (req, res, next) => {
   try {
-    const result = await adminController.getAgentProfile(req.params.id);
+    const result = await adminController.getAgentProfile(req.params.userId);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
   }
 });
 
-AdminRouter.get('/landowners/:id', async (req, res, next) => {
+AdminRouter.get('/landowners/:userId', async (req, res, next) => {
   try {
-    const result = await adminController.getLandownerProfile(req.params.id);
+    const result = await adminController.getLandownerProfile(req.params.userId);
     res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+AdminRouter.put('/landowners/:userId/flag-account', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.body;
+
+    if (typeof status !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'status (boolean) is required in the body.',
+      });
+    }
+
+    const message = await adminController.flagOrUnflagLandowner(userId, status);
+
+    return res.status(200).json({
+      success: true,
+      message,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/agents/approve-agent', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId, approved } = req.body;
+
+    if (!agentId || typeof approved !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'agentId and approved (boolean) are required.',
+      });
+    }
+
+    const message = await adminController.approveAgentOnboarding(agentId, approved);
+
+    return res.status(200).json({
+      success: true,
+      message,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.put('/agents/:agentId/flag-account', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.params;
+    const { status } = req.body;
+
+    if (typeof status !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'status (boolean) is required in the body.',
+      });
+    }
+
+    const message = await adminController.flagOrUnflagAgent(agentId, status);
+
+    return res.status(200).json({
+      success: true,
+      message,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/users/:userId/properties', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const { page = '1', limit = '10' } = req.query;
+
+    const result = await adminController.getPropertiesByUser(userId, Number(page), Number(limit));
+
+    res.status(200).json({
+      success: true,
+      data: result.data,
+      pagination: result.pagination,
+    });
   } catch (err) {
     next(err);
   }
@@ -419,28 +504,6 @@ AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFun
 
 
 
-AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { agentId, approved } = req.body;
-    const response = await adminController.approveAgent(agentId, approved);
-    return res.status(200).json({ success: true, response });
-  } catch (error) {
-    next(error);
-  }
-});
-
-AdminRouter.put('/agent/flag/:agentId/:status', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { agentId, status } = req.params;
-    const isFlagged = status === 'true' ? true : false;
-    await DB.Models.Agent.findByIdAndUpdate(agentId, { isFlagged: isFlagged });
-    return res
-      .status(200)
-      .json({ success: true, message: isFlagged ? 'Agent flagged successfully' : 'Agent unflagged successfully' });
-  } catch (error) {
-    next(error);
-  }
-});
 
 AdminRouter.post('/property/new', async (req: Request, res: Response, next: NextFunction) => {
   try {
