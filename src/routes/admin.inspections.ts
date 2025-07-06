@@ -19,5 +19,8 @@ AdminInspRouter.patch('/inspections/:id/status', use(controller.updateInspection
 // Fetch inspection stats
 AdminInspRouter.get('/inspections/stats', use(controller.getInspectionStats.bind(controller)));
 
+// Fetch inspection logs
+AdminInspRouter.get('/inspections/logs', use(controller.getInspectionLogs.bind(controller)));
+
 
 export default AdminInspRouter;
