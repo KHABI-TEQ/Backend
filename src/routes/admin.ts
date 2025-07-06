@@ -453,6 +453,39 @@ AdminRouter.get('/buyers', async (req, res, next) => {
     next(error);
   }
 });
+ 
+// Create buyer
+AdminRouter.post('/buyers', async (req, res, next) => {
+  try {
+    const data = await adminController.createBuyer(req.body);
+    return res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update buyer
+AdminRouter.put('/buyers/:id/update', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const data = await adminController.updateBuyer(id, req.body);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete buyer
+AdminRouter.delete('/buyers/:id/delete', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await adminController.deleteBuyer(id);
+    return res.status(200).json({ success: true, message: 'Buyer deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 AdminRouter.get('/buyers/:id', async (req, res, next) => {
   try {

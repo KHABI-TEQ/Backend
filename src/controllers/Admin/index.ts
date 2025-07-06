@@ -759,6 +759,28 @@ export class AdminController {
     } catch (error) {
       throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
     }
+  } 
+
+  public async createBuyer(input: { fullName: string; email: string; phoneNumber: string }) {
+    const { fullName, email, phoneNumber } = input;
+
+    if (!fullName || !email || !phoneNumber) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Full name, email, and phone number are required');
+    }
+
+    const buyer = await DB.Models.Buyer.create({ fullName, email, phoneNumber });
+    return buyer.toObject();
+  }
+
+  public async updateBuyer(id: string, input: Partial<{ fullName: string; email: string; phoneNumber: string }>) {
+    const buyer = await DB.Models.Buyer.findByIdAndUpdate(id, input, { new: true, lean: true });
+    if (!buyer) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Buyer not found');
+    return buyer;
+  }
+
+  public async deleteBuyer(id: string) {
+    const result = await DB.Models.Buyer.findByIdAndDelete(id);
+    if (!result) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Buyer not found');
   }
 
   public async getAllBuyers({
