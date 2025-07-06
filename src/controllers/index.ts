@@ -35,8 +35,8 @@ import {
   IBriefMatchModel,
   IDocumentVerification,
   DocumentVerification,
-  InspectionActivityLog,
-  IInspectionActivityLogModel
+  IInspectionActivityLogModel,
+  InspectionActivityLogModel
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
 
@@ -84,7 +84,7 @@ export class DB {
       BuyerOrRent: new BuyerOrRent().model,
       PropertyRequest: new PropertyRequest().model,
       InspectionSlot: new InspectionSlot().model,
-      InspectionActivityLog: new InspectionActivityLog().model,
+      InspectionActivityLog: InspectionActivityLogModel,
       InspectionBooking: new InspectionBooking().model,
       Admin: new Admin().model,
       User: new User().model,
