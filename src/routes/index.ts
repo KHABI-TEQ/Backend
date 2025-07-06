@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import PropertyRentRouter from './property.rent.api.actions';
 import PropertySellRouter from './property.sell.api.actions';
 import AgentRouter from './agent.api';
@@ -16,6 +16,7 @@ import AdminRouter from './admin';
 import propertyRouter from './property';
 import { UserRouter } from './user.api';
 import { buyerRouter } from './buyer';
+import {documentVerificationController} from '../controllers/DocumentVerification';
 
 const router = express.Router();
 
@@ -131,6 +132,35 @@ router.post('/property/schedule-inspection', async (req: Request, res: Response)
     res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message || 'Internal server error' });
   }
 });
+
+//=============================================================
+const uploadFields = upload.fields([
+  { name: 'documents', maxCount: 2 },
+  { name: 'receipt', maxCount: 1 },
+]);
+
+router.post('/submit-docs', uploadFields, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await documentVerificationController.submitDocumentVerification(req.body,
+      (req as Request & { files: { documents: Express.Multer.File[]; receipt: Express.Multer.File[] } }).files
+    );
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/verification-result', async (req:Request, res:Response, next:NextFunction) => {
+  try {
+    const { email } = req.query;
+    const result = await documentVerificationController.getVerificationResult(email as string);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+//===============================================
 
 // Add sub-routes
 router.use('/admin', AdminRouter);
