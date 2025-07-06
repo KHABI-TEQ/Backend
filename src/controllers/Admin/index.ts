@@ -26,7 +26,7 @@ import { PropertyProps } from '../Property';
 import { IAgentDoc, IBriefMatchModel, IPreference, IProperty, IUserDoc } from '../../models';
 import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
 import { Model } from 'mongoose';
-import { formatAgentDataForTable, formatLandOwnerDataForTable } from '../../utils/userFormatters';
+import { formatAgentDataForTable, formatLandOwnerDataForTable, formatUpgradeAgentForTable } from '../../utils/userFormatters';
 
 
 export class AdminController {
@@ -42,218 +42,213 @@ export class AdminController {
 
   //==================================
 
-public async getAllProperties(filters?: {
-  ownerType?: 'Landowners' | 'Agent' | 'All';
-  isPremium?: string;
-  isApproved?: string;
-  isRejected?: string;
-  isAvailable?: string;
-  briefType?: string[];
-  location?: string;
-  propertyType?: string;
-  priceMin?: string;
-  priceMax?: string;
-  isPreference?: string;
-  buildingType?: string[];
-  page?: string;
-  limit?: string;
-}) {
-  const matchStage: any = {};
-
-  // User type (owner)
-  if (filters?.ownerType && filters.ownerType !== 'All') {
-    matchStage['owner.userType'] = filters.ownerType;
-  }
-
-  // Boolean filters
-  if (filters?.isPremium !== undefined) matchStage.isPremium = filters.isPremium === 'true';
-  if (filters?.isApproved !== undefined) matchStage.isApproved = filters.isApproved === 'true';
-  if (filters?.isRejected !== undefined) matchStage.isRejected = filters.isRejected === 'true';
-  if (filters?.isAvailable !== undefined) matchStage.isAvailable = filters.isAvailable;
-  if (filters?.isPreference !== undefined) matchStage.isPreference = filters.isPreference === 'true';
-
-  // Exact match
-  if (filters?.propertyType) matchStage.propertyType = filters.propertyType;
-
-  // briefType array
-  if (filters?.briefType?.length) {
-    matchStage.briefType = { $in: filters.briefType };
-  }
-
-  // buildingType array
-  if (filters?.buildingType?.length) {
-    matchStage.buildingType = { $in: filters.buildingType };
-  }
-
-  // location: check in multiple fields using $or
-  if (filters?.location) {
-    const regex = new RegExp(filters.location, 'i');
-    matchStage.$or = [
-      { 'location.state': regex },
-      { 'location.localGovernment': regex },
-      { 'location.area': regex },
-    ];
-  }
-
-  // Price Range
-  if (filters?.priceMin || filters?.priceMax) {
-    matchStage.price = {};
-    if (filters.priceMin) matchStage.price.$gte = Number(filters.priceMin);
-    if (filters.priceMax) matchStage.price.$lte = Number(filters.priceMax);
-  }
-
-  const page = parseInt(filters?.page || '1');
-  const limit = parseInt(filters?.limit || '10');
-  const skip = (page - 1) * limit;
-
-  const pipeline: any[] = [
-    {
-      $lookup: {
-        from: 'users',
-        localField: 'owner',
-        foreignField: '_id',
-        as: 'owner',
-      },
-    },
-    { $unwind: '$owner' },
-    { $match: matchStage },
-    { $sort: { createdAt: -1 } },
-    {
-      $facet: {
-        data: [{ $skip: skip }, { $limit: limit }],
-        totalCount: [{ $count: 'count' }],
-      },
-    },
-  ];
-
-  const result = await DB.Models.Property.aggregate(pipeline);
-  const data = result[0]?.data || [];
-  const total = result[0]?.totalCount[0]?.count || 0;
-
-  return {
-    data,
-    total,
-    currentPage: page,
-    totalPages: Math.ceil(total / limit),
-    perPage: limit,
-  };
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  public async randomlyAssignBuyersToPreferences() {
-  try {
-    // Fetch all buyer IDs
-    const buyers = await DB.Models.Buyer.find({}, '_id').lean().exec();
-    if (!buyers.length) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'No buyers found');
-    }
-
-    // Fetch all preferences where buyer is null
-    const preferences = await DB.Models.Preference.find().exec();
-
-    if (!preferences.length) {
-      return {
-        message: 'No preferences to update',
-        updatedCount: 0,
-      };
-    }
-
-    // Randomly assign buyers
-    const updates = preferences.map((pref) => {
-      const randomBuyer:any = buyers[Math.floor(Math.random() * buyers.length)];
-      return {
-        updateOne: {
-          filter: { _id: pref._id },
-          update: { buyer: new mongoose.Types.ObjectId(randomBuyer._id) },
-        },
-      };
-    });
-
-    // Perform bulk write
-    const result = await DB.Models.Preference.bulkWrite(updates);
-
-    return {
-      message: 'Buyers assigned successfully to preferences',
-      updatedCount: result.modifiedCount || 0,
-    };
-  } catch (error) {
-    console.error(error);
-    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-  }
-}
-
-
-  // =================================
-
-  public async getAllUsers(params: {
-    page: number;
-    limit: number;
-    filters?: any;
-    search?: string;
+  public async getAllProperties(filters?: {
+    ownerType?: 'Landowners' | 'Agent' | 'All';
+    isPremium?: string;
+    isApproved?: string;
+    isRejected?: string;
+    isAvailable?: string;
+    briefType?: string[];
+    location?: string;
+    propertyType?: string;
+    priceMin?: string;
+    priceMax?: string;
+    isPreference?: string;
+    buildingType?: string[];
+    page?: string;
+    limit?: string;
   }) {
-    const { page = 1, limit = 10, filters = {}, search = '' } = params;
+    const matchStage: any = {};
 
-    const query: any = {};
+    // User type (owner)
+    if (filters?.ownerType && filters.ownerType !== 'All') {
+      matchStage['owner.userType'] = filters.ownerType;
+    }
 
-    // 🔍 Optional filters
-    if (filters?.email) query.email = { $regex: filters.email, $options: 'i' };
-    if (filters?.role) query.role = filters.role;
-    if (filters?.status) query.status = filters.status;
+    // Boolean filters
+    if (filters?.isPremium !== undefined) matchStage.isPremium = filters.isPremium === 'true';
+    if (filters?.isApproved !== undefined) matchStage.isApproved = filters.isApproved === 'true';
+    if (filters?.isRejected !== undefined) matchStage.isRejected = filters.isRejected === 'true';
+    if (filters?.isAvailable !== undefined) matchStage.isAvailable = filters.isAvailable;
+    if (filters?.isPreference !== undefined) matchStage.isPreference = filters.isPreference === 'true';
 
-    // 🔎 Optional search on multiple fields
-    if (search.trim()) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
+    // Exact match
+    if (filters?.propertyType) matchStage.propertyType = filters.propertyType;
+
+    // briefType array
+    if (filters?.briefType?.length) {
+      matchStage.briefType = { $in: filters.briefType };
+    }
+
+    // buildingType array
+    if (filters?.buildingType?.length) {
+      matchStage.buildingType = { $in: filters.buildingType };
+    }
+
+    // location: check in multiple fields using $or
+    if (filters?.location) {
+      const regex = new RegExp(filters.location, 'i');
+      matchStage.$or = [
+        { 'location.state': regex },
+        { 'location.localGovernment': regex },
+        { 'location.area': regex },
       ];
     }
 
-    const skip = (page - 1) * limit;
-    const total = await DB.Models.User.countDocuments(query);
+    // Price Range
+    if (filters?.priceMin || filters?.priceMax) {
+      matchStage.price = {};
+      if (filters.priceMin) matchStage.price.$gte = Number(filters.priceMin);
+      if (filters.priceMax) matchStage.price.$lte = Number(filters.priceMax);
+    }
 
-    const usersRaw = await DB.Models.User.find(query)
+    const page = parseInt(filters?.page || '1');
+    const limit = parseInt(filters?.limit || '10');
+    const skip = (page - 1) * limit;
+
+    const pipeline: any[] = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'owner',
+        },
+      },
+      { $unwind: '$owner' },
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ];
+
+    const result = await DB.Models.Property.aggregate(pipeline);
+    const data = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    return {
+      data,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+    };
+  }
+
+  public async createAdmin(adminCred: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    address: string;
+    password?: string; // optional password
+  }) {
+    try {
+      const { email, firstName, lastName, phoneNumber, address, password } = adminCred;
+
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const existingAdmin = await DB.Models.Admin.findOne({ email: normalizedEmail }).exec();
+      if (existingAdmin) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin with this email already exists');
+      }
+
+      const hashedPassword = await bcrypt.hash(password || this.defaultPassword, 10);
+
+      const newAdmin = new DB.Models.Admin({
+        email: normalizedEmail,
+        firstName,
+        lastName,
+        phoneNumber,
+        address,
+        password: hashedPassword,
+      });
+
+      await newAdmin.save();
+
+      return {
+        message: 'Admin created successfully',
+        admin: newAdmin.toObject(),
+      };
+    } catch (error: any) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to create admin');
+    }
+  }
+
+  public async getAdmins(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    filters?: Record<string, any>;
+  }) {
+    const { page = 1, limit = 10, search = '', filters = {} } = params;
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+
+    // 🔍 Search by name, email, or phone
+    if (search.trim()) {
+      query.$or = [
+        { email: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // ✅ Apply filters
+    if (filters.role) query.role = filters.role;
+    if (filters.isAccountVerified !== undefined) {
+      query.isAccountVerified = filters.isAccountVerified === 'true';
+    }
+    if (filters.isAccountInRecovery !== undefined) {
+      query.isAccountInRecovery = filters.isAccountInRecovery === 'true';
+    }
+
+    const total = await DB.Models.Admin.countDocuments(query);
+    const admins = await DB.Models.Admin.find(query)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
-      .exec();
+      .lean();
 
-    const users = await Promise.all(
-      usersRaw.map(async (user) => {
-        const agentData = await DB.Models.Agent.findOne({ userId: user._id }).exec();
-        return {
-          ...user.toObject(),
-          agentData,
-        };
-      })
-    );
-
-    return {
+    const pagination = {
       page,
       limit,
       total,
-      users,
+      totalPages: Math.ceil(total / limit),
     };
+
+    return { admins, pagination };
   }
- 
+
+  public async deleteAdmin(adminId: string) {
+    const deleted = await DB.Models.Admin.findByIdAndDelete(adminId);
+    if (!deleted) {
+      throw new RouteError(404, 'Admin account not found or already deleted.');
+    }
+    return { message: 'Admin account deleted successfully.' };
+  }
+
+  public async changePassword(adminId: string, newPassword: string) {
+    try {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      const admin = await DB.Models.Admin.findByIdAndUpdate(adminId, {
+        password: hashedPassword,
+        isVerifed: true,
+      }).exec();
+      if (!admin) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Admin not found');
+
+      return { message: 'Password changed successfully' };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
 
   public async getUsersByType(params: {
     userType: 'Agent' | 'Landowners';
@@ -355,7 +350,6 @@ public async getAllProperties(filters?: {
     };
   }
 
-
   public async getAgentProfile(userId: string) {
     const user = await DB.Models.User.findById(userId).lean();
     if (!user || user.userType !== 'Agent') throw new Error('Agent not found');
@@ -386,7 +380,6 @@ public async getAllProperties(filters?: {
     };
   }
 
-
   public async getLandownerProfile(userId: string) {
     const user = await DB.Models.User.findById(userId).lean();
     if (!user || user.userType !== 'Landowners') throw new Error('Landowner not found');
@@ -415,6 +408,161 @@ public async getAllProperties(filters?: {
       },
     };
   }
+
+  public async getAllUpgradeRequests(
+    page: number,
+    limit: number
+  ): Promise<{
+    data: any[];
+    total: number;
+    currentPage: number;
+  }> {
+    try {
+      const query = { isInUpgrade: true };
+
+      const agents = await DB.Models.Agent.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ 'upgradeData.requestDate': -1 })
+        .populate('userId', 'email firstName lastName phoneNumber fullName isAccountVerified accountStatus isFlagged')
+        .exec();
+
+      const total = await DB.Models.Agent.countDocuments(query);
+
+      const formattedData = agents.map(formatUpgradeAgentForTable);
+
+      return {
+        data: formattedData,
+        total,
+        currentPage: page,
+      };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+  public async randomlyAssignBuyersToPreferences() {
+  try {
+    // Fetch all buyer IDs
+    const buyers = await DB.Models.Buyer.find({}, '_id').lean().exec();
+    if (!buyers.length) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'No buyers found');
+    }
+
+    // Fetch all preferences where buyer is null
+    const preferences = await DB.Models.Preference.find().exec();
+
+    if (!preferences.length) {
+      return {
+        message: 'No preferences to update',
+        updatedCount: 0,
+      };
+    }
+
+    // Randomly assign buyers
+    const updates = preferences.map((pref) => {
+      const randomBuyer:any = buyers[Math.floor(Math.random() * buyers.length)];
+      return {
+        updateOne: {
+          filter: { _id: pref._id },
+          update: { buyer: new mongoose.Types.ObjectId(randomBuyer._id) },
+        },
+      };
+    });
+
+    // Perform bulk write
+    const result = await DB.Models.Preference.bulkWrite(updates);
+
+    return {
+      message: 'Buyers assigned successfully to preferences',
+      updatedCount: result.modifiedCount || 0,
+    };
+  } catch (error) {
+    console.error(error);
+    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+  }
+}
+
+
+  // =================================
+
+  public async getAllUsers(params: {
+    page: number;
+    limit: number;
+    filters?: any;
+    search?: string;
+  }) {
+    const { page = 1, limit = 10, filters = {}, search = '' } = params;
+
+    const query: any = {};
+
+    // 🔍 Optional filters
+    if (filters?.email) query.email = { $regex: filters.email, $options: 'i' };
+    if (filters?.role) query.role = filters.role;
+    if (filters?.status) query.status = filters.status;
+
+    // 🔎 Optional search on multiple fields
+    if (search.trim()) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+    const total = await DB.Models.User.countDocuments(query);
+
+    const usersRaw = await DB.Models.User.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .exec();
+
+    const users = await Promise.all(
+      usersRaw.map(async (user) => {
+        const agentData = await DB.Models.Agent.findOne({ userId: user._id }).exec();
+        return {
+          ...user.toObject(),
+          agentData,
+        };
+      })
+    );
+
+    return {
+      page,
+      limit,
+      total,
+      users,
+    };
+  }
+ 
+
+  
+
+
+  
 
 
   public async groupPropsWithOwner(
@@ -867,31 +1015,8 @@ public async getAllProperties(filters?: {
     };
   }
 
-  public async getAllUpgradeRequests(
-    page: number,
-    limit: number
-  ): Promise<{ data: IAgentDoc[]; total: number; currentPage: number }> {
-    try {
-      const query = { isInUpgrade: true };
+  
 
-      const agents = await DB.Models.Agent.find(query)
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .sort({ 'upgradeData.requestDate': -1 })
-        .populate('userId', 'email firstName lastName phoneNumber fullName')
-        .exec();
-
-      const total = await DB.Models.Agent.countDocuments(query).exec();
-
-      return {
-        data: agents,
-        total,
-        currentPage: page,
-      };
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
 
 
 
@@ -1068,121 +1193,17 @@ public async getAllProperties(filters?: {
 
 
 
-  public async createAdmin(adminCred: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-    address: string;
-    password?: string; // optional password
-  }) {
-    try {
-      const { email, firstName, lastName, phoneNumber, address, password } = adminCred;
-
-      const normalizedEmail = email.toLowerCase().trim();
-
-      const existingAdmin = await DB.Models.Admin.findOne({ email: normalizedEmail }).exec();
-      if (existingAdmin) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin with this email already exists');
-      }
-
-      const hashedPassword = await bcrypt.hash(password || this.defaultPassword, 10);
-
-      const newAdmin = new DB.Models.Admin({
-        email: normalizedEmail,
-        firstName,
-        lastName,
-        phoneNumber,
-        address,
-        password: hashedPassword,
-      });
-
-      await newAdmin.save();
-
-      return {
-        message: 'Admin created successfully',
-        admin: newAdmin.toObject(),
-      };
-    } catch (error: any) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to create admin');
-    }
-  }
+  
 
 
-  // In AdminController.ts
-  public async getAdmins(params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    filters?: Record<string, any>;
-  }) {
-    const { page = 1, limit = 10, search = '', filters = {} } = params;
-    const skip = (page - 1) * limit;
-
-    const query: any = {};
-
-    // 🔍 Search by name, email, or phone
-    if (search.trim()) {
-      query.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { phoneNumber: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    // ✅ Apply filters
-    if (filters.role) query.role = filters.role;
-    if (filters.isAccountVerified !== undefined) {
-      query.isAccountVerified = filters.isAccountVerified === 'true';
-    }
-    if (filters.isAccountInRecovery !== undefined) {
-      query.isAccountInRecovery = filters.isAccountInRecovery === 'true';
-    }
-
-    const total = await DB.Models.Admin.countDocuments(query);
-    const admins = await DB.Models.Admin.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const pagination = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    };
-
-    return { admins, pagination };
-  }
+ 
 
 
-  public async deleteAdmin(adminId: string) {
-    const deleted = await DB.Models.Admin.findByIdAndDelete(adminId);
-    if (!deleted) {
-      throw new RouteError(404, 'Admin account not found or already deleted.');
-    }
-    return { message: 'Admin account deleted successfully.' };
-  }
+  
 
 
 
-  public async changePassword(adminId: string, newPassword: string) {
-    try {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      const admin = await DB.Models.Admin.findByIdAndUpdate(adminId, {
-        password: hashedPassword,
-        isVerifed: true,
-      }).exec();
-      if (!admin) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Admin not found');
-
-      return { message: 'Password changed successfully' };
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
+  
 
   public async updateProperty(propertyId: string, propertyType: string, propertyData: any) {
     try {

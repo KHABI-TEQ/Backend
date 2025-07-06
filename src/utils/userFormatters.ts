@@ -14,6 +14,33 @@ export const formatLandOwnerDataForTable = (user: any) => {
   };
 };
 
+export const formatUpgradeAgentForTable = (agent: any) => {
+  const user = agent.userId;
+
+  return {
+    id: user?._id || '',
+    fullName: user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`,
+    email: user?.email || '',
+    phoneNumber: user?.phoneNumber || '',
+    accountStatus: user?.accountStatus || '-',
+    isVerified: user?.isAccountVerified || false,
+    isFlagged: user?.isFlagged || false,
+    agentId: agent._id,
+    currentAgentType: agent.agentType,
+    requestedUpgradeAgentType: agent.upgradeData?.companyAgent?.companyName ? 'Company' : 'Individual',
+    upgradeRequestDate: agent.upgradeData?.requestDate ? new Date(agent.upgradeData.requestDate).toLocaleDateString() : '-',
+    upgradeCompanyInfo: {
+      companyName: agent.upgradeData?.companyAgent?.companyName || '-',
+      cacNumber: agent.upgradeData?.companyAgent?.cacNumber || '-',
+    },
+    upgradeMeansOfId: (agent.upgradeData?.meansOfId || []).map((id: any) => ({
+      name: id.name,
+      docImg: id.docImg,
+    })),
+  };
+};
+
+
 export const formatAgentDataForTable = (agent: any) => {
   const user = agent.userId;
 
@@ -27,6 +54,7 @@ export const formatAgentDataForTable = (agent: any) => {
     isApproved: agent.accountApproved,
     agentType: agent.agentType,
     onBoarded: agent.accountApproved,
+    agentId: agent._id,
     location: {
       regions: agent.regionOfOperation?.join(", ") || '',
       localGovt: agent.address?.localGovtArea || '',

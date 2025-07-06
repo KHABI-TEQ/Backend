@@ -92,7 +92,6 @@ AdminRouter.get('/admins', async (req: Request, res: Response, next: NextFunctio
   }
 });
 
-// DELETE: Delete admin account by ID
 AdminRouter.delete('/admins/:adminId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
@@ -125,7 +124,6 @@ AdminRouter.post('/change-password', async (req: Request, res: Response, next: N
     next(error);
   }
 });
-
 
 AdminRouter.get('/all-properties', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -163,9 +161,83 @@ AdminRouter.get('/all-properties', async (req: Request, res: Response, next: Nex
   }
 });
 
+AdminRouter.get('/agents', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page = '1', limit = '10', search = '', ...filters } = req.query;
 
+    const result = await adminController.getUsersByType({
+      userType: 'Agent',
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      search: search as string,
+      filters,
+    });
 
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
 
+AdminRouter.get('/agents/upgrade-requests', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page = '1', limit = '10' } = req.query;
+
+    const result = await adminController.getAllUpgradeRequests(
+      Number(page),
+      Number(limit)
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: result.data,
+      pagination: {
+        total: result.total,
+        currentPage: result.currentPage,
+        totalPages: Math.ceil(result.total / Number(limit)),
+        perPage: Number(limit),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/landowners', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page = '1', limit = '10', search = '', ...filters } = req.query;
+
+    const result = await adminController.getUsersByType({
+      userType: 'Landowners',
+      page: parseInt(page as string),
+      limit: parseInt(limit as string),
+      search: search as string,
+      filters,
+    });
+
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/agents/:id', async (req, res, next) => {
+  try {
+    const result = await adminController.getAgentProfile(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+AdminRouter.get('/landowners/:id', async (req, res, next) => {
+  try {
+    const result = await adminController.getLandownerProfile(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
 
 
 
@@ -232,60 +304,10 @@ AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunc
 });
 
 
-AdminRouter.get('/agents', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { page = '1', limit = '10', search = '', ...filters } = req.query;
-
-    const result = await adminController.getUsersByType({
-      userType: 'Agent',
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      search: search as string,
-      filters,
-    });
-
-    return res.status(200).json({ success: true, ...result });
-  } catch (error) {
-    next(error);
-  }
-});
-
-AdminRouter.get('/landowners', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { page = '1', limit = '10', search = '', ...filters } = req.query;
-
-    const result = await adminController.getUsersByType({
-      userType: 'Landowners',
-      page: parseInt(page as string),
-      limit: parseInt(limit as string),
-      search: search as string,
-      filters,
-    });
-
-    return res.status(200).json({ success: true, ...result });
-  } catch (error) {
-    next(error);
-  }
-});
 
 
-AdminRouter.get('/agents/:id', async (req, res, next) => {
-  try {
-    const result = await adminController.getAgentProfile(req.params.id);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-});
 
-AdminRouter.get('/landowners/:id', async (req, res, next) => {
-  try {
-    const result = await adminController.getLandownerProfile(req.params.id);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-});
+
 
 
 AdminRouter.post('/properties', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
@@ -395,32 +417,6 @@ AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFun
   }
 });
 
-
-AdminRouter.get('/upgrade-agent',
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { page = '1', limit = '10' } = req.query;
-
-      const result = await adminController.getAllUpgradeRequests(
-        Number(page),
-        Number(limit)
-      );
-
-      return res.status(200).json({
-        success: true,
-        data: result.data,
-        pagination: {
-          total: result.total,
-          currentPage: result.currentPage,
-          totalPages: Math.ceil(result.total / Number(limit)),
-          perPage: Number(limit),
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 
 AdminRouter.post('/approve-agent', async (req: Request, res: Response, next: NextFunction) => {
