@@ -598,6 +598,169 @@ export class AdminController {
     };
   }
 
+  public async deletePropertyById(propertyId: string) {
+    const rentDeleted = await DB.Models.PropertyRent.findByIdAndDelete(propertyId).exec();
+    const sellDeleted = await DB.Models.PropertySell.findByIdAndDelete(propertyId).exec();
+
+    if (!rentDeleted && !sellDeleted) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+    }
+
+    return `Property with ID ${propertyId} has been deleted.`;
+  }
+
+  public async getSinglePropertyDetails(propertyId: string) {
+    const property = await DB.Models.Property.findById(propertyId)
+      .populate('owner')
+      .lean();
+
+    if (!property) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+    }
+
+    // Format response (optional – for table or frontend usage)
+    return formatPropertyDataForTable(property);
+  }
+
+  public async getPropertyInspections(propertyId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [inspections, total] = await Promise.all([
+      DB.Models.InspectionBooking.find({ propertyId })
+        .populate('owner')
+        .populate('requestedBy')
+        .populate('transaction')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      DB.Models.InspectionBooking.countDocuments({ propertyId }),
+    ]);
+
+    return {
+      inspections,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+    };
+  }
+
+  public async setPropertyApprovalStatus(propertyId: string, action: 'approve' | 'reject') {
+    const update: Partial<{ isApproved: boolean; isRejected: boolean }> = {};
+
+    if (action === 'approve') {
+      update.isApproved = true;
+      update.isRejected = false;
+    } else {
+      update.isApproved = false;
+      update.isRejected = true;
+    }
+
+    const updated = await DB.Models.Property.updateOne({ _id: propertyId }, update).exec();
+    if (!updated.modifiedCount) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found or update failed');
+
+    const property = await DB.Models.Property.findById(propertyId).populate('owner').exec();
+    if (!property || !property.owner) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property or owner not found');
+
+    const ownerName =
+      (property.owner as any).fullName || `${(property.owner as any).firstName || ''} ${(property.owner as any).lastName || ''}`.trim();
+
+    const mailBody = generalTemplate(
+      PropertyApprovedOrDisapprovedTemplate(ownerName, action === 'approve' ? 'approved' : 'disapproved', property)
+    );
+
+    await sendEmail({
+      to: (property.owner as any).email,
+      subject: `Property ${action === 'approve' ? 'Approved' : 'Rejected'}`,
+      html: mailBody,
+      text: mailBody,
+    });
+
+    return `Property ${action === 'approve' ? 'approved' : 'rejected'} successfully.`;
+  }
+
+  public async toggleAgentAccountStatus(agentId: string, isInactive: boolean, reason?: string) {
+    try {
+      const agent = await DB.Models.User.findByIdAndUpdate(
+        agentId,
+        {
+          isInActive: isInactive,
+          accountApproved: !isInactive,
+        },
+        { new: true }
+      ).exec();
+
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // Update all properties owned by the agent (optional logic)
+      const properties = await DB.Models.Property.find({ owner: agent._id }).exec();
+      for (const property of properties) {
+        await DB.Models.Property.findByIdAndUpdate(property._id, {
+          isApproved: !isInactive,
+        });
+      }
+
+      // Send notification email
+      const mailBody = generalTemplate(
+        DeactivateOrActivateAgent(
+          agent.fullName || `${agent.firstName || ''} ${agent.lastName || ''}` || agent.email,
+          isInactive,
+          reason || ''
+        )
+      );
+
+      await sendEmail({
+        to: agent.email,
+        subject: isInactive ? 'Account Deactivated' : 'Account Activated',
+        text: mailBody,
+        html: mailBody,
+      });
+
+      return isInactive ? 'Agent deactivated successfully' : 'Agent activated successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async deleteAgent(agentId: string, reason: string) {
+  try {
+    const agent = await DB.Models.User.findById(agentId).exec();
+
+    if (!agent) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+    }
+
+    // Delete associated Agent record
+    await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
+
+    // Delete all properties owned by the agent
+    // await DB.Models.Property.deleteMany({ owner: agent._id }).exec();
+
+    // Delete the User
+    await DB.Models.User.findByIdAndDelete(agent._id).exec();
+
+    // Send email notification
+    const mailBody = generalTemplate(DeleteAgent(agent.firstName || agent.lastName || agent.email, reason));
+
+    await sendEmail({
+      to: agent.email,
+      subject: 'Account Deleted',
+      text: mailBody,
+      html: mailBody,
+    });
+
+    return 'Agent and associated records deleted successfully';
+  } catch (error) {
+    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+  }
+}
+
+
+
 
 
 
@@ -940,25 +1103,7 @@ export class AdminController {
     // }
   }
 
-  public async deleteProperty(propertyType: string, _id: string, ownerType: string) {
-    if (!this.ownerTypes.includes(ownerType)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');
-    }
-
-    if (propertyType === 'rent') {
-      if (ownerType === 'BuyerOrRenter') {
-        await this.buyerOrRentePropertyController.delete(_id);
-      } else {
-        await this.propertyRentController.delete(_id, ownerType);
-      }
-    } else {
-      if (ownerType === 'BuyerOrRenter') {
-        await this.buyerOrRenterPropertySellController.delete(_id);
-      } else {
-        await this.propertySellController.delete(_id, ownerType);
-      }
-    }
-  }
+  
 
   //   public async deletePropertyRequest(propertyType: string, _id: string) {
   //     if (propertyType === 'rent') {
@@ -976,101 +1121,8 @@ export class AdminController {
     }
   }
 
-  public async approveOrDisapproveProperty(_id: string, status: boolean) {
-    let property, owner;
-    property = await DB.Models.Property.updateOne({ _id }, { isApproved: status }).exec();
+  
 
-    if (!property) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
-
-    property = await DB.Models.Property.findById(_id).populate('owner').exec();
-
-    const mailBody = generalTemplate(
-      PropertyApprovedOrDisapprovedTemplate(
-        ((property?.owner as any).fullName as any) || (property?.owner as any).firstName,
-        status ? 'approved' : 'disapproved',
-        property
-      )
-    );
-
-    await sendEmail({
-      to: (property?.owner as any).email,
-      subject: 'Property Approval Status',
-      html: mailBody,
-      text: mailBody,
-    });
-
-    return status ? 'Property approved' : 'Property disapproved';
-  }
-
-  public async deactivateAgent(_id: string, inActiveSatatus: boolean, reason: string) {
-    try {
-      const agent = await DB.Models.User.findByIdAndUpdate(_id, {
-        isInActive: inActiveSatatus,
-        accountApproved: inActiveSatatus,
-      }).exec();
-
-      if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-
-      const properties = await DB.Models.Property.find({ owner: agent._id }).exec();
-
-      properties.length > 0 &&
-        properties.forEach(async (property) => {
-          await DB.Models.PropertyRent.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
-        });
-
-      // sellProperties.forEach(async (property) => {
-      //   await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
-      // });
-
-      const mailBody = generalTemplate(
-        DeactivateOrActivateAgent(agent.firstName || agent.lastName || agent.email, inActiveSatatus, reason)
-      );
-
-      await sendEmail({
-        to: agent.email,
-        subject: inActiveSatatus ? 'Account Deactivated' : 'Account Activated',
-        text: mailBody,
-        html: mailBody,
-      });
-
-      return inActiveSatatus ? 'Agent deactivated' : 'Agent activated';
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
-
-  public async deleteAgent(_id: string, reason: string) {
-    try {
-      const agent = await DB.Models.User.findByIdAndDelete(_id).exec();
-
-      if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-
-      // const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
-      // const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
-
-      // rentProperties.forEach(async (property) => {
-      //   await DB.Models.PropertyRent.findByIdAndDelete(property._id).exec();
-      // });
-
-      // sellProperties.forEach(async (property) => {
-      //   await DB.Models.PropertySell.findByIdAndDelete(property._id).exec();
-      // });
-      await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
-
-      const mailBody = generalTemplate(DeleteAgent(agent.firstName, reason));
-
-      await sendEmail({
-        to: agent.email,
-        subject: 'Account Deleted',
-        text: mailBody,
-        html: mailBody,
-      });
-
-      return 'Agent deleted';
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
 
   
 

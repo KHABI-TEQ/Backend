@@ -333,6 +333,108 @@ AdminRouter.get('/properties/stats', async (req, res, next) => {
   }
 });
 
+AdminRouter.delete('/properties/:propertyId/delete', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { propertyId } = req.params;
+
+    if (!propertyId) {
+      return res.status(400).json({ success: false, message: 'propertyId is required' });
+    }
+
+    const message = await adminController.deletePropertyById(propertyId);
+
+    return res.status(200).json({ success: true, message });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/properties/:propertyId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { propertyId } = req.params;
+
+    const data = await adminController.getSinglePropertyDetails(propertyId);
+
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.get('/properties/:propertyId/inspections', async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { propertyId } = req.params;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      const result = await adminController.getPropertyInspections(propertyId, page, limit);
+
+      res.status(200).json({
+        success: true,
+        data: result.inspections,
+        pagination: {
+          total: result.total,
+          currentPage: result.currentPage,
+          totalPages: result.totalPages,
+          perPage: result.perPage,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+AdminRouter.post('/properties/:propertyId/approval-status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { propertyId } = req.params;
+    const { action } = req.body;
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid action. Use "approve" or "reject".',
+      });
+    }
+
+    const message = await adminController.setPropertyApprovalStatus(propertyId, action);
+    return res.status(200).json({ success: true, message });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/agents/:agentId/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.params;
+    const { status, reason } = req.body;
+
+    if (typeof status !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'status must be a boolean' });
+    }
+
+    const response = await adminController.toggleAgentAccountStatus(agentId, status, reason);
+    return res.status(200).json({ success: true, message: response });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.delete('/agents/:agentId/delete', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { agentId } = req.params;
+    const { reason } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ success: false, message: 'Reason is required' });
+    }
+
+    const result = await adminController.deleteAgent(agentId, reason);
+    return res.status(200).json({ success: true, message: result });
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 
@@ -352,14 +454,7 @@ AdminRouter.get('/properties/stats', async (req, res, next) => {
 
 
 
-
-
-
-
-
-
-
-
+// not using
 AdminRouter.get('/agent/:agentId/properties', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agentId } = req.params;
@@ -379,6 +474,7 @@ AdminRouter.get('/agent/:agentId/properties', async (req: Request, res: Response
   }
 });
 
+// Not using
 AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { page = '1', limit = '10', ...filters } = req.query;
@@ -396,12 +492,7 @@ AdminRouter.get('/all-users', async (req: Request, res: Response, next: NextFunc
 });
 
 
-
-
-
-
-
-
+// not using
 AdminRouter.post('/properties', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { briefType, ownerType, page, limit } = req.body;
@@ -412,6 +503,7 @@ AdminRouter.post('/properties', authorizeAdmin, async (req: Request, res: Respon
     next(error);
   }
 });
+
 
 AdminRouter.get('/query-locations', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -427,6 +519,7 @@ AdminRouter.get('/query-locations', async (req: Request, res: Response, next: Ne
   }
 });
 
+// not using
 AdminRouter.get('/request/all', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { page, limit, propertyType } = req.query;
@@ -449,46 +542,9 @@ AdminRouter.get('/request/all', async (req: Request, res: Response, next: NextFu
   }
 });
 
-AdminRouter.delete('/delete-property', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { propertyId, propertyType, ownerType } = req.body;
-    const response = await adminController.deleteProperty(propertyType, propertyId, ownerType);
-    return res.status(200).json({ success: true, response });
-  } catch (error) {
-    next(error);
-  }
-});
 
-AdminRouter.post('/approve-disapprove-property', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { propertyId, status } = req.body;
-    const response = await adminController.approveOrDisapproveProperty(propertyId, status);
-    return res.status(200).json({ success: true, response });
-  } catch (error) {
-    next(error);
-  }
-});
 
-AdminRouter.post('/activate-deactivate-agent', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { agentId, inActiveSatatus, reason } = req.body;
-    const response = await adminController.deactivateAgent(agentId, inActiveSatatus, reason);
-    return res.status(200).json({ success: true, response });
-  } catch (error) {
-    next(error);
-  }
-});
 
-AdminRouter.delete('/delete-agent/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body;
-    const response = await adminController.deleteAgent(id, reason);
-    return res.status(200).json({ success: true, response });
-  } catch (error) {
-    next(error);
-  }
-});
 
 
 AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFunction) => {
