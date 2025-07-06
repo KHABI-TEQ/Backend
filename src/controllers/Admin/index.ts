@@ -24,8 +24,12 @@ import { RouteError, signJwt, signJwtAdmin } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import bcrypt from 'bcryptjs';
 import { PropertyProps } from '../Property';
-import { IAgentDoc, IBriefMatchModel, IPreference, IProperty } from '../../models';
+import { IAgentDoc, IBriefMatchModel, IPreference, IProperty, IUserDoc } from '../../models';
 import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
+import { Model } from 'mongoose';
+import { formatAgentDataForTable, formatLandOwnerDataForTable, formatUpgradeAgentForTable } from '../../utils/userFormatters';
+import { formatPropertyDataForTable } from '../../utils/propertyFormatters';
+
 import cloudinary from '../../common/cloudinary';
 
 export class AdminController {
@@ -40,6 +44,810 @@ export class AdminController {
   private readonly defaultPassword = 'KhabiTeqRealty@123';
 
   //==================================
+
+  public async getAllProperties(filters?: {
+    ownerType?: 'Landowners' | 'Agent' | 'All';
+    isPremium?: string;
+    isApproved?: string;
+    isRejected?: string;
+    isAvailable?: string;
+    briefType?: string[];
+    location?: string;
+    propertyType?: string;
+    priceMin?: string;
+    priceMax?: string;
+    isPreference?: string;
+    buildingType?: string[];
+    page?: string;
+    limit?: string;
+  }) {
+    const matchStage: any = {};
+
+    // User type (owner)
+    if (filters?.ownerType && filters.ownerType !== 'All') {
+      matchStage['owner.userType'] = filters.ownerType;
+    }
+
+    // Boolean filters
+    if (filters?.isPremium !== undefined) matchStage.isPremium = filters.isPremium === 'true';
+    if (filters?.isApproved !== undefined) matchStage.isApproved = filters.isApproved === 'true';
+    if (filters?.isRejected !== undefined) matchStage.isRejected = filters.isRejected === 'true';
+    if (filters?.isAvailable !== undefined) matchStage.isAvailable = filters.isAvailable;
+    if (filters?.isPreference !== undefined) matchStage.isPreference = filters.isPreference === 'true';
+
+    // Exact match
+    if (filters?.propertyType) matchStage.propertyType = filters.propertyType;
+
+    // briefType array
+    if (filters?.briefType?.length) {
+      matchStage.briefType = { $in: filters.briefType };
+    }
+
+    // buildingType array
+    if (filters?.buildingType?.length) {
+      matchStage.buildingType = { $in: filters.buildingType };
+    }
+
+    // location: check in multiple fields using $or
+    if (filters?.location) {
+      const regex = new RegExp(filters.location, 'i');
+      matchStage.$or = [
+        { 'location.state': regex },
+        { 'location.localGovernment': regex },
+        { 'location.area': regex },
+      ];
+    }
+
+    // Price Range
+    if (filters?.priceMin || filters?.priceMax) {
+      matchStage.price = {};
+      if (filters.priceMin) matchStage.price.$gte = Number(filters.priceMin);
+      if (filters.priceMax) matchStage.price.$lte = Number(filters.priceMax);
+    }
+
+    const page = parseInt(filters?.page || '1');
+    const limit = parseInt(filters?.limit || '10');
+    const skip = (page - 1) * limit;
+
+    const pipeline: any[] = [
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'owner',
+          foreignField: '_id',
+          as: 'owner',
+        },
+      },
+      { $unwind: '$owner' },
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: 'count' }],
+        },
+      },
+    ];
+
+    const result = await DB.Models.Property.aggregate(pipeline);
+    const data = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    return {
+      data,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+    };
+  }
+
+  public async createAdmin(adminCred: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    address: string;
+    password?: string; // optional password
+  }) {
+    try {
+      const { email, firstName, lastName, phoneNumber, address, password } = adminCred;
+
+      const normalizedEmail = email.toLowerCase().trim();
+
+      const existingAdmin = await DB.Models.Admin.findOne({ email: normalizedEmail }).exec();
+      if (existingAdmin) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin with this email already exists');
+      }
+
+      const hashedPassword = await bcrypt.hash(password || this.defaultPassword, 10);
+
+      const newAdmin = new DB.Models.Admin({
+        email: normalizedEmail,
+        firstName,
+        lastName,
+        phoneNumber,
+        address,
+        password: hashedPassword,
+      });
+
+      await newAdmin.save();
+
+      return {
+        message: 'Admin created successfully',
+        admin: newAdmin.toObject(),
+      };
+    } catch (error: any) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to create admin');
+    }
+  }
+
+  public async getAdmins(params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    filters?: Record<string, any>;
+  }) {
+    const { page = 1, limit = 10, search = '', filters = {} } = params;
+    const skip = (page - 1) * limit;
+
+    const query: any = {};
+
+    // 🔍 Search by name, email, or phone
+    if (search.trim()) {
+      query.$or = [
+        { email: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // ✅ Apply filters
+    if (filters.role) query.role = filters.role;
+    if (filters.isAccountVerified !== undefined) {
+      query.isAccountVerified = filters.isAccountVerified === 'true';
+    }
+    if (filters.isAccountInRecovery !== undefined) {
+      query.isAccountInRecovery = filters.isAccountInRecovery === 'true';
+    }
+
+    const total = await DB.Models.Admin.countDocuments(query);
+    const admins = await DB.Models.Admin.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const pagination = {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { admins, pagination };
+  }
+
+  public async deleteAdmin(adminId: string) {
+    const deleted = await DB.Models.Admin.findByIdAndDelete(adminId);
+    if (!deleted) {
+      throw new RouteError(404, 'Admin account not found or already deleted.');
+    }
+    return { message: 'Admin account deleted successfully.' };
+  }
+
+  public async changePassword(adminId: string, newPassword: string) {
+    try {
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      const admin = await DB.Models.Admin.findByIdAndUpdate(adminId, {
+        password: hashedPassword,
+        isVerifed: true,
+      }).exec();
+      if (!admin) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Admin not found');
+
+      return { message: 'Password changed successfully' };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async getUsersByType(params: {
+    userType: 'Agent' | 'Landowners';
+    page: number;
+    limit: number;
+    search?: string;
+    filters?: Record<string, any>;
+  }) {
+    const { userType, page = 1, limit = 10, search = '', filters = {} } = params;
+
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.max(1, limit);
+    const skip = (safePage - 1) * safeLimit;
+
+    const query: any = {};
+    const searchConditions: any[] = [];
+
+    if (search.trim()) {
+      searchConditions.push(
+        { email: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } }
+      );
+    }
+
+    if (searchConditions.length > 0) {
+      query.$or = searchConditions;
+    }
+
+    if (filters?.accountStatus && filters.accountStatus !== 'null') {
+      query.accountStatus = filters.accountStatus;
+    }
+
+    if (filters?.isFlagged !== undefined && filters.isFlagged !== 'null') {
+      query.isFlagged = filters.isFlagged === 'true';
+    }
+
+    if (filters?.accountApproved !== undefined && filters.accountApproved !== 'null') {
+      query.accountApproved = filters.accountApproved === 'true';
+    }
+
+    if (filters?.excludeInactive !== false) {
+      query.isInActive = false;
+    }
+
+    // ✅ Format Agent Results
+    if (userType === 'Agent') {
+      const AgentModel: Model<IAgentDoc> = DB.Models.Agent;
+
+      const total = await AgentModel.countDocuments(query);
+
+      const agents = await AgentModel.find(query)
+        .populate({
+          path: 'userId',
+          select:
+            'email firstName lastName phoneNumber profile_picture userType isAccountVerified accountStatus accountApproved isInActive isDeleted isFlagged',
+        })
+        .skip(skip)
+        .limit(safeLimit)
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const formattedAgents = agents.map(formatAgentDataForTable);
+
+      return {
+        users: formattedAgents,
+        pagination: {
+          page: safePage,
+          limit: safeLimit,
+          total,
+          totalPages: Math.ceil(total / safeLimit),
+        },
+      };
+    }
+
+    // ✅ Format Landowner Results
+    const UserModel: Model<IUserDoc> = DB.Models.User;
+    query.userType = 'Landowners';
+
+    const total = await UserModel.countDocuments(query);
+
+    const users = await UserModel.find(query)
+      .skip(skip)
+      .limit(safeLimit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formattedLandowners = users.map(formatLandOwnerDataForTable);
+
+    return {
+      users: formattedLandowners,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
+    };
+  }
+
+  public async getAgentProfile(userId: string) {
+    const user = await DB.Models.User.findById(userId).lean();
+    if (!user || user.userType !== 'Agent') throw new Error('Agent not found');
+
+    const agentData = await DB.Models.Agent.findOne({ userId }).lean();
+    const properties = await DB.Models.Property.find({ owner:user._id }).lean();
+    const transactions = await DB.Models.Transaction.find({ buyerId:user._id }).lean();
+    const inspections = await DB.Models.InspectionBooking.find({ bookedBy:user._id }).lean();
+
+    // Financial summary
+    const totalSpent = 0;
+    // const totalSpent = transactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
+    const completedInspections = inspections.filter(i => i.status === 'completed');
+
+    return {
+      user,
+      agentData,
+      properties,
+      transactions,
+      inspections,
+      stats: {
+        totalProperties: properties.length,
+        totalTransactions: transactions.length,
+        totalSpent,
+        completedInspections: completedInspections.length,
+        ongoingNegotiations: inspections.filter(i => i.stage === 'negotiation').length,
+      },
+    };
+  }
+
+  public async getLandownerProfile(userId: string) {
+    const user = await DB.Models.User.findById(userId).lean();
+    if (!user || user.userType !== 'Landowners') throw new Error('Landowner not found');
+
+    const properties = await DB.Models.Property.find({ owner: user._id }).lean();
+    const propertyIds = properties.map(p => p._id);
+
+    const inspections = await DB.Models.InspectionBooking.find({ propertyId: { $in: propertyIds } }).lean();
+    const transactions = await DB.Models.Transaction.find({ propertyId: { $in: propertyIds } }).lean();
+
+    const totalEarned = 0;
+    // const totalEarned = transactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
+    const completedInspections = inspections.filter(i => i.status === 'completed');
+
+    return {
+      user,
+      properties,
+      transactions,
+      inspections,
+      stats: {
+        totalProperties: properties.length,
+        totalTransactions: transactions.length,
+        totalEarned,
+        completedInspections: completedInspections.length,
+        pendingNegotiations: inspections.filter(i => i.stage === 'negotiation').length,
+      },
+    };
+  }
+
+  public async getAllUpgradeRequests(
+    page: number,
+    limit: number
+  ): Promise<{
+    data: any[];
+    total: number;
+    currentPage: number;
+  }> {
+    try {
+      const query = { isInUpgrade: true };
+
+      const agents = await DB.Models.Agent.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ 'upgradeData.requestDate': -1 })
+        .populate('userId', 'email firstName lastName phoneNumber fullName isAccountVerified accountStatus isFlagged')
+        .exec();
+
+      const total = await DB.Models.Agent.countDocuments(query);
+
+      const formattedData = agents.map(formatUpgradeAgentForTable);
+
+      return {
+        data: formattedData,
+        total,
+        currentPage: page,
+      };
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async approveAgentOnboarding(_id: string, approved: boolean) {
+    try {
+      // 1. Update the user’s approval status
+      const userAcct = await DB.Models.User.findByIdAndUpdate(
+        _id,
+        { accountApproved: approved },
+        { new: true }
+      ).exec();
+
+      if (!userAcct) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // 2. Update the corresponding agent’s approval status
+      await DB.Models.Agent.findOneAndUpdate(
+        { userId: userAcct._id },
+        { accountApproved: approved },
+        { new: true }
+      ).exec();
+
+      // 3. Compose the email
+      const subject = approved
+        ? 'Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!'
+        : 'Update on Your KhabiTeqRealty Application';
+
+      const emailBody = generalTemplate(
+        approved
+          ? accountApproved(userAcct.firstName)
+          : accountDisaapproved(userAcct.firstName)
+      );
+
+      // 4. Send the email
+      await sendEmail({
+        to: userAcct.email,
+        subject,
+        text: emailBody,
+        html: emailBody,
+      });
+
+      return approved ? 'Agent onboarding approved successfully' : 'Agent onboarding rejected successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async flagOrUnflagAgent(agentId: string, status: boolean) {
+    try {
+      const isFlagged = status;
+
+      const agent = await DB.Models.Agent.findByIdAndUpdate(
+        agentId,
+        { isFlagged },
+        { new: true }
+      ).exec();
+
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // Optional: Also update the associated User's isFlagged field
+      await DB.Models.User.findByIdAndUpdate(agent.userId, { isFlagged }).exec();
+
+      return isFlagged
+        ? 'Agent flagged successfully'
+        : 'Agent unflagged successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  };
+
+  public async flagOrUnflagLandowner(userId: string, status: boolean) {
+    try {
+      const isFlagged = status;
+
+      const user = await DB.Models.User.findOneAndUpdate(
+        { _id: userId, userType: 'Landowners' },
+        { isFlagged },
+        { new: true }
+      ).exec();
+
+      if (!user) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Landowner not found');
+      }
+
+      return isFlagged
+        ? 'Landowner flagged successfully'
+        : 'Landowner unflagged successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async getPropertiesByUser(userId: string, page: number = 1, limit: number = 10) {
+    const user = await DB.Models.User.findById(userId).lean();
+    if (!user || !['Agent', 'Landowners'].includes(user.userType)) {
+      throw new Error('User not found or not eligible');
+    }
+
+    const query:any = { owner: userId };
+
+    const properties = await DB.Models.PropertySell.find(query)
+      .populate('owner', 'email firstName lastName fullName phoneNumber userType')
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const total = await DB.Models.PropertySell.countDocuments(query);
+
+    return {
+      data: properties.map(formatPropertyDataForTable),
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+  public async getPropertyStats() {
+    const Property = DB.Models.Property;
+
+    // Explicitly typing 'owner' as a User object in population
+    const allProperties = await Property.find()
+      .populate('owner', 'userType')
+      .lean()
+      .exec();
+
+    const totalProperties = allProperties.length;
+
+    const agentProperties = allProperties.filter(
+      (p: any) => p.owner && (p.owner as any).userType === 'Agent'
+    );
+
+    const landownerProperties = allProperties.filter(
+      (p: any) => p.owner && (p.owner as any).userType === 'Landowners'
+    );
+
+    const activeProperties = allProperties.filter(p => p.isAvailable === 'yes');
+    const inactiveProperties = allProperties.filter(p => p.isAvailable !== 'yes');
+
+    const sum = (arr: typeof allProperties) => arr.reduce((total, p) => total + (p.price || 0), 0);
+
+    return {
+      totalProperties,
+      totalAgentProperties: agentProperties.length,
+      totalLandownerProperties: landownerProperties.length,
+      totalActiveProperties: activeProperties.length,
+      totalInactiveProperties: inactiveProperties.length,
+      sumOfActivePropertyPrices: sum(activeProperties),
+      sumOfInactivePropertyPrices: sum(inactiveProperties),
+      sumOfAllPropertyPrices: sum(allProperties),
+    };
+  }
+
+  public async deletePropertyById(propertyId: string) {
+    const rentDeleted = await DB.Models.PropertyRent.findByIdAndDelete(propertyId).exec();
+    const sellDeleted = await DB.Models.PropertySell.findByIdAndDelete(propertyId).exec();
+
+    if (!rentDeleted && !sellDeleted) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+    }
+
+    return `Property with ID ${propertyId} has been deleted.`;
+  }
+
+  public async getSinglePropertyDetails(propertyId: string) {
+    const property = await DB.Models.Property.findById(propertyId)
+      .populate('owner')
+      .lean();
+
+    if (!property) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
+    }
+
+    // Format response (optional – for table or frontend usage)
+    return formatPropertyDataForTable(property);
+  }
+
+  public async getPropertyInspections(propertyId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [inspections, total] = await Promise.all([
+      DB.Models.InspectionBooking.find({ propertyId })
+        .populate('owner')
+        .populate('requestedBy')
+        .populate('transaction')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      DB.Models.InspectionBooking.countDocuments({ propertyId }),
+    ]);
+
+    return {
+      inspections,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+    };
+  }
+
+  public async setPropertyApprovalStatus(propertyId: string, action: 'approve' | 'reject') {
+    const update: Partial<{ isApproved: boolean; isRejected: boolean }> = {};
+
+    if (action === 'approve') {
+      update.isApproved = true;
+      update.isRejected = false;
+    } else {
+      update.isApproved = false;
+      update.isRejected = true;
+    }
+
+    const updated:any = await DB.Models.Property.updateOne({ _id: propertyId }, update).exec();
+    if (!updated.modifiedCount) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found or update failed');
+
+    const property = await DB.Models.Property.findById(propertyId).populate('owner').exec();
+    if (!property || !property.owner) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property or owner not found');
+
+    const ownerName =
+      (property.owner as any).fullName || `${(property.owner as any).firstName || ''} ${(property.owner as any).lastName || ''}`.trim();
+
+    const mailBody = generalTemplate(
+      PropertyApprovedOrDisapprovedTemplate(ownerName, action === 'approve' ? 'approved' : 'disapproved', property)
+    );
+
+    await sendEmail({
+      to: (property.owner as any).email,
+      subject: `Property ${action === 'approve' ? 'Approved' : 'Rejected'}`,
+      html: mailBody,
+      text: mailBody,
+    });
+
+    return `Property ${action === 'approve' ? 'approved' : 'rejected'} successfully.`;
+  }
+
+  public async toggleAgentAccountStatus(agentId: string, isInactive: boolean, reason?: string) {
+    try {
+      const agent = await DB.Models.User.findByIdAndUpdate(
+        agentId,
+        {
+          isInActive: isInactive,
+          accountApproved: !isInactive,
+        },
+        { new: true }
+      ).exec();
+
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // Update all properties owned by the agent (optional logic)
+      const properties = await DB.Models.Property.find({ owner: agent._id }).exec();
+      for (const property of properties) {
+        await DB.Models.Property.findByIdAndUpdate(property._id, {
+          isApproved: !isInactive,
+        });
+      }
+
+      // Send notification email
+      const mailBody = generalTemplate(
+        DeactivateOrActivateAgent(
+          agent.fullName || `${agent.firstName || ''} ${agent.lastName || ''}` || agent.email,
+          isInactive,
+          reason || ''
+        )
+      );
+
+      await sendEmail({
+        to: agent.email,
+        subject: isInactive ? 'Account Deactivated' : 'Account Activated',
+        text: mailBody,
+        html: mailBody,
+      });
+
+      return isInactive ? 'Agent deactivated successfully' : 'Agent activated successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async deleteAgent(agentId: string, reason: string) {
+    try {
+      const agent = await DB.Models.User.findById(agentId).exec();
+
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
+      }
+
+      // Delete associated Agent record
+      await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
+
+      // Delete all properties owned by the agent
+      // await DB.Models.Property.deleteMany({ owner: agent._id }).exec();
+
+      // Delete the User
+      await DB.Models.User.findByIdAndDelete(agent._id).exec();
+
+      // Send email notification
+      const mailBody = generalTemplate(DeleteAgent(agent.firstName || agent.lastName || agent.email, reason));
+
+      await sendEmail({
+        to: agent.email,
+        subject: 'Account Deleted',
+        text: mailBody,
+        html: mailBody,
+      });
+
+      return 'Agent and associated records deleted successfully';
+    } catch (error) {
+      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
+    }
+  }
+
+  public async getAllBuyers({
+    page = 1,
+    limit = 10,
+    status,
+  }: {
+    page: number;
+    limit: number;
+    status?: string;
+  }) {
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (status) filter.status = status;
+
+    const [buyers, total] = await Promise.all([
+      DB.Models.Buyer.find(filter).skip(skip).limit(limit).lean(),
+      DB.Models.Buyer.countDocuments(filter),
+    ]);
+
+    return {
+      data: buyers,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+  public async getSingleBuyer(id: string) {
+    const buyer = await DB.Models.Buyer.findById(id).lean();
+    if (!buyer) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Buyer not found');
+    return buyer;
+  }
+
+  public async getBuyerPreferences(buyerId: string, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    const [preferences, total] = await Promise.all([
+      DB.Models.Preference.find({ buyer: buyerId })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      DB.Models.Preference.countDocuments({ buyer: buyerId }),
+    ]);
+
+    return {
+      data: preferences,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+        perPage: limit,
+      },
+    };
+  }
+
+  public async getBuyerInspections(buyerId: any, page: number = 1, limit: number = 10) {
+  if (!mongoose.Types.ObjectId.isValid(buyerId)) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid buyer ID');
+  }
+
+  buyerId = new mongoose.Types.ObjectId(buyerId);
+  const skip = (page - 1) * limit;
+
+  const [inspections, total] = await Promise.all([
+    DB.Models.InspectionBooking.find({ requestedBy: buyerId })
+      .populate('propertyId', 'title location')
+      .populate('owner', 'firstName lastName email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 })
+      .lean(),
+    DB.Models.InspectionBooking.countDocuments({ requestedBy: buyerId }),
+  ]);
+
+  return {
+    data: inspections,
+    pagination: {
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+      perPage: limit,
+    },
+  };
+}
+
 
   public async randomlyAssignBuyersToPreferences() {
   try {
@@ -136,136 +944,12 @@ export class AdminController {
       users,
     };
   }
+ 
+
+  
 
 
-  public async getUsersByType(params: {
-    userType: 'Agent' | 'Landowners';
-    page: number;
-    limit: number;
-    search?: string;
-    filters?: Record<string, any>;
-  }) {
-    const { userType, page = 1, limit = 10, search = '', filters = {} } = params;
-
-    const safePage = Math.max(1, page);
-    const safeLimit = Math.max(1, limit);
-    const skip = (safePage - 1) * safeLimit;
-
-    const query: any = {
-      $or: [
-        { userType: { $regex: `^${userType}$`, $options: 'i' } },
-        { role: { $regex: `^${userType}$`, $options: 'i' } },
-      ],
-    };
-
-    // 🔍 Search filters
-    if (search.trim()) {
-      query.$and = [
-        {
-          $or: [
-            { email: { $regex: search, $options: 'i' } },
-            { firstName: { $regex: search, $options: 'i' } },
-            { lastName: { $regex: search, $options: 'i' } },
-            { phoneNumber: { $regex: search, $options: 'i' } },
-          ],
-        },
-      ];
-    }
-
-    // ✅ Extra filters
-    if (filters?.accountStatus && filters.accountStatus !== 'null') {
-      query.accountStatus = filters.accountStatus;
-    }
-
-    if (filters?.isFlagged !== undefined && filters.isFlagged !== 'null') {
-      query.isFlagged = filters.isFlagged === 'true';
-    }
-
-    if (filters?.excludeInactive !== false) {
-      query.isInActive = false;
-    }
-
-    const total = await DB.Models.User.countDocuments(query);
-
-    const users = await DB.Models.User.find(query)
-      .skip(skip)
-      .limit(safeLimit)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const pagination = {
-      page: safePage,
-      limit: safeLimit,
-      total,
-      totalPages: Math.ceil(total / safeLimit),
-    };
-
-    return {
-      users,
-      pagination,
-    };
-  }
-
-
-  public async getAgentProfile(userId: string) {
-    const user = await DB.Models.User.findById(userId).lean();
-    if (!user || user.userType !== 'Agent') throw new Error('Agent not found');
-
-    const agentData = await DB.Models.Agent.findOne({ userId }).lean();
-    const properties = await DB.Models.Property.find({ owner:user._id }).lean();
-    const transactions = await DB.Models.Transaction.find({ buyerId:user._id }).lean();
-    const inspections = await DB.Models.InspectionBooking.find({ bookedBy:user._id }).lean();
-
-    // Financial summary
-    const totalSpent = 0;
-    // const totalSpent = transactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
-    const completedInspections = inspections.filter(i => i.status === 'completed');
-
-    return {
-      user,
-      agentData,
-      properties,
-      transactions,
-      inspections,
-      stats: {
-        totalProperties: properties.length,
-        totalTransactions: transactions.length,
-        totalSpent,
-        completedInspections: completedInspections.length,
-        ongoingNegotiations: inspections.filter(i => i.stage === 'negotiation').length,
-      },
-    };
-  }
-
-
-  public async getLandownerProfile(userId: string) {
-    const user = await DB.Models.User.findById(userId).lean();
-    if (!user || user.userType !== 'Landowners') throw new Error('Landowner not found');
-
-    const properties = await DB.Models.Property.find({ owner: user._id }).lean();
-    const propertyIds = properties.map(p => p._id);
-
-    const inspections = await DB.Models.InspectionBooking.find({ propertyId: { $in: propertyIds } }).lean();
-    const transactions = await DB.Models.Transaction.find({ propertyId: { $in: propertyIds } }).lean();
-
-    const totalEarned = 0;
-    // const totalEarned = transactions.reduce((sum, t) => sum + (t?.amount || 0), 0);
-    const completedInspections = inspections.filter(i => i.status === 'completed');
-
-    return {
-      user,
-      properties,
-      transactions,
-      inspections,
-      stats: {
-        totalProperties: properties.length,
-        totalTransactions: transactions.length,
-        totalEarned,
-        completedInspections: completedInspections.length,
-        pendingNegotiations: inspections.filter(i => i.stage === 'negotiation').length,
-      },
-    };
-  }
+  
 
 
   public async groupPropsWithOwner(
@@ -478,25 +1162,7 @@ export class AdminController {
     // }
   }
 
-  public async deleteProperty(propertyType: string, _id: string, ownerType: string) {
-    if (!this.ownerTypes.includes(ownerType)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');
-    }
-
-    if (propertyType === 'rent') {
-      if (ownerType === 'BuyerOrRenter') {
-        await this.buyerOrRentePropertyController.delete(_id);
-      } else {
-        await this.propertyRentController.delete(_id, ownerType);
-      }
-    } else {
-      if (ownerType === 'BuyerOrRenter') {
-        await this.buyerOrRenterPropertySellController.delete(_id);
-      } else {
-        await this.propertySellController.delete(_id, ownerType);
-      }
-    }
-  }
+  
 
   //   public async deletePropertyRequest(propertyType: string, _id: string) {
   //     if (propertyType === 'rent') {
@@ -514,134 +1180,15 @@ export class AdminController {
     }
   }
 
-  public async approveOrDisapproveProperty(_id: string, status: boolean) {
-    let property, owner;
-    property = await DB.Models.Property.updateOne({ _id }, { isApproved: status }).exec();
+  
 
-    if (!property) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Property not found');
 
-    property = await DB.Models.Property.findById(_id).populate('owner').exec();
+  
 
-    const mailBody = generalTemplate(
-      PropertyApprovedOrDisapprovedTemplate(
-        ((property?.owner as any).fullName as any) || (property?.owner as any).firstName,
-        status ? 'approved' : 'disapproved',
-        property
-      )
-    );
-
-    await sendEmail({
-      to: (property?.owner as any).email,
-      subject: 'Property Approval Status',
-      html: mailBody,
-      text: mailBody,
-    });
-
-    return status ? 'Property approved' : 'Property disapproved';
-  }
-
-  public async deactivateAgent(_id: string, inActiveSatatus: boolean, reason: string) {
-    try {
-      const agent = await DB.Models.User.findByIdAndUpdate(_id, {
-        isInActive: inActiveSatatus,
-        accountApproved: inActiveSatatus,
-      }).exec();
-
-      if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-
-      const properties = await DB.Models.Property.find({ owner: agent._id }).exec();
-
-      properties.length > 0 &&
-        properties.forEach(async (property) => {
-          await DB.Models.PropertyRent.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
-        });
-
-      // sellProperties.forEach(async (property) => {
-      //   await DB.Models.PropertySell.findByIdAndUpdate(property._id, { isApproved: inActiveSatatus }).exec();
-      // });
-
-      const mailBody = generalTemplate(
-        DeactivateOrActivateAgent(agent.firstName || agent.lastName || agent.email, inActiveSatatus, reason)
-      );
-
-      await sendEmail({
-        to: agent.email,
-        subject: inActiveSatatus ? 'Account Deactivated' : 'Account Activated',
-        text: mailBody,
-        html: mailBody,
-      });
-
-      return inActiveSatatus ? 'Agent deactivated' : 'Agent activated';
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
-
-  public async deleteAgent(_id: string, reason: string) {
-    try {
-      const agent = await DB.Models.User.findByIdAndDelete(_id).exec();
-
-      if (!agent) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-
-      // const rentProperties = await DB.Models.PropertyRent.find({ owner: agent._id }).exec();
-      // const sellProperties = await DB.Models.PropertySell.find({ owner: agent._id }).exec();
-
-      // rentProperties.forEach(async (property) => {
-      //   await DB.Models.PropertyRent.findByIdAndDelete(property._id).exec();
-      // });
-
-      // sellProperties.forEach(async (property) => {
-      //   await DB.Models.PropertySell.findByIdAndDelete(property._id).exec();
-      // });
-      await DB.Models.Agent.findOneAndDelete({ userId: agent._id }).exec();
-
-      const mailBody = generalTemplate(DeleteAgent(agent.firstName, reason));
-
-      await sendEmail({
-        to: agent.email,
-        subject: 'Account Deleted',
-        text: mailBody,
-        html: mailBody,
-      });
-
-      return 'Agent deleted';
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
-
-  public async approveAgent(_id: string, approved: boolean) {
-    try {
-      const userAcct = await DB.Models.User.findByIdAndUpdate(_id, { accountApproved: approved }).exec();
-
-      if (!userAcct) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Agent not found');
-
-      const agent = await DB.Models.Agent.findOneAndUpdate({ userId: userAcct._id }, { accountApproved: true }).exec();
-
-      const body = approved ? accountApproved(userAcct.firstName) : accountDisaapproved(userAcct.firstName);
-
-      const subject = approved
-        ? 'Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!'
-        : 'Update on Your KhabiTeqRealty Application';
-
-      const mailBody = generalTemplate(body);
-
-      await sendEmail({
-        to: userAcct.email,
-        subject: subject,
-        text: mailBody,
-        html: mailBody,
-      });
-
-      return 'Agent approved';
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
 
   public async getAgents(page: number, limit: number, type: string, userType: string, approved?: string) {
     const isApproved = approved === 'true' ? true : approved === 'false' ? false : undefined;
-
+ 
     // Stats
     const totalActiveAgents = await DB.Models.User.countDocuments({
       isInActive: false,
@@ -718,31 +1265,8 @@ export class AdminController {
     };
   }
 
-  public async getAllUpgradeRequests(
-    page: number,
-    limit: number
-  ): Promise<{ data: IAgentDoc[]; total: number; currentPage: number }> {
-    try {
-      const query = { isInUpgrade: true };
+  
 
-      const agents = await DB.Models.Agent.find(query)
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .sort({ 'upgradeData.requestDate': -1 })
-        .populate('userId', 'email firstName lastName phoneNumber fullName')
-        .exec();
-
-      const total = await DB.Models.Agent.countDocuments(query).exec();
-
-      return {
-        data: agents,
-        total,
-        currentPage: page,
-      };
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
 
 
 
@@ -919,121 +1443,17 @@ export class AdminController {
 
 
 
-  public async createAdmin(adminCred: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-    address: string;
-    password?: string; // optional password
-  }) {
-    try {
-      const { email, firstName, lastName, phoneNumber, address, password } = adminCred;
-
-      const normalizedEmail = email.toLowerCase().trim();
-
-      const existingAdmin = await DB.Models.Admin.findOne({ email: normalizedEmail }).exec();
-      if (existingAdmin) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Admin with this email already exists');
-      }
-
-      const hashedPassword = await bcrypt.hash(password || this.defaultPassword, 10);
-
-      const newAdmin = new DB.Models.Admin({
-        email: normalizedEmail,
-        firstName,
-        lastName,
-        phoneNumber,
-        address,
-        password: hashedPassword,
-      });
-
-      await newAdmin.save();
-
-      return {
-        message: 'Admin created successfully',
-        admin: newAdmin.toObject(),
-      };
-    } catch (error: any) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Failed to create admin');
-    }
-  }
+  
 
 
-  // In AdminController.ts
-  public async getAdmins(params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    filters?: Record<string, any>;
-  }) {
-    const { page = 1, limit = 10, search = '', filters = {} } = params;
-    const skip = (page - 1) * limit;
-
-    const query: any = {};
-
-    // 🔍 Search by name, email, or phone
-    if (search.trim()) {
-      query.$or = [
-        { email: { $regex: search, $options: 'i' } },
-        { firstName: { $regex: search, $options: 'i' } },
-        { lastName: { $regex: search, $options: 'i' } },
-        { phoneNumber: { $regex: search, $options: 'i' } },
-      ];
-    }
-
-    // ✅ Apply filters
-    if (filters.role) query.role = filters.role;
-    if (filters.isAccountVerified !== undefined) {
-      query.isAccountVerified = filters.isAccountVerified === 'true';
-    }
-    if (filters.isAccountInRecovery !== undefined) {
-      query.isAccountInRecovery = filters.isAccountInRecovery === 'true';
-    }
-
-    const total = await DB.Models.Admin.countDocuments(query);
-    const admins = await DB.Models.Admin.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const pagination = {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    };
-
-    return { admins, pagination };
-  }
+ 
 
 
-  public async deleteAdmin(adminId: string) {
-    const deleted = await DB.Models.Admin.findByIdAndDelete(adminId);
-    if (!deleted) {
-      throw new RouteError(404, 'Admin account not found or already deleted.');
-    }
-    return { message: 'Admin account deleted successfully.' };
-  }
+  
 
 
 
-  public async changePassword(adminId: string, newPassword: string) {
-    try {
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-      const admin = await DB.Models.Admin.findByIdAndUpdate(adminId, {
-        password: hashedPassword,
-        isVerifed: true,
-      }).exec();
-      if (!admin) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Admin not found');
-
-      return { message: 'Password changed successfully' };
-    } catch (error) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-    }
-  }
+  
 
   public async updateProperty(propertyId: string, propertyType: string, propertyData: any) {
     try {
@@ -1229,65 +1649,65 @@ public async getPreferencesByBuyerId(buyerId: string) {
 
   // 2. Admin selects briefs to match a buyer's preference and notify the buyer
   public async matchBriefsToPreference(preferenceId: string, briefIds: string[]) {
-  type PopulatedPreference = Omit<IPreference, 'buyer'> & {
-    buyer: { email: string; fullName: string };
-  };
+    type PopulatedPreference = Omit<IPreference, 'buyer'> & {
+      buyer: { email: string; fullName: string };
+    };
 
-  const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId)
+    const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId)
 
-  const preference = await DB.Models.Preference.findById(preferenceObjectId)
-    .populate('buyer', 'email fullName')
+    const preference = await DB.Models.Preference.findById(preferenceObjectId)
+      .populate('buyer', 'email fullName')
 
-  if (!preference) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
+    if (!preference) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
 
-  const buyer = preference.buyer as any
-  let theStatus = preference.status as string
-  
-  const briefMatches = [];
-  const BriefMatchModel = DB.Models.BriefMatch as IBriefMatchModel;
-
-  for (const briefId of briefIds) {
-    const briefObjectId = new mongoose.Types.ObjectId(briefId)
+    const buyer = preference.buyer as any
+    let theStatus = preference.status as string
     
+    const briefMatches = [];
+    const BriefMatchModel = DB.Models.BriefMatch as IBriefMatchModel;
 
-    const alreadyExists = await BriefMatchModel.findOne({
-      brief: briefObjectId,
-      preference: preferenceObjectId,
-    });
+    for (const briefId of briefIds) {
+      const briefObjectId = new mongoose.Types.ObjectId(briefId)
+      
 
-    if (!alreadyExists) {
-      const privateLink = `${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}`;
-
-      const newMatch = await BriefMatchModel.create({
+      const alreadyExists = await BriefMatchModel.findOne({
         brief: briefObjectId,
         preference: preferenceObjectId,
-        privateLink,
-        status: 'sent',
       });
 
-      briefMatches.push(newMatch);
+      if (!alreadyExists) {
+        const privateLink = `${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}`;
+
+        const newMatch = await BriefMatchModel.create({
+          brief: briefObjectId,
+          preference: preferenceObjectId,
+          privateLink,
+          status: 'sent',
+        });
+
+        briefMatches.push(newMatch);
+      }
     }
-  }
 
-  if (briefMatches.length > 0) {
-    const emailHtml = preferenceMatchingTemplate(`
-      <p>Dear ${buyer.fullName},</p>
-      <p>Good news! We’ve found the perfect property brief for you.</p>
-      <p>Please click the button below to view it.</p>
-      <p><a href="${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}">View Property</a></p>
-      <p>If you have any questions, feel free to contact us.</p>
-    `);
+    if (briefMatches.length > 0) {
+      const emailHtml = preferenceMatchingTemplate(`
+        <p>Dear ${buyer.fullName},</p>
+        <p>Good news! We’ve found the perfect property brief for you.</p>
+        <p>Please click the button below to view it.</p>
+        <p><a href="${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}">View Property</a></p>
+        <p>If you have any questions, feel free to contact us.</p>
+      `);
 
-    theStatus  = 'matched'
-    await preference.save()
+      theStatus  = 'matched'
+      await preference.save()
 
-    await sendEmail({
-      to:buyer.email,
-      subject: 'Matching Properties Found',
-      html: emailHtml,
-      text: emailHtml,
-    });
-  }
+      await sendEmail({
+        to:buyer.email,
+        subject: 'Matching Properties Found',
+        html: emailHtml,
+        text: emailHtml,
+      });
+    }
 
   return {
     message: 'Briefs matched and email sent to buyer.',
@@ -1295,7 +1715,6 @@ public async getPreferencesByBuyerId(buyerId: string) {
   };
 }
 
-//========================================
 public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
   if (!['pending', 'confirmed', 'rejected', 'successful'].includes(filter)) {
     throw new RouteError(
@@ -1392,7 +1811,6 @@ public async confirmVerificationPayment(id: string) {
   };
 }
 
-
 public async rejectVerificationPayment(id: string) {
   const documentId = new mongoose.Types.ObjectId(id);
 
@@ -1442,10 +1860,8 @@ public async rejectVerificationPayment(id: string) {
     message: 'Verification rejected successfully',
     recordId: doc._id,
   };
+
 }
-
-
-
 
 public async sendToVerificationProvider(id: any, providerEmail: string) {
   const documentId = new mongoose.Types.ObjectId(id);
@@ -1529,8 +1945,6 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
   };
 }
 
-
-
 public async uploadVerificationResult(id: string, files: any) {
 
   if (!files.length) {
@@ -1592,8 +2006,5 @@ const htmlBody = verificationGeneralTemplate(`
   };
 }
 
-
 }
-
-
 
