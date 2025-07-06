@@ -562,6 +562,43 @@ export class AdminController {
     };
   }
 
+  public async getPropertyStats() {
+    const Property = DB.Models.Property;
+
+    // Explicitly typing 'owner' as a User object in population
+    const allProperties = await Property.find()
+      .populate('owner', 'userType')
+      .lean()
+      .exec();
+
+    const totalProperties = allProperties.length;
+
+    const agentProperties = allProperties.filter(
+      (p: any) => p.owner && (p.owner as any).userType === 'Agent'
+    );
+
+    const landownerProperties = allProperties.filter(
+      (p: any) => p.owner && (p.owner as any).userType === 'Landowners'
+    );
+
+    const activeProperties = allProperties.filter(p => p.isAvailable === 'yes');
+    const inactiveProperties = allProperties.filter(p => p.isAvailable !== 'yes');
+
+    const sum = (arr: typeof allProperties) => arr.reduce((total, p) => total + (p.price || 0), 0);
+
+    return {
+      totalProperties,
+      totalAgentProperties: agentProperties.length,
+      totalLandownerProperties: landownerProperties.length,
+      totalActiveProperties: activeProperties.length,
+      totalInactiveProperties: inactiveProperties.length,
+      sumOfActivePropertyPrices: sum(activeProperties),
+      sumOfInactivePropertyPrices: sum(inactiveProperties),
+      sumOfAllPropertyPrices: sum(allProperties),
+    };
+  }
+
+
 
 
 

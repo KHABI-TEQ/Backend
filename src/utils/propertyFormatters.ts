@@ -23,6 +23,7 @@ export const formatPropertyDataForTable = (property: any) => {
       localGovernment: property.location?.localGovernment,
       area: property.location?.area,
     },
+    features: property.features,
     additionalFeatures: {
       noOfBedrooms: property.additionalFeatures?.noOfBedrooms,
       noOfBathrooms: property.additionalFeatures?.noOfBathrooms,

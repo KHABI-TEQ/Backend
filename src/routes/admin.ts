@@ -324,7 +324,14 @@ AdminRouter.get('/users/:userId/properties', async (req: Request, res: Response,
   }
 });
 
-
+AdminRouter.get('/properties/stats', async (req, res, next) => {
+  try {
+    const stats = await adminController.getPropertyStats();
+    return res.status(200).json({ success: true, data: stats });
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 
