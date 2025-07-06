@@ -6,6 +6,10 @@ import { DB } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
 import AdminInspRouter from './admin.inspections';
 import { formatPropertyDataForTable } from '../utils/propertyFormatters';
+import multer from "multer";
+import { authorize } from './authorize';
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -19,7 +23,7 @@ interface Request extends Express.Request {
 
 //=================================
 
-AdminRouter.post('/assign-buyers-to-preferences', async (req, res, next) => {
+AdminRouter.post('/assign-buyers-to-preferences', async (req:Request, res:Response, next:NextFunction) => {
   try {
     const result = await adminController.randomlyAssignBuyersToPreferences();
     return res.status(200).json({ success: true, ...result });
@@ -42,7 +46,7 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
 });
 
 
-AdminRouter.use(authorizeAdmin);
+// AdminRouter.use(authorizeAdmin);
 
 // Get current admin info
 AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
@@ -55,7 +59,7 @@ AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next:
 
 
 // Protect all other admin routes
-// AdminRouter.use(authorize);
+AdminRouter.use(authorize);
 
 
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
@@ -840,6 +844,75 @@ AdminRouter.post('/match-briefs-to-preference', async (req: Request, res: Respon
     next(error);
   }
 });
+
+// =======================DOCUMENT VERIFICATION FUNCTIONALITIES==================================
+
+AdminRouter.get('/verification-docs', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const filter = req.query.status as string || "pending"
+
+    const result = await adminController.getVerificationsDocuments(page, limit, filter);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
+AdminRouter.get('/verification-doc/:documentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getVerificationById(req.params.documentId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Approve a submitted verification
+AdminRouter.post('/confirm-verification-payment/:documentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.confirmVerificationPayment(req.params.documentId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Approve a submitted verification
+AdminRouter.post('/reject-verification-payment/:documentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.rejectVerificationPayment(req.params.documentId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Send documents to third-party verification service provider
+AdminRouter.post('/send-to-provider/:documentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const {email} = req.body
+    const {documentId} = req.params
+    const result = await adminController.sendToVerificationProvider( documentId, email);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Upload verification result document(s)
+AdminRouter.post('/upload-result/:documentId', upload.array('resultDocuments'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.uploadVerificationResult(req.params.documentId, req?.files);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ==========================================================
 
 
 AdminRouter.use(AdminInspRouter);
