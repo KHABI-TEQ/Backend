@@ -5,6 +5,7 @@ import { authorizeAdmin } from './admin.authorize';
 import { DB } from '../controllers';
 import HttpStatusCodes from '../common/HttpStatusCodes';
 import AdminInspRouter from './admin.inspections';
+import { formatPropertyDataForTable } from '../utils/propertyFormatters';
 
 const AdminRouter = express.Router();
 const adminController = new AdminController();
@@ -124,6 +125,76 @@ AdminRouter.post('/change-password', async (req: Request, res: Response, next: N
     next(error);
   }
 });
+
+
+AdminRouter.get('/all-properties', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const filters = {
+      ownerType: req.query.ownerType as 'Agent' | 'Landowners' | 'All',
+      isPremium: req.query.isPremium as string,
+      isApproved: req.query.isApproved as string,
+      isRejected: req.query.isRejected as string,
+      isAvailable: req.query.isAvailable as string,
+      briefType: req.query.briefType ? (Array.isArray(req.query.briefType) ? req.query.briefType : [req.query.briefType]) : [],
+      location: req.query.location as string,
+      propertyType: req.query.propertyType as string,
+      priceMin: req.query.priceMin as string,
+      priceMax: req.query.priceMax as string,
+      isPreference: req.query.isPreference as string,
+      buildingType: req.query.buildingType ? (Array.isArray(req.query.buildingType) ? req.query.buildingType : [req.query.buildingType]) : [],
+      page: req.query.page as string,
+      limit: req.query.limit as string,
+    };
+
+    const properties = await adminController.getAllProperties(filters);
+
+    return res.status(200).json({
+      success: true,
+      data: properties.data.map(formatPropertyDataForTable),
+      pagination: {
+        total: properties.total,
+        currentPage: properties.currentPage,
+        totalPages: properties.totalPages,
+        perPage: properties.perPage,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 AdminRouter.get('/agent/:agentId/properties', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -325,8 +396,7 @@ AdminRouter.get('/all-agents', async (req: Request, res: Response, next: NextFun
 });
 
 
-AdminRouter.get(
-  '/upgrade-agent',
+AdminRouter.get('/upgrade-agent',
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { page = '1', limit = '10' } = req.query;

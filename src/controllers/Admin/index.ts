@@ -23,8 +23,11 @@ import { RouteError, signJwt, signJwtAdmin } from '../../common/classes';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import bcrypt from 'bcryptjs';
 import { PropertyProps } from '../Property';
-import { IAgentDoc, IBriefMatchModel, IPreference, IProperty } from '../../models';
+import { IAgentDoc, IBriefMatchModel, IPreference, IProperty, IUserDoc } from '../../models';
 import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
+import { Model } from 'mongoose';
+import { formatAgentDataForTable, formatLandOwnerDataForTable } from '../../utils/userFormatters';
+
 
 export class AdminController {
   private agentController = new AgentController();
@@ -38,6 +41,122 @@ export class AdminController {
   private readonly defaultPassword = 'KhabiTeqRealty@123';
 
   //==================================
+
+public async getAllProperties(filters?: {
+  ownerType?: 'Landowners' | 'Agent' | 'All';
+  isPremium?: string;
+  isApproved?: string;
+  isRejected?: string;
+  isAvailable?: string;
+  briefType?: string[];
+  location?: string;
+  propertyType?: string;
+  priceMin?: string;
+  priceMax?: string;
+  isPreference?: string;
+  buildingType?: string[];
+  page?: string;
+  limit?: string;
+}) {
+  const matchStage: any = {};
+
+  // User type (owner)
+  if (filters?.ownerType && filters.ownerType !== 'All') {
+    matchStage['owner.userType'] = filters.ownerType;
+  }
+
+  // Boolean filters
+  if (filters?.isPremium !== undefined) matchStage.isPremium = filters.isPremium === 'true';
+  if (filters?.isApproved !== undefined) matchStage.isApproved = filters.isApproved === 'true';
+  if (filters?.isRejected !== undefined) matchStage.isRejected = filters.isRejected === 'true';
+  if (filters?.isAvailable !== undefined) matchStage.isAvailable = filters.isAvailable;
+  if (filters?.isPreference !== undefined) matchStage.isPreference = filters.isPreference === 'true';
+
+  // Exact match
+  if (filters?.propertyType) matchStage.propertyType = filters.propertyType;
+
+  // briefType array
+  if (filters?.briefType?.length) {
+    matchStage.briefType = { $in: filters.briefType };
+  }
+
+  // buildingType array
+  if (filters?.buildingType?.length) {
+    matchStage.buildingType = { $in: filters.buildingType };
+  }
+
+  // location: check in multiple fields using $or
+  if (filters?.location) {
+    const regex = new RegExp(filters.location, 'i');
+    matchStage.$or = [
+      { 'location.state': regex },
+      { 'location.localGovernment': regex },
+      { 'location.area': regex },
+    ];
+  }
+
+  // Price Range
+  if (filters?.priceMin || filters?.priceMax) {
+    matchStage.price = {};
+    if (filters.priceMin) matchStage.price.$gte = Number(filters.priceMin);
+    if (filters.priceMax) matchStage.price.$lte = Number(filters.priceMax);
+  }
+
+  const page = parseInt(filters?.page || '1');
+  const limit = parseInt(filters?.limit || '10');
+  const skip = (page - 1) * limit;
+
+  const pipeline: any[] = [
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'owner',
+        foreignField: '_id',
+        as: 'owner',
+      },
+    },
+    { $unwind: '$owner' },
+    { $match: matchStage },
+    { $sort: { createdAt: -1 } },
+    {
+      $facet: {
+        data: [{ $skip: skip }, { $limit: limit }],
+        totalCount: [{ $count: 'count' }],
+      },
+    },
+  ];
+
+  const result = await DB.Models.Property.aggregate(pipeline);
+  const data = result[0]?.data || [];
+  const total = result[0]?.totalCount[0]?.count || 0;
+
+  return {
+    data,
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit),
+    perPage: limit,
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   public async randomlyAssignBuyersToPreferences() {
   try {
@@ -134,7 +253,7 @@ export class AdminController {
       users,
     };
   }
-
+ 
 
   public async getUsersByType(params: {
     userType: 'Agent' | 'Landowners';
@@ -149,28 +268,22 @@ export class AdminController {
     const safeLimit = Math.max(1, limit);
     const skip = (safePage - 1) * safeLimit;
 
-    const query: any = {
-      $or: [
-        { userType: { $regex: `^${userType}$`, $options: 'i' } },
-        { role: { $regex: `^${userType}$`, $options: 'i' } },
-      ],
-    };
+    const query: any = {};
+    const searchConditions: any[] = [];
 
-    // 🔍 Search filters
     if (search.trim()) {
-      query.$and = [
-        {
-          $or: [
-            { email: { $regex: search, $options: 'i' } },
-            { firstName: { $regex: search, $options: 'i' } },
-            { lastName: { $regex: search, $options: 'i' } },
-            { phoneNumber: { $regex: search, $options: 'i' } },
-          ],
-        },
-      ];
+      searchConditions.push(
+        { email: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { phoneNumber: { $regex: search, $options: 'i' } }
+      );
     }
 
-    // ✅ Extra filters
+    if (searchConditions.length > 0) {
+      query.$or = searchConditions;
+    }
+
     if (filters?.accountStatus && filters.accountStatus !== 'null') {
       query.accountStatus = filters.accountStatus;
     }
@@ -179,28 +292,66 @@ export class AdminController {
       query.isFlagged = filters.isFlagged === 'true';
     }
 
+    if (filters?.accountApproved !== undefined && filters.accountApproved !== 'null') {
+      query.accountApproved = filters.accountApproved === 'true';
+    }
+
     if (filters?.excludeInactive !== false) {
       query.isInActive = false;
     }
 
-    const total = await DB.Models.User.countDocuments(query);
+    // ✅ Format Agent Results
+    if (userType === 'Agent') {
+      const AgentModel: Model<IAgentDoc> = DB.Models.Agent;
 
-    const users = await DB.Models.User.find(query)
+      const total = await AgentModel.countDocuments(query);
+
+      const agents = await AgentModel.find(query)
+        .populate({
+          path: 'userId',
+          select:
+            'email firstName lastName phoneNumber profile_picture userType isAccountVerified accountStatus accountApproved isInActive isDeleted isFlagged',
+        })
+        .skip(skip)
+        .limit(safeLimit)
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const formattedAgents = agents.map(formatAgentDataForTable);
+
+      return {
+        users: formattedAgents,
+        pagination: {
+          page: safePage,
+          limit: safeLimit,
+          total,
+          totalPages: Math.ceil(total / safeLimit),
+        },
+      };
+    }
+
+    // ✅ Format Landowner Results
+    const UserModel: Model<IUserDoc> = DB.Models.User;
+    query.userType = 'Landowners';
+
+    const total = await UserModel.countDocuments(query);
+
+    const users = await UserModel.find(query)
       .skip(skip)
       .limit(safeLimit)
       .sort({ createdAt: -1 })
       .lean();
 
-    const pagination = {
-      page: safePage,
-      limit: safeLimit,
-      total,
-      totalPages: Math.ceil(total / safeLimit),
-    };
+    const formattedLandowners = users.map(formatLandOwnerDataForTable);
 
     return {
-      users,
-      pagination,
+      users: formattedLandowners,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      },
     };
   }
 
@@ -639,7 +790,7 @@ export class AdminController {
 
   public async getAgents(page: number, limit: number, type: string, userType: string, approved?: string) {
     const isApproved = approved === 'true' ? true : approved === 'false' ? false : undefined;
-
+ 
     // Stats
     const totalActiveAgents = await DB.Models.User.countDocuments({
       isInActive: false,
@@ -1227,71 +1378,70 @@ public async getPreferencesByBuyerId(buyerId: string) {
 
   // 2. Admin selects briefs to match a buyer's preference and notify the buyer
   public async matchBriefsToPreference(preferenceId: string, briefIds: string[]) {
-  type PopulatedPreference = Omit<IPreference, 'buyer'> & {
-    buyer: { email: string; fullName: string };
-  };
+    type PopulatedPreference = Omit<IPreference, 'buyer'> & {
+      buyer: { email: string; fullName: string };
+    };
 
-  const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId)
+    const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId)
 
-  const preference = await DB.Models.Preference.findById(preferenceObjectId)
-    .populate('buyer', 'email fullName')
+    const preference = await DB.Models.Preference.findById(preferenceObjectId)
+      .populate('buyer', 'email fullName')
 
-  if (!preference) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
+    if (!preference) throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
 
-  const buyer = preference.buyer as any
-  let theStatus = preference.status as string
-  
-  const briefMatches = [];
-  const BriefMatchModel = DB.Models.BriefMatch as IBriefMatchModel;
-
-  for (const briefId of briefIds) {
-    const briefObjectId = new mongoose.Types.ObjectId(briefId)
+    const buyer = preference.buyer as any
+    let theStatus = preference.status as string
     
+    const briefMatches = [];
+    const BriefMatchModel = DB.Models.BriefMatch as IBriefMatchModel;
 
-    const alreadyExists = await BriefMatchModel.findOne({
-      brief: briefObjectId,
-      preference: preferenceObjectId,
-    });
+    for (const briefId of briefIds) {
+      const briefObjectId = new mongoose.Types.ObjectId(briefId)
+      
 
-    if (!alreadyExists) {
-      const privateLink = `${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}`;
-
-      const newMatch = await BriefMatchModel.create({
+      const alreadyExists = await BriefMatchModel.findOne({
         brief: briefObjectId,
         preference: preferenceObjectId,
-        privateLink,
-        status: 'sent',
       });
 
-      briefMatches.push(newMatch);
+      if (!alreadyExists) {
+        const privateLink = `${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}`;
+
+        const newMatch = await BriefMatchModel.create({
+          brief: briefObjectId,
+          preference: preferenceObjectId,
+          privateLink,
+          status: 'sent',
+        });
+
+        briefMatches.push(newMatch);
+      }
     }
+
+    if (briefMatches.length > 0) {
+      const emailHtml = preferenceMatchingTemplate(`
+        <p>Dear ${buyer.fullName},</p>
+        <p>Good news! We’ve found the perfect property brief for you.</p>
+        <p>Please click the button below to view it.</p>
+        <p><a href="${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}">View Property</a></p>
+        <p>If you have any questions, feel free to contact us.</p>
+      `);
+
+      theStatus  = 'matched'
+      await preference.save()
+
+      await sendEmail({
+        to:buyer.email,
+        subject: 'Matching Properties Found',
+        html: emailHtml,
+        text: emailHtml,
+      });
+    }
+
+    return {
+      message: 'Briefs matched and email sent to buyer.',
+      matchedCount: briefMatches.length,
+    };
   }
-
-  if (briefMatches.length > 0) {
-    const emailHtml = preferenceMatchingTemplate(`
-      <p>Dear ${buyer.fullName},</p>
-      <p>Good news! We’ve found the perfect property brief for you.</p>
-      <p>Please click the button below to view it.</p>
-      <p><a href="${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}">View Property</a></p>
-      <p>If you have any questions, feel free to contact us.</p>
-    `);
-
-    theStatus  = 'matched'
-    await preference.save()
-
-    await sendEmail({
-      to:buyer.email,
-      subject: 'Matching Properties Found',
-      html: emailHtml,
-      text: emailHtml,
-    });
-  }
-
-  return {
-    message: 'Briefs matched and email sent to buyer.',
-    matchedCount: briefMatches.length,
-  };
-}
-
 }
 
