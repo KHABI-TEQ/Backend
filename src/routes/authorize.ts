@@ -4,6 +4,7 @@ import { DB } from "../controllers";
 
 interface Request extends Express.Request {
   user?: any;
+  admin?: any;
   headers?: any;
   url?: string;
 }
@@ -30,7 +31,7 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
         if (!admin) {
           return res.status(401).json({ message: 'Admin not found' });
         }
-        req.user = admin;
+        req.admin = admin;
         return next();
       }
 
