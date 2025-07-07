@@ -228,6 +228,7 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
   }
 });
 
+
 router.use(AuthorizeAction);
 
 router.get('/me', async (req: Request, res: Response, next: NextFunction) => {

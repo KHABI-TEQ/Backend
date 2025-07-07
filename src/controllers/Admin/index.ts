@@ -29,6 +29,7 @@ import { relativeTimeThreshold } from 'moment/ts3.1-typings/moment';
 import { Model } from 'mongoose';
 import { formatAgentDataForTable, formatLandOwnerDataForTable, formatUpgradeAgentForTable } from '../../utils/userFormatters';
 import { formatPropertyDataForTable } from '../../utils/propertyFormatters';
+import { Request } from 'express';
 
 import cloudinary from '../../common/cloudinary';
 
@@ -235,7 +236,7 @@ export class AdminController {
       throw new RouteError(404, 'Admin account not found or already deleted.');
     }
     return { message: 'Admin account deleted successfully.' };
-  }
+  } 
 
   public async changePassword(adminId: string, newPassword: string) {
     try {
@@ -912,6 +913,134 @@ export class AdminController {
     throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
   }
 }
+
+
+  public async createTestimonial(data: {
+    fullName: string;
+    occupation?: string;
+    rating: number;
+    message?: string;
+    profileImage?: string;
+  }) {
+    const testimonial = await DB.Models.Testimonial.create(data);
+    return testimonial;
+  }
+
+  // Update testimonial
+  public async updateTestimonial(id: string, data: any) {
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid testimonial ID');
+    }
+    const updated = await DB.Models.Testimonial.findByIdAndUpdate(id, data, { new: true });
+    if (!updated) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Testimonial not found');
+    }
+    return updated;
+  }
+
+  // Get single testimonial
+  public async getTestimonial(id: string) {
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid testimonial ID');
+    }
+    const testimonial = await DB.Models.Testimonial.findById(id);
+    if (!testimonial) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Testimonial not found');
+    }
+    return testimonial;
+  }
+
+  // Get all testimonials with pagination & query
+  public async getAllTestimonials(query: Request['query']) {
+    const { page = 1, limit = 10, search, status, sortBy = 'createdAt', order = 'desc' } = query;
+
+    const filter: any = {};
+    if (search) filter.fullName = { $regex: search as string, $options: 'i' };
+    if (status && status !== 'all') filter.status = status;
+
+    const skip = (+page - 1) * +limit;
+
+    const testimonials = await DB.Models.Testimonial.find(filter)
+      .sort({ [sortBy as string]: order === 'asc' ? 1 : -1 })
+      .skip(skip)
+      .limit(+limit);
+
+    const total = await DB.Models.Testimonial.countDocuments(filter);
+
+    return {
+      testimonials,
+      pagination: {
+        total,
+        page: +page,
+        limit: +limit,
+      },
+    };
+  }
+
+  // Delete testimonial
+  public async deleteTestimonial(id: string) {
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid testimonial ID');
+    }
+    const deleted = await DB.Models.Testimonial.findByIdAndDelete(id);
+    if (!deleted) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Testimonial not found or already deleted');
+    }
+    return true;
+  }
+
+  public async updateTestimonialStatus(id: string, status: 'approved' | 'rejected' | 'pending') {
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid testimonial ID');
+    }
+
+    const updated = await DB.Models.Testimonial.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updated) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Testimonial not found');
+    }
+
+    return updated;
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   // =================================
