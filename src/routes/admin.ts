@@ -49,7 +49,7 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
 // AdminRouter.use(authorizeAdmin);
 
 // Get current admin info
-AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.get('/me', authorize, async (req: Request, res: Response, next: NextFunction) => {
   try {
     return res.status(200).json({ success: true, admin: req.admin });
   } catch (error) {
@@ -59,7 +59,7 @@ AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next:
 
 
 // Protect all other admin routes
-AdminRouter.use(authorizeAdminOnly);
+AdminRouter.use(authorize);
 
 
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {

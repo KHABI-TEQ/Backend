@@ -385,7 +385,6 @@ router.get(
   }
 );
 
-
 router.get(
   "/briefs/:_id",
   AuthorizeAction,
