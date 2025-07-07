@@ -17,6 +17,7 @@ import propertyRouter from './property';
 import { UserRouter } from './user.api';
 import { buyerRouter } from './buyer';
 import {documentVerificationController} from '../controllers/DocumentVerification';
+import { AdminController } from '../controllers/Admin';
 
 const router = express.Router();
 
@@ -25,6 +26,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 const propertyRequest = new PropertyRequestController();
+const adminController = new AdminController();
 
 // Upload route using Multer to handle binary file
 router.post('/upload-image', upload.single('file'), async (req: Request, res: Response) => {
@@ -157,6 +159,17 @@ router.get('/verification-result', async (req:Request, res:Response, next:NextFu
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
+  }
+});
+
+
+
+router.get('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getAllTestimonials(req.query);
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
   }
 });
 

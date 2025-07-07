@@ -522,6 +522,78 @@ AdminRouter.get('/buyers/:id/inspections', async (req, res, next) => {
 });
 
 
+// Create Testimonial
+AdminRouter.post('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.createTestimonial(req.body);
+    return res.status(201).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update Testimonial
+AdminRouter.put('/testimonials/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.updateTestimonial(req.params.id, req.body);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get Single Testimonial
+AdminRouter.get('/testimonials/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getTestimonial(req.params.id);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get All Testimonials with pagination, search, sort
+AdminRouter.get('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getAllTestimonials(req.query);
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete Testimonial
+AdminRouter.delete('/testimonials/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await adminController.deleteTestimonial(req.params.id);
+    return res.status(200).json({ success: true, message: 'Testimonial deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.patch('/testimonials/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status value' });
+    }
+
+    const result = await adminController.updateTestimonialStatus(id, status);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Testimonial status updated successfully',
+      testimonial: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 
 
 
