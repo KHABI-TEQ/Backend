@@ -7,7 +7,7 @@ import HttpStatusCodes from '../common/HttpStatusCodes';
 import AdminInspRouter from './admin.inspections';
 import { formatPropertyDataForTable } from '../utils/propertyFormatters';
 import multer from "multer";
-import { authorize } from './authorize';
+import { authorize, authorizeAdminOnly } from './authorize';
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -59,7 +59,7 @@ AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next:
 
 
 // Protect all other admin routes
-AdminRouter.use(authorize);
+AdminRouter.use(authorizeAdminOnly);
 
 
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
