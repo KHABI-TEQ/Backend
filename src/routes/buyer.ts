@@ -176,7 +176,7 @@ buyerRouter.post(
       const { inspectionId } = req.params;
       // Extract specific fields as per frontend payload
       const { counterOffer, counterDateTimeObj, inspectionDateStatus, message, userId, userType } = req.body;
-
+ 
       const response = await buyerController.counterOffer(
         inspectionId,
         counterOffer,

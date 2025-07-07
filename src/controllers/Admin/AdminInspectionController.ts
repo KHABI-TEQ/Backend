@@ -10,7 +10,16 @@ import {
   InspectionRequestWithNegotiation,
   InspectionRequestWithNegotiationSellerTemplate,
 } from '../../common/email.template';
+import notificationService from '../../services/notification.service';
+import { InspectionLogService } from '../../services/inspectionLog.service';
 
+
+interface Request extends Express.Request {
+  body?: any;
+  params?: any;
+  query?: any;
+  admin?: any;
+}
 
 export class AdminInspectionController {
 
@@ -169,6 +178,17 @@ export class AdminInspectionController {
       const formattedPrice = property.price?.toLocaleString('en-US') ?? 'N/A';
       const negotiationPrice = inspection.negotiationPrice?.toLocaleString('en-US') ?? 'N/A';
 
+      // log inspection details
+      await InspectionLogService.logActivity({
+        inspectionId: inspection._id.toString(),
+        propertyId: (inspection.propertyId as any)._id.toString(),
+        senderId: req.admin?._id.toString(),
+        senderRole: 'admin',
+        message: `Inspection transaction approved successfully - status updated to ${updatedStatus}`,
+        status: updatedStatus,
+        stage: 'inspection',
+      });
+
       const emailData = {
         propertyType: property.propertyType,
         location,
@@ -204,6 +224,22 @@ export class AdminInspectionController {
         html: generalTemplate(sellerEmailHtml),
         text: generalTemplate(sellerEmailHtml),
       });
+
+      const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
+
+      // For seller
+      await notificationService.createNotification({
+        user: owner._id,
+        title: 'New Inspection Request',
+        message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
+        meta: {
+          propertyId: property._id,
+          inspectionId: inspection._id,
+          status: updatedStatus,
+        },
+      });
+
+
     }
 
     return res.status(200).json({

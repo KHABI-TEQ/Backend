@@ -14,7 +14,6 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization || req.headers.Authorization;
     // 🔹 No Authorization header — just proceed (unauthenticated)
     if (!authHeader) {
-      console.log(`[AUTH][${req.url}] No Authorization header`); // ✅ FIXED: Changed $${} to ${}
       req.user = null;
       return next();
     }

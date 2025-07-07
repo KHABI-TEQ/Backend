@@ -166,12 +166,14 @@ router.get('/verification-result', async (req:Request, res:Response, next:NextFu
 
 router.get('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await adminController.getAllTestimonials(req.query);
+    const result = await adminController.getLatestApprovedTestimonials()
+      
     return res.status(200).json({ success: true, ...result });
   } catch (error) {
     next(error);
   }
 });
+
 
 //===============================================
 
