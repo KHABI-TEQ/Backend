@@ -818,6 +818,47 @@ export class AdminController {
     };
   }
 
+  public async updatePreferenceByAdmin(preferenceId: string, updateData: Partial<IPreference>) {
+  
+    const objectPreferenceId = new mongoose.Types.ObjectId(preferenceId)
+   
+  const preference = await DB.Models.Preference.findById(objectPreferenceId);
+  if (!preference) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
+  }
+
+  // Apply only fields that exist in updateData
+  Object.keys(updateData).forEach((key) => {
+    const value = updateData[key as keyof IPreference];
+    if (value !== undefined) {
+      (preference as any)[key] = value;
+    }
+  });
+
+  await preference.save();
+
+  return {
+    message: 'Preference updated successfully',
+    preference,
+  };
+}
+
+public async deletePreference(preferenceId: string) {
+  const id = new mongoose.Types.ObjectId(preferenceId);
+
+  const deleted = await DB.Models.Preference.findByIdAndDelete(id);
+  if (!deleted) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Preference not found');
+  }
+
+  return {
+    message: 'Preference deleted successfully',
+    deletedPreferenceId: preferenceId,
+  };
+}
+
+
+
   public async getBuyerInspections(buyerId: any, page: number = 1, limit: number = 10) {
   if (!mongoose.Types.ObjectId.isValid(buyerId)) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid buyer ID');
@@ -1716,10 +1757,10 @@ public async getPreferencesByBuyerId(buyerId: string) {
 }
 
 public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
-  if (!['pending', 'confirmed', 'rejected', 'successful'].includes(filter)) {
+  if (!['pending', 'confirmed', 'rejected',  "in-progress", 'successful'].includes(filter)) {
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
-      `Invalid filtering. Filter must be one of: "pending", "confirmed", "rejected", or "successful"`
+      `Invalid filtering. Filter must be one of: "pending", "confirmed", "rejected", "in-progress" or "successful"`
     );
   }
 
@@ -1938,6 +1979,9 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
     text: userMailBody,
     html: userMailBody,
   });
+
+  doc.status = "in-progress"
+  await doc.save()
 
   return {
     message: 'Verification documents sent to provider and user notified',

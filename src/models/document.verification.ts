@@ -14,7 +14,7 @@ export interface IDocumentVerification {
     documentUrl: string;
   }[];
   resultDocuments: string[];
-  status: 'pending' | 'confirmed' | 'rejected' | 'successful';
+  status: 'pending' | 'confirmed'  | 'rejected' |  "in-progress" | 'successful';
 }
 
 
