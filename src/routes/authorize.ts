@@ -24,7 +24,7 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Try admin secret first
-    jwt.verify(token, process.env.JWT_SECRET_ADMIN, async (err: any, decoded: any) => {
+    jwt.verify(token, process.env.JWT_SECRET, async (err: any, decoded: any) => {
       if (!err && decoded) {
         const admin = await DB.Models.Admin.findById(decoded.id);
         if (!admin) {
@@ -62,7 +62,7 @@ const authorize = (req: Request, res: Response, next: NextFunction) => {
 export { authorize };
 
 // ✅ OPTIONAL: Admin-specific middleware for stricter admin-only routes
-export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
+export const authorizeAdminOnly = (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization || req.headers.Authorization;
     
@@ -76,7 +76,7 @@ export const adminOnly = (req: Request, res: Response, next: NextFunction) => {
     }
 
     // Only check admin secret (no fallback to agent)
-    jwt.verify(token, process.env.JWT_SECRET_ADMIN, async (err: any, decoded: any) => {
+    jwt.verify(token, process.env.JWT_SECRET, async (err: any, decoded: any) => {
       if (err) {
         return res.status(401).json({ message: 'Invalid admin token' });
       }
