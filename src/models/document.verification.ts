@@ -42,7 +42,7 @@ export class DocumentVerification {
         resultDocuments: [{ type: String }],
         status: {
           type: String,
-          enum: ['pending', 'confirmed', "rejected", 'successful'],
+          enum: ['pending', 'confirmed',  "in-progress", "rejected", 'successful'],
           default: 'pending',
         },
       },
