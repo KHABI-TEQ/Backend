@@ -11,7 +11,7 @@ class DocumentVerificationController {
     phoneNumber: string;
     address: string;
     amountPaid: number;
-    documentsMetadata: string; // parsed later
+    documentsMetadata: string; // JSON stringified array
   },
   files: { documents: any[]; receipt: any }
 ) {
@@ -20,7 +20,7 @@ class DocumentVerificationController {
   const metadata = JSON.parse(documentsMetadata || '[]');
 
   const documentFiles = files?.documents || [];
-  const receiptFile = files?.receipt?.[0]; // Assuming receipt is single-file upload
+  const receiptFile = files?.receipt?.[0]; // single file
 
   if (!documentFiles || documentFiles.length === 0 || documentFiles.length > 2) {
     throw new RouteError(
@@ -62,7 +62,7 @@ class DocumentVerificationController {
     }
 
     const base64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-    const fileUrl = await cloudinary.uploadDoc(base64, 'submission', 'verification-documents');
+    const fileUrl = await cloudinary.uploadFile(base64, `document-${i + 1}`, 'verification-documents');
 
     structuredDocs.push({
       documentType: meta.documentType,
@@ -73,7 +73,7 @@ class DocumentVerificationController {
 
   // Upload receipt
   const receiptBase64 = `data:${receiptFile.mimetype};base64,${receiptFile.buffer.toString('base64')}`;
-  const receiptUrl = await cloudinary.uploadDoc(receiptBase64, 'receipt', 'verification-documents');
+  const receiptUrl = await cloudinary.uploadFile(receiptBase64, 'receipt', 'verification-documents');
 
   // Save to database
   const record = await DB.Models.DocumentVerification.create({
@@ -92,6 +92,7 @@ class DocumentVerificationController {
     recordId: record._id,
   };
 }
+
 
 
 
