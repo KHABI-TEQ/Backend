@@ -59,7 +59,7 @@ AdminRouter.get('/me', authorize, async (req: Request, res: Response, next: Next
 
 
 // Protect all other admin routes
-AdminRouter.use(authorize);
+// AdminRouter.use(authorize);
 
 
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
