@@ -40,36 +40,49 @@ class InspectionController {
 
     public async getInspectionDetails(req: Request, res: Response, next: NextFunction) {
         try {
-        const { userID, inspectionID, userType } = req.params;
+            const { userID, inspectionID, userType } = req.params;
 
-        const inspection = await DB.Models.InspectionBooking.findById(inspectionID)
-            .populate('propertyId', 'title location price propertyType briefType _id owner')
+            const inspection = await DB.Models.InspectionBooking.findById(inspectionID)
+            .populate('propertyId', 'title location price propertyType briefType pictures _id owner')
             .populate('owner', 'firstName lastName email _id phoneNumber userType')
             .populate('requestedBy', 'fullName email phoneNumber')
             .populate('transaction', 'bank accountNumber accountName transactionReference transactionReceipt');
 
-        if (!inspection) {
+            if (!inspection) {
             throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
-        }
+            }
 
-        // Authorization check based on user type
-        if (userType === 'seller' && (inspection.propertyId as any).owner.toString() !== userID) {
+            // Authorization check based on user type
+            if (userType === 'seller' && (inspection.propertyId as any).owner.toString() !== userID) {
             throw new RouteError(HttpStatusCodes.FORBIDDEN, "Seller not authorized for this inspection");
-        }
+            }
 
-        if (userType === 'buyer' && (inspection.requestedBy as any)._id.toString() !== userID) {
+            if (userType === 'buyer' && (inspection.requestedBy as any)._id.toString() !== userID) {
             throw new RouteError(HttpStatusCodes.FORBIDDEN, "Buyer not authorized for this inspection");
-        }
+            }
 
-        return res.status(HttpStatusCodes.OK).json({
+            // Add thumbnail from property pictures
+            const property = inspection.propertyId as any;
+            const thumbnail = property?.pictures?.length ? property.pictures[0] : null;
+
+            const responseData = {
+            ...inspection.toObject(),
+            propertyId: {
+                ...property.toObject(),
+                thumbnail,
+            },
+            };
+
+            return res.status(HttpStatusCodes.OK).json({
             success: true,
-            data: inspection,
-        });
+            data: responseData,
+            });
 
         } catch (error) {
-        next(error);
+            next(error);
         }
     }
+
 
     public async validateInspectionAccess(req: Request, res: Response, next: NextFunction) {
         try {
