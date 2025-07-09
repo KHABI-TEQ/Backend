@@ -1018,6 +1018,16 @@ public async deletePreference(preferenceId: string) {
     };
   }
 
+
+  async getLatestApprovedTestimonials() {
+    const testimonials = await DB.Models.Testimonial.find({ status: 'approved' })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .lean();
+
+    return { data: testimonials };
+  }
+
   // Delete testimonial
   public async deleteTestimonial(id: string) {
     if (!mongoose.isValidObjectId(id)) {

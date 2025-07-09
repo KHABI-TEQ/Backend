@@ -29,30 +29,6 @@ import sendEmail from "../../common/send.email";
 import mongoose from "mongoose";
 import { IInspectionBooking } from "../../models/inspection.booking";
 
-interface InspectionRequest {
-  properties: Array<{
-    propertyId: string;
-    negotiationPrice?: number;
-  }>;
-  inspectionDate: Date;
-  inspectionTime: string;
-  requestedBy: {
-    fullName: string;
-    phoneNumber: string;
-    email: string;
-  };
-  transaction: {
-    fullName?: string
-    bank: string;
-    accountNumber: string;
-    accountName: string;
-    transactionReference: string;
-    transactionReceipt: string;
-  };
-  isNegotiating: boolean;
-  letterOfIntention?: string;
-  sellerCounterOffer?: number;
-}
 
 interface UpdateInspectionRequest {
   propertyId: string;
@@ -76,20 +52,6 @@ interface UpdateInspectionRequest {
   sellerCounterOffer?: number;
 }
 
-interface InspectionProperty {
-  propertyId: string;
-  negotiationPrice?: number;
-}
-
-
-// transaction,
-//         isNegotiating,
-//         negotiationPrice,
-//         letterOfIntention,
-//         status,
-//         counterOffer,
-//         countering,
-//         negotiationRejected,
 
  type UpdateInspectionInput = {
   propertyId?: any;
@@ -108,48 +70,6 @@ interface InspectionProperty {
 
 
 class BuyerController {
-
-   // Helper method to generate all relevant links dynamically
-   private generateInspectionLinks(inspectionId: string): {
-    buyerAcceptLink: string;
-    buyerRejectLink: string;
-    buyerCounterLink: string;
-    buyerViewLink: string;
-    sellerAcceptLink: string; // If seller can accept a buyer counter
-    sellerRejectLink: string; // If seller can reject a buyer counter
-    sellerCounterLink: string; // If seller can counter a buyer offer
-    sellerViewLink: string;
-    negotiationResponseLink: string; // General link for seller to respond to negotiation
-    sellerResponseLink: string;
-    buyerResponseLink: string;
-    checkLink: string;
-    browseLink: string;
-    rejectLink: string;
-  } {
-    const inspectionIdString = inspectionId.toString();
-    const clientLink = process.env.CLIENT_LINK;
-
-    return {
-      // Buyer-centric links
-      buyerAcceptLink: `${clientLink}/buyer/inspection/${inspectionIdString}/accept`,
-      buyerRejectLink: `${clientLink}/buyer/inspection/${inspectionIdString}/reject`,
-      buyerCounterLink: `${clientLink}/buyer/inspection/${inspectionIdString}/counter`,
-      buyerViewLink: `${clientLink}/buyer/inspection/${inspectionIdString}`,
-
-      // Seller-centric links (can be context-dependent in templates)
-      sellerAcceptLink: `${clientLink}/seller/inspection/${inspectionIdString}/accept`, // For when seller accepts buyer's offer
-      sellerRejectLink: `${clientLink}/seller/inspection/${inspectionIdString}/reject`, // For when seller rejects buyer's offer
-      sellerCounterLink: `${clientLink}/seller/inspection/${inspectionIdString}/counter`, // For when seller counters buyer's offer
-      sellerViewLink: `${clientLink}/seller/inspection/${inspectionIdString}`,
-      negotiationResponseLink: `${clientLink}/seller-negotiation-inspection/${inspectionIdString}`, // Specific seller response link
-
-      sellerResponseLink: `${clientLink}/seller-negotiation-inspection/${inspectionIdString}`,
-      buyerResponseLink: `${clientLink}/negotiation-inspection/${inspectionIdString}`,
-      checkLink: `${clientLink}/negotiation-inspection/${inspectionIdString}/check`,
-      browseLink: `${clientLink}/market-place`,
-      rejectLink: `${clientLink}/negotiation-inspection/${inspectionIdString}/reject`,
-    };
-  }
 
   public async submitPreference(data: any) {
     try {
@@ -230,117 +150,7 @@ class BuyerController {
     throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
   }
 }
-
-  public async requestInspection(inspectionRequestData: InspectionRequest) {
-  try {
-    const buyerEmail = inspectionRequestData.requestedBy.email;
-
-    // Ensure buyer exists
-    let buyer = await DB.Models.Buyer.findOne({ email: buyerEmail });
-
-    if (!buyer) {
-      buyer = await DB.Models.Buyer.create({
-        fullName: inspectionRequestData.requestedBy.fullName,
-        email: buyerEmail,
-        phoneNumber: inspectionRequestData.requestedBy.phoneNumber,
-      });
-    }
-
-    const inspectionResponses = [];
-
-    for (const property of inspectionRequestData.properties as InspectionProperty[]) {
-      const { propertyId, negotiationPrice } = property;
-
-       const existingInspection = await DB.Models.InspectionBooking.findOne({
-        propertyId,
-        requestedBy: buyer._id,
-        status: { $ne: 'cancelled' },
-      });
-      if (existingInspection) {
-        continue; // Skip if already exists
-      }
-
-      const foundProperty = await DB.Models.Property.findOne({ _id: propertyId }).populate(
-        'owner',
-        'email firstName lastName fullName phoneNumber _id'
-      );
-
-      if (!foundProperty) {
-        continue; // Skip if property not found
-      }
-
-      // Validate inspection date
-      const inspectionDate = new Date(inspectionRequestData.inspectionDate);
-      if (inspectionDate < new Date()) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Inspection date cannot be in the past');
-      }
-
-      // Create transaction
-      const transaction = await DB.Models.Transaction.create({
-        buyerId: buyer._id,
-        transactionReceipt: inspectionRequestData.transaction.transactionReceipt,
-        fullName: inspectionRequestData.transaction.fullName,
-        propertyId,
-      });
-
-      const isNegotiating = typeof negotiationPrice === 'number' && negotiationPrice !== 0;
-
-      // Create inspection
-      const inspection = await DB.Models.InspectionBooking.create({
-        propertyId,
-        inspectionDate: inspectionRequestData.inspectionDate,
-        inspectionTime: inspectionRequestData.inspectionTime,
-        status: 'pending_transaction',
-        pendingResponseFrom: 'seller',
-        requestedBy: buyer._id,
-        transaction: transaction._id,
-        isNegotiating,
-        negotiationPrice,
-        letterOfIntention: inspectionRequestData.letterOfIntention,
-        owner: (foundProperty.owner as any)._id,
-      });
-
-      inspectionResponses.push(inspection);
-    }
-
-    return {
-      message: 'Inspection requests created successfully',
-      inspectionIds: inspectionResponses,
-    };
-  } catch (error) {
-    console.error("Error in requestInspection:", error);
-    throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message);
-  }
-}
-
-  
-  public async getInspection(inspectionId: string, userId?: string) {
-    const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
-      .populate('propertyId', 'title location price propertyType briefType _id owner')
-      .populate('owner', 'firstName lastName email _id phoneNumber userType')
-      .populate('requestedBy', 'fullName email phoneNumber')
-      .populate('transaction', 'bank accountNumber accountName transactionReference transactionReceipt');
  
-    if (!inspection) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
-    }
-
-    console.log(inspection, "inspection details");
-
-    if (
-      userId &&
-      (inspection.propertyId as any).owner.toString() !== userId.toString()
-    ) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "You do not have permission to view this inspection"
-      );
-    }
-
-    return inspection;
-  }
-
-
   public async updateInspection(
     inspectionId: string,
     updateData:UpdateInspectionInput
@@ -577,7 +387,7 @@ class BuyerController {
       const formatPrice = (price: number) => price.toLocaleString('en-US');
 
       // Generate all links for this inspection
-      const allLinks = this.generateInspectionLinks(inspection._id.toString());
+      const allLinks = {};
 
       const mailPayload = {
         ...inspection.toObject(),
@@ -707,7 +517,7 @@ class BuyerController {
       const formatPrice = (price: number) => price.toLocaleString('en-US');
 
       // Generate all links
-      const allLinks = this.generateInspectionLinks(inspection._id.toString());
+      const allLinks = {};
 
       const mailPayload = {
         ...inspection.toObject(),
@@ -850,7 +660,7 @@ class BuyerController {
       const formatPrice = (price: number) => price.toLocaleString('en-US');
 
       // Generate all links
-      const allLinks = this.generateInspectionLinks(inspection._id.toString());
+      const allLinks = {};
 
       const mailPayload = {
         ...inspection.toObject(),
