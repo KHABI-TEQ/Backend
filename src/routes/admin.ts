@@ -833,6 +833,25 @@ AdminRouter.get('/preferences/:buyerId', async (req: Request, res: Response, nex
   }
 });
 
+AdminRouter.post('/update-preference/:preferenceId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.updatePreferenceByAdmin(req.params.preferenceId, req.body);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+AdminRouter.post('/delete-preference/:preferenceId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.deletePreference(req.params.preferenceId);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+});
+
+
   
   AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
     try {

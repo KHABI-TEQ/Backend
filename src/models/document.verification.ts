@@ -14,7 +14,7 @@ export interface IDocumentVerification {
     documentUrl: string;
   }[];
   resultDocuments: string[];
-  status: 'pending' | 'confirmed' | 'rejected' | 'successful';
+  status: 'pending' | 'confirmed'  | 'rejected' |  "in-progress" | 'successful';
 }
 
 
@@ -42,7 +42,7 @@ export class DocumentVerification {
         resultDocuments: [{ type: String }],
         status: {
           type: String,
-          enum: ['pending', 'confirmed', "rejected", 'successful'],
+          enum: ['pending', 'confirmed',  "in-progress", "rejected", 'successful'],
           default: 'pending',
         },
       },
