@@ -18,6 +18,7 @@ import { UserRouter } from './user.api';
 import { buyerRouter } from './buyer';
 import {documentVerificationController} from '../controllers/DocumentVerification';
 import { AdminController } from '../controllers/Admin';
+import inspectRouter from './inspectionRouter';
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ const upload = multer({ storage });
 
 const propertyRequest = new PropertyRequestController();
 const adminController = new AdminController();
-
+ 
 // Upload route using Multer to handle binary file
 router.post('/upload-image', upload.single('file'), async (req: Request, res: Response) => {
   try {
@@ -101,6 +102,8 @@ router.post('/property/request-inspection', async (req: Request, res: Response) 
     res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message || 'Internal server error' });
   }
 });
+
+
 
 router.get('/all/inspection-slots', async (req: Request, res: Response) => {
   try {
@@ -187,6 +190,7 @@ router.use('/properties/rent/request', RentPropertyRentRequest);
 router.use('/properties', propertyRouter);
 router.use('/user', UserRouter);
 router.use('/buyers', buyerRouter);
+router.use('/inspections', inspectRouter);
 
 // Add one more middleware namely `authorize` after passport.authenticate to authorize user for access
 // console `req.user` and `req` in authorize middleware

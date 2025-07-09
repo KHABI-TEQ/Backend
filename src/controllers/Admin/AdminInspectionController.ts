@@ -12,14 +12,7 @@ import {
 } from '../../common/email.template';
 import notificationService from '../../services/notification.service';
 import { InspectionLogService } from '../../services/inspectionLog.service';
-
-
-interface Request extends Express.Request {
-  body?: any;
-  params?: any;
-  query?: any;
-  admin?: any;
-}
+import { AdminRequest } from 'custom';
 
 export class AdminInspectionController {
 
@@ -119,7 +112,7 @@ export class AdminInspectionController {
    * Update the inspection's status (e.g., approve, reject transaction, etc.)
    */
 
-  public async updateInspectionStatus(req: Request, res: Response): Promise<Response> {
+  public async updateInspectionStatus(req: AdminRequest, res: Response): Promise<Response> {
     const { id } = req.params;
     const { status } = req.body;
 
