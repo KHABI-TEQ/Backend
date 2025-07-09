@@ -15,8 +15,7 @@ inspectRouter.get(
   '/validate-access/:userId/:inspectionId',
   inspectionController.validateInspectionAccess
 );
-
-
+ 
 // GET /inspection-details/:userID/:inspectionID/:userType
 inspectRouter.get(
   '/inspection-details/:userID/:inspectionID/:userType',
