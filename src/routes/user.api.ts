@@ -11,6 +11,7 @@ import { IAgentDoc, IUserDoc } from '../models';
 import { ParamsDictionary } from "express-serve-static-core";
 import AuthorizeAction from './authorize_action';
 import mongoose from 'mongoose';
+import NotificationService from '../services/notification.service';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -227,6 +228,7 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
   }
 });
 
+
 router.use(AuthorizeAction);
 
 router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
@@ -385,7 +387,6 @@ router.get(
   }
 );
 
-
 router.get(
   "/briefs/:_id",
   AuthorizeAction,
@@ -432,6 +433,94 @@ router.delete(
     }
   }
 );
+
+
+// GET /users/notifications
+router.get('/notifications', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const notifications = await NotificationService.getAll(req.user._id, req.query);
+    res.status(200).json({ success: true, data: notifications });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// GET /users/notifications/:notificationId
+router.get('/notifications/:notificationId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { notificationId } = req.params;
+    if (!mongoose.isValidObjectId(notificationId)) {
+      return res.status(400).json({ error: 'Invalid notification ID' });
+    }
+
+    const notification = await NotificationService.getById(notificationId);
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    res.status(200).json({ success: true, data: notification });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /users/notifications/:notificationId/markRead
+router.patch('/notifications/:notificationId/markRead', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { notificationId } = req.params;
+    if (!mongoose.isValidObjectId(notificationId)) {
+      return res.status(400).json({ error: 'Invalid notification ID' });
+    }
+
+    const marked = await NotificationService.markRead(notificationId);
+    if (!marked) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Notification marked as read.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// PATCH /users/notifications/markAllRead
+router.patch('/notifications/markAllRead', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await NotificationService.markAllRead(req.user._id);
+    res.status(200).json({ success: true, message: 'All notifications marked as read.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /users/notifications/:notificationId/delete
+router.delete('/notifications/:notificationId/delete', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { notificationId } = req.params;
+    if (!mongoose.isValidObjectId(notificationId)) {
+      return res.status(400).json({ error: 'Invalid notification ID' });
+    }
+
+    const deleted = await NotificationService.delete(notificationId);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Notification not found or already deleted.' });
+    }
+
+    res.status(200).json({ success: true, message: 'Notification deleted successfully.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /users/notifications/deleteAll
+router.delete('/notifications/deleteAll', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await NotificationService.deleteAll(req.user._id);
+    res.status(200).json({ success: true, message: 'All notifications cleared successfully.' });
+  } catch (err) {
+    next(err);
+  }
+});
 
 
 export { router as UserRouter };

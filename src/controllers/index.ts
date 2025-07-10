@@ -33,7 +33,11 @@ import {
   IDocumentVerificationModel,
   DocumentVerification,
   IInspectionActivityLogModel,
-  InspectionActivityLogModel
+  InspectionActivityLogModel,
+  INotificationModel,
+  Notification,
+  ITestimonial, 
+  TestimonialModel
 } from '../models/index';
 import { IOwnerModel, Owner } from '../models/property.owner';
 
@@ -55,6 +59,8 @@ declare interface IModels {
   Preference:IPreferenceModel;
   BriefMatch:IBriefMatchModel;
   DocumentVerification:IDocumentVerificationModel;
+  Notification: INotificationModel;
+  Testimonial: typeof TestimonialModel;
 }
 
 export class DB {
@@ -91,6 +97,8 @@ export class DB {
       Preference: new Preference().model,
       BriefMatch: new BriefMatch().model,
       DocumentVerification: new DocumentVerification().model,
+      Notification: new Notification().model,
+      Testimonial: TestimonialModel,
     };
   }
 

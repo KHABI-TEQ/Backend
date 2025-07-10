@@ -7,7 +7,8 @@ import HttpStatusCodes from '../common/HttpStatusCodes';
 import AdminInspRouter from './admin.inspections';
 import { formatPropertyDataForTable } from '../utils/propertyFormatters';
 import multer from "multer";
-import { authorize } from './authorize';
+import { authorize, authorizeAdminOnly } from './authorize';
+import { adminAuth } from '../middlewares/adminAuth';
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -49,7 +50,7 @@ AdminRouter.post('/login', async (req: Request, res: Response, next: NextFunctio
 // AdminRouter.use(authorizeAdmin);
 
 // Get current admin info
-AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+AdminRouter.get('/me', authorize, async (req: Request, res: Response, next: NextFunction) => {
   try {
     return res.status(200).json({ success: true, admin: req.admin });
   } catch (error) {
@@ -59,8 +60,7 @@ AdminRouter.get('/me', authorizeAdmin, async (req: Request, res: Response, next:
 
 
 // Protect all other admin routes
-AdminRouter.use(authorize);
-
+AdminRouter.use(adminAuth);
 
 AdminRouter.post('/create-admin', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -453,6 +453,39 @@ AdminRouter.get('/buyers', async (req, res, next) => {
     next(error);
   }
 });
+ 
+// Create buyer
+AdminRouter.post('/buyers', async (req, res, next) => {
+  try {
+    const data = await adminController.createBuyer(req.body);
+    return res.status(201).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update buyer
+AdminRouter.put('/buyers/:id/update', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const data = await adminController.updateBuyer(id, req.body);
+    return res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete buyer
+AdminRouter.delete('/buyers/:id/delete', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await adminController.deleteBuyer(id);
+    return res.status(200).json({ success: true, message: 'Buyer deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 AdminRouter.get('/buyers/:id', async (req, res, next) => {
   try {
@@ -483,6 +516,78 @@ AdminRouter.get('/buyers/:id/inspections', async (req, res, next) => {
 
     const data = await adminController.getBuyerInspections(id, Number(page), Number(limit));
     return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+// Create Testimonial
+AdminRouter.post('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.createTestimonial(req.body);
+    return res.status(201).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update Testimonial
+AdminRouter.put('/testimonials/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.updateTestimonial(req.params.id, req.body);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get Single Testimonial
+AdminRouter.get('/testimonials/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getTestimonial(req.params.id);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get All Testimonials with pagination, search, sort
+AdminRouter.get('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getAllTestimonials(req.query);
+    return res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete Testimonial
+AdminRouter.delete('/testimonials/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await adminController.deleteTestimonial(req.params.id);
+    return res.status(200).json({ success: true, message: 'Testimonial deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.patch('/testimonials/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Invalid status value' });
+    }
+
+    const result = await adminController.updateTestimonialStatus(id, status);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Testimonial status updated successfully',
+      testimonial: result,
+    });
   } catch (error) {
     next(error);
   }

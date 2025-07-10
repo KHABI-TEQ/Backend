@@ -12,43 +12,6 @@ interface Request extends Express.Request {
   body?: any;
 }
 
-buyerRouter.post('/request-inspection', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const {
-      properties,
-      inspectionDate,
-      inspectionTime,
-      requestedBy,
-      transaction,
-      isNegotiating,
-      letterOfIntention,
-      sellerCounterOffer,
-    } = req.body;
-
-    console.log(req.body, "my client payload....");
-
-    const inspectionResponse = await buyerController.requestInspection({
-      properties,
-      inspectionDate,
-      inspectionTime,
-      requestedBy,
-      transaction,
-      isNegotiating,
-      letterOfIntention,
-      sellerCounterOffer,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: inspectionResponse.message,
-      inspectionIds: inspectionResponse, // return the created inspection IDs
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-
 buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const inspections = await DB.Models.InspectionBooking.find({}).populate([
@@ -101,24 +64,6 @@ buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: Next
 });
 
 
-buyerRouter.get(
-  '/new-inspection/:inspectionId',
-  // AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { inspectionId } = req.params;
-
-      const inspectionDetails = await buyerController.getInspection(inspectionId);
-
-      return res.status(200).json({
-        success: true,
-        data: inspectionDetails,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
 
 buyerRouter.post(
   '/update-inspection/:inspectionId',
@@ -176,7 +121,7 @@ buyerRouter.post(
       const { inspectionId } = req.params;
       // Extract specific fields as per frontend payload
       const { counterOffer, counterDateTimeObj, inspectionDateStatus, message, userId, userType } = req.body;
-
+ 
       const response = await buyerController.counterOffer(
         inspectionId,
         counterOffer,
@@ -259,27 +204,7 @@ buyerRouter.put(
 
 buyerRouter.use(AuthorizeAction);
 
-buyerRouter.get(
-  '/inspection/:inspectionId',
-  // AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = (req as any).user as any;
-      console.log('user', user);
-      const { inspectionId } = req.params;
-
-      const inspectionDetails = await buyerController.getInspection(inspectionId, user._id);
-
-      return res.status(200).json({
-        success: true,
-        data: inspectionDetails,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
+// 
 
 
 export { buyerRouter };
