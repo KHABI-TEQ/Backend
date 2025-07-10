@@ -157,9 +157,9 @@ export class AdminInspectionController {
       if (status === 'reject') {
         updatedStatus = 'transaction_failed';
         updatedStage = 'cancelled';
+        pendingResponseFrom = 'admin';
       }
 
-      pendingResponseFrom = 'admin';
       // Handle approval with conditional logic
       if (status === 'approve') {
         const isPrice = inspection.inspectionType === 'price';
@@ -181,6 +181,7 @@ export class AdminInspectionController {
         updatedStatus = inspection.isNegotiating ? 'negotiation_countered' : 'active_negotiation';
       }
 
+      inspection.pendingResponseFrom = pendingResponseFrom;
       inspection.status = updatedStatus;
       inspection.stage = updatedStage;
 
@@ -317,12 +318,12 @@ export class AdminInspectionController {
 
   public async getInspectionLogs(req: Request, res: Response): Promise<Response> {
     try {
-      const { propertyId, inspectionId } = req.params;
+      const { propertyId, inspectionId } = req.query;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      if (!propertyId || !inspectionId) {
+      if (!propertyId && !inspectionId) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'propertyId or inspectionId is required');
       }
 
@@ -335,15 +336,27 @@ export class AdminInspectionController {
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .populate('senderId', '_id firstName lastName email')
+          .populate('senderId', '_id firstName lastName fullName email') // fullName added
           .lean(),
         DB.Models.InspectionActivityLog.countDocuments(filter),
       ]);
 
+      const formattedLogs = logs.map(log => {
+        const sender: any = log.senderId;
+        const senderName =
+          sender?.fullName || `${sender?.firstName || ''} ${sender?.lastName || ''}`.trim();
+
+        return {
+          ...log,
+          senderName: senderName || 'Unknown',
+          senderEmail: sender?.email || '',
+        };
+      });
+
       return res.status(200).json({
         success: true,
         message: 'Inspection logs fetched successfully',
-        data: logs,
+        data: formattedLogs,
         pagination: {
           total,
           currentPage: page,
@@ -352,9 +365,13 @@ export class AdminInspectionController {
         },
       });
     } catch (error: any) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Error fetching logs');
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        error.message || 'Error fetching logs'
+      );
     }
   }
+
 
 
 }
