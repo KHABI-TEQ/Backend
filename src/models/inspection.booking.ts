@@ -1,46 +1,45 @@
-import { model, Model, Schema, ObjectId, Types, Document } from 'mongoose';
+import { Schema, model, Document, Types, Model } from 'mongoose';
 
 /**
  * Interface for Inspection Booking records.
  */
 export interface IInspectionBooking {
-  propertyId:Types.ObjectId;
-  bookedBy: ObjectId;
+  propertyId: Types.ObjectId;
+  bookedBy: Types.ObjectId;
   bookedByModel: string;
   inspectionDate: Date;
   inspectionTime: string;
 
-  
   status:
     | 'pending_transaction'
     | 'transaction_failed'
-    | 'pending_inspection'
+    | 'active_negotiation'
     | 'inspection_approved'
     | 'inspection_rescheduled'
-    | 'inspection_rejected_by_seller'
-    | 'inspection_rejected_by_buyer'
     | 'negotiation_countered'
     | 'negotiation_accepted'
     | 'negotiation_rejected'
     | 'negotiation_cancelled'
     | 'completed'
-    | 'unavailable'
     | 'cancelled';
 
-  slotId: ObjectId;
-  requestedBy: ObjectId;
-  transaction: ObjectId;
+  slotId: Types.ObjectId;
+  requestedBy: Types.ObjectId;
+  transaction: Types.ObjectId;
+
   isNegotiating: boolean;
+  isLOI: boolean;
+  inspectionType: 'price' | 'LOI';
+  inspectionStatus?: 'accepted' | 'rejected' | 'countered' | 'requested_changes' | 'new';
+
   negotiationPrice: number;
-  letterOfIntention: string;
-  owner: ObjectId;
-  sellerCounterOffer?: number;
+  letterOfIntention?: string;
+  reason?: string;
 
- 
-  pendingResponseFrom?: 'buyer' | 'seller' | 'none';
+  owner: Types.ObjectId;
 
-  
-  stage: 'inspection' | 'negotiation' | 'LOI';
+  pendingResponseFrom?: 'buyer' | 'seller' | 'admin';
+  stage: 'negotiation' | 'inspection' | 'completed' | 'cancelled';
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {}
@@ -48,55 +47,72 @@ export interface IInspectionBookingDoc extends IInspectionBooking, Document {}
 export type IInspectionBookingModel = Model<IInspectionBookingDoc>;
 
 export class InspectionBooking {
-  private InspectionBookingModel: Model<IInspectionBookingDoc>;
+  private InspectionBookingModel: IInspectionBookingModel;
 
   constructor() {
-    const schema = new Schema(
+    const schema = new Schema<IInspectionBookingDoc>(
       {
         propertyId: { type: Schema.Types.ObjectId, required: true, ref: 'Property' },
         bookedBy: { type: Schema.Types.ObjectId },
         bookedByModel: { type: String },
-        inspectionDate: { type: Date, required: true },
-        inspectionTime: { type: String, required: true },
+        inspectionDate: { type: Date },
+        inspectionTime: { type: String },
+
         status: {
           type: String,
           required: true,
           enum: [
-            'pending_transaction',
-            'transaction_failed',
-            'pending_inspection',
-            'inspection_approved',
-            'inspection_rescheduled',
-            'inspection_rejected_by_seller',
-            'inspection_rejected_by_buyer',
-            'negotiation_countered',
-            'negotiation_accepted',
-            'negotiation_rejected',
-            'negotiation_cancelled',
-            'completed',
-            'cancelled',
+             'pending_transaction',
+             'transaction_failed',
+             'active_negotiation',
+             'inspection_approved',
+             'inspection_rescheduled',
+             'negotiation_countered',
+             'negotiation_accepted',
+             'negotiation_rejected',
+             'negotiation_cancelled',
+             'completed',
+             'cancelled'
           ],
           default: 'pending_transaction',
         },
+
         slotId: { type: Schema.Types.ObjectId },
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: 'Buyer' },
         transaction: { type: Schema.Types.ObjectId, required: true, ref: 'Transaction' },
+
         isNegotiating: { type: Boolean, default: false },
+        isLOI: { type: Boolean, default: false },
+ 
+        inspectionType: {
+          type: String,
+          enum: ['price', 'LOI'],
+          default: 'price',
+        },
+
+        inspectionStatus: {
+          type: String,
+          enum: ['accepted', 'rejected', 'countered', 'requested_changes', 'new'],
+          default: 'new',
+        },
+
         negotiationPrice: { type: Number, default: 0 },
         letterOfIntention: { type: String },
-        owner: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-        sellerCounterOffer: { type: Number, default: 0 },
+
+        reason: { type: String },
+
+        owner: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
+
         pendingResponseFrom: {
           type: String,
-          enum: ['buyer', 'seller', 'none'],
-          default: 'none',
-          required: false,
+          enum: ['buyer', 'seller', 'admin'],
+          default: 'admin',
         },
-        stage: { // Added this field to the schema
+
+        stage: {
           type: String,
-          required: true,
-          enum: ['negotiation', 'inspection', 'LOI'],
-          default: 'negotiation', // You can set a default initial stage
+          enum: ['negotiation', 'inspection', 'completed', 'cancelled'],
+          default: 'negotiation',
         },
       },
       { timestamps: true }
@@ -105,7 +121,7 @@ export class InspectionBooking {
     this.InspectionBookingModel = model<IInspectionBookingDoc>('InspectionBooking', schema);
   }
 
-  public get model(): Model<IInspectionBookingDoc> {
+  public get model(): IInspectionBookingModel {
     return this.InspectionBookingModel;
   }
 }

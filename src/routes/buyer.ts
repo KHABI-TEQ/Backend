@@ -65,142 +65,142 @@ buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: Next
 
 
 
-buyerRouter.post(
-  '/update-inspection/:inspectionId',
-  // AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const {
-        propertyId,
-        inspectionDate,
-        inspectionTime,
-        requestedBy,
-        transaction,
-        isNegotiating,
-        negotiationPrice,
-        letterOfIntention,
-        counterOffer,
-        countering,
-        negotiationRejected,
-        status,
-      } = req.body;
-      const { inspectionId } = req.params;
+// buyerRouter.post(
+//   '/update-inspection/:inspectionId',
+//   // AuthorizeAction,
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       const {
+//         propertyId,
+//         inspectionDate,
+//         inspectionTime,
+//         requestedBy,
+//         transaction,
+//         isNegotiating,
+//         negotiationPrice,
+//         letterOfIntention,
+//         counterOffer,
+//         countering,
+//         negotiationRejected,
+//         status,
+//       } = req.body;
+//       const { inspectionId } = req.params;
 
-      console.log(req.body);
-      const inspectionResponse = await buyerController.updateInspection(inspectionId, {
-        propertyId,
-        inspectionDate,
-        inspectionTime,
-        requestedBy,
-        transaction,
-        isNegotiating,
-        negotiationPrice,
-        letterOfIntention,
-        status,
-        counterOffer,
-        countering,
-        negotiationRejected,
-      });
+//       console.log(req.body);
+//       const inspectionResponse = await buyerController.updateInspection(inspectionId, {
+//         propertyId,
+//         inspectionDate,
+//         inspectionTime,
+//         requestedBy,
+//         transaction,
+//         isNegotiating,
+//         negotiationPrice,
+//         letterOfIntention,
+//         status,
+//         counterOffer,
+//         countering,
+//         negotiationRejected,
+//       });
 
-      return res.status(200).json({
-        success: true,
-        message: inspectionResponse,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         message: inspectionResponse,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// New endpoint for Counter Offer
-buyerRouter.post(
-  '/inspection/:inspectionId/counter-offer',
-  // AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { inspectionId } = req.params;
-      // Extract specific fields as per frontend payload
-      const { counterOffer, counterDateTimeObj, inspectionDateStatus, message, userId, userType } = req.body;
+// // New endpoint for Counter Offer
+// buyerRouter.post(
+//   '/inspection/:inspectionId/counter-offer',
+//   // AuthorizeAction,
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       const { inspectionId } = req.params;
+//       // Extract specific fields as per frontend payload
+//       const { counterOffer, counterDateTimeObj, inspectionDateStatus, message, userId, userType } = req.body;
  
-      const response = await buyerController.counterOffer(
-        inspectionId,
-        counterOffer,
-        userId,
-        userType,
-        inspectionDateStatus,
-        counterDateTimeObj?.selectedDate, // Extract date
-        counterDateTimeObj?.selectedTime, // Extract time
-        message,
-      );
+//       const response = await buyerController.counterOffer(
+//         inspectionId,
+//         counterOffer,
+//         userId,
+//         userType,
+//         inspectionDateStatus,
+//         counterDateTimeObj?.selectedDate, // Extract date
+//         counterDateTimeObj?.selectedTime, // Extract time
+//         message,
+//       );
       
-      return res.status(200).json({
-        success: true,
-        message: response,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         message: response,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
-// New endpoint for Accept Offer
-buyerRouter.put(
-  '/inspection/:inspectionId/accept-offer',
-  // AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { inspectionId } = req.params;
-      // Extract specific fields as per frontend payload
-      const { counterDateTimeObj, inspectionDateStatus, userId, userType } = req.body;
+// // New endpoint for Accept Offer
+// buyerRouter.put(
+//   '/inspection/:inspectionId/accept-offer',
+//   // AuthorizeAction,
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       const { inspectionId } = req.params;
+//       // Extract specific fields as per frontend payload
+//       const { counterDateTimeObj, inspectionDateStatus, userId, userType } = req.body;
 
-      const response = await buyerController.acceptOffer(
-        inspectionId,
-        userId,
-        userType,
-        inspectionDateStatus,
-        counterDateTimeObj?.selectedDate, // Extract date
-        counterDateTimeObj?.selectedTime,  // Extract time
-      );
+//       const response = await buyerController.acceptOffer(
+//         inspectionId,
+//         userId,
+//         userType,
+//         inspectionDateStatus,
+//         counterDateTimeObj?.selectedDate, // Extract date
+//         counterDateTimeObj?.selectedTime,  // Extract time
+//       );
 
-      return res.status(200).json({
-        success: true,
-        message: response,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         message: response,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// ); 
 
-// New endpoint for Reject Offer
-buyerRouter.put(
-  '/inspection/:inspectionId/reject-offer',
-  // AuthorizeAction,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { inspectionId } = req.params;
-      // Extract specific fields as per frontend payload
-      const { counterDateTimeObj, rejectionReason, inspectionDateStatus, userId, userType } = req.body;
+// // New endpoint for Reject Offer
+// buyerRouter.put(
+//   '/inspection/:inspectionId/reject-offer',
+//   // AuthorizeAction,
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       const { inspectionId } = req.params;
+//       // Extract specific fields as per frontend payload
+//       const { counterDateTimeObj, rejectionReason, inspectionDateStatus, userId, userType } = req.body;
 
-      const response = await buyerController.rejectOffer(
-        inspectionId,
-        userId,
-        userType,
-        inspectionDateStatus,
-        counterDateTimeObj?.selectedDate, // Extract date
-        counterDateTimeObj?.selectedTime, // Extract time
-        rejectionReason,
-      );
+//       const response = await buyerController.rejectOffer(
+//         inspectionId,
+//         userId,
+//         userType,
+//         inspectionDateStatus,
+//         counterDateTimeObj?.selectedDate, // Extract date
+//         counterDateTimeObj?.selectedTime, // Extract time
+//         rejectionReason,
+//       );
 
-      return res.status(200).json({
-        success: true,
-        message: response,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+//       return res.status(200).json({
+//         success: true,
+//         message: response,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   }
+// );
 
 buyerRouter.use(AuthorizeAction);
 

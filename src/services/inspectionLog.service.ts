@@ -8,7 +8,7 @@ interface LogInspectionActivityInput {
   senderRole: 'buyer' | 'seller' | 'admin';
   message: string;
   status?: string;
-  stage?: 'inspection' | 'negotiation' | 'LOI';
+  stage?: 'inspection' | 'negotiation' | 'completed' | 'cancelled';
   meta?: Record<string, any>;
 }
 
