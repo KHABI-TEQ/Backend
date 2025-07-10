@@ -151,6 +151,7 @@ export class AdminInspectionController {
 
       let updatedStatus: IInspectionBooking['status'];
       let updatedStage: IInspectionBooking['stage'];
+      let pendingResponseFrom: IInspectionBooking['pendingResponseFrom'];
 
       // Handle rejection
       if (status === 'reject') {
@@ -158,6 +159,7 @@ export class AdminInspectionController {
         updatedStage = 'cancelled';
       }
 
+      pendingResponseFrom = 'admin';
       // Handle approval with conditional logic
       if (status === 'approve') {
         const isPrice = inspection.inspectionType === 'price';
@@ -175,6 +177,7 @@ export class AdminInspectionController {
           updatedStage = hasLOIDocument ? 'negotiation' : 'inspection';
         }
 
+        pendingResponseFrom = 'seller';
         updatedStatus = inspection.isNegotiating ? 'negotiation_countered' : 'active_negotiation';
       }
 
@@ -319,7 +322,7 @@ export class AdminInspectionController {
       const limit = parseInt(req.query.limit as string) || 10;
       const skip = (page - 1) * limit;
 
-      if (!propertyId && !inspectionId) {
+      if (!propertyId || !inspectionId) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'propertyId or inspectionId is required');
       }
 
