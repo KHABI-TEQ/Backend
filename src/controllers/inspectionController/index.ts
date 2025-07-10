@@ -882,6 +882,25 @@ class InspectionActionsController {
         });
 
         savedInspections.push(inspection);
+
+        // Log activity
+        await InspectionLogService.logActivity({
+          inspectionId: inspection._id.toString(),
+          propertyId: prop.propertyId,
+          senderId: buyer._id.toString(),
+          senderRole: "buyer",
+          message: `Inspection request submitted${isNegotiating ? " with negotiation price" : ""}${isLOI ? " with LOI" : ""}.`,
+          status: "pending_transaction",
+          stage: stage,
+          meta: {
+            inspectionType,
+            negotiationPrice: prop.negotiationPrice || 0,
+            letterOfIntention: prop.letterOfIntention || null,
+            inspectionDate,
+            inspectionTime,
+          },
+        });
+
       }
 
       res.status(HttpStatusCodes.OK).json({
