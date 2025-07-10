@@ -712,7 +712,18 @@ AdminRouter.put('/property/:propertyId', async (req: Request, res: Response, nex
 //====================================================================
 AdminRouter.get('/buyers-with-preferences', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await adminController.getAllBuyersWithPreferences();
+    const filterStatus:string = req.query.filterStatus || "pending"
+    const result = await adminController.getAllBuyersWithPreferences(filterStatus);
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+AdminRouter.post('/approve-preference', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const preferenceId:any = req.query.preferenceId
+    const result = await adminController.approvePreference(preferenceId);
     return res.status(200).json({ success: true, data: result });
   } catch (error) {
     next(error);

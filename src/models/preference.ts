@@ -20,7 +20,7 @@ export interface IPreference {
   features?: string[];
   additionalInfo?: string;
   assignedAgent?: ObjectId;
-  status: 'pending' | 'assigned' | 'closed';
+  status: 'pending' | 'approved' | 'matched' | 'closed';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,7 +60,7 @@ export class Preference {
         assignedAgent: { type: Schema.Types.ObjectId, ref: 'Agent' },
         status: {
           type: String,
-          enum: ['pending', 'matched', 'closed'],
+          enum: ['pending', 'approved', 'matched', 'closed'],
           default: 'pending',
         },
       },
