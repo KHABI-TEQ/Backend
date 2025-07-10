@@ -1674,19 +1674,41 @@ public async deletePreference(preferenceId: string) {
 
   // ===============================================================
 
-  public async getAllBuyersWithPreferences() {
-  const buyers = await DB.Models.Buyer.find({})
-    .select('email fullName phoneNumber createdAt');
+  public async getAllBuyersWithPreferences(filterStatus:any) {
+    if(!['pending', 'approved', 'matched', 'closed'].includes(filterStatus)){
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, `Invalid Status filter. It must be 'pending', 'approved', 'matched' or 'closed' `)
+    }
 
-  const buyerIds = buyers.map((b) => b._id);
+    const [buyers, preferences] = await Promise.all([
+       DB.Models.Buyer.find({})
+          .select('email fullName phoneNumber createdAt'),
 
-  const preferences = await DB.Models.Preference.find({ buyer: { $in: buyerIds } });
+       DB.Models.Preference.find({ status: filterStatus })
+        .populate('buyer', 'email fullName phoneNumber createdAt')
+    ])
+  
 
   return {
     buyers,
     preferences,
   };
 }
+
+public async approvePreference(preferenceId:any) {
+  const preferenceObjectId  = new mongoose.Types.ObjectId(preferenceId)
+  const preference = await DB.Models.Preference.findById(preferenceObjectId)
+
+  if(!preference){
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found")
+  }
+  if(preference.status = "approved"){
+     throw new RouteError(HttpStatusCodes.BAD_REQUEST, `Preference is already approved.`)
+  }
+
+  preference.status = "approved"
+  await preference.save()
+}
+
 
 public async getPreferencesByBuyerId(buyerId: string) {
   const buyerObjectId  = new mongoose.Types.ObjectId(buyerId)

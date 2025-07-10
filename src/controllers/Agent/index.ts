@@ -443,7 +443,7 @@ public async getAllPreferences(query: any) {
     noOfBathrooms,
   } = query;
 
-  const filters: any = {};
+  const filters: any = {status:"approved"};
 
   // Flexible location search
   if (locationSearch) {
