@@ -265,6 +265,7 @@ class InspectionActionsController {
       propertyId: (inspection.propertyId as any)._id,
       senderId: userId,
       senderRole: userType,
+      senderModel: userType == "buyer" ? "Buyer" : "User",
       message: logMessage,
       status: update.status,
       stage: update.stage, // Use the determined stage
@@ -888,6 +889,7 @@ class InspectionActionsController {
           inspectionId: inspection._id.toString(),
           propertyId: prop.propertyId,
           senderId: buyer._id.toString(),
+          senderModel: 'Buyer',
           senderRole: "buyer",
           message: `Inspection request submitted${isNegotiating ? " with negotiation price" : ""}${isLOI ? " with LOI" : ""}.`,
           status: "pending_transaction",

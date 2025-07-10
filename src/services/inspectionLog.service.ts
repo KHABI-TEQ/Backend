@@ -11,7 +11,7 @@ interface LogInspectionActivityInput {
   status?: string;
   stage?: 'inspection' | 'negotiation' | 'completed' | 'cancelled';
   meta?: Record<string, any>;
-}
+} 
 
 export class InspectionLogService {
   /**
