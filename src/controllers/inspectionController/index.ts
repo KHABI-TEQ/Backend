@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
-import { z } from "zod";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import { generateNegotiationEmailTemplate } from "../../utils/emailTemplates/generateNegotiationEmailTemplate";
@@ -10,56 +9,38 @@ import { InspectionLogService } from "../../services/inspectionLog.service";
 import notificationService from "../../services/notification.service";
 import { hasDateTimeChanged } from "../../utils/detectDateTimeChange";
 
-// Validation schema matching exact payload requirements
-export const InspectionActionSchema = z.object({
-  action: z.string().refine((val) => 
-    ["accept", "reject", "counter", "request_changes"].includes(val), 
-    { message: "Action must be one of: accept, reject, counter, request_changes" }
-  ),
-  inspectionType: z.string().refine((val) => 
-    ["price", "LOI"].includes(val), 
-    { message: "Inspection type must be either price or LOI" }
-  ),
-  userType: z.string().refine((val) => 
-    ["buyer", "seller"].includes(val), 
-    { message: "User type must be either buyer or seller" }
-  ),
-  counterPrice: z.number().optional(),
-  inspectionDate: z.string().optional(),
-  inspectionTime: z.string().optional(),
-  reason: z.string().optional(),
-  rejectionReason: z.string().optional(),
-  documentUrl: z.url().optional(),
-});
+// Type definitions replacing Zod's inferred types
+export interface InspectionActionData {
+  action: "accept" | "reject" | "counter" | "request_changes";
+  inspectionType: "price" | "LOI";
+  userType: "buyer" | "seller";
+  counterPrice?: number;
+  inspectionDate?: string;
+  inspectionTime?: string;
+  reason?: string;
+  rejectionReason?: string;
+  documentUrl?: string; // Changed to string as it's a URL but not validated as URL here
+}
 
-const SubmitInspectionSchema = z.object({
-  inspectionType: z.string().refine((val) => 
-    ["price", "LOI"].includes(val), 
-    { message: "Inspection type must be either price or LOI" }
-  ),
-  inspectionDate: z.string(),
-  inspectionTime: z.string(),
-  requestedBy: z.object({
-    fullName: z.string(),
-    email: z.email(),
-    phoneNumber: z.string(),
-  }),
-  transaction: z.object({
-    fullName: z.string(),
-    transactionReceipt: z.string().url(),
-  }),
-  properties: z.array(
-    z.object({
-      propertyId: z.string(),
-      negotiationPrice: z.number().optional(),
-      letterOfIntention: z.url().optional(),
-    })
-  ),
-});
-
-export type SubmitInspectionPayload = z.infer<typeof SubmitInspectionSchema>;
-
-export type InspectionActionData = z.infer<typeof InspectionActionSchema>;
+export interface SubmitInspectionPayload {
+  inspectionType: "price" | "LOI";
+  inspectionDate: string;
+  inspectionTime: string;
+  requestedBy: {
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+  };
+  transaction: {
+    fullName: string;
+    transactionReceipt: string; // Changed to string as it's a URL but not validated as URL here
+  };
+  properties: Array<{
+    propertyId: string;
+    negotiationPrice?: number;
+    letterOfIntention?: string; // Changed to string as it's a URL but not validated as URL here
+  }>;
+}
 
 class InspectionActionsController {
   private generateInspectionLinks(
@@ -87,6 +68,96 @@ class InspectionActionsController {
     };
   }
 
+  // Pure validation function for InspectionActionData
+  private validateInspectionActionData(
+    data: any
+  ): { success: boolean; data?: InspectionActionData; error?: string } {
+    const {
+      action,
+      inspectionType,
+      userType,
+      counterPrice,
+      inspectionDate,
+      inspectionTime,
+      reason,
+      rejectionReason,
+      documentUrl,
+    } = data;
+
+    if (
+      !["accept", "reject", "counter", "request_changes"].includes(action)
+    ) {
+      return {
+        success: false,
+        error: "Action must be one of: accept, reject, counter, request_changes",
+      };
+    }
+
+    if (!["price", "LOI"].includes(inspectionType)) {
+      return {
+        success: false,
+        error: "Inspection type must be either price or LOI",
+      };
+    }
+
+    if (!["buyer", "seller"].includes(userType)) {
+      return { success: false, error: "User type must be either buyer or seller" };
+    }
+
+    if (action === "counter" && inspectionType === "price" && typeof counterPrice !== "number") {
+      return { success: false, error: "Counter price is required for price negotiations" };
+    }
+
+    if (action === "counter" && inspectionType === "LOI" && (!documentUrl || typeof documentUrl !== "string")) {
+      return { success: false, error: "Document URL is required for LOI counter offers" };
+    }
+    
+    // Basic URL format check, can be expanded for stricter validation
+    if (documentUrl && typeof documentUrl === 'string' && !/^https?:\/\/\S+$/.test(documentUrl)) {
+      return { success: false, error: "Document URL must be a valid URL format" };
+    }
+
+
+    if (action === "request_changes" && inspectionType !== "LOI") {
+      return { success: false, error: "Request changes action is only available for LOI inspections" };
+    }
+
+    if (action === "request_changes" && !reason) {
+      return { success: false, error: "Reason is required when requesting changes" };
+    }
+
+    if (inspectionDate && typeof inspectionDate !== "string") {
+      return { success: false, error: "Inspection date must be a string" };
+    }
+
+    if (inspectionTime && typeof inspectionTime !== "string") {
+      return { success: false, error: "Inspection time must be a string" };
+    }
+
+    if (reason && typeof reason !== "string") {
+      return { success: false, error: "Reason must be a string" };
+    }
+
+    if (rejectionReason && typeof rejectionReason !== "string") {
+      return { success: false, error: "Rejection reason must be a string" };
+    }
+
+    return {
+      success: true,
+      data: {
+        action,
+        inspectionType,
+        userType,
+        counterPrice,
+        inspectionDate,
+        inspectionTime,
+        reason,
+        rejectionReason,
+        documentUrl,
+      },
+    };
+  }
+
   public async processInspectionAction(
     req: Request,
     res: Response,
@@ -99,13 +170,13 @@ class InspectionActionsController {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "User ID is required in URL");
       }
 
-      // Validate request body
-      const validation = InspectionActionSchema.safeParse(req.body);
+      // Validate request body using pure validation
+      const validation = this.validateInspectionActionData(req.body);
       if (!validation.success) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid request data");
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, validation.error!);
       }
 
-      const actionData = validation.data;
+      const actionData = validation.data!;
       const result = await this.processAction(inspectionId, userId, actionData);
 
       return res.status(HttpStatusCodes.OK).json({
@@ -153,7 +224,7 @@ class InspectionActionsController {
       );
     }
 
-    // Validate action-specific requirements
+    // Validate action-specific requirements (already handled in validateInspectionActionData, but kept for explicit clarity if needed elsewhere)
     this.validateActionRequirements(actionData);
 
     // Check if date/time changed
@@ -547,7 +618,7 @@ class InspectionActionsController {
     if (
       actionData.action === "counter" &&
       actionData.inspectionType === "price" &&
-      !actionData.counterPrice
+      typeof actionData.counterPrice !== "number"
     ) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
@@ -558,7 +629,7 @@ class InspectionActionsController {
     if (
       actionData.action === "counter" &&
       actionData.inspectionType === "LOI" &&
-      !actionData.documentUrl
+      (!actionData.documentUrl || typeof actionData.documentUrl !== "string")
     ) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
@@ -809,18 +880,92 @@ class InspectionActionsController {
     return { update, logMessage, emailSubject, emailData };
   }
 
+  // Pure validation function for SubmitInspectionPayload
+  private validateSubmitInspectionPayload(
+    data: any
+  ): { success: boolean; data?: SubmitInspectionPayload; error?: string } {
+    const { inspectionType, inspectionDate, inspectionTime, requestedBy, transaction, properties } = data;
+
+    if (!["price", "LOI"].includes(inspectionType)) {
+      return { success: false, error: "Inspection type must be either price or LOI" };
+    }
+
+    if (typeof inspectionDate !== "string" || inspectionDate.trim() === "") {
+      return { success: false, error: "Inspection date is required and must be a string" };
+    }
+
+    if (typeof inspectionTime !== "string" || inspectionTime.trim() === "") {
+      return { success: false, error: "Inspection time is required and must be a string" };
+    }
+
+    if (!requestedBy || typeof requestedBy !== "object") {
+      return { success: false, error: "RequestedBy object is required" };
+    }
+    if (typeof requestedBy.fullName !== "string" || requestedBy.fullName.trim() === "") {
+      return { success: false, error: "RequestedBy fullName is required" };
+    }
+    if (typeof requestedBy.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requestedBy.email)) {
+      return { success: false, error: "RequestedBy email is required and must be a valid email format" };
+    }
+    if (typeof requestedBy.phoneNumber !== "string" || requestedBy.phoneNumber.trim() === "") {
+      return { success: false, error: "RequestedBy phoneNumber is required" };
+    }
+
+    if (!transaction || typeof transaction !== "object") {
+      return { success: false, error: "Transaction object is required" };
+    }
+    if (typeof transaction.fullName !== "string" || transaction.fullName.trim() === "") {
+      return { success: false, error: "Transaction fullName is required" };
+    }
+    if (typeof transaction.transactionReceipt !== "string" || !/^https?:\/\/\S+$/.test(transaction.transactionReceipt)) {
+      return { success: false, error: "Transaction receipt is required and must be a valid URL" };
+    }
+
+    if (!Array.isArray(properties) || properties.length === 0) {
+      return { success: false, error: "Properties array is required and cannot be empty" };
+    }
+
+    for (const prop of properties) {
+      if (!prop || typeof prop !== "object") {
+        return { success: false, error: "Each property in the array must be an object" };
+      }
+      if (typeof prop.propertyId !== "string" || prop.propertyId.trim() === "") {
+        return { success: false, error: "Property ID is required for each property" };
+      }
+      if (prop.negotiationPrice !== undefined && typeof prop.negotiationPrice !== "number") {
+        return { success: false, error: "Negotiation price must be a number if provided" };
+      }
+      if (prop.letterOfIntention !== undefined && (typeof prop.letterOfIntention !== "string" || !/^https?:\/\/\S+$/.test(prop.letterOfIntention))) {
+        return { success: false, error: "Letter of intention must be a valid URL if provided" };
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        inspectionType,
+        inspectionDate,
+        inspectionTime,
+        requestedBy,
+        transaction,
+        properties,
+      },
+    };
+  }
+
   public async submitInspectionRequest(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const validation = SubmitInspectionSchema.safeParse(req.body);
-      
+      // Validate request body using pure validation
+      const validation = this.validateSubmitInspectionPayload(req.body);
+
       if (!validation.success) {
         throw new RouteError(
           HttpStatusCodes.BAD_REQUEST,
-          "Invalid inspection request payload"
+          validation.error!
         );
       }
  
@@ -831,7 +976,7 @@ class InspectionActionsController {
         requestedBy,
         transaction,
         properties,
-      } = validation.data;
+      } = validation.data!;
 
       // Create or retrieve the buyer by email
       const buyer = await DB.Models.Buyer.findOneAndUpdate(
@@ -857,7 +1002,8 @@ class InspectionActionsController {
           );
         }
 
-        const isNegotiating = !!prop.negotiationPrice;
+        // Determine isNegotiating and isLOI based on presence of negotiationPrice and letterOfIntention
+        const isNegotiating = typeof prop.negotiationPrice === 'number';
         const isLOI = !!prop.letterOfIntention;
 
         const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
@@ -871,8 +1017,8 @@ class InspectionActionsController {
           status: "pending_transaction",
           requestedBy: buyer._id,
           transaction: transactionDoc._id,
-          isNegotiating,
-          isLOI,
+          isNegotiating, // Set based on negotiationPrice presence
+          isLOI,          // Set based on letterOfIntention presence
           inspectionType,
           inspectionStatus: "new",
           negotiationPrice: prop.negotiationPrice || 0,
