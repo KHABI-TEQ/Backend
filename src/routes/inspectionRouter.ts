@@ -11,8 +11,8 @@ inspectRouter.post(
 
 // Process inspection actions - accept, reject, counter, request_changes
 inspectRouter.post(
-  "/inspections/:inspectionId/actions/:userId",
-  inspectionController.processInspectionAction,
+  "/:inspectionId/actions/:userId",
+  inspectionController.processInspectionAction.bind(inspectionController)
 );
 
 // Validate access for security
@@ -29,13 +29,13 @@ inspectRouter.get(
 
 // Get all inspections for a user by role
 inspectRouter.get(
-  "/users/:userId/inspections",
+  "/users/:userId",
   inspectionController.getUserInspections,
 );
 
 // Get inspection history/logs
 inspectRouter.get(
-  "/inspections/:inspectionId/history",
+  "/:inspectionId/history",
   inspectionController.getInspectionHistory,
 );
 

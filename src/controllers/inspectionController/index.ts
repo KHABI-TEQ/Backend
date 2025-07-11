@@ -439,181 +439,6 @@ class InspectionActionsController {
     }
   }
 
-  public async getInspectionDetails(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { userID, inspectionID, userType } = req.params;
-
-      const inspection = await DB.Models.InspectionBooking.findById(
-        inspectionID
-      )
-        .populate(
-          "propertyId",
-          "title location price propertyType briefType pictures _id owner"
-        )
-        .populate("owner", "firstName lastName _id userType")
-        .populate("requestedBy", "fullName _id");
-
-      if (!inspection) {
-        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
-      }
-
-      // Authorization check based on user type
-      if (
-        userType === "seller" &&
-        (inspection.propertyId as any).owner.toString() !== userID
-      ) {
-        throw new RouteError(
-          HttpStatusCodes.FORBIDDEN,
-          "Seller not authorized for this inspection"
-        );
-      }
-
-      if (
-        userType === "buyer" &&
-        (inspection.requestedBy as any)._id.toString() !== userID
-      ) {
-        throw new RouteError(
-          HttpStatusCodes.FORBIDDEN,
-          "Buyer not authorized for this inspection"
-        );
-      }
-
-      // Add thumbnail from property pictures
-      const property = inspection.propertyId as any;
-      const thumbnail = property?.pictures?.length
-        ? property.pictures[0]
-        : null;
-
-      const responseData = {
-        ...inspection.toObject(),
-        propertyId: {
-          ...property.toObject(),
-          thumbnail,
-        },
-      };
-
-      return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        data: responseData,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  public async validateInspectionAccess(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { userId, inspectionId } = req.params;
-
-      const inspection = await DB.Models.InspectionBooking.findById(
-        inspectionId
-      )
-        .select("requestedBy owner")
-        .lean();
-
-      if (!inspection) {
-        return res.status(HttpStatusCodes.NOT_FOUND).json({
-          status: "error",
-          success: false,
-          message: "Inspection not found",
-        });
-      }
-
-      const isBuyer = inspection.requestedBy?.toString() === userId;
-      const isSeller = inspection.owner?.toString() === userId;
-
-      if (isBuyer || isSeller) {
-        return res.status(HttpStatusCodes.OK).json({
-          status: "success",
-          success: true,
-          role: isBuyer ? "buyer" : "seller",
-          message: "Access granted",
-        });
-      } else {
-        return res.status(HttpStatusCodes.FORBIDDEN).json({
-          status: "error",
-          success: false,
-          message: "Access denied. You are not associated with this inspection.",
-        });
-      }
-    } catch (error) {
-      console.error("Validation error:", error);
-      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
-        status: "error",
-        success: false,
-        message: "Server error during access validation",
-      });
-    }
-  }
-
-  public async getUserInspections(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { userId } = req.params;
-      const { role } = req.query; // 'buyer' or 'seller'
-
-      let query: any = {};
-      if (role === "buyer") {
-        query.requestedBy = userId;
-      } else if (role === "seller") {
-        query.owner = userId;
-      } else {
-        query = {
-          $or: [{ requestedBy: userId }, { owner: userId }],
-        };
-      }
-
-      const inspections = await DB.Models.InspectionBooking.find(query)
-        .populate(
-          "propertyId",
-          "title location price propertyType briefType pictures"
-        )
-        .populate("owner", "fullName email firstName lastName")
-        .populate("requestedBy", "fullName email firstName lastName")
-        .sort({ createdAt: -1 });
-
-      return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        data: inspections,
-      });
-    } catch (error) {
-      console.error("Error fetching user inspections:", error);
-      next(error);
-    }
-  }
-
-  public async getInspectionHistory(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const { inspectionId } = req.params;
-
-      // Get inspection logs
-      const logs = await InspectionLogService.getLogsByInspection(inspectionId);
-
-      return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        data: logs,
-      });
-    } catch (error) {
-      console.error("Error fetching inspection history:", error);
-      next(error);
-    }
-  }
-
   private validateActionRequirements(actionData: InspectionActionData) {
     if (
       actionData.action === "counter" &&
@@ -878,6 +703,192 @@ class InspectionActionsController {
     };
 
     return { update, logMessage, emailSubject, emailData };
+  }
+
+
+
+
+
+
+  public async getInspectionDetails(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { userID, inspectionID, userType } = req.params;
+
+      const inspection = await DB.Models.InspectionBooking.findById(
+        inspectionID
+      )
+        .populate(
+          "propertyId",
+          "title location price propertyType briefType pictures _id owner"
+        )
+        .populate("owner", "firstName lastName _id userType")
+        .populate("requestedBy", "fullName _id");
+
+      if (!inspection) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+      }
+
+      // Authorization check based on user type
+      if (
+        userType === "seller" &&
+        (inspection.propertyId as any).owner.toString() !== userID
+      ) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Seller not authorized for this inspection"
+        );
+      }
+
+      if (
+        userType === "buyer" &&
+        (inspection.requestedBy as any)._id.toString() !== userID
+      ) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Buyer not authorized for this inspection"
+        );
+      }
+
+      // Add thumbnail from property pictures
+      const property = inspection.propertyId as any;
+      const thumbnail = property?.pictures?.length
+        ? property.pictures[0]
+        : null;
+
+      const responseData = {
+        ...inspection.toObject(),
+        propertyId: {
+          ...property.toObject(),
+          thumbnail,
+        },
+      };
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        data: responseData,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  public async validateInspectionAccess(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { userId, inspectionId } = req.params;
+
+      const inspection = await DB.Models.InspectionBooking.findById(
+        inspectionId
+      )
+        .select("requestedBy owner")
+        .lean();
+
+      if (!inspection) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          status: "error",
+          success: false,
+          message: "Inspection not found",
+        });
+      }
+
+      const isBuyer = inspection.requestedBy?.toString() === userId;
+      const isSeller = inspection.owner?.toString() === userId;
+
+      if (isBuyer || isSeller) {
+        return res.status(HttpStatusCodes.OK).json({
+          status: "success",
+          success: true,
+          role: isBuyer ? "buyer" : "seller",
+          message: "Access granted",
+        });
+      } else {
+        return res.status(HttpStatusCodes.FORBIDDEN).json({
+          status: "error",
+          success: false,
+          message: "Access denied. You are not associated with this inspection.",
+        });
+      }
+    } catch (error) {
+      console.error("Validation error:", error);
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        status: "error",
+        success: false,
+        message: "Server error during access validation",
+      });
+    }
+  }
+
+
+  
+
+
+
+
+   public async getUserInspections(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { userId } = req.params;
+      const { role } = req.query; // 'buyer' or 'seller'
+
+      let query: any = {};
+      if (role === "buyer") {
+        query.requestedBy = userId;
+      } else if (role === "seller") {
+        query.owner = userId;
+      } else {
+        query = {
+          $or: [{ requestedBy: userId }, { owner: userId }],
+        };
+      }
+
+      const inspections = await DB.Models.InspectionBooking.find(query)
+        .populate(
+          "propertyId",
+          "title location price propertyType briefType pictures"
+        )
+        .populate("owner", "fullName email firstName lastName")
+        .populate("requestedBy", "fullName email firstName lastName")
+        .sort({ createdAt: -1 });
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        data: inspections,
+      });
+    } catch (error) {
+      console.error("Error fetching user inspections:", error);
+      next(error);
+    }
+  }
+
+  public async getInspectionHistory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { inspectionId } = req.params;
+
+      // Get inspection logs
+      const logs = await InspectionLogService.getLogsByInspection(inspectionId);
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        data: logs,
+      });
+    } catch (error) {
+      console.error("Error fetching inspection history:", error);
+      next(error);
+    }
   }
 
   // Pure validation function for SubmitInspectionPayload
