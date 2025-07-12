@@ -122,7 +122,7 @@ export interface EmailData {
   checkLink?: string;
   rejectLink?: string;
   browseLink?: string;
-  buyerResponseLink?: string;
+  responseLink?: string;
 }
 
 export interface ActionResult {

@@ -79,7 +79,7 @@ export class InspectionActionHandler {
         throw new Error("Invalid action");
     }
   }
-
+ 
   private handleAccept(
     actionData: InspectionActionData,
     inspection: any,
@@ -115,13 +115,15 @@ export class InspectionActionHandler {
     const emailSubject = dateTimeChanged ? `${baseSubject} – Inspection Date Updated` : baseSubject;
     const logMessage = `${senderName} accepted the ${actionData.inspectionType} offer${dateTimeChanged ? " with updated inspection date/time" : ""}`;
 
+    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
+    
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
       location: (inspection.propertyId as any).location,
       price: (inspection.propertyId as any).price,
       negotiationPrice: inspection.negotiationPrice,
       inspectionDateStatus: "available",
-      buyerResponseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).buyerResponseLink,
+      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {
@@ -162,6 +164,8 @@ export class InspectionActionHandler {
     const emailSubject = dateTimeChanged ? `${baseSubject} – Inspection Date Updated` : baseSubject;
     const logMessage = `${senderName} rejected the ${actionData.inspectionType} offer${update.reason ? `: ${update.reason}` : ""}`;
 
+    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
+
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
       location: (inspection.propertyId as any).location,
@@ -169,11 +173,9 @@ export class InspectionActionHandler {
       reason: update.reason,
       checkLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
         .checkLink,
-      buyerResponseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).buyerResponseLink,
-      rejectLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
-        .rejectLink,
-      browseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
-        .browseLink,
+      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
+      rejectLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).rejectLink,
+      browseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).browseLink,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {
@@ -221,6 +223,9 @@ export class InspectionActionHandler {
 
     const baseSubject = "Counter Offer Received";
     const emailSubject = dateTimeChanged ? `${baseSubject} – New Inspection Time Proposed` : baseSubject;
+
+    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
+
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
       location: (inspection.propertyId as any).location,
@@ -229,11 +234,7 @@ export class InspectionActionHandler {
       sellerCounterOffer: actionData.counterPrice,
       documentUrl: actionData.documentUrl,
       inspectionDateStatus: "available",
-      buyerResponseLink: this.generateInspectionLinks(
-        inspectionId,
-        buyerId,
-        ownerId,
-      ).buyerResponseLink,
+      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {
@@ -274,11 +275,13 @@ export class InspectionActionHandler {
     const emailSubject = dateTimeChanged ? `${baseSubject} – Inspection Date Updated` : baseSubject;
     const logMessage = `${senderName} requested changes to the LOI: ${actionData.reason}${dateTimeChanged ? " and updated inspection date/time" : ""}`;
 
+    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
+
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
       location: (inspection.propertyId as any).location,
       reason: actionData.reason,
-      buyerResponseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).buyerResponseLink,
+      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {

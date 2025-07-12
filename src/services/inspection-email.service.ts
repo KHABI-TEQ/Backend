@@ -7,7 +7,6 @@ interface EmailServiceParams {
   actionData: InspectionActionData;
   buyerData: any;
   sellerData: any;
-  emailSubject: string;
   emailData: EmailData;
   isBuyer: boolean;
   isSeller: boolean;
@@ -15,7 +14,7 @@ interface EmailServiceParams {
 
 export class InspectionEmailService {
   async sendActionEmails(params: EmailServiceParams): Promise<{ buyer: boolean; seller: boolean }> {
-    const { actionData, buyerData, sellerData, emailSubject, emailData, isBuyer, isSeller } = params;
+    const { actionData, buyerData, sellerData, emailData, isBuyer, isSeller } = params;
 
     try {
       // Email to buyer (determine if they are the initiator)
@@ -44,33 +43,24 @@ export class InspectionEmailService {
         isInitiator: sellerIsInitiator,
       });
 
-      // Determine email subjects based on initiator status
-      const buyerEmailSubject = buyerIsInitiator 
-        ? `${emailSubject} - Confirmation`
-        : emailSubject;
-      
-      const sellerEmailSubject = sellerIsInitiator 
-        ? `${emailSubject} - Confirmation`
-        : emailSubject;
-
       // Send both emails
       const emailResults = await Promise.allSettled([
         sendEmail({
           to: buyerData.email,
-          subject: buyerEmailSubject,
+          subject: buyerEmailTemplate.subject,
           html: generalTemplate(buyerEmailTemplate.html),
           text: buyerEmailTemplate.text,
         }),
         sendEmail({
           to: sellerData.email,
-          subject: sellerEmailSubject,
+          subject: sellerEmailTemplate.subject,
           html: generalTemplate(sellerEmailTemplate.html),
           text: sellerEmailTemplate.text,
         }),
       ]);
 
       console.log(
-        `📧 Emails sent - Buyer: ${buyerData.email} (${buyerEmailSubject}), Seller: ${sellerData.email} (${sellerEmailSubject})`
+        `📧 Emails sent - Buyer: ${buyerData.email} (${buyerEmailTemplate.subject}), Seller: ${sellerData.email} (${sellerEmailTemplate.subject})`
       );
 
       const emailsSent = {
