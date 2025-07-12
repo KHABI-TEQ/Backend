@@ -1,6 +1,7 @@
+import { InspectionActionData, SubmitInspectionPayload } from "../types/inspection.types";
 import HttpStatusCodes from "../common/HttpStatusCodes";
-import { InspectionActionData, SubmitInspectionPayload } from "../controllers/inspectionController";
 import { RouteError } from "../common/classes";
+
 
 export class InspectionValidator {
   // Pure validation function for InspectionActionData
@@ -18,7 +19,7 @@ export class InspectionValidator {
       rejectionReason,
       documentUrl,
     } = data;
-
+ 
     if (
       !["accept", "reject", "counter", "request_changes"].includes(action)
     ) {

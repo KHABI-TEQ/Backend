@@ -9,6 +9,7 @@ import {
   generalTemplate,
   InspectionRequestWithNegotiation,
   InspectionRequestWithNegotiationSellerTemplate,
+  InspectionTransactionRejectionTemplate,
 } from '../../common/email.template';
 import notificationService from '../../services/notification.service';
 import { InspectionLogService } from '../../services/inspectionLog.service';
@@ -108,154 +109,182 @@ export class AdminInspectionController {
     }
 
 
-    /**
-     * Update the inspection's status (e.g., approve, reject transaction, etc.)
-     */
+  /**
+   * Update the inspection's status (e.g., approve, reject transaction, etc.)
+   */
 
-    public async updateInspectionStatus(req: AdminRequest, res: Response): Promise<Response> {
-      const { id } = req.params;
-      const { status } = req.body;
+  public async updateInspectionStatus(req: AdminRequest, res: Response): Promise<Response> {
+    const { id } = req.params;
+    const { status } = req.body;
 
-      const allowedStatuses = ['approve', 'reject'];
+    const allowedStatuses = ['approve', 'reject'];
 
-      if (!mongoose.isValidObjectId(id)) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection ID');
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection ID');
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection status');
+    }
+
+    const inspection = await DB.Models.InspectionBooking.findById(id)
+      .populate('transaction')
+      .populate('requestedBy')
+      .populate('propertyId')
+      .populate('owner');
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
+    }
+
+    const currentStatus = inspection.status;
+
+    // Prevent re-approving already approved
+    if (
+      (currentStatus === 'active_negotiation' || currentStatus === 'negotiation_countered') &&
+      status === 'approve'
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        'Inspection has already been approved. Cannot approve again.'
+      );
+    }
+
+    let updatedStatus: IInspectionBooking['status'];
+    let updatedStage: IInspectionBooking['stage'];
+    let pendingResponseFrom: IInspectionBooking['pendingResponseFrom'];
+
+    // Handle rejection
+    if (status === 'reject') {
+      updatedStatus = 'transaction_failed';
+      updatedStage = 'cancelled';
+      pendingResponseFrom = 'admin';
+    }
+
+    // Handle approval with conditional logic
+    if (status === 'approve') {
+      const isPrice = inspection.inspectionType === 'price';
+      const isLOI = inspection.inspectionType === 'LOI';
+      const hasNegotiationPrice = inspection.negotiationPrice > 0;
+      const hasLOIDocument =
+        inspection.letterOfIntention &&
+        inspection.letterOfIntention.trim() !== '';
+
+      if (isPrice) {
+        inspection.isNegotiating = hasNegotiationPrice;
+        updatedStage = hasNegotiationPrice ? 'negotiation' : 'inspection';
+      } else if (isLOI) {
+        inspection.isLOI = !!hasLOIDocument;
+        updatedStage = hasLOIDocument ? 'negotiation' : 'inspection';
       }
 
-      if (!allowedStatuses.includes(status)) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection status');
-      }
+      pendingResponseFrom = 'seller';
+      updatedStatus = inspection.isNegotiating ? 'negotiation_countered' : 'active_negotiation';
+    }
 
-      const inspection = await DB.Models.InspectionBooking.findById(id)
-        .populate('transaction')
-        .populate('requestedBy')
-        .populate('propertyId')
-        .populate('owner');
+    inspection.pendingResponseFrom = pendingResponseFrom;
+    inspection.status = updatedStatus;
+    inspection.stage = updatedStage;
 
-      if (!inspection) {
-        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
-      }
+    await inspection.save();
 
-      const currentStatus = inspection.status;
+    const buyer = inspection.requestedBy as any;
+    const property = inspection.propertyId as any;
+    const owner = inspection.owner as any;
 
-      // Prevent re-approving already approved
-      if (
-        (currentStatus === 'active_negotiation' || currentStatus === 'negotiation_countered') &&
-        status === 'approve'
-      ) {
-        throw new RouteError(
-          HttpStatusCodes.BAD_REQUEST,
-          'Inspection has already been approved. Cannot approve again.'
-        );
-      }
+    const location = `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`;
+    const formattedPrice = property.price?.toLocaleString('en-US') ?? 'N/A';
+    const negotiationPrice = inspection.negotiationPrice?.toLocaleString('en-US') ?? 'N/A';
 
-      let updatedStatus: IInspectionBooking['status'];
-      let updatedStage: IInspectionBooking['stage'];
-      let pendingResponseFrom: IInspectionBooking['pendingResponseFrom'];
+    const emailData = {
+      propertyType: property.propertyType,
+      location,
+      price: formattedPrice,
+      inspectionDate: inspection.inspectionDate,
+      inspectionTime: inspection.inspectionTime,
+      isNegotiating: inspection.isNegotiating,
+      negotiationPrice,
+      letterOfIntention: inspection.letterOfIntention,
+      agentName: owner.fullName || owner.firstName,
+    };
 
-      // Handle rejection
-      if (status === 'reject') {
-        updatedStatus = 'transaction_failed';
-        updatedStage = 'cancelled';
-        pendingResponseFrom = 'admin';
-      }
+    // Rejection email flow
+    if (status === 'reject') {
+      // send mail to buyer only
+      const buyerRejectionHtml = InspectionTransactionRejectionTemplate(buyer.fullName, {
+        ...emailData,
+        rejectionReason: 'Your inspection request was not approved. Please contact support for more info.',
+      });
+      
+      await sendEmail({
+        to: buyer.email,
+        subject: `Inspection Request Rejected`,
+        html: generalTemplate(buyerRejectionHtml),
+        text: generalTemplate(buyerRejectionHtml),
+      });
 
-      // Handle approval with conditional logic
-      if (status === 'approve') {
-        const isPrice = inspection.inspectionType === 'price';
-        const isLOI = inspection.inspectionType === 'LOI';
-        const hasNegotiationPrice = inspection.negotiationPrice > 0;
-        const hasLOIDocument =
-          inspection.letterOfIntention &&
-          inspection.letterOfIntention.trim() !== '';
+      await InspectionLogService.logActivity({
+        inspectionId: inspection._id.toString(),
+        propertyId: property._id.toString(),
+        senderId: req.admin?._id.toString(),
+        senderModel: 'Admin',
+        senderRole: 'admin',
+        message: `Inspection transaction rejected by admin.`,
+        status: updatedStatus,
+        stage: updatedStage,
+      });
+    }
 
-        if (isPrice) {
-          inspection.isNegotiating = hasNegotiationPrice;
-          updatedStage = hasNegotiationPrice ? 'negotiation' : 'inspection';
-        } else if (isLOI) {
-          inspection.isLOI = !!hasLOIDocument;
-          updatedStage = hasLOIDocument ? 'negotiation' : 'inspection';
+    // Approval flow
+    if (status === 'approve') {
+      await InspectionLogService.logActivity({
+        inspectionId: inspection._id.toString(),
+        propertyId: property._id.toString(),
+        senderId: req.admin?._id.toString(),
+        senderModel: 'Admin',
+        senderRole: 'admin',
+        message: `Inspection transaction approved successfully - status updated to ${updatedStatus}`,
+        status: updatedStatus,
+        stage: updatedStage,
+      });
+
+      const buyerEmailHtml = InspectionRequestWithNegotiation(buyer.fullName, emailData);
+
+      const sellerEmailHtml = InspectionRequestWithNegotiationSellerTemplate(
+        owner.fullName || owner.firstName,
+        {
+          ...emailData,
+          responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
         }
+      );
 
-        pendingResponseFrom = 'seller';
-        updatedStatus = inspection.isNegotiating ? 'negotiation_countered' : 'active_negotiation';
-      }
+      await sendEmail({
+        to: buyer.email,
+        subject: `New Offer Received – Action Required`,
+        html: generalTemplate(buyerEmailHtml),
+        text: generalTemplate(buyerEmailHtml),
+      });
 
-      inspection.pendingResponseFrom = pendingResponseFrom;
-      inspection.status = updatedStatus;
-      inspection.stage = updatedStage;
+      await sendEmail({
+        to: owner.email,
+        subject: `Inspection Request Submitted`,
+        html: generalTemplate(sellerEmailHtml),
+        text: generalTemplate(sellerEmailHtml),
+      });
 
-      await inspection.save();
+      const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
 
-    // Send email & log only on approval
-      if (status === 'approve') {
-        const buyer = inspection.requestedBy as any;
-        const property = inspection.propertyId as any;
-        const owner = inspection.owner as any;
-
-        const location = `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`;
-        const formattedPrice = property.price?.toLocaleString('en-US') ?? 'N/A';
-        const negotiationPrice = inspection.negotiationPrice?.toLocaleString('en-US') ?? 'N/A';
-
-        await InspectionLogService.logActivity({
-          inspectionId: inspection._id.toString(),
-          propertyId: (inspection.propertyId as any)._id.toString(),
-          senderId: req.admin?._id.toString(),
-          senderModel: 'Admin',
-          senderRole: 'admin',
-          message: `Inspection transaction approved successfully - status updated to ${updatedStatus}`,
+      await notificationService.createNotification({
+        user: owner._id,
+        title: 'New Inspection Request',
+        message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
+        meta: {
+          propertyId: property._id,
+          inspectionId: inspection._id,
           status: updatedStatus,
-          stage: updatedStage,
-        });
-
-        const emailData = {
-          propertyType: property.propertyType,
-          location,
-          price: formattedPrice,
-          inspectionDate: inspection.inspectionDate,
-          inspectionTime: inspection.inspectionTime,
-          isNegotiating: inspection.isNegotiating,
-          negotiationPrice,
-          letterOfIntention: inspection.letterOfIntention,
-          agentName: owner.fullName || owner.firstName,
-        };
-
-        const buyerEmailHtml = InspectionRequestWithNegotiation(buyer.fullName, emailData);
-        const sellerEmailHtml = InspectionRequestWithNegotiationSellerTemplate(
-          owner.fullName || owner.firstName,
-          {
-            ...emailData,
-            responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
-          }
-        );
-
-        await sendEmail({
-          to: buyer.email,
-          subject: `New Offer Received – Action Required`,
-          html: generalTemplate(buyerEmailHtml),
-          text: generalTemplate(buyerEmailHtml),
-        });
-
-        await sendEmail({
-          to: owner.email,
-          subject: `Inspection Request Submitted`,
-          html: generalTemplate(sellerEmailHtml),
-          text: generalTemplate(sellerEmailHtml),
-        });
-
-        const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
-
-        await notificationService.createNotification({
-          user: owner._id,
-          title: 'New Inspection Request',
-          message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
-          meta: {
-            propertyId: property._id,
-            inspectionId: inspection._id,
-            status: updatedStatus,
-          },
-        });
-      }
+        },
+      });
+    }
 
     return res.status(200).json({
       success: true,
@@ -263,6 +292,7 @@ export class AdminInspectionController {
       data: inspection,
     });
   }
+
 
 
   public async getInspectionStats(req: Request, res: Response): Promise<Response> {
