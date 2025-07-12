@@ -1005,6 +1005,67 @@ export function PropertyRentReceivedTemplate(
         `;
 }
 
+export function InspectionTransactionRejectionTemplate(
+  buyerName: string,
+  propertyData: any
+): string {
+  return `
+    <p>Dear ${buyerName},</p>
+
+    <p style="margin-top: 10px;">
+      We regret to inform you that your recent inspection request for the property below <strong>could not be approved</strong> by our team.
+      This may be due to issues related to the property listing or internal verification processes.
+    </p>
+
+    <p style="margin-top: 10px;">
+      Kindly review the property details and consider reaching out to support if you believe this was in error or would like to try again.
+    </p>
+
+    <ul style="background-color: #FDEDED; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    ${
+      propertyData.letterOfIntention
+        ? `
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Submitted LOI Document:</strong></p>
+          <li><a href="${propertyData.letterOfIntention}" style="color: #FF2539;">Click here</a> to view your uploaded LOI document</li>
+        </ul>
+        `
+        : ''
+    }
+
+    ${
+      propertyData.isNegotiating
+        ? `
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Negotiation Summary:</strong></p>
+          <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
+          <li><strong>Your Offered Price:</strong> ₦${propertyData.negotiationPrice}</li>
+        </ul>
+        `
+        : ''
+    }
+
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Attempted Inspection Schedule:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      For further assistance or clarification, feel free to contact our support team.
+    </p>
+
+    <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
+  `;
+}
+
+
 export function InspectionRequestWithNegotiation(
 	buyerName: string,
 	propertyData: any
