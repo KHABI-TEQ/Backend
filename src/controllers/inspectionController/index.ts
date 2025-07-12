@@ -2,134 +2,18 @@ import { Request, Response, NextFunction } from "express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
-import { generateNegotiationEmailTemplate } from "../../utils/emailTemplates/generateNegotiationEmailTemplate";
-import sendEmail from "../../common/send.email";
-import { generalTemplate } from "../../common/email.template";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import notificationService from "../../services/notification.service";
 import { hasDateTimeChanged } from "../../utils/detectDateTimeChange";
+import { 
+  InspectionActionData, 
+  InspectionLinks,
+} from "../../types/inspection.types";
+import { InspectionValidator } from "../../validators/inspection.validator";
+import { InspectionActionHandler } from "../../handlers/inspection-action.handler";
+import { InspectionEmailService } from "../../services/inspection-email.service";
 
-// Type definitions replacing Zod's inferred types
-export interface InspectionActionData {
-  action: "accept" | "reject" | "counter" | "request_changes";
-  inspectionType: "price" | "LOI";
-  userType: "buyer" | "seller";
-  counterPrice?: number;
-  inspectionDate?: string;
-  inspectionTime?: string;
-  reason?: string;
-  rejectionReason?: string;
-  documentUrl?: string;
-}
-
-export interface SubmitInspectionPayload {
-  inspectionType: "price" | "LOI";
-  inspectionDate: string;
-  inspectionTime: string;
-  requestedBy: {
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-  };
-  transaction: {
-    fullName: string;
-    transactionReceipt: string;
-  };
-  properties: Array<{
-    propertyId: string;
-    negotiationPrice?: number;
-    letterOfIntention?: string;
-  }>;
-}
-
-// Type definitions for update objects
-interface BaseUpdateData {
-  inspectionType: "price" | "LOI";
-  isLOI: boolean;
-  inspectionDate?: string;
-  inspectionTime?: string;
-}
-
-interface AcceptUpdateData extends BaseUpdateData {
-  status: "negotiation_accepted";
-  inspectionStatus: "accepted";
-  isNegotiating: false;
-  stage: "inspection" | "completed";
-  pendingResponseFrom?: undefined;
-}
-
-interface RejectUpdateData extends BaseUpdateData {
-  status: "negotiation_rejected";
-  inspectionStatus: "rejected";
-  isNegotiating: false;
-  stage: "cancelled";
-  reason?: string;
-  pendingResponseFrom?: undefined;
-}
-
-interface CounterUpdateData extends BaseUpdateData {
-  status: "negotiation_countered";
-  inspectionStatus: "countered";
-  isNegotiating: true;
-  pendingResponseFrom: "buyer" | "seller";
-  stage: "negotiation";
-  negotiationPrice?: number;
-  letterOfIntention?: string;
-}
-
-interface RequestChangesUpdateData extends BaseUpdateData {
-  status: "negotiation_countered";
-  inspectionStatus: "requested_changes";
-  reason?: string;
-  isNegotiating: false;
-  stage: "negotiation";
-  pendingResponseFrom: "buyer";
-}
-
-type UpdateData = AcceptUpdateData | RejectUpdateData | CounterUpdateData | RequestChangesUpdateData;
-
-interface EmailData {
-  propertyType?: string;
-  location?: string;
-  price?: number;
-  negotiationPrice?: number;
-  sellerCounterOffer?: number;
-  documentUrl?: string;
-  reason?: string;
-  inspectionDateStatus?: string;
-  inspectionDateTime?: {
-    dateTimeChanged: boolean;
-    newDateTime: {
-      newDate: string;
-      newTime: string;
-    };
-    oldDateTime?: {
-      newDate: string;
-      oldTime: string;
-    };
-  };
-  checkLink?: string;
-  rejectLink?: string;
-  browseLink?: string;
-  buyerResponseLink?: string;
-}
-
-interface ActionResult {
-  update: UpdateData;
-  logMessage: string;
-  emailSubject: string;
-  emailData: EmailData;
-}
-
-interface InspectionLinks {
-  sellerResponseLink: string;
-  buyerResponseLink: string;
-  negotiationResponseLink: string;
-  checkLink: string;
-  browseLink: string;
-  rejectLink: string;
-}
-
+InspectionEmailService
 class InspectionActionsController {
   private generateInspectionLinks(
     inspectionId: string,
@@ -149,95 +33,6 @@ class InspectionActionsController {
     };
   }
 
-  // Pure validation function for InspectionActionData
-  private validateInspectionActionData(
-    data: any
-  ): { success: boolean; data?: InspectionActionData; error?: string } {
-    const {
-      action,
-      inspectionType,
-      userType,
-      counterPrice,
-      inspectionDate,
-      inspectionTime,
-      reason,
-      rejectionReason,
-      documentUrl,
-    } = data;
-
-    if (
-      !["accept", "reject", "counter", "request_changes"].includes(action)
-    ) {
-      return {
-        success: false,
-        error: "Action must be one of: accept, reject, counter, request_changes",
-      };
-    }
-
-    if (!["price", "LOI"].includes(inspectionType)) {
-      return {
-        success: false,
-        error: "Inspection type must be either price or LOI",
-      };
-    }
-
-    if (!["buyer", "seller"].includes(userType)) {
-      return { success: false, error: "User type must be either buyer or seller" };
-    }
-
-    if (action === "counter" && inspectionType === "price" && typeof counterPrice !== "number") {
-      return { success: false, error: "Counter price is required for price negotiations" };
-    }
-
-    if (action === "counter" && inspectionType === "LOI" && (!documentUrl || typeof documentUrl !== "string")) {
-      return { success: false, error: "Document URL is required for LOI counter offers" };
-    }
-    
-    // Basic URL format check, can be expanded for stricter validation
-    if (documentUrl && typeof documentUrl === 'string' && !/^https?:\/\/\S+$/.test(documentUrl)) {
-      return { success: false, error: "Document URL must be a valid URL format" };
-    }
-
-    if (action === "request_changes" && inspectionType !== "LOI") {
-      return { success: false, error: "Request changes action is only available for LOI inspections" };
-    }
-
-    if (action === "request_changes" && !reason) {
-      return { success: false, error: "Reason is required when requesting changes" };
-    }
-
-    if (inspectionDate && typeof inspectionDate !== "string") {
-      return { success: false, error: "Inspection date must be a string" };
-    }
-
-    if (inspectionTime && typeof inspectionTime !== "string") {
-      return { success: false, error: "Inspection time must be a string" };
-    }
-
-    if (reason && typeof reason !== "string") {
-      return { success: false, error: "Reason must be a string" };
-    }
-
-    if (rejectionReason && typeof rejectionReason !== "string") {
-      return { success: false, error: "Rejection reason must be a string" };
-    }
-
-    return {
-      success: true,
-      data: {
-        action,
-        inspectionType,
-        userType,
-        counterPrice,
-        inspectionDate,
-        inspectionTime,
-        reason,
-        rejectionReason,
-        documentUrl,
-      },
-    };
-  }
-
   public async processInspectionAction(
     req: Request,
     res: Response,
@@ -251,7 +46,7 @@ class InspectionActionsController {
       }
 
       // Validate request body using pure validation
-      const validation = this.validateInspectionActionData(req.body);
+      const validation = InspectionValidator.validateInspectionActionData(req.body);
       if (!validation.success) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, validation.error!);
       }
@@ -313,7 +108,7 @@ class InspectionActionsController {
     }
 
     // Validate action-specific requirements
-    this.validateActionRequirements(actionData);
+    InspectionValidator.validateActionRequirements(actionData);
 
     // Check if date/time changed
     const dateTimeChanged = hasDateTimeChanged(
@@ -323,16 +118,6 @@ class InspectionActionsController {
       actionData.inspectionTime
     );
 
-    // Prepare base update object
-    let update: UpdateData = {
-      inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
-    } as UpdateData;
-
-    let logMessage = "";
-    let emailSubject = "";
-    let emailData: EmailData = {};
-
     const senderName = isSeller
       ? (inspection.owner as any).fullName
       : (inspection.requestedBy as any).fullName;
@@ -340,66 +125,18 @@ class InspectionActionsController {
     const buyerData = inspection.requestedBy as any;
     const sellerData = inspection.owner as any;
 
-    // Process actions
-    switch (actionData.action) {
-      case "accept":
-        ({
-          update,
-          logMessage,
-          emailSubject,
-          emailData,
-        } = this.handleAccept(
-          actionData,
-          inspection,
-          senderName,
-          dateTimeChanged,
-          inspectionId,
-          buyerId,
-          ownerId,
-        ));
-        break;
-
-      case "reject":
-        ({ update, logMessage, emailSubject, emailData } = this.handleReject(
-          actionData,
-          inspection,
-          senderName,
-          inspectionId,
-          buyerId,
-          ownerId,
-          dateTimeChanged,
-        ));
-        break;
-
-      case "counter":
-        ({ update, logMessage, emailSubject, emailData } = this.handleCounter(
-          actionData,
-          inspection,
-          senderName,
-          isSeller,
-          dateTimeChanged,
-          inspectionId,
-          buyerId,
-          ownerId,
-        ));
-        break;
-
-      case "request_changes":
-        ({ update, logMessage, emailSubject, emailData } =
-          this.handleRequestChanges(
-            actionData,
-            inspection,
-            senderName,
-            dateTimeChanged,
-            inspectionId,
-            buyerId,
-            ownerId,
-          ));
-        break;
-
-      default:
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid action");
-    }
+    // Process actions using handler
+    const actionHandler = new InspectionActionHandler();
+    const { update, logMessage, emailSubject, emailData } = actionHandler.handleAction(
+      actionData,
+      inspection,
+      senderName,
+      isSeller,
+      dateTimeChanged,
+      inspectionId,
+      buyerId,
+      ownerId
+    );
 
     // Update inspection date/time if provided
     if (actionData.inspectionDate) {
@@ -458,81 +195,24 @@ class InspectionActionsController {
       },
     });
 
-    // Send emails to both buyer and seller with different content
-    try {
-      // Email to buyer
-      const buyerEmailTemplate = generateNegotiationEmailTemplate({
-        userType,
-        action: actionData.action,
-        buyerName: buyerData.fullName,
-        sellerName: sellerData.fullName,
-        recipientType: "buyer",
-        payload: emailData,
-        isLOI: actionData.inspectionType === "LOI",
-      });
+    // Send emails using email service
+    const emailService = new InspectionEmailService();
+    const emailResults = await emailService.sendActionEmails({
+      actionData,
+      buyerData,
+      sellerData,
+      emailSubject,
+      emailData,
+      isBuyer,
+      isSeller
+    });
 
-      // Email to seller
-      const sellerEmailTemplate = generateNegotiationEmailTemplate({
-        userType,
-        action: actionData.action,
-        buyerName: buyerData.fullName,
-        sellerName: sellerData.fullName,
-        recipientType: "seller",
-        payload: emailData,
-        isLOI: actionData.inspectionType === "LOI",
-      });
-
-      // Send both emails
-      const emailResults = await Promise.allSettled([
-        sendEmail({
-          to: buyerData.email,
-          subject: emailSubject,
-          html: generalTemplate(buyerEmailTemplate.html),
-          text: buyerEmailTemplate.text,
-        }),
-        sendEmail({
-          to: sellerData.email,
-          subject: emailSubject,
-          html: generalTemplate(sellerEmailTemplate.html),
-          text: sellerEmailTemplate.text,
-        }),
-      ]);
-
-      console.log(
-        `📧 Emails sent - Buyer: ${buyerData.email}, Seller: ${sellerData.email}: ${emailSubject}`
-      );
-
-      const emailsSent = {
-        buyer: emailResults[0].status === "fulfilled",
-        seller: emailResults[1].status === "fulfilled",
-      };
-
-      if (emailResults[0].status === "rejected") {
-        console.error("Failed to send email to buyer:", emailResults[0].reason);
-      }
-
-      if (emailResults[1].status === "rejected") {
-        console.error(
-          "Failed to send email to seller:",
-          emailResults[1].reason
-        );
-      }
-
-      return {
-        inspection: updatedInspection,
-        emailsSent,
-        logCreated: true,
-        notificationSent: true,
-      };
-    } catch (emailError) {
-      console.error("Failed to send emails:", emailError);
-      return {
-        inspection: updatedInspection,
-        emailsSent: { buyer: false, seller: false },
-        logCreated: true,
-        notificationSent: true,
-      };
-    }
+    return {
+      inspection: updatedInspection,
+      emailsSent: emailResults,
+      logCreated: true,
+      notificationSent: true,
+    };
   }
 
   public async getInspectionDetails(
@@ -710,331 +390,6 @@ class InspectionActionsController {
     }
   }
 
-  private validateActionRequirements(actionData: InspectionActionData) {
-    if (
-      actionData.action === "counter" &&
-      actionData.inspectionType === "price" &&
-      !actionData.counterPrice
-    ) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Counter price is required for price negotiations"
-      );
-    }
-
-    if (
-      actionData.action === "counter" &&
-      actionData.inspectionType === "LOI" &&
-      !actionData.documentUrl
-    ) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Document URL is required for LOI counter offers"
-      );
-    }
-
-    if (
-      actionData.action === "request_changes" &&
-      actionData.inspectionType !== "LOI"
-    ) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Request changes action is only available for LOI inspections"
-      );
-    }
-
-    if (actionData.action === "request_changes" && !actionData.reason) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Reason is required when requesting changes"
-      );
-    }
-  }
-
-  private handleAccept(
-    actionData: InspectionActionData,
-    inspection: any,
-    senderName: string,
-    dateTimeChanged: boolean,
-    inspectionId: string,
-    buyerId: string,
-    ownerId: string,
-  ): ActionResult {
-    // Determine stage based on current stage and date/time presence
-    let stage: "inspection" | "completed";
-    
-    if (inspection.stage === "inspection") {
-      // If already in inspection stage, move to completed
-      stage = "completed";
-    } else {
-      // For both price and LOI: if no date/time in payload, go to completed; otherwise go to inspection
-      const hasDateTime = actionData.inspectionDate || actionData.inspectionTime;
-      stage = hasDateTime ? "inspection" : "completed";
-    }
-
-    const update: AcceptUpdateData = {
-      inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
-      status: "negotiation_accepted",
-      inspectionStatus: "accepted",
-      isNegotiating: false,
-      stage,
-      pendingResponseFrom: undefined,
-    };
-
-    const emailSubject = `${actionData.inspectionType === "price" ? "Price Offer" : "Letter of Intent"} Accepted`;
-    const logMessage = `${senderName} accepted the ${actionData.inspectionType} offer${dateTimeChanged ? " with updated inspection date/time" : ""}`;
-
-    const emailData: EmailData = {
-      propertyType: (inspection.propertyId as any).propertyType,
-      location: (inspection.propertyId as any).location,
-      price: (inspection.propertyId as any).price,
-      negotiationPrice: inspection.negotiationPrice,
-      inspectionDateStatus: "available",
-      buyerResponseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).buyerResponseLink,
-      inspectionDateTime: {
-        dateTimeChanged,
-        newDateTime: {
-          newDate: actionData.inspectionDate || inspection.inspectionDate,
-          newTime: actionData.inspectionTime || inspection.inspectionTime,
-        },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
-      },
-    };
-
-    return { update, logMessage, emailSubject, emailData };
-  }
-
-  private handleReject(
-    actionData: InspectionActionData,
-    inspection: any,
-    senderName: string,
-    inspectionId: string,
-    buyerId: string,
-    ownerId: string,
-    dateTimeChanged: boolean,
-  ): ActionResult {
-    const update: RejectUpdateData = {
-      inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
-      status: "negotiation_rejected",
-      inspectionStatus: "rejected",
-      isNegotiating: false,
-      stage: "cancelled",
-      reason: actionData.reason || actionData.rejectionReason,
-      pendingResponseFrom: undefined,
-    };
-
-    const emailSubject = `${actionData.inspectionType === "price" ? "Price Offer" : "Letter of Intent"} Rejected`;
-    const logMessage = `${senderName} rejected the ${actionData.inspectionType} offer${update.reason ? `: ${update.reason}` : ""}`;
-
-    const emailData: EmailData = {
-      propertyType: (inspection.propertyId as any).propertyType,
-      location: (inspection.propertyId as any).location,
-      price: (inspection.propertyId as any).price,
-      reason: update.reason,
-      checkLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
-        .checkLink,
-      buyerResponseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).buyerResponseLink,
-      rejectLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
-        .rejectLink,
-      browseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
-        .browseLink,
-      inspectionDateTime: {
-        dateTimeChanged,
-        newDateTime: {
-          newDate: actionData.inspectionDate || inspection.inspectionDate,
-          newTime: actionData.inspectionTime || inspection.inspectionTime,
-        },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
-      },
-    };
-
-    return { update, logMessage, emailSubject, emailData };
-  }
-
-  private handleCounter(
-    actionData: InspectionActionData,
-    inspection: any,
-    senderName: string,
-    isSeller: boolean,
-    dateTimeChanged: boolean,
-    inspectionId: string,
-    buyerId: string,
-    ownerId: string,
-  ): ActionResult {
-    const update: CounterUpdateData = {
-      inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
-      status: "negotiation_countered",
-      inspectionStatus: "countered",
-      isNegotiating: true,
-      pendingResponseFrom: isSeller ? "buyer" : "seller",
-      stage: "negotiation", // Always negotiation for counter offers
-    };
-
-    let logMessage = "";
-    if (actionData.inspectionType === "price") {
-      update.negotiationPrice = actionData.counterPrice;
-      logMessage = `${senderName} made a counter offer of ₦${actionData.counterPrice?.toLocaleString()}${dateTimeChanged ? " and updated inspection date/time" : ""}`;
-    } else {
-      update.letterOfIntention = actionData.documentUrl;
-      logMessage = `${senderName} uploaded a new LOI document${dateTimeChanged ? " and updated inspection date/time" : ""}`;
-    }
-
-    const emailSubject = "Counter Offer Received";
-    const emailData: EmailData = {
-      propertyType: (inspection.propertyId as any).propertyType,
-      location: (inspection.propertyId as any).location,
-      price: (inspection.propertyId as any).price,
-      negotiationPrice: inspection.negotiationPrice,
-      sellerCounterOffer: actionData.counterPrice,
-      documentUrl: actionData.documentUrl,
-      inspectionDateStatus: "available",
-      buyerResponseLink: this.generateInspectionLinks(
-        inspectionId,
-        buyerId,
-        ownerId,
-      ).buyerResponseLink,
-      inspectionDateTime: {
-        dateTimeChanged,
-        newDateTime: {
-          newDate: actionData.inspectionDate || inspection.inspectionDate,
-          newTime: actionData.inspectionTime || inspection.inspectionTime,
-        },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
-      },
-    };
-
-    return { update, logMessage, emailSubject, emailData };
-  }
-
-  private handleRequestChanges(
-    actionData: InspectionActionData,
-    inspection: any,
-    senderName: string,
-    dateTimeChanged: boolean,
-    inspectionId: string,
-    buyerId: string,
-    ownerId: string,
-  ): ActionResult {
-    const update: RequestChangesUpdateData = {
-      inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
-      status: "negotiation_countered",
-      inspectionStatus: "requested_changes",
-      reason: actionData.reason,
-      isNegotiating: false,
-      stage: "negotiation", // Changed from "LOI" to "negotiation" as per requirements
-      pendingResponseFrom: "buyer",
-    };
-
-    const emailSubject = "Changes Requested for Letter of Intent";
-    const logMessage = `${senderName} requested changes to the LOI: ${actionData.reason}${dateTimeChanged ? " and updated inspection date/time" : ""}`;
-
-    const emailData: EmailData = {
-      propertyType: (inspection.propertyId as any).propertyType,
-      location: (inspection.propertyId as any).location,
-      reason: actionData.reason,
-      buyerResponseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).buyerResponseLink,
-      inspectionDateTime: {
-        dateTimeChanged,
-        newDateTime: {
-          newDate: actionData.inspectionDate || inspection.inspectionDate,
-          newTime: actionData.inspectionTime || inspection.inspectionTime,
-        },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
-      },
-    };
-
-    return { update, logMessage, emailSubject, emailData };
-  }
-
-  // Pure validation function for SubmitInspectionPayload
-  private validateSubmitInspectionPayload(
-    data: any
-  ): { success: boolean; data?: SubmitInspectionPayload; error?: string } {
-    const { inspectionType, inspectionDate, inspectionTime, requestedBy, transaction, properties } = data;
-
-    if (!["price", "LOI"].includes(inspectionType)) {
-      return { success: false, error: "Inspection type must be either price or LOI" };
-    }
-
-    if (typeof inspectionDate !== "string" || inspectionDate.trim() === "") {
-      return { success: false, error: "Inspection date is required and must be a string" };
-    }
-
-    if (typeof inspectionTime !== "string" || inspectionTime.trim() === "") {
-      return { success: false, error: "Inspection time is required and must be a string" };
-    }
-
-    if (!requestedBy || typeof requestedBy !== "object") {
-      return { success: false, error: "RequestedBy object is required" };
-    }
-    if (typeof requestedBy.fullName !== "string" || requestedBy.fullName.trim() === "") {
-      return { success: false, error: "RequestedBy fullName is required" };
-    }
-    if (typeof requestedBy.email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(requestedBy.email)) {
-      return { success: false, error: "RequestedBy email is required and must be a valid email format" };
-    }
-    if (typeof requestedBy.phoneNumber !== "string" || requestedBy.phoneNumber.trim() === "") {
-      return { success: false, error: "RequestedBy phoneNumber is required" };
-    }
-
-    if (!transaction || typeof transaction !== "object") {
-      return { success: false, error: "Transaction object is required" };
-    }
-    if (typeof transaction.fullName !== "string" || transaction.fullName.trim() === "") {
-      return { success: false, error: "Transaction fullName is required" };
-    }
-    if (typeof transaction.transactionReceipt !== "string" || !/^https?:\/\/\S+$/.test(transaction.transactionReceipt)) {
-      return { success: false, error: "Transaction receipt is required and must be a valid URL" };
-    }
-
-    if (!Array.isArray(properties) || properties.length === 0) {
-      return { success: false, error: "Properties array is required and cannot be empty" };
-    }
-
-    for (const prop of properties) {
-      if (!prop || typeof prop !== "object") {
-        return { success: false, error: "Each property in the array must be an object" };
-      }
-      if (typeof prop.propertyId !== "string" || prop.propertyId.trim() === "") {
-        return { success: false, error: "Property ID is required for each property" };
-      }
-      if (prop.negotiationPrice !== undefined && typeof prop.negotiationPrice !== "number") {
-        return { success: false, error: "Negotiation price must be a number if provided" };
-      }
-      if (prop.letterOfIntention !== undefined && (typeof prop.letterOfIntention !== "string" || !/^https?:\/\/\S+$/.test(prop.letterOfIntention))) {
-        return { success: false, error: "Letter of intention must be a valid URL if provided" };
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        inspectionType,
-        inspectionDate,
-        inspectionTime,
-        requestedBy,
-        transaction,
-        properties,
-      },
-    };
-  }
-
   public async submitInspectionRequest(
     req: Request,
     res: Response,
@@ -1042,7 +397,7 @@ class InspectionActionsController {
   ): Promise<void> {
     try {
       // Validate request body using pure validation
-      const validation = this.validateSubmitInspectionPayload(req.body);
+      const validation = InspectionValidator.validateSubmitInspectionPayload(req.body);
 
       if (!validation.success) {
         throw new RouteError(
