@@ -109,7 +109,7 @@ class InspectionActionsController {
 
     // Validate action-specific requirements
     InspectionValidator.validateActionRequirements(actionData);
-
+ 
     // Check if date/time changed
     const dateTimeChanged = hasDateTimeChanged(
       inspection.inspectionDate,
@@ -127,6 +127,7 @@ class InspectionActionsController {
 
     // Process actions using handler
     const actionHandler = new InspectionActionHandler();
+    
     const { update, logMessage, emailSubject, emailData } = actionHandler.handleAction(
       actionData,
       inspection,
@@ -197,11 +198,11 @@ class InspectionActionsController {
 
     // Send emails using email service
     const emailService = new InspectionEmailService();
+
     const emailResults = await emailService.sendActionEmails({
       actionData,
       buyerData,
       sellerData,
-      emailSubject,
       emailData,
       isBuyer,
       isSeller
