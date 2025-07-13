@@ -1,7 +1,16 @@
 import Joi from 'joi/lib';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import HttpStatusCodes from './HttpStatusCodes';
 import path from 'path';
+import { IUserDoc } from '../models';
+
+interface TokenPayload {
+  id: string;
+  email: string;
+  userType: "Agent" | "Landowners";
+  [key: string]: any; // Extendable for other optional fields like role, permissions, etc.
+}
+
 
 /**
  * Error with status code and message.
@@ -52,6 +61,20 @@ export const signJwt = (data: any) => {
 
 export const signJwtAdmin = (data: any) => {
   return jwt.sign(data, process.env.JWT_SECRET_ADMIN, { expiresIn: '1d' });
+};
+
+export const generateToken = (payload: TokenPayload, expiresIn: any = "7d"): string => {
+  const secret = process.env.JWT_SECRET;
+
+  if (!secret) {
+    throw new Error("JWT_SECRET is not defined in environment variables.");
+  }
+
+  const options: SignOptions = {
+    expiresIn
+  };
+
+  return jwt.sign(payload, secret, options);
 };
 
 export const getMimeType = (filename: string): string => {

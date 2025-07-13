@@ -19,6 +19,14 @@ import { buyerRouter } from './buyer';
 import {documentVerificationController} from '../controllers/DocumentVerification';
 import { AdminController } from '../controllers/Admin';
 import inspectRouter from './inspectionRouter';
+import { loginUser } from '../controllers/Auth/loginUser';
+import { registerUser } from '../controllers/Auth/registerUser';
+import { requestPasswordReset } from '../controllers/Auth/requestPasswordReset';
+import { resetPassword } from '../controllers/Auth/resetPassword';
+import { resendVerificationToken } from '../controllers/Auth/resendVerificationToken';
+import { resendPasswordResetCode } from '../controllers/Auth/resendPasswordResetCode';
+import { verifyAccount } from '../controllers/Auth/verifyAccount';
+import { googleAuth, facebookAuth } from '../controllers/Auth/socialAuth';
 
 const router = express.Router();
 
@@ -167,6 +175,47 @@ router.get('/verification-result', async (req:Request, res:Response, next:NextFu
 
 
 
+
+/**
+ * ******************************************************
+ * ******************************************************
+ * ************ AUTHENTICATION ROUTES *******************
+ * ******************************************************
+ * ******************************************************
+ */
+// Login route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/login', loginUser);
+
+// Registration route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/register', registerUser);
+
+// Google auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/googleAuth', googleAuth);
+
+// FaceBook auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/facebookAuth', facebookAuth);
+
+// Reset Password Request route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/resetPasswordRequest', requestPasswordReset);
+
+// Reset Password route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/resetPassword', resetPassword);
+
+// Resend Verification Token route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/resendVerificationToken', resendVerificationToken);
+
+// Resend Reset Password Code route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/resendPasswordCode', resendPasswordResetCode);
+
+// verify account route for "AGENTS" and "LANDOWNERS"
+router.get('/auth/verifyAccount', verifyAccount);
+
+
+
+
+
+
+// Testimonials route
 router.get('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const result = await adminController.getLatestApprovedTestimonials()

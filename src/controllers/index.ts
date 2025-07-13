@@ -36,9 +36,12 @@ import {
   InspectionActivityLogModel,
   INotificationModel,
   Notification,
-  ITestimonial, 
-  TestimonialModel
+  Testimonial,
+  ITestimonialModel,
+  VerificationToken,
+  PasswordResetToken,
 } from '../models/index';
+
 import { IOwnerModel, Owner } from '../models/property.owner';
 
 declare interface IModels {
@@ -60,7 +63,9 @@ declare interface IModels {
   BriefMatch:IBriefMatchModel;
   DocumentVerification:IDocumentVerificationModel;
   Notification: INotificationModel;
-  Testimonial: typeof TestimonialModel;
+  Testimonial: ITestimonialModel;
+  VerificationToken: typeof VerificationToken;
+  PasswordResetToken: typeof PasswordResetToken;
 }
 
 export class DB {
@@ -98,7 +103,9 @@ export class DB {
       BriefMatch: new BriefMatch().model,
       DocumentVerification: new DocumentVerification().model,
       Notification: new Notification().model,
-      Testimonial: TestimonialModel,
+      Testimonial: new Testimonial().model,
+      VerificationToken: VerificationToken,
+      PasswordResetToken: PasswordResetToken,
     };
   }
 

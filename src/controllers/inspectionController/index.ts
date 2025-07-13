@@ -13,25 +13,7 @@ import { InspectionValidator } from "../../validators/inspection.validator";
 import { InspectionActionHandler } from "../../handlers/inspection-action.handler";
 import { InspectionEmailService } from "../../services/inspection-email.service";
 
-InspectionEmailService
 class InspectionActionsController {
-  private generateInspectionLinks(
-    inspectionId: string,
-    buyerId: string,
-    sellerId: string
-  ): InspectionLinks {
-    const clientLink = process.env.CLIENT_LINK || "http://localhost:3000";
-    const inspectionIdStr = inspectionId.toString();
-
-    return {
-      sellerResponseLink: `${clientLink}/secure-seller-response/${sellerId}/${inspectionIdStr}`,
-      buyerResponseLink: `${clientLink}/secure-buyer-response/${buyerId}/${inspectionIdStr}`,
-      negotiationResponseLink: `${clientLink}/secure-seller-response/${sellerId}/${inspectionIdStr}`,
-      checkLink: `${clientLink}/secure-buyer-response/${buyerId}/${inspectionIdStr}/check`,
-      browseLink: `${clientLink}/market-place`,
-      rejectLink: `${clientLink}/secure-buyer-response/${buyerId}/${inspectionIdStr}/reject`,
-    };
-  }
 
   public async processInspectionAction(
     req: Request,

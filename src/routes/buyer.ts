@@ -2,6 +2,7 @@ import express, { NextFunction, Response } from 'express';
 import { buyerController } from '../controllers/Buyer';
 import { DB } from '../controllers';
 import AuthorizeAction from './authorize_action';
+import PreferencesController from '../controllers/Buyer/PreferencesController';
 
 const buyerRouter = express.Router();
 
@@ -11,6 +12,12 @@ interface Request extends Express.Request {
   params?: any;
   body?: any;
 }
+
+// POST /api/buyer/submit-preference
+buyerRouter.post(
+  "/submit-preference",
+  (req, res, next) => PreferencesController.createPreference(req, res, next)
+);
 
 buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -29,7 +36,6 @@ buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: Ne
   }
 });
 
-
 buyerRouter.post('/submit-preference', async (req: Request, res: Response, next:NextFunction) => {
   try {
     const result = await buyerController.submitPreference(req.body);
@@ -42,7 +48,6 @@ buyerRouter.post('/submit-preference', async (req: Request, res: Response, next:
     next(error);
   }
 });
-
 
 // ✅ New route to get matched briefs using preferenceId
 buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: NextFunction) => {

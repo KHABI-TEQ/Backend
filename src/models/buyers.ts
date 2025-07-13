@@ -4,7 +4,10 @@ export interface IBuyer {
   fullName: string;
   phoneNumber: string;
   email: string;
-}
+  companyName?: string;
+  contactPerson?: string;
+  cacRegistrationNumber?: string;
+} 
 
 export interface IBuyerDoc extends IBuyer, Document {}
 
@@ -19,6 +22,9 @@ export class Buyer {
         fullName: { type: String, required: true },
         email: { type: String, required: true },
         phoneNumber: { type: String, required: true },
+        companyName: { type: String },
+        contactPerson: { type: String },
+        cacRegistrationNumber: { type: String },
       },
       {
         timestamps: true,
