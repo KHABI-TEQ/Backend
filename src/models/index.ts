@@ -18,4 +18,6 @@ export * from './document.verification';
 export * from './inspection.activity.log';
 export * from './notification';
 export * from './testimonial';
+export * from './verificationToken';
+export * from './passwordResetToken';
 

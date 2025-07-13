@@ -50,7 +50,7 @@ export class UserController {
 
     return randomString;
   }
-
+ 
   public async signup(
     email: string,
     password: string,
@@ -235,7 +235,7 @@ export class UserController {
     const { password, ...newUser } = user.toObject();
     return { ...newUser, token: token };
   }
-
+ 
   public async login(userCreds: { email: string; password: string }): Promise<any> {
     try {
       const { password } = userCreds;

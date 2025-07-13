@@ -243,17 +243,33 @@ export const inspectionScheduledTemplate = (
                                 `;
 };
 
-export const verifyEmailTemplate = (
-	name: string,
-	verificationLink: string
-): string => {
-	return `
-        <p>Dear ${name},</p>
-        <p>Thank you for registering with Khabi-Teq Realty. To complete your onboarding process, please verify your email address by clicking the link below:</p>
-        <p>🔗 <a href="${verificationLink}">Verify Email</a></p>
-        <p>If you did not request this, please ignore this email.</p>
-`;
+export const verifyEmailTemplate = (name: string, verificationLink: string): string => {
+  return `
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; line-height: 1.6;">
+      <h2 style="color: #0F52BA;">Welcome to Khabi-Teq Realty, ${name} 👋</h2>
+
+      <p>We're excited to have you on board. To secure your account and complete your registration, please verify your email address:</p>
+
+      <div style="margin: 20px 0;">
+        <a href="${verificationLink}" style="display: inline-block; padding: 12px 20px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">
+          ✅ Verify Email
+        </a>
+      </div>
+
+      <p>If the button above doesn’t work, copy and paste the link below into your browser:</p>
+      <p style="word-break: break-all;"><a href="${verificationLink}">${verificationLink}</a></p>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
+
+      <p>If you did not request this verification or believe this was sent in error, you can safely ignore this email.</p>
+
+      <p>Warm regards,</p>
+      <p><strong>Khabi-Teq Realty Team</strong></p>
+      <p style="font-size: 12px; color: #888;">This is an automated message, please do not reply to this email.</p>
+    </div>
+  `;
 };
+
 
 export const accountUnderReviewTemplate = (name: string): string => {
 	return `
@@ -814,6 +830,26 @@ export function ForgotPasswordVerificationTemplate(
                       
                 `;
 }
+
+export function ForgotPasswordTokenTemplate(userName: string, token: string): string {
+  return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <p>Dear ${userName},</p>
+
+      <p>You requested to reset your password. Use the verification code below to complete the process:</p>
+
+      <div style="margin: 20px 0; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #2c3e50;">
+        🔐 ${token}
+      </div>
+
+      <p>This code will expire in <strong>30 minutes</strong>. If you did not make this request, please ignore this email.</p>
+
+      <p>Best regards,<br/>
+      <strong>Khabi-Teq Realty</strong></p>
+    </div>
+  `;
+}
+
 
 export function PropertyApprovedOrDisapprovedTemplate(
 	name: string,
