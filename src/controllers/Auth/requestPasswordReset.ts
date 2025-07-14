@@ -19,13 +19,13 @@ export const requestPasswordReset = async (req: Request, res: Response, next: Ne
     await DB.Models.PasswordResetToken.deleteMany({ userId: user._id });
 
     const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 20); // 20 minutes
  
     await DB.Models.PasswordResetToken.create({
         userId: user._id,
         userModel: 'User',
         token,
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 20 * 60 * 1000),
     });
 
     const mailBody = ForgotPasswordTokenTemplate(user.firstName, token);

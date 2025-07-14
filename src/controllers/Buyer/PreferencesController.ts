@@ -4,11 +4,7 @@ import { DB } from "..";
 import { RouteError } from "../../common/classes";
 
 class PreferencesController {
-  public async createPreference(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
+  public async createPreference(req: Request, res: Response, next: NextFunction) {
     try {
       const {
         preferenceType,
@@ -26,10 +22,8 @@ class PreferencesController {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing buyer contact information.");
       }
 
-      // Find buyer by email
       let buyer = await DB.Models.Buyer.findOne({ email: contactInfo.email });
 
-      // If buyer exists, update details
       if (buyer) {
         buyer.fullName = contactInfo.fullName;
         buyer.phoneNumber = contactInfo.phoneNumber;
@@ -38,7 +32,6 @@ class PreferencesController {
         buyer.cacRegistrationNumber = contactInfo.cacRegistrationNumber;
         await buyer.save();
       } else {
-        // Else create new buyer
         buyer = await DB.Models.Buyer.create({
           fullName: contactInfo.fullName,
           email: contactInfo.email,
@@ -49,44 +42,47 @@ class PreferencesController {
         });
       }
 
-      // Prepare preference payload
+      const parsedAreas = (location?.areas || []).map((areaString: string) => {
+        const [name, lga] = areaString.split(" - ").map((str) => str.trim());
+        return { name, lga };
+      });
+
       const preferencePayload: any = {
         buyer: buyer._id,
         preferenceType,
         preferenceMode,
         location: {
           state: location?.state || '',
-          localGovernment: location?.localGovernmentAreas?.[0] || '',
-          area: location?.selectedAreas?.[0] || '',
+          localGovernments: location?.lgas || [],
+          areas: parsedAreas,
         },
-        budgetMin: budget?.minPrice || 0,
-        budgetMax: budget?.maxPrice || 0,
+        budgetMin: parseFloat(budget?.minPrice) || 0,
+        budgetMax: parseFloat(budget?.maxPrice) || 0,
         features: [
           ...(features?.baseFeatures || []),
-          ...(features?.premiumFeatures || [])
+          ...(features?.premiumFeatures || []),
         ],
         status: "pending",
       };
 
-      // Type-specific preference data
       switch (preferenceType) {
         case "buy":
         case "rent":
           Object.assign(preferencePayload, {
-            propertyType: propertyDetails?.propertyType,
-            propertyCondition: propertyDetails?.propertyCondition,
-            noOfBedrooms: parseInt(propertyDetails?.minBedrooms || "0", 10),
-            noOfBathrooms: parseInt(propertyDetails?.minBathrooms || "0", 10),
-            additionalInfo: propertyDetails?.purpose,
-            measurementType: propertyDetails?.buildingType,
+            propertyType: propertyDetails?.propertyType || '',
+            propertyCondition: propertyDetails?.propertyCondition || '',
+            noOfBedrooms: parseInt(propertyDetails?.minBedrooms) || 0,
+            noOfBathrooms: parseInt(propertyDetails?.minBathrooms) || 0,
+            additionalInfo: propertyDetails?.purpose || '',
+            measurementType: propertyDetails?.buildingType || '',
             documents: propertyDetails?.leaseTerm ? [propertyDetails?.leaseTerm] : [],
           });
           break;
 
         case "shortlet":
           Object.assign(preferencePayload, {
-            propertyType: bookingDetails?.propertyType,
-            noOfBedrooms: parseInt(bookingDetails?.minBedrooms || "0", 10),
+            propertyType: bookingDetails?.propertyType || '',
+            noOfBedrooms: parseInt(bookingDetails?.minBedrooms) || 0,
             documents: [
               `Guests: ${bookingDetails?.numberOfGuests || 0}`,
               `Check-in: ${bookingDetails?.checkInDate || "N/A"}`,
@@ -97,26 +93,27 @@ class PreferencesController {
 
         case "joint-venture":
           Object.assign(preferencePayload, {
-            landSize: parseFloat(developmentDetails?.minLandSize || "0"),
-            measurementType: developmentDetails?.jvType,
-            propertyType: developmentDetails?.propertyType,
-            additionalInfo: developmentDetails?.expectedStructureType,
+            landSize: parseFloat(developmentDetails?.minLandSize) || 0,
+            measurementType: developmentDetails?.jvType || '',
+            propertyType: developmentDetails?.propertyType || '',
+            additionalInfo: developmentDetails?.expectedStructureType || '',
             documents: developmentDetails?.timeline ? [developmentDetails?.timeline] : [],
           });
           break;
       }
 
-      // Create new preference
       const newPreference = await DB.Models.Preference.create(preferencePayload);
 
       return res.status(HttpStatusCodes.CREATED).json({
         message: "Preference created successfully",
         data: newPreference,
       });
+
     } catch (err) {
       next(err);
     }
   }
+
 }
 
 export default new PreferencesController();
