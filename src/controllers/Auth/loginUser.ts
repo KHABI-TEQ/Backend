@@ -44,7 +44,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         expiresAt,
       });
 
-      const verificationLink = `${process.env.CLIENT_LINK}/verify-email?token=${token}`;
+      const verificationLink = `${process.env.CLIENT_LINK}/auth/verify-account?token=${token}`;
       const emailBody = verifyEmailTemplate(user.firstName, verificationLink);
       const mail = generalTemplate(emailBody);
 
