@@ -231,10 +231,21 @@ router.post('/reset-password', async (req: Request, res: Response, next: NextFun
 
 router.use(AuthorizeAction);
 
+
 router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { password, isAccountInRecovery, isDeleted, isInActive, ...data } = req.user._doc as IUserDoc;
-    return res.status(200).json(data);
+    const { password, isAccountInRecovery, isDeleted, isInActive, ...userData } = req.user._doc as IUserDoc;
+
+    if (userData.userType === 'Agent') {
+      const agent = await DB.Models.Agent.findOne({ userId: userData._id });
+
+      if (agent && agent.agentType) {
+        (userData as any).agentData = agent;
+        (userData as any).isAccountApproved = userData.accountApproved;
+      }
+    }
+
+    return res.status(200).json(userData);
   } catch (error) {
     next(error);
   }

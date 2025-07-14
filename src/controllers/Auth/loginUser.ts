@@ -90,13 +90,25 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     if (user.userType === "Agent") {
       const agentData = await DB.Models.Agent.findOne({ userId: user._id });
 
-      return res.status(HttpStatusCodes.OK).json({
-        message: "Login successful",
-        token,
-        user: userResponse,
-        agentData,
-        isAccountApproved: user.accountApproved,
-      });
+      if (agentData?.agentType) {
+        return res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "Login successful",
+          token,
+          user: {
+            ...userResponse,
+            agentData,
+            isAccountApproved: user.accountApproved,
+          },
+        });  
+      } else {
+        return res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "Login successful",
+          token,
+          user: userResponse,
+        });
+      }
     }
 
     return res.status(HttpStatusCodes.OK).json({

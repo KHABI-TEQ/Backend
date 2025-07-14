@@ -55,7 +55,6 @@ export class Agent {
       {
         address: {
           street: { type: String },
-          // city: { type: String },
           state: { type: String },
           homeNo: { type: String },
           localGovtArea: { type: String },
@@ -64,7 +63,6 @@ export class Agent {
         agentType: { type: String, enum: ['Individual', 'Company'] },
         companyAgent: {
           companyName: { type: String },
-          // regNumber: { type: String },
         },
         isAccountVerified: { type: Boolean, default: false },
         isInActive: { type: Boolean, default: false },
@@ -94,7 +92,7 @@ export class Agent {
           approvedDate: { type: Date },
         },
         isFlagged: { type: Boolean, default: false },
-        userId: { type:Schema.Types.ObjectId, required: true, ref: 'User' }, // Assuming userId is a string, adjust as necessary
+        userId: { type:Schema.Types.ObjectId, required: true, ref: 'User' },
         govtId: {
           typeOfId: { type: String },
           idNumber: { type: String },
