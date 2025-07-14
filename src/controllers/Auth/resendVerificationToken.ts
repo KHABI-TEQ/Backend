@@ -29,7 +29,7 @@ export const resendVerificationToken = async (req: Request, res: Response, next:
 
     await DB.Models.VerificationToken.create({ userId: user._id, token, expiresAt });
 
-    const verificationLink = `${process.env.CLIENT_LINK}/verify-email?token=${token}`;
+    const verificationLink = `${process.env.CLIENT_LINK}/auth/verify-account?token=${token}`;
     const mailBody = verifyEmailTemplate(user.firstName || user.email, verificationLink);
     const html = generalTemplate(mailBody);
 
