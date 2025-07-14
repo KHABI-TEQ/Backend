@@ -19,7 +19,7 @@ export const resendPasswordResetCode = async (req: Request, res: Response, next:
     await DB.Models.PasswordResetToken.deleteMany({ userId: user._id });
 
     const token = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit token
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 20); // 20 minutes
 
     await DB.Models.PasswordResetToken.create({
       userId: user._id,
