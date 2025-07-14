@@ -110,7 +110,7 @@ export const verificationGeneralTemplate = (body: string): string => {
                                 <p style="margin: 0 0 5px 0;">Khabiteq Realty</p>
                                 <p style="margin: 0 0 5px 0;">📧 <a href="mailto:info@Khabiteqrealty.com">info@Khabiteqrealty.com</a></p>
                                 <p style="margin: 0 0 5px 0;">📞 02013306352</p>
-                                <p style="margin: 0;">🌐 <a href="https://www.khabiteq.com" target="_blank">www.khabiteq.com</a></p>
+                                <p style="margin: 0;">🌐 <a href="https://www.khabiteqrealty.com" target="_blank">www.khabiteqrealty.com</a></p>
                               </div>
 
                         </td>

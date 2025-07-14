@@ -863,7 +863,6 @@ AdminRouter.post('/delete-preference/:preferenceId', async (req: Request, res: R
 });
 
 
-  
   AdminRouter.get('/submitted-briefs', async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { userType, isApproved, isRejected, isAvailable, page, limit } = req.query;

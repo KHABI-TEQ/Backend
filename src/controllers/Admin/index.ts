@@ -2233,5 +2233,99 @@ const htmlBody = verificationGeneralTemplate(`
   };
 }
 
+
+ public async getSummary(req: Request, res: Response) {
+
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+  const [ totalProperties, activeAgents,  pendingInspections, transactions ] = await Promise.all([
+     DB.Models.Property.countDocuments(),
+     DB.Models.Agent.countDocuments({
+        isInActive: false,
+        isDeleted: false,
+        accountApproved: true,
+      }),
+      DB.Models.InspectionBooking.countDocuments({
+        status: 'pending_inspection',
+      }),
+      DB.Models.Transaction.find({
+        createdAt: { $gte: startOfMonth },
+      })
+  ])
+
+      const currentMonthRevenue = transactions.length;
+
+      // Recent activities
+      const [
+        latestInspection,
+        latestAgent,
+        latestListing,
+        latestApprovedInspection
+      ] = await Promise.all([
+        DB.Models.InspectionBooking.findOne().sort({ createdAt: -1 }).populate('requestedBy'),
+        DB.Models.Agent.findOne().sort({ createdAt: -1 }).populate('userId'),
+        DB.Models.Property.findOne().sort({ updatedAt: -1 }),
+        DB.Models.InspectionBooking.findOne({ status: 'inspection_approved' }).sort({ updatedAt: -1 })
+      ]);
+
+      // Top 3 agents by sales
+      const topAgents = await DB.Models.Transaction.aggregate([
+        {
+          $lookup: {
+            from: 'properties',
+            localField: 'propertyId',
+            foreignField: '_id',
+            as: 'property'
+          }
+        },
+        { $unwind: '$property' },
+        {
+          $group: {
+            _id: '$property.owner',
+            salesCount: { $sum: 1 }
+          }
+        },
+        { $sort: { salesCount: -1 } },
+        { $limit: 3 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'agentInfo'
+          }
+        },
+        { $unwind: '$agentInfo' },
+        {
+          $project: {
+            _id: 0,
+            agentId: '$agentInfo._id',
+            name: '$agentInfo.fullName',
+            salesCount: 1,
+            rating: { $literal: 4.7 } // Hardcoded
+          }
+        }
+      ]);
+
+      return {
+        success: true,
+        data: {
+          totalProperties,
+          activeAgents,
+          pendingInspections,
+          currentMonthRevenue,
+          recent: {
+            latestInspection,
+            latestAgent,
+            latestListing,
+            latestApprovedInspection,
+          },
+          topAgents,
+        }
+    };
+  }
+
 }
 
