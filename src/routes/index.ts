@@ -27,6 +27,7 @@ import { resendVerificationToken } from '../controllers/Auth/resendVerificationT
 import { resendPasswordResetCode } from '../controllers/Auth/resendPasswordResetCode';
 import { verifyAccount } from '../controllers/Auth/verifyAccount';
 import { googleAuth, facebookAuth } from '../controllers/Auth/socialAuth';
+import { verifyPasswordResetCode } from '../controllers/Auth/verifyPasswordResetCode';
 
 const router = express.Router();
 
@@ -197,6 +198,9 @@ router.post('/auth/facebookAuth', facebookAuth);
 
 // Reset Password Request route for "AGENTS" and "LANDOWNERS"
 router.post('/auth/resetPasswordRequest', requestPasswordReset);
+
+// Veryfy Reset Password Code route for "AGENTS" and "LANDOWNERS"
+router.post('/auth/verifyPasswordResetCode', verifyPasswordResetCode);
 
 // Reset Password route for "AGENTS" and "LANDOWNERS"
 router.post('/auth/resetPassword', resetPassword);
