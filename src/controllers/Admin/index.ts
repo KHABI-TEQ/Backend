@@ -2248,7 +2248,7 @@ const htmlBody = verificationGeneralTemplate(`
         accountApproved: true,
       }),
       DB.Models.InspectionBooking.countDocuments({
-        status: 'pending_inspection',
+        status: 'pending_transaction',
       }),
       DB.Models.Transaction.find({
         createdAt: { $gte: startOfMonth },
