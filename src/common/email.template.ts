@@ -1,75 +1,75 @@
 export const generalTemplate = (body: string): string => {
 	return `
         <html>
-<head>
-    <meta charset="UTF-8">
-    <title>Inspection Confirmation</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #ffffff; height: 100%; display: flex; align-items: center; justify-content: center;">
-    
-    <!-- Main Wrapper -->
-    <table role="presentation" width="60%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F0F3F1" style="margin: auto; padding-bottom: 40px">
-        <tr>
+          <head>
+              <meta charset="UTF-8">
+              <title>Inspection Confirmation</title>
+          </head>
+          <body style="margin: 0; padding: 0; background-color: #ffffff; height: 100%; display: flex; align-items: center; justify-content: center;">
+              
+              <!-- Main Wrapper -->
+              <table role="presentation" width="60%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F0F3F1" style="margin: auto; padding-bottom: 40px">
+                  <tr>
 
-            <!-- Header Logo -->
-            <tr>
-                <td align="start" style="padding: 50px 0px 0 100px;">
-                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-teq Realty Logo" width="150">
-                </td>
-            </tr>
-            <td align="center" style="padding: 30px;">
-                
-                <!-- Email Container -->
-                <table role="presentation" width="90%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);">
-                
-                    <!-- Email Body -->
-                    <tr>
-                        <td style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
-                            ${body}
-                            <p>Best regards,</p>
-                            <p><strong>Khabiteq Realty</strong></p>
-                        </td>
-                    </tr>
-                </table>
-                                 <!-- Footer Section -->
-                                 <tr>
-                                    <td align="start" style="padding: 20px 0px 0 100px;">
-                                        
-                                        <!-- Social Media Icons -->
-                                        <table role="presentation" cellspacing="0" cellpadding="0" border="0">
-                                            <tr>
-                                                <td style="padding: 0 15px; ">
-                                                    <a href="https://www.facebook.com/profile.php?id=61568584928290&mibextid=ZbWKwL"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="30" alt="Facebook"></a>
-                                                </td>
-                                                <td style="padding: 0 15px;">
-                                                    <a href="https://www.instagram.com/khabiteq_realty/profilecard/?igsh=YjRvanQ3YmlmdDNl"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="30" alt="Instagram"></a>
-                                                </td>
-                                                <td style="padding: 0 15px;">
-                                                    <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="30" alt="LinkedIn"></a>
-                                                </td>
-                                                <td style="padding: 0 15px;">
-                                                    <a href="https://x.com/Khabi_Teq?t=Jq6MpEMfwfJ6aQ46CYGPpQ&s=09"><img src="https://cdn-icons-png.flaticon.com/512/733/733635.png" width="30" alt="Twitter"></a>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-            
-                                <!-- Copyright Section -->
-                                <tr>
-                                    <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-teq Realty Logo" width="120"><br><br>
-                                        
-                                        <p style="margin-top: 20px;">Copyright © 2020 Khabiteq Realty Limited.<br>
-                                        Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
-                                    </td>
-                                </tr>
-            </td>
-        </tr>
-    </table>
+                      <!-- Header Logo -->
+                      <tr>
+                          <td align="start" style="padding: 50px 0px 0 100px;">
+                              <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-teq Realty Logo" width="150">
+                          </td>
+                      </tr>
+                      <td align="center" style="padding: 30px;">
+                          
+                          <!-- Email Container -->
+                          <table role="presentation" width="90%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);">
+                          
+                              <!-- Email Body -->
+                              <tr>
+                                  <td style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
+                                      ${body}
+                                      <p>Best regards,</p>
+                                      <p><strong>Khabiteq Realty</strong></p>
+                                  </td>
+                              </tr>
+                          </table>
+                          <!-- Footer Section -->
+                          <tr>
+                            <td align="start" style="padding: 20px 0px 0 100px;">
+                                
+                                <!-- Social Media Icons -->
+                                <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                                    <tr>
+                                        <td style="padding: 0 15px; ">
+                                            <a href="https://www.facebook.com/profile.php?id=61568584928290&mibextid=ZbWKwL"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="30" alt="Facebook"></a>
+                                        </td>
+                                        <td style="padding: 0 15px;">
+                                            <a href="https://www.instagram.com/khabiteq_realty/profilecard/?igsh=YjRvanQ3YmlmdDNl"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="30" alt="Instagram"></a>
+                                        </td>
+                                        <td style="padding: 0 15px;">
+                                            <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="30" alt="LinkedIn"></a>
+                                        </td>
+                                        <td style="padding: 0 15px;">
+                                            <a href="https://x.com/Khabi_Teq?t=Jq6MpEMfwfJ6aQ46CYGPpQ&s=09"><img src="https://cdn-icons-png.flaticon.com/512/733/733635.png" width="30" alt="Twitter"></a>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
 
-</body>
-</html>
+                        <!-- Copyright Section -->
+                        <tr>
+                            <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
+                                <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-teq Realty Logo" width="120"><br><br>
+                                
+                                <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} Khabiteq Realty Limited.<br>
+                                Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
+                            </td>
+                        </tr>
+                      </td>
+                  </tr>
+              </table>
+
+          </body>
+        </html>
         `;
 };
 
@@ -243,17 +243,33 @@ export const inspectionScheduledTemplate = (
                                 `;
 };
 
-export const verifyEmailTemplate = (
-	name: string,
-	verificationLink: string
-): string => {
-	return `
-        <p>Dear ${name},</p>
-        <p>Thank you for registering with Khabi-Teq Realty. To complete your onboarding process, please verify your email address by clicking the link below:</p>
-        <p>🔗 <a href="${verificationLink}">Verify Email</a></p>
-        <p>If you did not request this, please ignore this email.</p>
-`;
+export const verifyEmailTemplate = (name: string, verificationLink: string): string => {
+  return `
+    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; line-height: 1.6;">
+      <h2 style="color: #0F52BA;">Welcome to Khabi-Teq Realty, ${name} 👋</h2>
+
+      <p>We're excited to have you on board. To secure your account and complete your registration, please verify your email address:</p>
+
+      <div style="margin: 20px 0;">
+        <a href="${verificationLink}" style="display: inline-block; padding: 12px 20px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">
+          ✅ Verify Email
+        </a>
+      </div>
+
+      <p>If the button above doesn’t work, copy and paste the link below into your browser:</p>
+      <p style="word-break: break-all;"><a href="${verificationLink}">${verificationLink}</a></p>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
+
+      <p>If you did not request this verification or believe this was sent in error, you can safely ignore this email.</p>
+
+      <p>Warm regards,</p>
+      <p><strong>Khabi-Teq Realty Team</strong></p>
+      <p style="font-size: 12px; color: #888;">This is an automated message, please do not reply to this email.</p>
+    </div>
+  `;
 };
+
 
 export const accountUnderReviewTemplate = (name: string): string => {
 	return `
@@ -815,6 +831,26 @@ export function ForgotPasswordVerificationTemplate(
                 `;
 }
 
+export function ForgotPasswordTokenTemplate(userName: string, token: string): string {
+  return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <p>Dear ${userName},</p>
+
+      <p>You requested to reset your password. Use the verification code below to complete the process:</p>
+
+      <div style="margin: 20px 0; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #2c3e50;">
+        🔐 ${token}
+      </div>
+
+      <p>This code will expire in <strong>30 minutes</strong>. If you did not make this request, please ignore this email.</p>
+
+      <p>Best regards,<br/>
+      <strong>Khabi-Teq Realty</strong></p>
+    </div>
+  `;
+}
+
+
 export function PropertyApprovedOrDisapprovedTemplate(
 	name: string,
 	status: string,
@@ -1004,6 +1040,67 @@ export function PropertyRentReceivedTemplate(
         <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
         `;
 }
+
+export function InspectionTransactionRejectionTemplate(
+  buyerName: string,
+  propertyData: any
+): string {
+  return `
+    <p>Dear ${buyerName},</p>
+
+    <p style="margin-top: 10px;">
+      We regret to inform you that your recent inspection request for the property below <strong>could not be approved</strong> by our team.
+      This may be due to issues related to the property listing or internal verification processes.
+    </p>
+
+    <p style="margin-top: 10px;">
+      Kindly review the property details and consider reaching out to support if you believe this was in error or would like to try again.
+    </p>
+
+    <ul style="background-color: #FDEDED; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Property Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location}</li>
+      <li><strong>Price:</strong> ₦${propertyData.price}</li>
+    </ul>
+
+    ${
+      propertyData.letterOfIntention
+        ? `
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Submitted LOI Document:</strong></p>
+          <li><a href="${propertyData.letterOfIntention}" style="color: #FF2539;">Click here</a> to view your uploaded LOI document</li>
+        </ul>
+        `
+        : ''
+    }
+
+    ${
+      propertyData.isNegotiating
+        ? `
+        <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+          <p><strong>Negotiation Summary:</strong></p>
+          <li><strong>Seller's Asking Price:</strong> ₦${propertyData.price}</li>
+          <li><strong>Your Offered Price:</strong> ₦${propertyData.negotiationPrice}</li>
+        </ul>
+        `
+        : ''
+    }
+
+    <ul style="background-color: #FAFAFA; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Attempted Inspection Schedule:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      For further assistance or clarification, feel free to contact our support team.
+    </p>
+
+    <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
+  `;
+}
+
 
 export function InspectionRequestWithNegotiation(
 	buyerName: string,

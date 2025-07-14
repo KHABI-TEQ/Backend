@@ -4,7 +4,8 @@ export interface IPreference {
   buyer: Types.ObjectId;
   propertyType?: string;
   propertyCondition?:string;
-  preferenceType: 'buy' | 'joint-venture' | 'rent';
+  preferenceType: 'buy' | 'joint-venture' | 'rent' | 'shortlet';
+  preferenceMode: 'buy' | 'tenant' | 'developer' | 'shortlet';
   location?: {
     state?: string;
     localGovernment?: string;
@@ -40,7 +41,12 @@ export class Preference {
         propertyCondition: { type: String},
         preferenceType: {
           type: String,
-          enum: ['buy', 'joint-venture', 'rent'],
+          enum: ['buy', 'joint-venture', 'rent', 'shortlet'],
+          required: true,
+        },
+        preferenceMode: {
+          type: String,
+          enum: ['buy', 'developer', 'tenant', 'shortlet'],
           required: true,
         },
         location: {

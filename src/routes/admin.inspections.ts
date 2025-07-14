@@ -14,7 +14,7 @@ AdminInspRouter.get('/inspections', use(controller.getAllInspections.bind(contro
 AdminInspRouter.get('/inspections/stats', use(controller.getInspectionStats.bind(controller)));
 
 // Fetch inspection logs
-AdminInspRouter.get('/inspections/logs', use(controller.getInspectionLogs.bind(controller)));
+AdminInspRouter.get('/inspection/logs', use(controller.getInspectionLogs.bind(controller)));
 
 // Get a single inspection with full details (buyer, transaction, etc.)
 AdminInspRouter.get('/inspections/:id', use(controller.getSingleInspection.bind(controller)));
