@@ -42,7 +42,7 @@ class PreferencesController {
         });
       }
 
-      const parsedAreas = (location?.areas || []).map((areaString: string) => {
+      const parsedAreas = (location?.selectedAreas || []).map((areaString: string) => {
         const [name, lga] = areaString.split(" - ").map((str) => str.trim());
         return { name, lga };
       });
