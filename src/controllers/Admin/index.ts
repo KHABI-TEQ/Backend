@@ -2193,7 +2193,7 @@ public async uploadVerificationResult(id: string, files: any) {
 
   for (const file of files) {
     const fileBase64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-    const fileUrl = await cloudinary.uploadDoc(fileBase64, 'result', 'verification-documents');
+    const fileUrl = await cloudinary.uploadFile(fileBase64, 'result', 'verification-documents');
     results.push(fileUrl);
   }
 
