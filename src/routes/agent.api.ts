@@ -11,6 +11,7 @@ import cloudinary from '../common/cloudinary';
 import multer from 'multer';
 import AuthorizeAction from './authorize_action';
 import bcrypt from 'bcryptjs';
+import { getUserInspections } from '../controllers/Agent/inspectionActions';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -28,6 +29,9 @@ interface Request extends Express.Request {
 // Init shared
 const router =  Router();
 const agentControl = new AgentController();
+
+
+router.get("/my-inspection-requests", getUserInspections);
 
 /******************************************************************************
  *                      onboard agent - "POST /api/auth/onboard"
@@ -70,6 +74,8 @@ router.put('/onboard',AuthorizeAction, async (req: Request, res: Response, next:
     next(error);
   }
 });
+
+
 
 /******************************************************************************
  * Confirms Property Availability for Inspection  - "POST /api/agent/confirm-property"
