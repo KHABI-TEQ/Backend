@@ -1,15 +1,18 @@
-import { Schema, model, ObjectId, Document, Model, Types } from 'mongoose';
+import { Schema, model, Model, models, Document, Types } from 'mongoose';
 
 export interface IPreference {
   buyer: Types.ObjectId;
   propertyType?: string;
-  propertyCondition?:string;
+  propertyCondition?: string;
   preferenceType: 'buy' | 'joint-venture' | 'rent' | 'shortlet';
   preferenceMode: 'buy' | 'tenant' | 'developer' | 'shortlet';
   location?: {
     state?: string;
-    localGovernment?: string;
-    area?: string;
+    localGovernments?: string[];
+    areas?: {
+      name: string;
+      lga: string;
+    }[];
   };
   measurementType?: string;
   landSize?: number;
@@ -20,7 +23,7 @@ export interface IPreference {
   noOfBathrooms?: number;
   features?: string[];
   additionalInfo?: string;
-  assignedAgent?: ObjectId;
+  assignedAgent?: Types.ObjectId;
   status: 'pending' | 'approved' | 'matched' | 'closed';
   createdAt: Date;
   updatedAt: Date;
@@ -36,34 +39,50 @@ export class Preference {
   constructor() {
     const schema = new Schema(
       {
-        buyer: { type: Schema.Types.ObjectId, ref: 'Buyer', required: false },
+        buyer: { type: Schema.Types.ObjectId, ref: 'Buyer' },
+
         propertyType: { type: String },
-        propertyCondition: { type: String},
+        propertyCondition: { type: String },
+
         preferenceType: {
           type: String,
           enum: ['buy', 'joint-venture', 'rent', 'shortlet'],
           required: true,
         },
+
         preferenceMode: {
           type: String,
           enum: ['buy', 'developer', 'tenant', 'shortlet'],
           required: true,
         },
+
         location: {
           state: { type: String },
-          localGovernment: { type: String },
-          area: { type: String },
+          localGovernments: [{ type: String }],
+          areas: [
+            {
+              name: { type: String },
+              lga: { type: String },
+            },
+          ],
         },
+
         measurementType: { type: String },
         landSize: { type: Number },
+
         budgetMin: { type: Number },
         budgetMax: { type: Number },
+
         documents: [{ type: String }],
+
         noOfBedrooms: { type: Number },
         noOfBathrooms: { type: Number },
+
         features: [{ type: String }],
         additionalInfo: { type: String },
+
         assignedAgent: { type: Schema.Types.ObjectId, ref: 'Agent' },
+
         status: {
           type: String,
           enum: ['pending', 'approved', 'matched', 'closed'],
@@ -73,10 +92,10 @@ export class Preference {
       { timestamps: true }
     );
 
-    this.PreferenceModel = model<IPreferenceDoc>('Preference', schema);
+    this.PreferenceModel = models.Preference || model<IPreferenceDoc>('Preference', schema);
   }
 
-  public get model(): Model<IPreferenceDoc> {
+   public get model(): Model<IPreferenceDoc> {
     return this.PreferenceModel;
   }
 }

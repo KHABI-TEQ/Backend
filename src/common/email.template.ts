@@ -262,9 +262,7 @@ export const verifyEmailTemplate = (name: string, verificationLink: string): str
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
 
       <p>If you did not request this verification or believe this was sent in error, you can safely ignore this email.</p>
-
-      <p>Warm regards,</p>
-      <p><strong>Khabi-Teq Realty Team</strong></p>
+      
       <p style="font-size: 12px; color: #888;">This is an automated message, please do not reply to this email.</p>
     </div>
   `;
@@ -834,7 +832,7 @@ export function ForgotPasswordVerificationTemplate(
 export function ForgotPasswordTokenTemplate(userName: string, token: string): string {
   return `
     <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-      <p>Dear ${userName},</p>
+      <p>Dear <strong>${userName}</strong>,</p>
 
       <p>You requested to reset your password. Use the verification code below to complete the process:</p>
 
@@ -842,10 +840,8 @@ export function ForgotPasswordTokenTemplate(userName: string, token: string): st
         🔐 ${token}
       </div>
 
-      <p>This code will expire in <strong>30 minutes</strong>. If you did not make this request, please ignore this email.</p>
+      <p>This code will expire in <strong>20 minutes</strong>. If you did not make this request, please ignore this email.</p>
 
-      <p>Best regards,<br/>
-      <strong>Khabi-Teq Realty</strong></p>
     </div>
   `;
 }

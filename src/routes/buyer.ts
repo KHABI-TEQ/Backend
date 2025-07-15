@@ -12,7 +12,7 @@ interface Request extends Express.Request {
   params?: any;
   body?: any;
 }
-
+ 
 // POST /api/buyer/submit-preference
 buyerRouter.post(
   "/submit-preference",
