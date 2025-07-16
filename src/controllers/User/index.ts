@@ -7,6 +7,9 @@ import { ForgotPasswordVerificationTemplate, generalTemplate, verifyEmailTemplat
 import sendEmail from '../../common/send.email';
 import { OAuth2Client, TokenPayload } from 'google-auth-library/build/src';
 import jwt from 'jsonwebtoken';
+import crypto from "crypto";
+import { assignReferralCode } from "../../utils/generateReferralCode";
+import { isReferralEligible } from "../../utils/isreferralEligible";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID as string);
 
@@ -57,13 +60,29 @@ export class UserController {
     lastName: string,
     firstName: string,
     phoneNumber: string,
-    userType: string
+    userType: string,
+    referralCode:string,
   ): Promise<any> {
     email = email.toLowerCase().trim();
     const checkUser = await DB.Models.User.findOne({ email }).exec();
     if (checkUser) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'User already exists');
     }
+
+    let referrerUser = null;
+
+    if (referralCode) {
+      referrerUser = await DB.Models.User.findOne({ referralCode });
+
+      if (!referrerUser) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid referral code.");
+      }
+    }
+
+    // Generate unique referral code for this new user
+    const selfReferralCode = crypto.randomBytes(6).toString("hex").toUpperCase();
+
+
     const passwordHash = await bcrypt.hash(password, 10);
     const accountId = await this.generateAccountiD();
     const newUser = await DB.Models.User.create({
@@ -74,6 +93,8 @@ export class UserController {
       phoneNumber,
       userType,
       accountId,
+      referralCode: selfReferralCode,
+      referredBy: referrerUser?.referralCode || null,
       accountApproved: userType === 'Landowners' ? true : false,
       accountStatus: userType === 'Landowners' ? 'active' : 'inactive',
     });
@@ -567,5 +588,50 @@ export class UserController {
     const result = await DB.Models.Property.findByIdAndDelete(_id);
     return !!result;
   }
+
+
+  public async getReferralDashboard(userId: string) {
+  const user = await DB.Models.User.findById(userId);
+
+  if (!user) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
+  }
+
+  const eligible = await isReferralEligible(user);
+
+  if (!eligible) {
+    throw new RouteError(
+      HttpStatusCodes.FORBIDDEN,
+      "You are not eligible to view referral dashboard"
+    );
+  }
+
+  // Assign referralCode if not yet set
+  const referralCode = await assignReferralCode(user);
+  const referralLink = `${process.env.CLIENT_LINK}/register?ref=${referralCode}`;
+
+  // Count all referrals made by the user
+  const totalReferrals = await DB.Models.Referral.countDocuments({ referrer: user._id });
+
+  // Calculate total commission earned (approved only)
+  const result = await DB.Models.ReferralCommission.aggregate([
+    { $match: { referrer: user._id, status: "approved" } },
+    {
+      $group: {
+        _id: null,
+        totalEarned: { $sum: "$amount" }
+      }
+    }
+  ]);
+
+  const totalCommission = result[0]?.totalEarned || 0;
+
+  return {
+    referralCode,
+    referralLink,
+    totalReferrals,
+    commissionEarned: totalCommission
+  };
+}
 
 }
