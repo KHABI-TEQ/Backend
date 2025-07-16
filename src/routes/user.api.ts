@@ -38,9 +38,9 @@ type ValidStatus = typeof validStatus[number];
 
 router.post('/signup', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, firstName, lastName, phoneNumber, userType } = validator.validate(req.body, 'userSignupSchema');
+    const { email, firstName, lastName, phoneNumber, userType, referralCode } = validator.validate(req.body, 'userSignupSchema');
 
-    const response = await userControl.signup(email, req.body.password, firstName, lastName, phoneNumber, userType);
+    const response = await userControl.signup(email, req.body.password, firstName, lastName, phoneNumber, userType, referralCode);
     const { password, ...newUser } = response;
     return res.status(200).json({ ...newUser, success: true });
   } catch (error) {
@@ -528,6 +528,23 @@ router.delete('/notifications/deleteAll', async (req: Request, res: Response, ne
   try {
     await NotificationService.deleteAll(req.user._id);
     res.status(200).json({ success: true, message: 'All notifications cleared successfully.' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/referral-dashboard", 
+  AuthorizeAction, 
+  async (req: Request, res: Response, next: NextFunction) => {
+  try {
+   const user = req.user as IUserDoc;
+   const userId:any = user._id
+    const result = await userControl.getReferralDashboard(userId);
+
+    return res.status(200).json({
+      success: true,
+      data: result,
+    });
   } catch (err) {
     next(err);
   }

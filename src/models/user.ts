@@ -25,6 +25,8 @@ export interface IUser {
   accountId: string; // Unique identifier for the account
   googleId?: string; // For Google OAuth
   facebookId?: string; // For Facebook OAuth
+  referralCode?:string
+  referredBy?:string;
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -62,6 +64,9 @@ export class User {
 
         googleId: { type: String, unique: true, sparse: true }, // For Google OAuth
         facebookId: { type: String, unique: true, sparse: true }, // For Facebook OAuth
+        
+        referralCode: { type: String, unique: true, sparse: true },
+        referredBy: { type: String },
       },
       {
         timestamps: true, // Adds createdAt and updatedAt

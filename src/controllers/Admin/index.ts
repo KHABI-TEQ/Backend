@@ -2327,5 +2327,169 @@ const htmlBody = verificationGeneralTemplate(`
     };
   }
 
+  //===================REFERRAL MANAGEMENT=============================
+
+  public async getAllReferrals(query: any) {
+    const { page = 1, limit = 20, search, status, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+    const skip = (page - 1) * limit;
+
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (search) {
+      filter.$or = [
+        { 'referrer.firstName': new RegExp(search, 'i') },
+        { 'referrer.lastName': new RegExp(search, 'i') },
+        { 'referredUser.firstName': new RegExp(search, 'i') },
+      ];
+    }
+
+    const referrals = await DB.Models.Referral.find(filter)
+      .populate('referrer', 'firstName lastName email userType')
+      .populate('referredUser', 'firstName lastName email userType')
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await DB.Models.Referral.countDocuments(filter);
+
+    return { referrals, total, page, limit };
+  }
+
+  public async getPendingReferralCommissions(query: any) {
+    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = query;
+    const skip = (page - 1) * limit;
+
+    const commissions = await DB.Models.ReferralCommission.find({ status: 'pending' })
+      .populate('referrer', 'firstName lastName email')
+      .populate('referredUser', 'firstName lastName email')
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await DB.Models.ReferralCommission.countDocuments({ status: 'pending' });
+
+    return { commissions, total, page, limit };
+  }
+
+public async approveCommission(commissionId: string, adminId: string) {
+  const commission = await DB.Models.ReferralCommission.findById(commissionId);
+
+  if (!commission || commission.status !== "pending") {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid commission");
+  }
+
+  commission.status = "approved";
+  commission.approvedAt = new Date();
+  commission.approvedBy = new mongoose.Types.ObjectId(adminId);
+
+  await commission.save();
+
+  return {
+    message: "Commission approved successfully",
+    commission,
+  };
 }
+
+
+public async rejectCommission(commissionId: string, adminId: string) {
+  const commission = await DB.Models.ReferralCommission.findById(commissionId);
+
+  if (!commission || commission.status !== "pending") {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid commission");
+  }
+
+  commission.status = "rejected";
+  commission.rejectedAt = new Date();
+  commission.rejectedBy = new mongoose.Types.ObjectId(adminId);
+
+  await commission.save();
+
+  return {
+    message: "Commission rejected successfully",
+    commission,
+  };
+}
+
+
+
+public async getReferralPayoutHistory(query: any) {
+    const { page = 1, limit = 20, sortBy = 'approvedAt', sortOrder = 'desc' } = query;
+    const skip = (page - 1) * limit;
+
+    const commissions = await DB.Models.ReferralCommission.find({ status: 'approved' })
+      .populate('referrer', 'firstName lastName email')
+      .populate('referredUser', 'firstName lastName email')
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await DB.Models.ReferralCommission.countDocuments({ status: 'approved' });
+
+    return { commissions, total, page, limit };
+  }
+
+
+public async manuallyAdjustCommission(data: {
+  referrerId: string;
+  referredUserId: string;
+  amount: number;
+  note?: string;
+  status: "pending" | "approved" | "rejected";
+  adminId: string;
+}) {
+  const commission = await DB.Models.ReferralCommission.create({
+    referrer: data.referrerId,
+    referredUser: data.referredUserId,
+    type: "landlord_referral",
+    status: data.status,
+    amount: data.amount,
+    note: data.note,
+    approvedBy: data.status === "approved" ? data.adminId : undefined,
+    approvedAt: data.status === "approved" ? new Date() : undefined,
+  });
+
+  return {
+    message: "Manual commission created",
+    commission,
+  };
+}
+
+
+public async getReferralInsights() {
+    const totalPaid = await DB.Models.ReferralCommission.aggregate([
+      { $match: { status: 'approved' } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+
+    const topReferrers = await DB.Models.Referral.aggregate([
+      { $group: { _id: '$referrerId', total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'referrer',
+        },
+      },
+      { $unwind: '$referrer' },
+      {
+        $project: {
+          name: { $concat: ['$referrer.firstName', ' ', '$referrer.lastName'] },
+          email: '$referrer.email',
+          total: 1,
+        },
+      },
+    ]);
+
+    return {
+      totalPaid: totalPaid[0]?.total || 0,
+      topReferrers,
+    };
+  }
+
+}
+
+
 

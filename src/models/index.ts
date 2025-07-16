@@ -20,4 +20,6 @@ export * from './notification';
 export * from './testimonial';
 export * from './verificationToken';
 export * from './passwordResetToken';
+export * from './referral';
+export * from './referral.commission'
 

@@ -1097,7 +1097,89 @@ AdminRouter.post('/upload-result/:documentId', upload.array('resultDocuments'), 
   }
 });
 
-// ==========================================================
+
+
+
+
+
+
+// ======================REFERRAL MANAGEMENT ROUTES====================================
+
+// Get all referral records
+AdminRouter.get('/referrals', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getAllReferrals(req.query);
+    return res.status(200).json({ success: true, data: result.referrals });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get pending commissions
+AdminRouter.get('/referral-commissions/pending', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getPendingReferralCommissions(req.query);
+    return res.status(200).json({ success: true, data: result.commissions });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get approved payout history
+AdminRouter.get('/referral-commissions/history',authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getReferralPayoutHistory(req.query);
+    return res.status(200).json({ success: true, data: result.commissions });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Approve a pending commission
+AdminRouter.post('/referral-commissions/:commissionId/approve', authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { commissionId } = req.params;
+    const adminId = req.admin._id; // from AuthorizeAction middleware
+    const result = await adminController.approveCommission(commissionId, adminId);
+    return res.status(200).json({ success: true, message: result.message, data: result.commission });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Approve a pending commission
+AdminRouter.post('/referral-commissions/:commissionId/reject',authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { commissionId } = req.params;
+    const adminId = req.admin._id; 
+    const result = await adminController.rejectCommission(commissionId, adminId);
+    return res.status(200).json({ success: true, message: result.message, data: result.commission });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Manually credit/refund a referral commission
+AdminRouter.post('/referral-commissions/manual',authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const adminId = req.admin._id;
+    const payload = { ...req.body, adminId };
+    const result = await adminController.manuallyAdjustCommission(payload);
+    return res.status(201).json({ success: true, message: result.message, data: result.commission });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get referral insights (top referrers, total paid etc.)
+AdminRouter.get('/referral-insights',authorizeAdmin, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const result = await adminController.getReferralInsights();
+    return res.status(200).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
 
 
 AdminRouter.use(AdminInspRouter);

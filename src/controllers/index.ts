@@ -40,6 +40,10 @@ import {
   ITestimonialModel,
   VerificationToken,
   PasswordResetToken,
+  IReferralModel,
+  Referral,
+  IReferralCommissionModel,
+  ReferralCommission,
 } from '../models/index';
 
 import { IOwnerModel, Owner } from '../models/property.owner';
@@ -64,6 +68,8 @@ declare interface IModels {
   DocumentVerification:IDocumentVerificationModel;
   Notification: INotificationModel;
   Testimonial: ITestimonialModel;
+  Referral:IReferralModel;
+  ReferralCommission:IReferralCommissionModel;
   VerificationToken: typeof VerificationToken;
   PasswordResetToken: typeof PasswordResetToken;
 }
@@ -104,6 +110,8 @@ export class DB {
       DocumentVerification: new DocumentVerification().model,
       Notification: new Notification().model,
       Testimonial: new Testimonial().model,
+      Referral: new Referral().model,
+      ReferralCommission:new ReferralCommission().model,
       VerificationToken: VerificationToken,
       PasswordResetToken: PasswordResetToken,
     };
