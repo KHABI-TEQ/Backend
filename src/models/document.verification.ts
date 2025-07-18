@@ -1,4 +1,3 @@
-import { number } from 'joi/lib';
 import { Schema, model, Document, Model } from 'mongoose';
 
 export interface IDocumentVerification {
