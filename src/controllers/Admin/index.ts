@@ -2125,6 +2125,11 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
       ${documentDetailsHtml}
     </ul>
 
+    <p><strong>Submitted by:</strong><br/>
+    Full Name: ${doc.fullName}<br/>
+    Email: ${doc.email}<br/>
+    Verification ID: ${doc._id}</p>
+
     <p>We kindly request your assistance in confirming the validity of these documents. Please check and respond on the following:</p>
     <ul>
       <li>Whether the document is genuine and valid within your records.</li>
@@ -2153,7 +2158,6 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
     The verification process has now commenced, and we will notify you as soon as the results are ready.</p>
 
     <p>Please feel free to reach out to us if you have any questions in the meantime.</p>
-    
   `);
 
   await sendEmail({
@@ -2163,14 +2167,15 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
     html: userMailBody,
   });
 
-  doc.status = "in-progress"
-  await doc.save()
+  doc.status = "in-progress";
+  await doc.save();
 
   return {
     message: 'Verification documents sent to provider and user notified',
     providerEmail,
   };
 }
+
 
 public async uploadVerificationResult(id: string, files: any) {
 
