@@ -1,6 +1,8 @@
 import { Schema, model, Document, Model } from 'mongoose';
+import { Counter } from './counter'; 
 
 export interface IDocumentVerification {
+  customId:string;
   fullName: string;
   email: string;
   phoneNumber: string;
@@ -27,6 +29,7 @@ export class DocumentVerification {
   constructor() {
     const schema = new Schema(
       {
+        customId: { type: String, unique: true },
         fullName: { type: String, required: true },
         email: { type: String, required: true},
         phoneNumber: { type: String, required: true },
@@ -49,6 +52,21 @@ export class DocumentVerification {
         timestamps: true,
       }
     );
+
+    schema.pre<IDocumentVerificationDoc>('save', async function (next) {
+    if (this.isNew) {
+      const counter = await Counter.findOneAndUpdate(
+        { model: 'DocumentVerification' },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+
+      const padded = String(counter.seq).padStart(4, '0');
+      this.customId = padded;
+    }
+    next();
+  });
+
 
     this.generalModel = model<IDocumentVerificationDoc>('DocumentVerification', schema);
   }

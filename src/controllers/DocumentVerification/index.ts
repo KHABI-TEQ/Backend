@@ -2,6 +2,10 @@ import { RouteError } from "../../common/classes";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import cloudinary from "../../common/cloudinary"
+import mime from 'mime-types';
+import {verificationGeneralTemplate} from '../../common/email.template';
+import sendEmail from '../../common/send.email';
+
 
 class DocumentVerificationController {
  public async submitDocumentVerification(
@@ -61,8 +65,11 @@ class DocumentVerificationController {
       );
     }
 
+    const extension = mime.extension(file.mimetype);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
+    const fileName = `document-${uniqueSuffix}.${extension}`;
     const base64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-    const fileUrl = await cloudinary.uploadFile(base64, `document-${i + 1}`, 'verification-documents');
+    const fileUrl = await cloudinary.uploadFile(base64, fileName, 'verification-documents');
 
     structuredDocs.push({
       documentType: meta.documentType,
@@ -72,8 +79,11 @@ class DocumentVerificationController {
   }
 
   // Upload receipt
+  const extension = mime.extension(receiptFile.mimetype);
+  const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
+  const fileName = `receipt-${uniqueSuffix}.${extension}`;
   const receiptBase64 = `data:${receiptFile.mimetype};base64,${receiptFile.buffer.toString('base64')}`;
-  const receiptUrl = await cloudinary.uploadFile(receiptBase64, 'receipt', 'verification-documents');
+  const receiptUrl = await cloudinary.uploadFile(receiptBase64, fileName, 'verification-documents');
 
   // Save to database
   const record = await DB.Models.DocumentVerification.create({
@@ -86,6 +96,45 @@ class DocumentVerificationController {
     transactionReceipt: receiptUrl,
     status: 'pending',
   });
+
+  const docsList = structuredDocs
+  .map(
+    (doc, index) => `<li><strong>Document ${index + 1}:</strong> ${doc.documentType} (No: ${doc.documentNumber})</li>`
+  )
+  .join('');
+
+const htmlBody = verificationGeneralTemplate(`
+  <p>Dear ${fullName},</p>
+
+  <p>Thank you for submitting your documents for verification.</p>
+
+  <p>We have received the following:</p>
+
+  <ul>
+    <li><strong>Full Name:</strong> ${fullName}</li>
+    <li><strong>Phone Number:</strong> ${phoneNumber}</li>
+    <li><strong>Address:</strong> ${address}</li>
+    <li><strong>Amount Paid:</strong> ₦${amountPaid}</li>
+    <li><strong>Transaction Receipt:</strong> Uploaded Successfully</li>
+  </ul>
+
+  <p><strong>Document Details:</strong></p>
+  <ul>
+    ${docsList}
+  </ul>
+
+  <p>Your submission is currently under review. We’ll notify you once the process is completed or if any clarification is needed.</p>
+
+  <p>Thank you for choosing our service.</p>
+`);
+
+await sendEmail({
+    to:record.email,
+    subject:"Submission Confirmation: Document Verification Request Received",
+    text: htmlBody,
+    html: htmlBody,
+  });
+
 
   return {
     message: 'Document submitted successfully',

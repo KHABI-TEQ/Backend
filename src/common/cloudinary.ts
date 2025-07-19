@@ -9,11 +9,14 @@ class CloudinaryAPIFileUpload {
     });
   }
 
+
   public async uploadFile(fileBinaryData: string, public_id: string, folder: string) {
     try {
       const result = await cloudinary.uploader.upload(fileBinaryData, {
         public_id,
         folder,
+        resource_type: "raw", 
+        type: "upload",
       });
       return result.secure_url; // Return the secure URL of the uploaded file
     } catch (error) {

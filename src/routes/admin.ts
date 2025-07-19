@@ -1037,8 +1037,9 @@ AdminRouter.get('/verification-docs', async (req: Request, res: Response, next: 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const filter = req.query.status as string || "pending"
+    const searchQuery = req.query.customId
 
-    const result = await adminController.getVerificationsDocuments(page, limit, filter);
+    const result = await adminController.getVerificationsDocuments(page, limit, filter, searchQuery);
     res.json({ success: true, data: result });
   } catch (err) {
     next(err);
