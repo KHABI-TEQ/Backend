@@ -30,6 +30,7 @@ import { Model } from 'mongoose';
 import { formatAgentDataForTable, formatLandOwnerDataForTable, formatUpgradeAgentForTable } from '../../utils/userFormatters';
 import { formatPropertyDataForTable } from '../../utils/propertyFormatters';
 import { Request } from 'express';
+import mime from 'mime-types';
 
 import cloudinary from '../../common/cloudinary';
 
@@ -1939,8 +1940,13 @@ public async getPreferencesByBuyerId(buyerId: string) {
   };
 }
 
-public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
-  if (!['pending', 'confirmed', 'rejected',  "in-progress", 'successful'].includes(filter)) {
+public async getVerificationsDocuments(
+  page = 1,
+  limit = 10,
+  filter: any,
+  searchQuery?: string // optional search input
+) {
+  if (!['pending', 'confirmed', 'rejected', "in-progress", 'successful'].includes(filter)) {
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
       `Invalid filtering. Filter must be one of: "pending", "confirmed", "rejected", "in-progress" or "successful"`
@@ -1949,16 +1955,23 @@ public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
 
   const skip = (page - 1) * limit;
 
+  // Construct query
+  const query: any = { status: filter };
+
+  if (searchQuery) {
+    query.customId = { $regex: searchQuery, $options: 'i' };
+  }
+
   // Main paginated result
   const [records, total] = await Promise.all([
-    DB.Models.DocumentVerification.find({ status: filter })
+    DB.Models.DocumentVerification.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit),
-    DB.Models.DocumentVerification.countDocuments({ status: filter }),
+    DB.Models.DocumentVerification.countDocuments(query),
   ]);
 
-  // Additional stats
+  // Stats
   const [
     totalDocuments,
     totalVerifiedDocuments,
@@ -1966,9 +1979,9 @@ public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
     totalAmountAcrossAll,
   ] = await Promise.all([
     DB.Models.DocumentVerification.countDocuments(),
-    DB.Models.DocumentVerification.countDocuments({ status: { $in: ['confirmed', 'successful'] } }),
+    DB.Models.DocumentVerification.countDocuments({ status: { $in: ['in-progress', 'successful'] } }),
     DB.Models.DocumentVerification.aggregate([
-      { $match: { status: 'confirmed' } },
+      { $match: { status: 'in-progress' } },
       { $group: { _id: null, totalAmount: { $sum: '$amountPaid' } } }
     ]),
     DB.Models.DocumentVerification.aggregate([
@@ -1979,7 +1992,6 @@ public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
   const totalConfirmedAmount = confirmedDocs[0]?.totalAmount || 0;
   const grandTotalAmount = totalAmountAcrossAll[0]?.totalAmount || 0;
 
-  // Calculated percentages
   const verifiedPercentage = totalDocuments
     ? ((totalVerifiedDocuments / totalDocuments) * 100).toFixed(2)
     : '0.00';
@@ -2000,6 +2012,7 @@ public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
     }
   };
 }
+
 
 
 public async getVerificationById(id: string) {
@@ -2050,28 +2063,46 @@ public async rejectVerificationPayment(id: string) {
   doc.status = 'rejected';
   await doc.save();
 
+  const documentDetailsHtml = doc.documents
+  .map((docItem, i) => {
+    return `
+      <li>
+        <strong>Document ${i + 1}:</strong><br />
+        Type: ${docItem.documentType}<br />
+        Number: ${docItem.documentNumber}
+      </li>
+    `;
+  })
+  .join('');
+
   // Send rejection email
-  const mailBody = verificationGeneralTemplate( `
-    <p>Dear ${doc.fullName},</p>
+  const mailBody = verificationGeneralTemplate(`
+  <p>Dear ${doc.fullName},</p>
 
-    <p>We are writing to inform you that your recent document verification request has been declined.</p>
+  <p>We are writing to inform you that your recent document verification request has been declined.</p>
 
-    <p>This action was taken due to one or more of the following reasons:</p>
-    <ul>
-      <li>Your payment could not be confirmed.</li>
-      <li>The documents submitted require further review or clarification.</li>
-    </ul>
+  <ul>
+      ${documentDetailsHtml}
+  </ul>
 
-    <p>Kindly review your submission and ensure that:</p>
-    <ul>
-      <li>Proof of payment is properly uploaded and legible.</li>
-      <li>All documents are complete, clear, and accurate.</li>
-    </ul>
+  <p>This action was taken due to one or more of the following reasons:</p>
+  <ul>
+    <li>Your payment could not be confirmed.</li>
+    <li>The documents submitted require further review or clarification.</li>
+  </ul>
 
-    <p>You may reinitiate the verification process after making the necessary corrections.</p>
+  <p>Kindly review your submission and ensure that:</p>
+  <ul>
+    <li>Proof of payment is properly uploaded and legible.</li>
+    <li>All documents are complete, clear, and accurate.</li>
+  </ul>
 
-    <p>For further support, please contact our team.</p>
-  `)
+  <p>You may reinitiate the verification process after making the necessary corrections.</p>
+
+  <p>For further support, please contact our team.</p>
+  <p><strong>Reference:</strong> ${doc.customId}</p>
+`);
+
 
   await sendEmail({
     to: doc.email,
@@ -2099,19 +2130,34 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'No documents found for this record');
   }
 
+
   // Format document links and details
-  const documentDetailsHtml = doc.documents
-    .map((docItem, i) => {
-      return `
-        <li>
-          <strong>Document ${i + 1}:</strong><br />
-          Type: ${docItem.documentType}<br />
-          Number: ${docItem.documentNumber}<br />
-          <a href="${docItem.documentUrl}" target="_blank">View Document</a>
-        </li>
-      `;
-    })
-    .join('');
+const documentDetailsHtml = doc.documents
+  .map((docItem, i) => {
+    return `
+      <li>
+        <strong>Document ${i + 1}:</strong><br />
+        Type: ${docItem.documentType}<br />
+        Number: ${docItem.documentNumber}<br />
+        <a href="${docItem.documentUrl}" target="_blank">View Document</a> |
+        <a href="${docItem.documentUrl}" download target="_blank">Download</a>
+      </li>
+    `;
+  })
+  .join('');
+
+  const documentDetailsHtmlForClient = doc.documents
+  .map((docItem, i) => {
+    return `
+      <li>
+        <strong>Document ${i + 1}:</strong><br />
+        Type: ${docItem.documentType}<br />
+        Number: ${docItem.documentNumber}
+      </li>
+    `;
+  })
+  .join('');
+
 
   // === Email to Provider ===
   const providerMailBody = verificationGeneralTemplate(`
@@ -2125,10 +2171,8 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
       ${documentDetailsHtml}
     </ul>
 
-    <p><strong>Submitted by:</strong><br/>
-    Full Name: ${doc.fullName}<br/>
-    Email: ${doc.email}<br/>
-    Verification ID: ${doc._id}</p>
+    <p><strong>Reference:</strong><br/>
+    Custom ID: ${doc.customId}</p>
 
     <p>We kindly request your assistance in confirming the validity of these documents. Please check and respond on the following:</p>
     <ul>
@@ -2157,6 +2201,10 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
     <p>We have received your request and have forwarded your documents to our certified verification partners. 
     The verification process has now commenced, and we will notify you as soon as the results are ready.</p>
 
+    <ul>
+      ${documentDetailsHtmlForClient}
+    </ul>
+
     <p>Please feel free to reach out to us if you have any questions in the meantime.</p>
   `);
 
@@ -2178,27 +2226,28 @@ public async sendToVerificationProvider(id: any, providerEmail: string) {
 
 
 public async uploadVerificationResult(id: string, files: any) {
-
   if (!files.length) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'File is required');
   }
 
   const documentId = new mongoose.Types.ObjectId(id);
-
   const doc = await DB.Models.DocumentVerification.findById(documentId);
   if (!doc) {
     throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Verification not found');
   }
 
-  if(doc.status === "successful"){
+  if (doc.status === "successful") {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'The verification result for this document has been sent');
   }
 
   let results: string[] = [];
 
   for (const file of files) {
+    const extension = mime.extension(file.mimetype);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
+    const fileName = `result-${uniqueSuffix}.${extension}`;
     const fileBase64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-    const fileUrl = await cloudinary.uploadFile(fileBase64, 'result', 'verification-documents');
+    const fileUrl = await cloudinary.uploadFile(fileBase64, fileName, 'verification-documents');
     results.push(fileUrl);
   }
 
@@ -2206,37 +2255,62 @@ public async uploadVerificationResult(id: string, files: any) {
   doc.status = 'successful';
   await doc.save();
 
-  // Compose email with result document links
-  const resultLinksHtml = results
-  .map((url, i) => `<li><a href="${url}" target="_blank">Result Document ${i + 1}</a></li>`)
+  const documentDetailsHtmlForClient = doc.documents
+  .map((docItem, i) => {
+    return `
+      <li>
+        <strong>Document ${i + 1}:</strong><br />
+        Type: ${docItem.documentType}<br />
+        Number: ${docItem.documentNumber}
+      </li>
+    `;
+  })
   .join('');
 
-const htmlBody = verificationGeneralTemplate(`
-  <p>Dear ${doc.fullName},</p>
+  // Create dual links (view + download) for each file
+  const resultLinksHtml = results
+    .map((url, i) => {
+      const downloadUrl = `${url}?fl_attachment`;
+      return `<li>
+        Document ${i + 1}: 
+        <a href="${url}" target="_blank">View</a> | 
+        <a href="${downloadUrl}" target="_blank" download>Download</a>
+      </li>`;
+    })
+    .join('');
 
-  <p>We are pleased to inform you that the verification process for your submitted documents has been successfully completed.</p>
+  const htmlBody = verificationGeneralTemplate(`
+    <p>Dear ${doc.fullName},</p>
 
-  <p>You can find the result documents via the links below:</p>
-  <ul>${resultLinksHtml}</ul>
+    <p>We are pleased to inform you that the verification process for your submitted documents has been successfully completed.</p>
 
-  <p>If you have any questions or require further assistance, please do not hesitate to contact our support team.</p>
+    <p><strong>Document Info:</strong></p>
+    <ul>
+      ${documentDetailsHtmlForClient}
+    </ul>
 
-  <p>Thank you for choosing Khabiteq Realty for your document verification.</p>
-`);
+    <p>You can find the result documents below:</p>
+    <ul>${resultLinksHtml}</ul>
 
+    <p>If you have any questions or require further assistance, please do not hesitate to contact our support team.</p>
+
+    <p>Thank you for choosing Khabiteq Realty for your document verification.</p>
+  `);
 
   await sendEmail({
     to: doc.email,
     subject: 'Verification Result Uploaded',
-    text:htmlBody,
+    text: htmlBody,
     html: htmlBody,
   });
+
 
   return {
     message: 'Result uploaded and sent to user',
     recordId: doc._id,
   };
 }
+
 
 
  public async getSummary(req: Request, res: Response) {
