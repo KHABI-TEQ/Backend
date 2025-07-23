@@ -1,30 +1,43 @@
-import { Schema, model, Model, models, Document, Types } from 'mongoose';
+import { Schema, model, Model, models, Document, Types } from "mongoose";
 
 export interface IPreference {
   buyer: Types.ObjectId;
-  propertyType?: string;
-  propertyCondition?: string;
-  preferenceType: 'buy' | 'joint-venture' | 'rent' | 'shortlet';
-  preferenceMode: 'buy' | 'tenant' | 'developer' | 'shortlet';
+
+  preferenceType: "buy" | "joint-venture" | "rent" | "shortlet";
+  preferenceMode: "buy" | "tenant" | "developer" | "shortlet";
+
   location?: {
     state?: string;
-    localGovernments?: string[];
-    areas?: {
-      name: string;
-      lga: string;
+    localGovernmentAreas?: string[];
+    lgasWithAreas?: {
+      lgaName: string;
+      areas: string[];
     }[];
+    customLocation?: string;
   };
-  measurementType?: string;
-  landSize?: number;
+
   budgetMin?: number;
   budgetMax?: number;
+  currency?: string;
+
+  landSize?: number;
+  measurementType?: string;
+
   documents?: string[];
-  noOfBedrooms?: number;
-  noOfBathrooms?: number;
   features?: string[];
+
+  propertyDetails?: any; // For Buy & Rent
+  developmentDetails?: any; // For JV
+  bookingDetails?: any; // For Shortlet
+
+  contactInfo?: any;
+
+  nearbyLandmark?: string;
   additionalInfo?: string;
+
   assignedAgent?: Types.ObjectId;
-  status: 'pending' | 'approved' | 'matched' | 'closed';
+  status: "pending" | "approved" | "matched" | "closed";
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,68 +47,72 @@ export interface IPreferenceDoc extends IPreference, Document {}
 export type IPreferenceModel = Model<IPreferenceDoc>;
 
 export class Preference {
-  private PreferenceModel: Model<IPreferenceDoc>;
+  private PreferenceModel: IPreferenceModel;
 
   constructor() {
     const schema = new Schema(
       {
-        buyer: { type: Schema.Types.ObjectId, ref: 'Buyer' },
-
-        propertyType: { type: String },
-        propertyCondition: { type: String },
+        buyer: { type: Schema.Types.ObjectId, ref: "Buyer", required: true },
 
         preferenceType: {
           type: String,
-          enum: ['buy', 'joint-venture', 'rent', 'shortlet'],
+          enum: ["buy", "joint-venture", "rent", "shortlet"],
           required: true,
         },
 
         preferenceMode: {
           type: String,
-          enum: ['buy', 'developer', 'tenant', 'shortlet'],
+          enum: ["buy", "developer", "tenant", "shortlet"],
           required: true,
         },
 
         location: {
-          state: { type: String },
-          localGovernments: [{ type: String }],
-          areas: [
+          state: String,
+          localGovernmentAreas: [String],
+          lgasWithAreas: [
             {
-              name: { type: String },
-              lga: { type: String },
+              lgaName: String,
+              areas: [String],
             },
           ],
+          customLocation: String,
         },
 
-        measurementType: { type: String },
-        landSize: { type: Number },
+        budgetMin: Number,
+        budgetMax: Number,
+        currency: String,
 
-        budgetMin: { type: Number },
-        budgetMax: { type: Number },
+        landSize: Number,
+        measurementType: String,
 
-        documents: [{ type: String }],
+        documents: [String],
+        features: [String],
 
-        noOfBedrooms: { type: Number },
-        noOfBathrooms: { type: Number },
+        propertyDetails: { type: Schema.Types.Mixed },
+        developmentDetails: { type: Schema.Types.Mixed },
+        bookingDetails: { type: Schema.Types.Mixed },
 
-        features: [{ type: String }],
-        additionalInfo: { type: String },
+        contactInfo: { type: Schema.Types.Mixed },
 
-        assignedAgent: { type: Schema.Types.ObjectId, ref: 'Agent' },
+        nearbyLandmark: String,
+        additionalInfo: String,
+
+        assignedAgent: { type: Schema.Types.ObjectId, ref: "Agent" },
 
         status: {
           type: String,
-          enum: ['pending', 'approved', 'matched', 'closed'],
-          default: 'pending',
+          enum: ["pending", "approved", "matched", "closed"],
+          default: "pending",
         },
       },
-      { timestamps: true }
+      { timestamps: true },
     );
 
-    this.PreferenceModel = models.Preference || model<IPreferenceDoc>('Preference', schema);
+    this.PreferenceModel =
+      models.Preference || model<IPreferenceDoc>("Preference", schema);
   }
 
-   public get model(): Model<IPreferenceDoc> {
+  public get model(): IPreferenceModel {
     return this.PreferenceModel;
   }
 }

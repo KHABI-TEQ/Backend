@@ -1,4 +1,4 @@
-import { Schema, model, Document, Model } from 'mongoose';
+import { Schema, model, Document, Model } from "mongoose";
 
 export interface IUser {
   email: string;
@@ -7,7 +7,8 @@ export interface IUser {
   lastName: string;
   phoneNumber?: string; // Optional
   isAccountInRecovery: boolean;
-  address?: { // Optional as it might be added later
+  address?: {
+    // Optional as it might be added later
     street?: string;
     state?: string;
     localGovtArea?: string;
@@ -19,12 +20,13 @@ export interface IUser {
   isInActive: boolean;
   isDeleted: boolean;
   accountApproved: boolean; // For Agents
-  accountStatus: 'active' | 'inactive' | 'deleted'; // Use string literal union
-  userType: 'Landowners' | 'Agent'; // Use string literal union
+  accountStatus: "active" | "inactive" | "deleted"; // Use string literal union
+  userType: "Landowners" | "Agent"; // Use string literal union
   isFlagged: boolean;
   accountId: string; // Unique identifier for the account
   googleId?: string; // For Google OAuth
   facebookId?: string; // For Facebook OAuth
+  enableNotifications?: boolean;
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -55,27 +57,36 @@ export class User {
         isInActive: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },
         accountApproved: { type: Boolean, default: false }, // Specific for agents
-        accountStatus: { type: String, enum: ['active', 'inactive', 'deleted'], default: 'active' },
-        userType: { type: String, enum: ['Landowners', 'Agent'], required: true },
+        accountStatus: {
+          type: String,
+          enum: ["active", "inactive", "deleted"],
+          default: "active",
+        },
+        userType: {
+          type: String,
+          enum: ["Landowners", "Agent"],
+          required: true,
+        },
         isFlagged: { type: Boolean, default: false },
         accountId: { type: String, required: true, unique: true }, // Ensure unique account ID
 
         googleId: { type: String, unique: true, sparse: true }, // For Google OAuth
         facebookId: { type: String, unique: true, sparse: true }, // For Facebook OAuth
+        enableNotifications: { type: Boolean, default: true },
       },
       {
         timestamps: true, // Adds createdAt and updatedAt
         toJSON: { virtuals: true },
         toObject: { virtuals: true },
-      }
+      },
     );
 
     // Virtual for fullName
-    schema.virtual('fullName').get(function(this: IUserDoc) {
+    schema.virtual("fullName").get(function (this: IUserDoc) {
       return `${this.firstName} ${this.lastName}`;
     });
 
-    this.UserModel = model<IUserDoc>('User', schema);
+    this.UserModel = model<IUserDoc>("User", schema);
   }
 
   public get model(): Model<IUserDoc> {

@@ -1,8 +1,7 @@
-import express, { NextFunction, Response } from 'express';
-import { buyerController } from '../controllers/Buyer';
-import { DB } from '../controllers';
-import AuthorizeAction from './authorize_action';
-import PreferencesController from '../controllers/Buyer/PreferencesController';
+import express, { NextFunction, Response } from "express";
+import { buyerController } from "../controllers/Buyer";
+import { DB } from "../controllers";
+import AuthorizeAction from "./authorize_action";
 
 const buyerRouter = express.Router();
 
@@ -12,63 +11,69 @@ interface Request extends Express.Request {
   params?: any;
   body?: any;
 }
- 
+
 // POST /api/buyer/submit-preference
-buyerRouter.post(
-  "/submit-preference",
-  (req, res, next) => PreferencesController.createPreference(req, res, next)
+buyerRouter.get(
+  "/all-inspections",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const inspections = await DB.Models.InspectionBooking.find({}).populate([
+        { path: "propertyId" },
+        { path: "owner", select: "firstName lastName phoneNumber" },
+        { path: "requestedBy", select: "fullNumber phoneNumber" },
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        data: inspections,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
 );
 
-buyerRouter.get('/all-inspections', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const inspections = await DB.Models.InspectionBooking.find({}).populate([
-      { path: 'propertyId' },
-      { path: 'owner', select: 'firstName lastName phoneNumber' },
-      { path: 'requestedBy', select: 'fullNumber phoneNumber' },
-    ]);
-
-    return res.status(200).json({
-      success: true,
-      data: inspections,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-buyerRouter.post('/submit-preference', async (req: Request, res: Response, next:NextFunction) => {
-  try {
-    const result = await buyerController.submitPreference(req.body);
-    return res.status(201).json({
-      success: true,
-      message: result.message,
-      data: result.preference,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+buyerRouter.post(
+  "/submit-preference",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await buyerController.submitPreference(req.body);
+      return res.status(201).json({
+        success: true,
+        message: result.message,
+        data: result.preference,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 // ✅ New route to get matched briefs using preferenceId
-buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { preferenceId } = req.query;
-    if (!preferenceId) {
-      return res.status(400).json({ success: false, message: 'Missing preferenceId in query' });
+buyerRouter.get(
+  "/brief-matches",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { preferenceId } = req.query;
+      if (!preferenceId) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing preferenceId in query" });
+      }
+
+      const briefMatches = await buyerController.getBriefMatchesByPreference(
+        preferenceId as string,
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: briefMatches,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const briefMatches = await buyerController.getBriefMatchesByPreference(preferenceId as string);
-
-    return res.status(200).json({
-      success: true,
-      data: briefMatches,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-
+  },
+);
 
 // buyerRouter.post(
 //   '/update-inspection/:inspectionId',
@@ -126,7 +131,7 @@ buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: Next
 //       const { inspectionId } = req.params;
 //       // Extract specific fields as per frontend payload
 //       const { counterOffer, counterDateTimeObj, inspectionDateStatus, message, userId, userType } = req.body;
- 
+
 //       const response = await buyerController.counterOffer(
 //         inspectionId,
 //         counterOffer,
@@ -137,7 +142,7 @@ buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: Next
 //         counterDateTimeObj?.selectedTime, // Extract time
 //         message,
 //       );
-      
+
 //       return res.status(200).json({
 //         success: true,
 //         message: response,
@@ -175,7 +180,7 @@ buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: Next
 //       next(error);
 //     }
 //   }
-// ); 
+// );
 
 // // New endpoint for Reject Offer
 // buyerRouter.put(
@@ -209,7 +214,6 @@ buyerRouter.get('/brief-matches', async (req: Request, res: Response, next: Next
 
 buyerRouter.use(AuthorizeAction);
 
-// 
-
+//
 
 export { buyerRouter };

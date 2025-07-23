@@ -55,6 +55,7 @@
 		"@types/joi": "^17.2.2",
 		"@types/jsonfile": "^6.1.4",
 		"@types/jsonwebtoken": "^9.0.9",
+		"@types/moment": "^2.11.29",
 		"@types/mongoose": "^5.11.96",
 		"@types/morgan": "^1.9.9",
 		"@types/node": "^22.14.0",

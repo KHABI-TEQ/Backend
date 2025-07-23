@@ -1,0 +1,143 @@
+import { Response, NextFunction } from "express";
+import { AppRequest } from "../../../types/express";
+import { DB } from "../..";
+import HttpStatusCodes from "../../../common/HttpStatusCodes";
+import { RouteError } from "../../../common/classes";
+
+// Fetch All Properties with Filters & Pagination (Public)
+export const getAllProperties = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const {
+      page = "1",
+      limit = "10",
+      briefType,
+      location,
+      priceRange,
+      documentType,
+      bedroom,
+      bathroom,
+      landSizeType,
+      landSize,
+      desireFeature,
+      homeCondition,
+      tenantCriteria,
+      type,
+    } = req.query as Record<string, string>;
+
+    if (!briefType) {
+      return res
+        .status(HttpStatusCodes.BAD_REQUEST)
+        .json({ success: false, message: "briefType is required" });
+    }
+
+    const filters: any = {
+      location: location || undefined,
+      homeCondition: homeCondition || undefined,
+      landSizeType: landSizeType || undefined,
+      type: type || undefined,
+      bedroom: bedroom ? Number(bedroom) : undefined,
+      bathroom: bathroom ? Number(bathroom) : undefined,
+      landSize: landSize ? Number(landSize) : undefined,
+      priceRange: priceRange ? JSON.parse(priceRange) : undefined,
+      documentType: documentType ? documentType.split(",") : undefined,
+      desireFeature: desireFeature ? desireFeature.split(",") : undefined,
+      tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
+    };
+
+    const query: any = {
+      briefType,
+      isPublished: true,
+      isDeleted: false,
+    };
+
+    if (filters.location) query.location = filters.location;
+    if (filters.homeCondition) query.homeCondition = filters.homeCondition;
+    if (filters.landSizeType) query.landSizeType = filters.landSizeType;
+    if (filters.type) query.type = filters.type;
+    if (filters.bedroom) query.bedroom = filters.bedroom;
+    if (filters.bathroom) query.bathroom = filters.bathroom;
+    if (filters.landSize) query.landSize = { $gte: filters.landSize };
+
+    if (filters.priceRange) {
+      query.price = {
+        $gte: filters.priceRange.min,
+        $lte: filters.priceRange.max,
+      };
+    }
+
+    if (filters.documentType) {
+      query.documentType = { $in: filters.documentType };
+    }
+
+    if (filters.desireFeature) {
+      query.desireFeatures = { $all: filters.desireFeature };
+    }
+
+    if (filters.tenantCriteria) {
+      query.tenantCriteria = { $all: filters.tenantCriteria };
+    }
+
+    const properties = await DB.Models.Property.find(query)
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .lean();
+
+    const total = await DB.Models.Property.countDocuments(query);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: properties,
+      pagination: {
+        total,
+        currentPage: Number(page),
+        totalPages: Math.ceil(total / Number(limit)),
+        perPage: Number(limit),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Fetch Single Property by ID (Public)
+export const getSingleProperty = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { propertyId } = req.params;
+
+    if (!propertyId) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Property ID is required",
+      });
+    }
+
+    const property = await DB.Models.Property.findOne({
+      _id: propertyId,
+      isPublished: true,
+      isDeleted: false,
+    }).lean();
+
+    if (!property) {
+      return next(
+        new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found"),
+      );
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Property fetched successfully",
+      data: property,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

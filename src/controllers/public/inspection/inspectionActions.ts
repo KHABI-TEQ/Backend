@@ -1,34 +1,38 @@
 import { Request, Response, NextFunction } from "express";
-import HttpStatusCodes from "../../common/HttpStatusCodes";
-import { DB } from "..";
-import { RouteError } from "../../common/classes";
-import { InspectionLogService } from "../../services/inspectionLog.service";
-import notificationService from "../../services/notification.service";
-import { hasDateTimeChanged } from "../../utils/detectDateTimeChange";
-import { 
-  InspectionActionData, 
+import HttpStatusCodes from "../../../common/HttpStatusCodes";
+import { DB } from "../..";
+import { RouteError } from "../../../common/classes";
+import { InspectionLogService } from "../../../services/inspectionLog.service";
+import notificationService from "../../../services/notification.service";
+import { hasDateTimeChanged } from "../../../utils/detectDateTimeChange";
+import {
+  InspectionActionData,
   InspectionLinks,
-} from "../../types/inspection.types";
-import { InspectionValidator } from "../../validators/inspection.validator";
-import { InspectionActionHandler } from "../../handlers/inspection-action.handler";
-import { InspectionEmailService } from "../../services/inspection-email.service";
+} from "../../../types/inspection.types";
+import { InspectionValidator } from "../../../validators/inspection.validator";
+import { InspectionActionHandler } from "../../../handlers/inspection-action.handler";
+import { InspectionEmailService } from "../../../services/inspection-email.service";
 
 class InspectionActionsController {
-
   public async processInspectionAction(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { inspectionId, userId } = req.params;
 
       if (!userId) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "User ID is required in URL");
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "User ID is required in URL",
+        );
       }
 
       // Validate request body using pure validation
-      const validation = InspectionValidator.validateInspectionActionData(req.body);
+      const validation = InspectionValidator.validateInspectionActionData(
+        req.body,
+      );
       if (!validation.success) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, validation.error!);
       }
@@ -50,13 +54,13 @@ class InspectionActionsController {
   private async processAction(
     inspectionId: string,
     userId: string,
-    actionData: InspectionActionData
+    actionData: InspectionActionData,
   ) {
     // Find and populate inspection
     const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
       .populate(
         "propertyId",
-        "title location price propertyType briefType pictures"
+        "title location price propertyType briefType pictures",
       )
       .populate("owner", "fullName email firstName lastName")
       .populate("requestedBy", "fullName email firstName lastName");
@@ -77,7 +81,7 @@ class InspectionActionsController {
     if (!isSeller && !isBuyer) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
-        "Unauthorized access to this inspection"
+        "Unauthorized access to this inspection",
       );
     }
 
@@ -85,19 +89,19 @@ class InspectionActionsController {
     if (inspection.stage === "inspection" && actionData.action === "reject") {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Cannot cancel inspection that has already reached inspection stage"
+        "Cannot cancel inspection that has already reached inspection stage",
       );
     }
 
     // Validate action-specific requirements
     InspectionValidator.validateActionRequirements(actionData);
- 
+
     // Check if date/time changed
     const dateTimeChanged = hasDateTimeChanged(
       inspection.inspectionDate,
       inspection.inspectionTime,
       actionData.inspectionDate,
-      actionData.inspectionTime
+      actionData.inspectionTime,
     );
 
     const senderName = isSeller
@@ -109,23 +113,24 @@ class InspectionActionsController {
 
     // Process actions using handler
     const actionHandler = new InspectionActionHandler();
-    
-    const { update, logMessage, emailSubject, emailData } = actionHandler.handleAction(
-      actionData,
-      inspection,
-      senderName,
-      isSeller,
-      dateTimeChanged,
-      inspectionId,
-      buyerId,
-      ownerId
-    );
+
+    const { update, logMessage, emailSubject, emailData } =
+      actionHandler.handleAction(
+        actionData,
+        inspection,
+        senderName,
+        isSeller,
+        dateTimeChanged,
+        inspectionId,
+        buyerId,
+        ownerId,
+      );
 
     // Update inspection date/time if provided
     if (actionData.inspectionDate) {
       update.inspectionDate = actionData.inspectionDate;
     }
-    
+
     if (actionData.inspectionTime) {
       update.inspectionTime = actionData.inspectionTime;
     }
@@ -135,13 +140,13 @@ class InspectionActionsController {
       await DB.Models.InspectionBooking.findByIdAndUpdate(
         inspectionId,
         { $set: update },
-        { new: true }
+        { new: true },
       );
 
     if (!updatedInspection) {
       throw new RouteError(
         HttpStatusCodes.INTERNAL_SERVER_ERROR,
-        "Failed to update inspection"
+        "Failed to update inspection",
       );
     }
 
@@ -187,7 +192,7 @@ class InspectionActionsController {
       sellerData,
       emailData,
       isBuyer,
-      isSeller
+      isSeller,
     });
 
     return {
@@ -201,17 +206,17 @@ class InspectionActionsController {
   public async getInspectionDetails(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { userID, inspectionID, userType } = req.params;
 
       const inspection = await DB.Models.InspectionBooking.findById(
-        inspectionID
+        inspectionID,
       )
         .populate(
           "propertyId",
-          "title location price propertyType briefType pictures _id owner"
+          "title location price propertyType briefType pictures _id owner",
         )
         .populate("owner", "firstName lastName _id userType")
         .populate("requestedBy", "fullName _id");
@@ -227,7 +232,7 @@ class InspectionActionsController {
       ) {
         throw new RouteError(
           HttpStatusCodes.FORBIDDEN,
-          "Seller not authorized for this inspection"
+          "Seller not authorized for this inspection",
         );
       }
 
@@ -237,7 +242,7 @@ class InspectionActionsController {
       ) {
         throw new RouteError(
           HttpStatusCodes.FORBIDDEN,
-          "Buyer not authorized for this inspection"
+          "Buyer not authorized for this inspection",
         );
       }
 
@@ -267,13 +272,13 @@ class InspectionActionsController {
   public async validateInspectionAccess(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { userId, inspectionId } = req.params;
 
       const inspection = await DB.Models.InspectionBooking.findById(
-        inspectionId
+        inspectionId,
       )
         .select("requestedBy owner")
         .lean();
@@ -300,7 +305,8 @@ class InspectionActionsController {
         return res.status(HttpStatusCodes.FORBIDDEN).json({
           status: "error",
           success: false,
-          message: "Access denied. You are not associated with this inspection.",
+          message:
+            "Access denied. You are not associated with this inspection.",
         });
       }
     } catch (error) {
@@ -316,7 +322,7 @@ class InspectionActionsController {
   public async getUserInspections(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { userId } = req.params;
@@ -336,7 +342,7 @@ class InspectionActionsController {
       const inspections = await DB.Models.InspectionBooking.find(query)
         .populate(
           "propertyId",
-          "title location price propertyType briefType pictures"
+          "title location price propertyType briefType pictures",
         )
         .populate("owner", "fullName email firstName lastName")
         .populate("requestedBy", "fullName email firstName lastName")
@@ -355,7 +361,7 @@ class InspectionActionsController {
   public async getInspectionHistory(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ) {
     try {
       const { inspectionId } = req.params;
@@ -376,19 +382,18 @@ class InspectionActionsController {
   public async submitInspectionRequest(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       // Validate request body using pure validation
-      const validation = InspectionValidator.validateSubmitInspectionPayload(req.body);
+      const validation = InspectionValidator.validateSubmitInspectionPayload(
+        req.body,
+      );
 
       if (!validation.success) {
-        throw new RouteError(
-          HttpStatusCodes.BAD_REQUEST,
-          validation.error!
-        );
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, validation.error!);
       }
- 
+
       const {
         inspectionType,
         inspectionDate,
@@ -402,7 +407,7 @@ class InspectionActionsController {
       const buyer = await DB.Models.Buyer.findOneAndUpdate(
         { email: requestedBy.email },
         { $setOnInsert: requestedBy },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       // Save the transaction
@@ -414,17 +419,24 @@ class InspectionActionsController {
       const savedInspections = [];
 
       for (const prop of properties) {
-        const property = await DB.Models.Property.findById(prop.propertyId).lean();
+        const property = await DB.Models.Property.findById(
+          prop.propertyId,
+        ).lean();
         if (!property) {
           throw new RouteError(
             HttpStatusCodes.NOT_FOUND,
-            `Property with ID ${prop.propertyId} not found`
+            `Property with ID ${prop.propertyId} not found`,
           );
         }
 
         // Determine isNegotiating and isLOI based on presence of negotiationPrice and letterOfIntention
-        const isNegotiating = typeof prop.negotiationPrice === 'number';
+        const isNegotiating =
+          typeof prop.negotiationPrice === "number" &&
+          prop.negotiationPrice > 0; // Added condition for negotiationPrice > 0
         const isLOI = !!prop.letterOfIntention;
+
+        // Determine inspectionMode based on inspectionType or default to "in_person"
+        const inspectionMode = prop.inspectionMode || "in_person";
 
         const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
 
@@ -437,9 +449,10 @@ class InspectionActionsController {
           status: "pending_transaction",
           requestedBy: buyer._id,
           transaction: transactionDoc._id,
-          isNegotiating, // Set based on negotiationPrice presence
-          isLOI,          // Set based on letterOfIntention presence
+          isNegotiating,
+          isLOI,
           inspectionType,
+          inspectionMode,
           inspectionStatus: "new",
           negotiationPrice: prop.negotiationPrice || 0,
           letterOfIntention: prop.letterOfIntention || null,
@@ -455,7 +468,7 @@ class InspectionActionsController {
           inspectionId: inspection._id.toString(),
           propertyId: prop.propertyId,
           senderId: buyer._id.toString(),
-          senderModel: 'Buyer',
+          senderModel: "Buyer",
           senderRole: "buyer",
           message: `Inspection request submitted${isNegotiating ? " with negotiation price" : ""}${isLOI ? " with LOI" : ""}.`,
           status: "pending_transaction",
@@ -466,9 +479,9 @@ class InspectionActionsController {
             letterOfIntention: prop.letterOfIntention || null,
             inspectionDate,
             inspectionTime,
+            inspectionMode,
           },
         });
-
       }
 
       res.status(HttpStatusCodes.OK).json({
@@ -476,13 +489,11 @@ class InspectionActionsController {
         message: "Inspection request submitted",
         data: savedInspections,
       });
-
     } catch (error) {
       console.error("submitInspectionRequest error:", error);
       next(error);
     }
-  };
-
+  }
 }
 
 export default new InspectionActionsController();
