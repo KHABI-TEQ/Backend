@@ -4,17 +4,12 @@ import PropertySellRouter from "./property.sell.api.actions";
 import AgentRouter from "./agent.api";
 import HttpStatusCodes from "../common/HttpStatusCodes";
 import cloudinary from "../common/cloudinary";
-import RentPropertyRentRequest from "./buyer_rent_property_rent.api.actions";
-import BuyPropertySellRequest from "./buyer_rent_property_sell.api.actions";
 
 import express from "express";
 import multer from "multer";
 import { DB, PropertyRequestController } from "../controllers";
-import { RouteError } from "../common/classes";
-import jwt from "jsonwebtoken";
 import AdminRouter from "./admin";
 import propertyRouter from "./property";
-import { UserRouter } from "./user.api";
 import { buyerRouter } from "./buyer";
 import { documentVerificationController } from "../controllers/DocumentVerification";
 import { AdminController } from "../controllers/Admin";
@@ -142,81 +137,6 @@ router.post(
       res
         .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
         .json({ message: "Internal server error" });
-    }
-  },
-);
-
-router.post(
-  "/property/request-inspection",
-  async (req: Request, res: Response) => {
-    try {
-      const { propertyId, requestFrom, propertyType } = req.body;
-
-      await propertyRequest.requestProperty({
-        propertyId,
-        requestFrom,
-        propertyType,
-      });
-
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "Request sent successfully" });
-    } catch (error) {
-      console.error(error);
-      res
-        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message || "Internal server error" });
-    }
-  },
-);
-
-router.get("/all/inspection-slots", async (req: Request, res: Response) => {
-  try {
-    const slots = await DB.Models.InspectionSlot.find({
-      slotStatus: "available",
-      slotDate: {
-        $gte: new Date(new Date().setDate(new Date().getDate() + 3)),
-      },
-    });
-    return res.status(HttpStatusCodes.OK).json({ slots });
-  } catch (error) {
-    console.error(error);
-    res
-      .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: error.message || "Internal server error" });
-  }
-});
-
-router.post(
-  "/property/schedule-inspection",
-  async (req: Request, res: Response) => {
-    try {
-      const { token, inspectionDate, slotId, inspectionTime } = req.body;
-
-      if (!token || !inspectionDate)
-        throw new RouteError(
-          HttpStatusCodes.BAD_REQUEST,
-          "Token and inspection date are required",
-        );
-
-      const { requestId } = jwt.verify(token, process.env.JWT_SECRET) as any;
-
-      if (!requestId)
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid token");
-
-      const response = await propertyRequest.scheduleInspection(
-        requestId,
-        inspectionDate,
-        slotId,
-        inspectionTime,
-      );
-
-      return res.status(HttpStatusCodes.OK).json(response);
-    } catch (error) {
-      console.error(error);
-      res
-        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message || "Internal server error" });
     }
   },
 );

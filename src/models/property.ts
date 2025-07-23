@@ -66,6 +66,8 @@ export interface IProperty {
     | "failed"
     | "never_listed";
   reason?: string;
+  briefType: string;
+  isPremium: boolean;
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
@@ -163,6 +165,8 @@ export class Property {
           required: true,
         },
         reason: { type: String },
+        briefType: { type: String },
+        isPremium: { type: Boolean, default: false },
         isApproved: { type: Boolean, default: false },
         isRejected: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },

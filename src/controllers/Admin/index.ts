@@ -24,13 +24,7 @@ import { RouteError, signJwt, signJwtAdmin } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import bcrypt from "bcryptjs";
 import { PropertyProps } from "../Property";
-import {
-  IAgentDoc,
-  IBriefMatchModel,
-  IPreference,
-  IProperty,
-  IUserDoc,
-} from "../../models";
+import { IAgentDoc, IPreference, IProperty, IUserDoc } from "../../models";
 import { Model } from "mongoose";
 import {
   formatAgentDataForTable,
@@ -1309,140 +1303,6 @@ export class AdminController {
     };
   }
 
-  public async groupPropsWithOwner(
-    ownerModel: "PropertySell" | "PropertyRent",
-    ownerType: string,
-    page?: number,
-    limit?: number,
-  ) {
-    const groupedProperties = await DB.Models[ownerModel].aggregate([
-      {
-        $lookup: {
-          from: ownerType, // or 'agents', 'buyerorrenters', depending on ownerModel
-          localField: "owner",
-          foreignField: "_id",
-          as: "ownerDetails",
-          pipeline: [
-            {
-              $project: {
-                firstName: 1,
-                lastName: 1,
-                email: 1,
-                fullName: 1,
-                phoneNumber: 1,
-                agentType: 1,
-                createdAt: 1,
-                updatedAt: 1,
-              },
-            },
-          ],
-        },
-      },
-      {
-        $unwind: "$ownerDetails",
-      },
-      {
-        $group: {
-          _id: "$owner",
-          ownerInfo: { $first: "$ownerDetails" },
-          properties: { $push: "$$ROOT" },
-        },
-      },
-      { $sort: { "properties.0.createdAt": -1 } },
-
-      // Pagination
-      { $skip: (page - 1) * limit },
-      { $limit: limit },
-
-      {
-        $project: {
-          _id: 0,
-          ownerId: "$_id",
-          ownerInfo: 1,
-          properties: {
-            $map: {
-              input: "$properties",
-              as: "property",
-              in: {
-                _id: "$$property._id",
-                propertyType: "$$property.propertyType",
-                location: "$$property.location",
-                price: "$$property.price",
-                docOnProperty: "$$property.docOnProperty",
-                propertyFeatures: "$$property.propertyFeatures",
-                owner: "$$property.owner",
-                ownerModel: "$$property.ownerModel",
-                areYouTheOwner: "$$property.areYouTheOwner",
-                usageOptions: "$$property.usageOptions",
-                isAvailable: "$$property.isAvailable",
-                budgetRange: "$$property.budgetRange",
-                pictures: "$$property.pictures",
-                isApproved: "$$property.isApproved",
-                isRejected: "$$property.isRejected",
-                landSize: "$$property.landSize",
-                tenantCriteria: "$$property.tenantCriteria",
-                noOfBedrooms: "$$property.noOfBedrooms",
-                createdAt: "$$property.createdAt",
-                updatedAt: "$$property.updatedAt",
-              },
-            },
-          },
-        },
-      },
-    ]);
-
-    return groupedProperties;
-  }
-
-  public async getAllPropertiesWithOwnersGrouped(
-    userType: string,
-    page: number,
-    limit: number,
-  ) {
-    // if (!this.ownerTypes.includes(ownerType)) {
-    //   throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid owner type');
-    // }
-    if (userType === "seller") {
-      return await this.groupPropsWithOwner(
-        "PropertySell",
-        "propertyowners",
-        page,
-        limit,
-      );
-    } else if (userType === "landlord") {
-      return await this.groupPropsWithOwner(
-        "PropertyRent",
-        "propertyowners",
-        page,
-        limit,
-      );
-    } else if (userType === "buyer") {
-      const rentPrefencees = await this.groupPropsWithOwner(
-        "PropertyRent",
-        "BuyerOrRenter",
-        page,
-        limit,
-      );
-      const sellPreferences = await this.groupPropsWithOwner(
-        "PropertySell",
-        "BuyerOrRenter",
-        page,
-        limit,
-      );
-
-      return { rentPrefencees, sellPreferences };
-    } else if (userType === "agent") {
-      return await this.groupPropsWithOwner(
-        "PropertySell",
-        "agents",
-        page,
-        limit,
-      );
-    } else {
-      return [];
-    }
-  }
-
   public async getProperties(
     briefType: string,
     ownerType: string,
@@ -2125,78 +1985,6 @@ export class AdminController {
     return briefs;
   }
 
-  // 2. Admin selects briefs to match a buyer's preference and notify the buyer
-  public async matchBriefsToPreference(
-    preferenceId: string,
-    briefIds: string[],
-  ) {
-    type PopulatedPreference = Omit<IPreference, "buyer"> & {
-      buyer: { email: string; fullName: string };
-    };
-
-    const preferenceObjectId = new mongoose.Types.ObjectId(preferenceId);
-
-    const preference = await DB.Models.Preference.findById(
-      preferenceObjectId,
-    ).populate("buyer", "email fullName");
-
-    if (!preference)
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found");
-
-    const buyer = preference.buyer as any;
-    let theStatus = preference.status as string;
-
-    const briefMatches = [];
-    const BriefMatchModel = DB.Models.BriefMatch as IBriefMatchModel;
-
-    for (const briefId of briefIds) {
-      const briefObjectId = new mongoose.Types.ObjectId(briefId);
-
-      const alreadyExists = await BriefMatchModel.findOne({
-        brief: briefObjectId,
-        preference: preferenceObjectId,
-      });
-
-      if (!alreadyExists) {
-        const privateLink = `${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}`;
-
-        const newMatch = await BriefMatchModel.create({
-          brief: briefObjectId,
-          preference: preferenceObjectId,
-          privateLink,
-          status: "sent",
-        });
-
-        briefMatches.push(newMatch);
-      }
-    }
-
-    if (briefMatches.length > 0) {
-      const emailHtml = preferenceMatchingTemplate(`
-        <p>Dear ${buyer.fullName},</p>
-        <p>Good news! We’ve found the perfect property brief for you.</p>
-        <p>Please click the button below to view it.</p>
-        <p><a href="${process.env.CLIENT_LINK}api/buyers/brief-matches?preference=${preferenceId}">View Property</a></p>
-        <p>If you have any questions, feel free to contact us.</p>
-      `);
-
-      theStatus = "matched";
-      await preference.save();
-
-      await sendEmail({
-        to: buyer.email,
-        subject: "Matching Properties Found",
-        html: emailHtml,
-        text: emailHtml,
-      });
-    }
-
-    return {
-      message: "Briefs matched and email sent to buyer.",
-      matchedCount: briefMatches.length,
-    };
-  }
-
   public async getVerificationsDocuments(page = 1, limit = 10, filter: any) {
     if (
       ![
@@ -2329,21 +2117,28 @@ export class AdminController {
     const mailBody = verificationGeneralTemplate(`
     <p>Dear ${doc.fullName},</p>
 
-    <p>We are writing to inform you that your recent document verification request has been declined.</p>
+  <p>We are writing to inform you that your recent document verification request has been declined.</p>
 
-    <p>This action was taken due to one or more of the following reasons:</p>
-    <ul>
-      <li>Your payment could not be confirmed.</li>
-      <li>The documents submitted require further review or clarification.</li>
-    </ul>
+  <ul>
+      .....
+  </ul>
 
-    <p>Kindly review your submission and ensure that:</p>
-    <ul>
-      <li>Proof of payment is properly uploaded and legible.</li>
-      <li>All documents are complete, clear, and accurate.</li>
-    </ul>
+  <p>This action was taken due to one or more of the following reasons:</p>
+  <ul>
+    <li>Your payment could not be confirmed.</li>
+    <li>The documents submitted require further review or clarification.</li>
+  </ul>
 
-    <p>You may reinitiate the verification process after making the necessary corrections.</p>
+  <p>Kindly review your submission and ensure that:</p>
+  <ul>
+    <li>Proof of payment is properly uploaded and legible.</li>
+    <li>All documents are complete, clear, and accurate.</li>
+  </ul>
+
+  <p>You may reinitiate the verification process after making the necessary corrections.</p>
+
+  <p>For further support, please contact our team.</p>
+  <p><strong>Reference:</strong> ${doc.customId}</p>
 
     <p>For further support, please contact our team.</p>
   `);
@@ -2405,6 +2200,9 @@ export class AdminController {
       ${documentDetailsHtml}
     </ul>
 
+    <p><strong>Reference:</strong><br/>
+    Custom ID: ${doc.customId}</p>
+
     <p>We kindly request your assistance in confirming the validity of these documents. Please check and respond on the following:</p>
     <ul>
       <li>Whether the document is genuine and valid within your records.</li>
@@ -2431,6 +2229,10 @@ export class AdminController {
 
     <p>We have received your request and have forwarded your documents to our certified verification partners.
     The verification process has now commenced, and we will notify you as soon as the results are ready.</p>
+
+    <ul>
+    ......
+    </ul>
 
     <p>Please feel free to reach out to us if you have any questions in the meantime.</p>
 
@@ -2496,17 +2298,15 @@ export class AdminController {
       .join("");
 
     const htmlBody = verificationGeneralTemplate(`
-  <p>Dear ${doc.fullName},</p>
+    <p>Dear ${doc.fullName},</p>
 
-  <p>We are pleased to inform you that the verification process for your submitted documents has been successfully completed.</p>
+    <p>We are pleased to inform you that the verification process for your submitted documents has been successfully completed.</p>
 
-  <p>You can find the result documents via the links below:</p>
-  <ul>${resultLinksHtml}</ul>
+    <p><strong>Document Info:</strong></p>
+    <ul>.....</ul>
 
-  <p>If you have any questions or require further assistance, please do not hesitate to contact our support team.</p>
-
-  <p>Thank you for choosing Khabiteq Realty for your document verification.</p>
-`);
+    <p>You can find the result documents below:</p>
+    <ul>${resultLinksHtml}</ul>`);
 
     await sendEmail({
       to: doc.email,

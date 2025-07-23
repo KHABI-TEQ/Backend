@@ -49,32 +49,6 @@ buyerRouter.post(
   },
 );
 
-// ✅ New route to get matched briefs using preferenceId
-buyerRouter.get(
-  "/brief-matches",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { preferenceId } = req.query;
-      if (!preferenceId) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Missing preferenceId in query" });
-      }
-
-      const briefMatches = await buyerController.getBriefMatchesByPreference(
-        preferenceId as string,
-      );
-
-      return res.status(200).json({
-        success: true,
-        data: briefMatches,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
 // buyerRouter.post(
 //   '/update-inspection/:inspectionId',
 //   // AuthorizeAction,

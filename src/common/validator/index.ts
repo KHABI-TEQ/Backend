@@ -112,6 +112,7 @@ class Validator {
     firstName: joi.string().required(),
     phoneNumber: joi.string().required(),
     userType: joi.string().valid('Agent', 'Landowners').required(),
+    referralCode:joi.string().optional()
   });
 
   private googleSignupSchema = joi.object({

@@ -28,8 +28,6 @@ import {
   IBuyerModel,
   Preference,
   IPreferenceModel,
-  BriefMatch,
-  IBriefMatchModel,
   IDocumentVerificationModel,
   DocumentVerification,
   IInspectionActivityLogModel,
@@ -64,7 +62,6 @@ declare interface IModels {
   Transaction: ITransactionModel;
   Buyer: IBuyerModel;
   Preference: IPreferenceModel;
-  BriefMatch: IBriefMatchModel;
   DocumentVerification: IDocumentVerificationModel;
   Notification: INotificationModel;
   Testimonial: ITestimonialModel;
@@ -106,7 +103,6 @@ export class DB {
       Transaction: new Transaction().model,
       Buyer: new Buyer().model,
       Preference: new Preference().model,
-      BriefMatch: new BriefMatch().model,
       DocumentVerification: new DocumentVerification().model,
       Notification: new Notification().model,
       Testimonial: new Testimonial().model,

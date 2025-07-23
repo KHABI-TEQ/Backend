@@ -13,7 +13,6 @@ export * from "./property";
 export * from "./buyers";
 export * from "./transaction";
 export * from "./preference";
-export * from "./briefMatch";
 export * from "./document.verification";
 export * from "./inspection.activity.log";
 export * from "./notification";
