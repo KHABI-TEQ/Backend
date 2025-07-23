@@ -1,4 +1,4 @@
-import { connect, connection, Connection } from 'mongoose';
+import { connect, connection, Connection } from "mongoose";
 import {
   IPropertySellModel,
   IPropertyRentModel,
@@ -28,8 +28,6 @@ import {
   IBuyerModel,
   Preference,
   IPreferenceModel,
-  BriefMatch,
-  IBriefMatchModel,
   IDocumentVerificationModel,
   DocumentVerification,
   IInspectionActivityLogModel,
@@ -38,15 +36,15 @@ import {
   Notification,
   Testimonial,
   ITestimonialModel,
+  ContactUs,
+  IContactUsModel,
   VerificationToken,
   PasswordResetToken,
-  IReferralModel,
-  Referral,
-  IReferralCommissionModel,
-  ReferralCommission,
-} from '../models/index';
+  IMatchedPreferencePropertyModel,
+  MatchedPreferenceProperty,
+} from "../models/index";
 
-import { IOwnerModel, Owner } from '../models/property.owner';
+import { IOwnerModel, Owner } from "../models/property.owner";
 
 declare interface IModels {
   PropertySell: IPropertySellModel;
@@ -63,15 +61,14 @@ declare interface IModels {
   Property: IPropertyModel;
   Transaction: ITransactionModel;
   Buyer: IBuyerModel;
-  Preference:IPreferenceModel;
-  BriefMatch:IBriefMatchModel;
-  DocumentVerification:IDocumentVerificationModel;
+  Preference: IPreferenceModel;
+  DocumentVerification: IDocumentVerificationModel;
   Notification: INotificationModel;
   Testimonial: ITestimonialModel;
-  Referral:IReferralModel;
-  ReferralCommission:IReferralCommissionModel;
+  ContactUs: IContactUsModel;
   VerificationToken: typeof VerificationToken;
   PasswordResetToken: typeof PasswordResetToken;
+  MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
 }
 
 export class DB {
@@ -84,11 +81,11 @@ export class DB {
     try {
       connect(process.env.MONGO_URL as string);
     } catch (err) {
-      console.error(err, 'Error connecting to MongoDB');
+      console.error(err, "Error connecting to MongoDB");
     }
     this.mongoDB = connection;
-    this.mongoDB.on('open', this.connected);
-    this.mongoDB.on('error', this.error);
+    this.mongoDB.on("open", this.connected);
+    this.mongoDB.on("error", this.error);
 
     this.models = {
       PropertyRent: new PropertyRent().model,
@@ -106,14 +103,13 @@ export class DB {
       Transaction: new Transaction().model,
       Buyer: new Buyer().model,
       Preference: new Preference().model,
-      BriefMatch: new BriefMatch().model,
       DocumentVerification: new DocumentVerification().model,
       Notification: new Notification().model,
       Testimonial: new Testimonial().model,
-      Referral: new Referral().model,
-      ReferralCommission:new ReferralCommission().model,
+      ContactUs: new ContactUs().model,
       VerificationToken: VerificationToken,
       PasswordResetToken: PasswordResetToken,
+      MatchedPreferenceProperty: MatchedPreferenceProperty,
     };
   }
 
@@ -126,18 +122,33 @@ export class DB {
   }
 
   private connected() {
-    console.info('Mongoose has connected');
+    console.info("Mongoose has connected");
   }
 
   private error(error: Error) {
-    console.info('Mongoose has errored', error);
+    console.info("Mongoose has errored", error);
   }
 }
 
-export { AgentController, IAgentController } from './Agent';
-export { PropertyRentController, IPropertyRentController } from './Property.Rent';
-export { PropertySellController, IPropertySellController } from './Property.Sell';
-export { BuyerOrRentPropertyRentController, IBuyerOrRentPropertyRentController } from './Property.Rent.Request';
+export { AgentController, IAgentController } from "./Agent";
+export {
+  PropertyRentController,
+  IPropertyRentController,
+} from "./Property.Rent";
+export {
+  PropertySellController,
+  IPropertySellController,
+} from "./Property.Sell";
+export {
+  BuyerOrRentPropertyRentController,
+  IBuyerOrRentPropertyRentController,
+} from "./Property.Rent.Request";
 
-export { BuyerOrRentPropertySellController, IBuyerOrRentPropertySellController } from './Property.Sell.Request';
-export { PropertyRequestController, IPropertRequestController } from './Property.Request';
+export {
+  BuyerOrRentPropertySellController,
+  IBuyerOrRentPropertySellController,
+} from "./Property.Sell.Request";
+export {
+  PropertyRequestController,
+  IPropertRequestController,
+} from "./Property.Request";

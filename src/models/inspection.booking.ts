@@ -1,8 +1,5 @@
-import { Schema, model, Document, Types, Model } from 'mongoose';
+import { Schema, model, Document, Types, Model } from "mongoose";
 
-/**
- * Interface for Inspection Booking records.
- */
 export interface IInspectionBooking {
   propertyId: Types.ObjectId;
   bookedBy: Types.ObjectId;
@@ -11,17 +8,17 @@ export interface IInspectionBooking {
   inspectionTime: string;
 
   status:
-    | 'pending_transaction'
-    | 'transaction_failed'
-    | 'active_negotiation'
-    | 'inspection_approved'
-    | 'inspection_rescheduled'
-    | 'negotiation_countered'
-    | 'negotiation_accepted'
-    | 'negotiation_rejected'
-    | 'negotiation_cancelled'
-    | 'completed'
-    | 'cancelled';
+    | "pending_transaction"
+    | "transaction_failed"
+    | "active_negotiation"
+    | "inspection_approved"
+    | "inspection_rescheduled"
+    | "negotiation_countered"
+    | "negotiation_accepted"
+    | "negotiation_rejected"
+    | "negotiation_cancelled"
+    | "completed"
+    | "cancelled";
 
   slotId: Types.ObjectId;
   requestedBy: Types.ObjectId;
@@ -29,8 +26,14 @@ export interface IInspectionBooking {
 
   isNegotiating: boolean;
   isLOI: boolean;
-  inspectionType: 'price' | 'LOI';
-  inspectionStatus?: 'accepted' | 'rejected' | 'countered' | 'requested_changes' | 'new';
+  inspectionType: "price" | "LOI";
+  inspectionMode: "in_person" | "virtual" | "developer_visit";
+  inspectionStatus?:
+    | "accepted"
+    | "rejected"
+    | "countered"
+    | "requested_changes"
+    | "new";
 
   negotiationPrice: number;
   letterOfIntention?: string;
@@ -38,8 +41,10 @@ export interface IInspectionBooking {
 
   owner: Types.ObjectId;
 
-  pendingResponseFrom?: 'buyer' | 'seller' | 'admin';
-  stage: 'negotiation' | 'inspection' | 'completed' | 'cancelled';
+  pendingResponseFrom?: "buyer" | "seller" | "admin";
+  stage: "negotiation" | "inspection" | "completed" | "cancelled";
+
+  counterCount: number; // Track how many times the price has been countered
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {}
@@ -52,7 +57,11 @@ export class InspectionBooking {
   constructor() {
     const schema = new Schema<IInspectionBookingDoc>(
       {
-        propertyId: { type: Schema.Types.ObjectId, required: true, ref: 'Property' },
+        propertyId: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "Property",
+        },
         bookedBy: { type: Schema.Types.ObjectId },
         bookedByModel: { type: String },
         inspectionDate: { type: Date },
@@ -62,38 +71,58 @@ export class InspectionBooking {
           type: String,
           required: true,
           enum: [
-             'pending_transaction',
-             'transaction_failed',
-             'active_negotiation',
-             'inspection_approved',
-             'inspection_rescheduled',
-             'negotiation_countered',
-             'negotiation_accepted',
-             'negotiation_rejected',
-             'negotiation_cancelled',
-             'completed',
-             'cancelled'
+            "pending_transaction",
+            "transaction_failed",
+            "active_negotiation",
+            "inspection_approved",
+            "inspection_rescheduled",
+            "negotiation_countered",
+            "negotiation_accepted",
+            "negotiation_rejected",
+            "negotiation_cancelled",
+            "completed",
+            "cancelled",
           ],
-          default: 'pending_transaction',
+          default: "pending_transaction",
         },
 
         slotId: { type: Schema.Types.ObjectId },
-        requestedBy: { type: Schema.Types.ObjectId, required: true, ref: 'Buyer' },
-        transaction: { type: Schema.Types.ObjectId, required: true, ref: 'Transaction' },
+        requestedBy: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "Buyer",
+        },
+        transaction: {
+          type: Schema.Types.ObjectId,
+          required: true,
+          ref: "Transaction",
+        },
 
         isNegotiating: { type: Boolean, default: false },
         isLOI: { type: Boolean, default: false },
- 
+
         inspectionType: {
           type: String,
-          enum: ['price', 'LOI'],
-          default: 'price',
+          enum: ["price", "LOI"],
+          default: "price",
+        },
+
+        inspectionMode: {
+          type: String,
+          enum: ["in_person", "virtual", "developer_visit"],
+          required: true,
         },
 
         inspectionStatus: {
           type: String,
-          enum: ['accepted', 'rejected', 'countered', 'requested_changes', 'new'],
-          default: 'new',
+          enum: [
+            "accepted",
+            "rejected",
+            "countered",
+            "requested_changes",
+            "new",
+          ],
+          default: "new",
         },
 
         negotiationPrice: { type: Number, default: 0 },
@@ -101,27 +130,41 @@ export class InspectionBooking {
 
         reason: { type: String },
 
-        owner: { type: Schema.Types.ObjectId, required: true, ref: 'User' },
+        owner: { type: Schema.Types.ObjectId, required: true, ref: "User" },
 
         pendingResponseFrom: {
           type: String,
-          enum: ['buyer', 'seller', 'admin'],
-          default: 'admin',
+          enum: ["buyer", "seller", "admin"],
+          default: "admin",
         },
 
         stage: {
           type: String,
-          enum: ['negotiation', 'inspection', 'completed', 'cancelled'],
-          default: 'negotiation',
+          enum: ["negotiation", "inspection", "completed", "cancelled"],
+          default: "negotiation",
         },
+
+        counterCount: { type: Number, default: 0 },
       },
-      { timestamps: true }
+      { timestamps: true },
     );
 
-    this.InspectionBookingModel = model<IInspectionBookingDoc>('InspectionBooking', schema);
+    this.InspectionBookingModel = model<IInspectionBookingDoc>(
+      "InspectionBooking",
+      schema,
+    );
   }
 
   public get model(): IInspectionBookingModel {
     return this.InspectionBookingModel;
+  }
+
+  /**
+   * Utility function to check counter limit before updating
+   */
+  public async canCounter(id: string): Promise<boolean> {
+    const record = await this.model.findById(id);
+    if (!record) return false;
+    return record.counterCount < 3;
   }
 }

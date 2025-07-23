@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { DB } from '..';
+import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { verifyEmailTemplate } from "../../common/email.template";
@@ -11,12 +11,16 @@ import { generateUniqueAccountId } from "../../utils/generateUniqueAccountId";
 
 /**
  * Traditional Registration
- * @param req 
- * @param res 
- * @param next 
- * @returns 
+ * @param req
+ * @param res
+ * @param next
+ * @returns
  */
-export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
+export const registerUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const {
       firstName,
@@ -30,10 +34,15 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
     } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
-    const existingUser = await DB.Models.User.findOne({ email: normalizedEmail });
+    const existingUser = await DB.Models.User.findOne({
+      email: normalizedEmail,
+    });
 
     if (existingUser) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Account already exists with this email.");
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Account already exists with this email.",
+      );
     }
 
     let referrerUser = null;
@@ -42,7 +51,10 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       referrerUser = await DB.Models.User.findOne({ referralCode });
 
       if (!referrerUser) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid referral code.");
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Invalid referral code.",
+        );
       }
     }
 
@@ -50,7 +62,10 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
     const accountId = await generateUniqueAccountId();
 
     // Generate unique referral code for this new user
-    const selfReferralCode = crypto.randomBytes(6).toString("hex").toUpperCase();
+    const selfReferralCode = crypto
+      .randomBytes(6)
+      .toString("hex")
+      .toUpperCase();
 
     // Create the new user
     const newUser = await DB.Models.User.create({
@@ -62,8 +77,6 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       phoneNumber,
       address,
       accountId,
-      referralCode: selfReferralCode,
-      referredBy: referrerUser?.referralCode || null,
       isAccountInRecovery: false,
       profile_picture: "",
       isInActive: false,
@@ -76,16 +89,9 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
 
     // If the user is an agent, create agent profile
     if (userType === "Agent") {
-      await DB.Models.Agent.create({ userId: newUser._id, accountStatus: "active" });
-    }
-
-    // If referred, log referral relationship
-    if (referrerUser) {
-      await DB.Models.Referral.create({
-        referrer: referrerUser._id,
-        referredUser: newUser._id,
-        referrerUserType: referrerUser.userType,
-        status: "pending",
+      await DB.Models.Agent.create({
+        userId: newUser._id,
+        accountStatus: "active",
       });
     }
 
@@ -114,7 +120,6 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       success: true,
       message: "Account created successfully. Please verify your email.",
     });
-
   } catch (err: any) {
     console.error("Registration Error:", err.message);
     next(err);

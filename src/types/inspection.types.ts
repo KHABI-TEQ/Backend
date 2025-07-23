@@ -1,4 +1,3 @@
-
 export interface NewInspectionRequest {
   briefType: string;
   properties: {
@@ -19,7 +18,6 @@ export interface NewInspectionRequest {
   };
 }
 
-
 // Type definitions for inspection actions
 export interface InspectionActionData {
   action: "accept" | "reject" | "counter" | "request_changes";
@@ -31,6 +29,16 @@ export interface InspectionActionData {
   reason?: string;
   rejectionReason?: string;
   documentUrl?: string;
+}
+
+export type InspectionMode = "in_person" | "virtual" | "developer_visit";
+
+// Define a type for the individual property object within the array
+export interface SubmitPropertyDetail {
+  propertyId: string;
+  negotiationPrice?: number;
+  letterOfIntention?: string;
+  inspectionMode?: InspectionMode; // Add inspectionMode here
 }
 
 export interface SubmitInspectionPayload {
@@ -46,11 +54,7 @@ export interface SubmitInspectionPayload {
     fullName: string;
     transactionReceipt: string;
   };
-  properties: Array<{
-    propertyId: string;
-    negotiationPrice?: number;
-    letterOfIntention?: string;
-  }>;
+  properties: SubmitPropertyDetail[]; // Use the new type for the array elements
 }
 
 // Type definitions for update objects
@@ -86,6 +90,7 @@ export interface CounterUpdateData extends BaseUpdateData {
   stage: "negotiation";
   negotiationPrice?: number;
   letterOfIntention?: string;
+  counterCount: number;
 }
 
 export interface RequestChangesUpdateData extends BaseUpdateData {
@@ -97,7 +102,11 @@ export interface RequestChangesUpdateData extends BaseUpdateData {
   pendingResponseFrom: "buyer";
 }
 
-export type UpdateData = AcceptUpdateData | RejectUpdateData | CounterUpdateData | RequestChangesUpdateData;
+export type UpdateData =
+  | AcceptUpdateData
+  | RejectUpdateData
+  | CounterUpdateData
+  | RequestChangesUpdateData;
 
 export interface EmailData {
   propertyType?: string;
@@ -123,6 +132,7 @@ export interface EmailData {
   rejectLink?: string;
   browseLink?: string;
   responseLink?: string;
+  counterCount?: number;
 }
 
 export interface ActionResult {

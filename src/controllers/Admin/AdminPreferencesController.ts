@@ -1,8 +1,7 @@
-import { DB } from '..';
-import { RouteError } from '../../common/classes';
-import HttpStatusCodes from '../../common/HttpStatusCodes';
-import { Types } from 'mongoose';
-
+import { DB } from "..";
+import { RouteError } from "../../common/classes";
+import HttpStatusCodes from "../../common/HttpStatusCodes";
+import { Types } from "mongoose";
 
 interface GetPreferencesQuery {
   page: number;
@@ -18,7 +17,6 @@ interface GetPreferencesQuery {
 }
 
 export class AdminPreferencesController {
-
   public async getPreferencesForBuyers(query: GetPreferencesQuery) {
     const {
       page,
@@ -33,22 +31,27 @@ export class AdminPreferencesController {
     } = query;
 
     const skip = (page - 1) * limit;
-    const preferenceFilter: any = { preferenceType: 'buy' }; // <- Restrict to only 'buy'
+    const preferenceFilter: any = { preferenceType: "buy" }; // <- Restrict to only 'buy'
 
     if (status) preferenceFilter.status = status;
-    if (state) preferenceFilter['location.state'] = state;
-    if (localGovernment) preferenceFilter['location.localGovernment'] = localGovernment;
-    if (area) preferenceFilter['location.area'] = area;
+    if (state) preferenceFilter["location.state"] = state;
+    if (localGovernment)
+      preferenceFilter["location.localGovernment"] = localGovernment;
+    if (area) preferenceFilter["location.area"] = area;
 
     const queryBuilder = DB.Models.Preference.find(preferenceFilter)
       .populate({
-        path: 'buyer',
+        path: "buyer",
         match: {
-          ...(buyerName && { fullName: { $regex: new RegExp(buyerName, 'i') } }),
-          ...(buyerEmail && { email: { $regex: new RegExp(buyerEmail, 'i') } }),
-          ...(buyerPhone && { phoneNumber: { $regex: new RegExp(buyerPhone, 'i') } }),
+          ...(buyerName && {
+            fullName: { $regex: new RegExp(buyerName, "i") },
+          }),
+          ...(buyerEmail && { email: { $regex: new RegExp(buyerEmail, "i") } }),
+          ...(buyerPhone && {
+            phoneNumber: { $regex: new RegExp(buyerPhone, "i") },
+          }),
         },
-        select: 'fullName email phoneNumber',
+        select: "fullName email phoneNumber",
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -61,31 +64,31 @@ export class AdminPreferencesController {
     ]);
 
     const filtered = preferences
-      .filter(p => p.buyer)
-      .map(p => {
+      .filter((p) => p.buyer)
+      .map((p) => {
         let formattedFeatures: string[] = [];
         if (Array.isArray(p.features) && p.features.length > 0) {
           formattedFeatures = p.features.slice(0, 2);
           if (p.features.length > 2) {
-            formattedFeatures.push('...');
+            formattedFeatures.push("...");
           }
         }
 
         return {
           _id: p._id,
           buyer: p.buyer,
-          preferenceType: p.preferenceType,
-          location: p.location,
-          budgetMin: p.budgetMin,
-          budgetMax: p.budgetMax,
-          propertyType: p.propertyType,
-          propertyCondition: p.propertyCondition,
-          measurementType: p.measurementType,
-          landSize: p.landSize,
-          noOfBedrooms: p.noOfBedrooms,
-          noOfBathrooms: p.noOfBathrooms,
-          documents: p.documents,
-          features: formattedFeatures,
+          // preferenceType: p.preferenceType,
+          // location: p.location,
+          // budgetMin: p.budgetMin,
+          // budgetMax: p.budgetMax,
+          // propertyType: p.propertyType,
+          // propertyCondition: p.propertyCondition,
+          // measurementType: p.measurementType,
+          // landSize: p.landSize,
+          // noOfBedrooms: p.noOfBedrooms,
+          // noOfBathrooms: p.noOfBathrooms,
+          // documents: p.documents,
+          // features: formattedFeatures,
           status: p.status,
           createdAt: p.createdAt,
         };
@@ -104,26 +107,26 @@ export class AdminPreferencesController {
 
   public async getPreferencesForBuyer(buyerId: string) {
     if (!Types.ObjectId.isValid(buyerId)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid buyer ID');
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid buyer ID");
     }
 
     const buyer = await DB.Models.Buyer.findById(buyerId).lean();
     if (!buyer) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Buyer not found');
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Buyer not found");
     }
 
     const preferences = await DB.Models.Preference.find({
       buyer: buyerId,
-      preferenceType: 'buy', // <- Only preferences with type "buy"
+      preferenceType: "buy", // <- Only preferences with type "buy"
     })
       .populate({
-        path: 'buyer',
-        select: 'fullName email phoneNumber',
+        path: "buyer",
+        select: "fullName email phoneNumber",
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    const activeStatuses = ['pending', 'approved', 'matched'];
+    const activeStatuses = ["pending", "approved", "matched"];
     const active: any[] = [];
     const closed: any[] = [];
 
@@ -131,21 +134,21 @@ export class AdminPreferencesController {
       const result = {
         _id: p._id,
         buyer: p.buyer,
-        propertyType: p.propertyType,
-        propertyCondition: p.propertyCondition,
-        preferenceType: p.preferenceType,
-        location: p.location,
-        measurementType: p.measurementType,
-        landSize: p.landSize,
-        budgetMin: p.budgetMin,
-        budgetMax: p.budgetMax,
-        documents: p.documents,
-        noOfBedrooms: p.noOfBedrooms,
-        noOfBathrooms: p.noOfBathrooms,
-        features: p.features,
-        additionalInfo: p.additionalInfo,
-        assignedAgent: p.assignedAgent,
-        status: p.status,
+        // propertyType: p.propertyType,
+        // propertyCondition: p.propertyCondition,
+        // preferenceType: p.preferenceType,
+        // location: p.location,
+        // measurementType: p.measurementType,
+        // landSize: p.landSize,
+        // budgetMin: p.budgetMin,
+        // budgetMax: p.budgetMax,
+        // documents: p.documents,
+        // noOfBedrooms: p.noOfBedrooms,
+        // noOfBathrooms: p.noOfBathrooms,
+        // features: p.features,
+        // additionalInfo: p.additionalInfo,
+        // assignedAgent: p.assignedAgent,
+        // status: p.status,
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       };
@@ -163,5 +166,4 @@ export class AdminPreferencesController {
       total: preferences.length,
     };
   }
-
 }

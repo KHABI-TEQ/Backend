@@ -1,29 +1,30 @@
-import { DB } from '..';
-import mongoose from "mongoose"
-import sendEmail from '../../common/send.email';
-import { Request, Response } from 'express';
-import { RouteError } from '../../common/classes';
-import { IInspectionBooking } from '../../models';
-import HttpStatusCodes from '../../common/HttpStatusCodes';
+import { DB } from "..";
+import mongoose from "mongoose";
+import sendEmail from "../../common/send.email";
+import { Request, Response } from "express";
+import { RouteError } from "../../common/classes";
+import { IInspectionBooking } from "../../models";
+import HttpStatusCodes from "../../common/HttpStatusCodes";
 import {
   generalTemplate,
   InspectionRequestWithNegotiation,
   InspectionRequestWithNegotiationSellerTemplate,
   InspectionTransactionRejectionTemplate,
-} from '../../common/email.template';
-import notificationService from '../../services/notification.service';
-import { InspectionLogService } from '../../services/inspectionLog.service';
-import { AdminRequest } from 'custom';
+} from "../../common/email.template";
+import notificationService from "../../services/notification.service";
+import { InspectionLogService } from "../../services/inspectionLog.service";
+import { AppRequest } from "../../types/express";
 
 export class AdminInspectionController {
-
-
-    /**
+  /**
    * Fetch all inspection bookings with optional filters
    * @param req Express request
    * @param res Express response
    */
-  public async getAllInspections(req: Request, res: Response): Promise<Response> {
+  public async getAllInspections(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       const {
         page = 1,
@@ -39,26 +40,28 @@ export class AdminInspectionController {
 
       if (status) query.status = status;
       if (stage) query.stage = stage;
-      if (propertyId && mongoose.isValidObjectId(propertyId)) query.propertyId = propertyId;
+      if (propertyId && mongoose.isValidObjectId(propertyId))
+        query.propertyId = propertyId;
       if (owner && mongoose.isValidObjectId(owner)) query.owner = owner;
-      if (typeof isNegotiating !== 'undefined') query.isNegotiating = isNegotiating === 'true';
+      if (typeof isNegotiating !== "undefined")
+        query.isNegotiating = isNegotiating === "true";
 
       const currentPage = Math.max(1, parseInt(page as string, 10));
       const perPage = Math.min(100, parseInt(limit as string, 10));
 
       const total = await DB.Models.InspectionBooking.countDocuments(query);
       const inspections = await DB.Models.InspectionBooking.find(query)
-        .populate('propertyId')
-        .populate('owner')
-        .populate('requestedBy')
-        .populate('transaction')
+        .populate("propertyId")
+        .populate("owner")
+        .populate("requestedBy")
+        .populate("transaction")
         .skip((currentPage - 1) * perPage)
         .limit(perPage)
         .sort({ createdAt: -1 });
 
       return res.status(200).json({
         success: true,
-        message: 'Inspections fetched successfully',
+        message: "Inspections fetched successfully",
         data: inspections,
         pagination: {
           total,
@@ -68,118 +71,137 @@ export class AdminInspectionController {
         },
       });
     } catch (error: any) {
-      console.error('Error fetching inspections:', error);
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch inspections');
+      console.error("Error fetching inspections:", error);
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        "Failed to fetch inspections",
+      );
     }
   }
-
 
   /**
    * Get a single inspection with transaction and buyer details
    */
-  public async getSingleInspection(req: Request, res: Response): Promise<Response> {
-      const { id } = req.params;
+  public async getSingleInspection(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
+    const { id } = req.params;
 
-      if (!mongoose.isValidObjectId(id)) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection ID');
-      }
-
-      const inspection = await DB.Models.InspectionBooking.findById(id)
-        .populate({
-          path: 'transaction',
-          model: DB.Models.Transaction.modelName,
-          populate: {
-            path: 'buyerId',
-            model: DB.Models.Buyer.modelName,
-          },
-        })
-        .populate('propertyId')
-        .populate('owner')
-        .populate('requestedBy');
-
-      if (!inspection) {
-        throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: 'Inspection details fetched successfully',
-        data: inspection,
-      });
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Invalid inspection ID",
+      );
     }
 
+    const inspection = await DB.Models.InspectionBooking.findById(id)
+      .populate({
+        path: "transaction",
+        model: DB.Models.Transaction.modelName,
+        populate: {
+          path: "buyerId",
+          model: DB.Models.Buyer.modelName,
+        },
+      })
+      .populate("propertyId")
+      .populate("owner")
+      .populate("requestedBy");
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Inspection details fetched successfully",
+      data: inspection,
+    });
+  }
 
   /**
    * Update the inspection's status (e.g., approve, reject transaction, etc.)
    */
 
-  public async updateInspectionStatus(req: AdminRequest, res: Response): Promise<Response> {
+  public async updateInspectionStatus(
+    req: AppRequest,
+    res: Response,
+  ): Promise<Response> {
     const { id } = req.params;
     const { status } = req.body;
 
-    const allowedStatuses = ['approve', 'reject'];
+    const allowedStatuses = ["approve", "reject"];
 
     if (!mongoose.isValidObjectId(id)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection ID');
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Invalid inspection ID",
+      );
     }
 
     if (!allowedStatuses.includes(status)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid inspection status');
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Invalid inspection status",
+      );
     }
 
     const inspection = await DB.Models.InspectionBooking.findById(id)
-      .populate('transaction')
-      .populate('requestedBy')
-      .populate('propertyId')
-      .populate('owner');
+      .populate("transaction")
+      .populate("requestedBy")
+      .populate("propertyId")
+      .populate("owner");
 
     if (!inspection) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, 'Inspection not found');
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
 
     const currentStatus = inspection.status;
 
     // Prevent re-approving already approved
     if (
-      (currentStatus === 'active_negotiation' || currentStatus === 'negotiation_countered') &&
-      status === 'approve'
+      (currentStatus === "active_negotiation" ||
+        currentStatus === "negotiation_countered") &&
+      status === "approve"
     ) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        'Inspection has already been approved. Cannot approve again.'
+        "Inspection has already been approved. Cannot approve again.",
       );
     }
 
-    let updatedStatus: IInspectionBooking['status'];
-    let updatedStage: IInspectionBooking['stage'];
-    let pendingResponseFrom: IInspectionBooking['pendingResponseFrom'];
+    let updatedStatus: IInspectionBooking["status"];
+    let updatedStage: IInspectionBooking["stage"];
+    let pendingResponseFrom: IInspectionBooking["pendingResponseFrom"];
 
     // Handle rejection
-    if (status === 'reject') {
-      updatedStatus = 'transaction_failed';
-      updatedStage = 'cancelled';
-      pendingResponseFrom = 'admin';
+    if (status === "reject") {
+      updatedStatus = "transaction_failed";
+      updatedStage = "cancelled";
+      pendingResponseFrom = "admin";
     }
 
     // Handle approval with conditional logic
-    if (status === 'approve') {
-      const isPrice = inspection.inspectionType === 'price';
-      const isLOI = inspection.inspectionType === 'LOI';
+    if (status === "approve") {
+      const isPrice = inspection.inspectionType === "price";
+      const isLOI = inspection.inspectionType === "LOI";
       const hasNegotiationPrice = inspection.negotiationPrice > 0;
       const hasLOIDocument =
         inspection.letterOfIntention &&
-        inspection.letterOfIntention.trim() !== '';
+        inspection.letterOfIntention.trim() !== "";
 
       if (isPrice) {
         inspection.isNegotiating = hasNegotiationPrice;
-        updatedStage = hasNegotiationPrice ? 'negotiation' : 'inspection';
+        updatedStage = hasNegotiationPrice ? "negotiation" : "inspection";
       } else if (isLOI) {
         inspection.isLOI = !!hasLOIDocument;
-        updatedStage = hasLOIDocument ? 'negotiation' : 'inspection';
+        updatedStage = hasLOIDocument ? "negotiation" : "inspection";
       }
 
-      pendingResponseFrom = 'seller';
-      updatedStatus = inspection.isNegotiating ? 'negotiation_countered' : 'active_negotiation';
+      pendingResponseFrom = "seller";
+      updatedStatus = inspection.isNegotiating
+        ? "negotiation_countered"
+        : "active_negotiation";
     }
 
     inspection.pendingResponseFrom = pendingResponseFrom;
@@ -193,8 +215,9 @@ export class AdminInspectionController {
     const owner = inspection.owner as any;
 
     const location = `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`;
-    const formattedPrice = property.price?.toLocaleString('en-US') ?? 'N/A';
-    const negotiationPrice = inspection.negotiationPrice?.toLocaleString('en-US') ?? 'N/A';
+    const formattedPrice = property.price?.toLocaleString("en-US") ?? "N/A";
+    const negotiationPrice =
+      inspection.negotiationPrice?.toLocaleString("en-US") ?? "N/A";
 
     const emailData = {
       propertyType: property.propertyType,
@@ -209,13 +232,17 @@ export class AdminInspectionController {
     };
 
     // Rejection email flow
-    if (status === 'reject') {
+    if (status === "reject") {
       // send mail to buyer only
-      const buyerRejectionHtml = InspectionTransactionRejectionTemplate(buyer.fullName, {
-        ...emailData,
-        rejectionReason: 'Your inspection request was not approved. Please contact support for more info.',
-      });
-      
+      const buyerRejectionHtml = InspectionTransactionRejectionTemplate(
+        buyer.fullName,
+        {
+          ...emailData,
+          rejectionReason:
+            "Your inspection request was not approved. Please contact support for more info.",
+        },
+      );
+
       await sendEmail({
         to: buyer.email,
         subject: `Inspection Request Rejected`,
@@ -227,8 +254,8 @@ export class AdminInspectionController {
         inspectionId: inspection._id.toString(),
         propertyId: property._id.toString(),
         senderId: req.admin?._id.toString(),
-        senderModel: 'Admin',
-        senderRole: 'admin',
+        senderModel: "Admin",
+        senderRole: "admin",
         message: `Inspection transaction rejected by admin.`,
         status: updatedStatus,
         stage: updatedStage,
@@ -236,26 +263,29 @@ export class AdminInspectionController {
     }
 
     // Approval flow
-    if (status === 'approve') {
+    if (status === "approve") {
       await InspectionLogService.logActivity({
         inspectionId: inspection._id.toString(),
         propertyId: property._id.toString(),
         senderId: req.admin?._id.toString(),
-        senderModel: 'Admin',
-        senderRole: 'admin',
+        senderModel: "Admin",
+        senderRole: "admin",
         message: `Inspection transaction approved successfully - status updated to ${updatedStatus}`,
         status: updatedStatus,
         stage: updatedStage,
       });
 
-      const buyerEmailHtml = InspectionRequestWithNegotiation(buyer.fullName, emailData);
+      const buyerEmailHtml = InspectionRequestWithNegotiation(
+        buyer.fullName,
+        emailData,
+      );
 
       const sellerEmailHtml = InspectionRequestWithNegotiationSellerTemplate(
         owner.fullName || owner.firstName,
         {
           ...emailData,
           responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
-        }
+        },
       );
 
       await sendEmail({
@@ -276,7 +306,7 @@ export class AdminInspectionController {
 
       await notificationService.createNotification({
         user: owner._id,
-        title: 'New Inspection Request',
+        title: "New Inspection Request",
         message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
         meta: {
           propertyId: property._id,
@@ -293,42 +323,48 @@ export class AdminInspectionController {
     });
   }
 
-
-
-  public async getInspectionStats(req: Request, res: Response): Promise<Response> {
+  public async getInspectionStats(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       // 1. Count total inspections
-      const totalInspections = await DB.Models.InspectionBooking.countDocuments();
+      const totalInspections =
+        await DB.Models.InspectionBooking.countDocuments();
 
       // 2. Count pending inspections
-      const totalPendingInspections = await DB.Models.InspectionBooking.countDocuments({
-        status: 'pending_transaction',
-      });
+      const totalPendingInspections =
+        await DB.Models.InspectionBooking.countDocuments({
+          status: "pending_transaction",
+        });
 
       // 3. Count completed inspections
-      const totalCompletedInspections = await DB.Models.InspectionBooking.countDocuments({
-        status: 'completed',
-      });
+      const totalCompletedInspections =
+        await DB.Models.InspectionBooking.countDocuments({
+          status: "completed",
+        });
 
       // 4. Count cancelled inspections
-      const totalCancelledInspections = await DB.Models.InspectionBooking.countDocuments({
-        status: 'cancelled',
-      });
+      const totalCancelledInspections =
+        await DB.Models.InspectionBooking.countDocuments({
+          status: "cancelled",
+        });
 
       // 5. Count active negotiations
-      const activeNegotiationStatuses: IInspectionBooking['status'][] = [
-        'active_negotiation',
-        'inspection_approved',
-        'inspection_rescheduled',
-        'negotiation_countered',
-        'negotiation_accepted',
-        'negotiation_rejected',
-        'negotiation_cancelled',
+      const activeNegotiationStatuses: IInspectionBooking["status"][] = [
+        "active_negotiation",
+        "inspection_approved",
+        "inspection_rescheduled",
+        "negotiation_countered",
+        "negotiation_accepted",
+        "negotiation_rejected",
+        "negotiation_cancelled",
       ];
 
-      const totalActiveNegotiations = await DB.Models.InspectionBooking.countDocuments({
-        status: { $in: activeNegotiationStatuses },
-      });
+      const totalActiveNegotiations =
+        await DB.Models.InspectionBooking.countDocuments({
+          status: { $in: activeNegotiationStatuses },
+        });
 
       // 6. Return as structured response
       return res.status(200).json({
@@ -342,11 +378,17 @@ export class AdminInspectionController {
         },
       });
     } catch (error: any) {
-      throw new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, error.message || 'Error getting stats');
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        error.message || "Error getting stats",
+      );
     }
   }
 
-  public async getInspectionLogs(req: Request, res: Response): Promise<Response> {
+  public async getInspectionLogs(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
     try {
       const { propertyId, inspectionId } = req.query;
       const page = parseInt(req.query.page as string) || 1;
@@ -354,7 +396,10 @@ export class AdminInspectionController {
       const skip = (page - 1) * limit;
 
       if (!propertyId && !inspectionId) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'propertyId or inspectionId is required');
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "propertyId or inspectionId is required",
+        );
       }
 
       const filter: Record<string, any> = {};
@@ -366,26 +411,27 @@ export class AdminInspectionController {
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
-          .populate('senderId', '_id firstName lastName fullName email') // fullName added
+          .populate("senderId", "_id firstName lastName fullName email") // fullName added
           .lean(),
         DB.Models.InspectionActivityLog.countDocuments(filter),
       ]);
 
-      const formattedLogs = logs.map(log => {
+      const formattedLogs = logs.map((log) => {
         const sender: any = log.senderId;
         const senderName =
-          sender?.fullName || `${sender?.firstName || ''} ${sender?.lastName || ''}`.trim();
+          sender?.fullName ||
+          `${sender?.firstName || ""} ${sender?.lastName || ""}`.trim();
 
         return {
           ...log,
-          senderName: senderName || 'Unknown',
-          senderEmail: sender?.email || '',
+          senderName: senderName || "Unknown",
+          senderEmail: sender?.email || "",
         };
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Inspection logs fetched successfully',
+        message: "Inspection logs fetched successfully",
         data: formattedLogs,
         pagination: {
           total,
@@ -397,11 +443,8 @@ export class AdminInspectionController {
     } catch (error: any) {
       throw new RouteError(
         HttpStatusCodes.INTERNAL_SERVER_ERROR,
-        error.message || 'Error fetching logs'
+        error.message || "Error fetching logs",
       );
     }
   }
-
-
-
 }
