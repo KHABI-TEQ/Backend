@@ -93,13 +93,11 @@ export const getAllTestimonials = async (req: AppRequest, res: Response, next: N
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Testimonials fetched successfully",
-      data: {
-        testimonials,
-        pagination: {
-          total,
-          page: +page,
-          limit: +limit,
-        },
+      data: testimonials,
+      pagination: {
+        total,
+        page: +page,
+        limit: +limit,
       },
     });
   } catch (err) {
