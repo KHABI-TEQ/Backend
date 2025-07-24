@@ -24,7 +24,7 @@ import { updatePropertyStatusAsAdmin } from "../controllers/Admin/Property/updat
 import { approvePreference } from "../controllers/Admin/preference/approvePreference";
 import { createTestimonial, deleteTestimonial, getAllTestimonials, getLatestApprovedTestimonials, getTestimonial, updateTestimonial, updateTestimonialStatus } from "../controllers/Admin/ExtralPages/testimonials";
 import { createBuyer, deleteBuyer, getAllBuyers, getBuyerPreferences, getSingleBuyer, updateBuyer } from "../controllers/Admin/Account/buyers";
-import { rejectPreference } from "src/controllers/Admin/preference/rejectPreference";
+import { rejectPreference } from "../controllers/Admin/preference/rejectPreference";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
