@@ -303,7 +303,7 @@ export const accountApproved = (name: string): string => {
                 <p>Welcome to Khabi-Teq Realty! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
                 <p>Get ready to unlock new opportunities and grow your real estate career with us.</p>
         `;
-};
+}; 
 
 export const accountDisaapproved = (name: string): string => {
 	return `

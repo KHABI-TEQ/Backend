@@ -51,8 +51,10 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: 'Login successful',
-        token,
-        user: userResponse,
+        data: {
+          token,
+          user: userResponse,
+        }
     });
 };
 

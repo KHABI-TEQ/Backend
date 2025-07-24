@@ -34,7 +34,7 @@ export const fetchUserInspections = async (
 
     const inspections = await DB.Models.InspectionBooking.find(filter)
       .populate("propertyId")
-      .populate("requestedBy")
+      .populate("-requestedBy")
       .populate("transaction")
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
@@ -51,6 +51,36 @@ export const fetchUserInspections = async (
         limit: Number(limit),
         totalPages: Math.ceil(total / Number(limit)),
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getOneUserInspection = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { inspectionId } = req.params;
+
+    const inspection = await DB.Models.InspectionBooking.findOne({
+      _id: inspectionId,
+      owner: req.user._id,
+    })
+      .populate("propertyId")
+      .populate("requestedBy")
+      .populate("transaction");
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: inspection,
     });
   } catch (err) {
     next(err);

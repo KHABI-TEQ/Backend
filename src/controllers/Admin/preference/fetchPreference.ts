@@ -12,7 +12,6 @@ export const getPreferencesByMode = async (
 ) => {
   try {
     const {
-      preferenceMode, // Required
       status,
       assignedAgent,
       buyerId,
@@ -33,10 +32,22 @@ export const getPreferencesByMode = async (
       limit = 20,
     } = req.query;
 
+    const preferenceModeParam = req.params.preferenceMode?.toString().toLowerCase();
+
+    const modeMap: Record<string, string> = {
+      buyers: "buy",
+      tenants: "tenant",
+      shortlets: "shortlet",
+      developers: "developer",
+    };
+
+    const preferenceMode = modeMap[preferenceModeParam || ""];
+
     if (!preferenceMode) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "preferenceMode is required",
+        message:
+          "Invalid preference mode. Use one of: buyers, tenants, shortlets, developers.",
       });
     }
 
@@ -52,22 +63,18 @@ export const getPreferencesByMode = async (
 
     if (minBudget || maxBudget) {
       filter.$and = [];
-      if (minBudget)
-        filter.$and.push({ budgetMin: { $gte: Number(minBudget) } });
-      if (maxBudget)
-        filter.$and.push({ budgetMax: { $lte: Number(maxBudget) } });
+      if (minBudget) filter.$and.push({ budgetMin: { $gte: Number(minBudget) } });
+      if (maxBudget) filter.$and.push({ budgetMax: { $lte: Number(maxBudget) } });
     }
 
-    // Bedrooms/Bathrooms based on preferenceMode
+    // Bedrooms & Bathrooms
     if (minBedrooms) {
       if (preferenceMode === "buy" || preferenceMode === "tenant") {
         filter["propertyDetails.minBedrooms"] = { $gte: Number(minBedrooms) };
       } else if (preferenceMode === "shortlet") {
         filter["bookingDetails.minBedrooms"] = { $gte: Number(minBedrooms) };
       } else if (preferenceMode === "developer") {
-        filter["developmentDetails.minBedrooms"] = {
-          $gte: Number(minBedrooms),
-        };
+        filter["developmentDetails.minBedrooms"] = { $gte: Number(minBedrooms) };
       }
     }
 
@@ -77,9 +84,7 @@ export const getPreferencesByMode = async (
       } else if (preferenceMode === "shortlet") {
         filter["bookingDetails.minBathrooms"] = { $gte: Number(minBathrooms) };
       } else if (preferenceMode === "developer") {
-        filter["developmentDetails.minBathrooms"] = {
-          $gte: Number(minBathrooms),
-        };
+        filter["developmentDetails.minBathrooms"] = { $gte: Number(minBathrooms) };
       }
     }
 
@@ -114,9 +119,7 @@ export const getPreferencesByMode = async (
     }
 
     const skip = (Number(page) - 1) * Number(limit);
-
-    const sortObj: any = {};
-    sortObj[sortBy.toString()] = sortOrder === "asc" ? 1 : -1;
+    const sortObj: any = { [sortBy.toString()]: sortOrder === "asc" ? 1 : -1 };
 
     const preferences = await DB.Models.Preference.find(filter)
       .populate("buyer")
@@ -142,6 +145,7 @@ export const getPreferencesByMode = async (
   }
 };
 
+
 export const getSinglePreference = async (
   req: AppRequest,
   res: Response,
@@ -157,20 +161,42 @@ export const getSinglePreference = async (
       });
     }
 
-    const preference = await DB.Models.Preference.findById(preferenceId)
+    // Fetch the current preference and buyer
+    const currentPreference = await DB.Models.Preference.findById(preferenceId)
       .populate("buyer")
       .populate("assignedAgent");
 
-    if (!preference) {
+    if (!currentPreference) {
       return next(
         new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found"),
       );
     }
 
+    const buyerId = currentPreference.buyer?._id;
+
+    // Fetch all other preferences of that buyer except current
+    const otherPreferences = await DB.Models.Preference.find({
+      _id: { $ne: preferenceId },
+      buyer: buyerId,
+    });
+
+    const activePreferences = otherPreferences.filter((p) =>
+      ["pending", "approved", "matched"].includes(p.status),
+    );
+
+    const closedPreferences = otherPreferences.filter(
+      (p) => p.status === "closed",
+    );
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Preference fetched successfully",
-      data: preference,
+      data: {
+        buyerProfile: currentPreference.buyer,
+        currentPreference,
+        activePreferences,
+        closedPreferences,
+      },
     });
   } catch (err) {
     next(err);

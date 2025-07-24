@@ -72,6 +72,8 @@ export interface IProperty {
   isDeleted?: boolean;
   isRejected?: boolean;
   createdByRole: "user" | "admin"; // Track who created it
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface IPropertyDoc extends IProperty, Document {}

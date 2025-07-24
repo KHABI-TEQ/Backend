@@ -9,6 +9,22 @@ import AdminInspRouter from "./admin.inspections";
 import { formatPropertyDataForTable } from "../utils/propertyFormatters";
 import multer from "multer";
 import { adminAuth } from "../middlewares/adminAuth";
+import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
+import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../controllers/Admin/profileSettings";
+import { createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
+import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
+import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
+import { getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
+import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
+import { selectMatchedPreferenceProperties } from "../controllers/Admin/preference/submitMatchedProperties";
+import { setPropertyApprovalStatus } from "../controllers/Admin/Property/setPropertyApprovalStatus";
+import { deleteProperty } from "../controllers/Account/Property/deleteProperty";
+import { getAllProperties, getPropertyInspections, getPropertyStats, getSinglePropertyDetails } from "../controllers/Admin/Property/fetchProperties";
+import { updatePropertyStatusAsAdmin } from "../controllers/Admin/Property/updatePropertyStatus";
+import { approvePreference } from "../controllers/Admin/preference/approvePreference";
+import { createTestimonial, deleteTestimonial, getAllTestimonials, getLatestApprovedTestimonials, getTestimonial, updateTestimonial, updateTestimonialStatus } from "../controllers/Admin/ExtralPages/testimonials";
+import { createBuyer, deleteBuyer, getAllBuyers, getBuyerPreferences, getSingleBuyer, updateBuyer } from "../controllers/Admin/Account/buyers";
+
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -27,37 +43,10 @@ interface Request extends Express.Request {
   admin?: any;
 }
 
-//=================================
-
-AdminRouter.post(
-  "/assign-buyers-to-preferences",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await adminController.randomlyAssignBuyersToPreferences();
-      return res.status(200).json({ success: true, ...result });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-//================================
 
 // Allow login and create-admin without auth
-AdminRouter.post(
-  "/login",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { email, password } = req.body;
-      const admin = await adminController.login({ email, password });
-      return res.status(200).json({ success: true, admin });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+AdminRouter.post("/login", loginAdmin);
 
-// AdminRouter.use(authorizeAdmin);
 
 /**
  * **************************************************************************
@@ -71,280 +60,84 @@ AdminRouter.use(adminAuth);
 /**
  * ADMIN PROFILE ROUTES
  */
-AdminRouter.get(
-  "/me",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      return res.status(200).json({ success: true, admin: req.admin });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.get(
-  "/profile",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      return res.status(200).json({ success: true, admin: req.admin });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.post(
-  "/change-password",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const admin = req.admin as IAdminDoc;
-      const { newPassword } = req.body;
-
-      // const adminID = admin._id.toString();
-
-      // const response = await adminController.changePassword(
-      //   adminID,
-      //   newPassword,
-      // );
-
-      return res.status(200).json({ success: true });
-
-      // return res.status(200).json({ success: true, message: response });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+AdminRouter.get("/profile", getAdminProfile);
+AdminRouter.get("/profile/update", updateAdminProfile);
+AdminRouter.post("/change-password", changeAdminPassword);
 
 /**
  * ADMIN MANAGEMENT ROUTES
  */
-AdminRouter.get(
-  "/admins",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { page, limit, search, ...filters } = req.query;
-
-      const admins = await adminController.getAdmins({
-        page: parseInt(page as string) || 1,
-        limit: parseInt(limit as string) || 10,
-        search: search as string,
-        filters,
-      });
-
-      return res.status(200).json({ success: true, ...admins });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
-
-AdminRouter.post(
-  "/create-admin",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { email, password, firstName, lastName, phoneNumber, address } =
-        req.body;
-      const admin = await adminController.createAdmin({
-        email,
-        firstName,
-        lastName,
-        phoneNumber,
-        address,
-        password,
-      });
-      return res.status(200).json({ success: true, admin });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.delete(
-  "/admins/:adminId",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { adminId } = req.params;
-      const result = await adminController.deleteAdmin(adminId);
-      return res.status(200).json({ success: true, ...result });
-    } catch (err) {
-      next(err);
-    }
-  },
-);
+AdminRouter.get("/admins/fetchAll", getAdmins);
+AdminRouter.post("/admins/create-admin", createAdmin);
+AdminRouter.get("/admins/:adminId", getSingleAdmin);
+AdminRouter.get("/admins/:adminId/update", updateAdmin);
+AdminRouter.delete("/admins/:adminId", deleteAdmin);
 
 /**
- * AGENTS AND LANDOWNERS MANAGEMENT ROUTES
+ * AGENTS MANAGEMENT ROUTES
  */
-AdminRouter.get(
-  "/agents",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { page = "1", limit = "10", search = "", ...filters } = req.query;
+AdminRouter.get("/agents", getAllAgents);
+AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
+AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
+AdminRouter.post("/agents/approve-agent", approveAgentOnboardingStatus);
+AdminRouter.get("/agents/:userId", getSingleAgentProfile);
+AdminRouter.post("/agents/:userId/status", toggleAgentStatus);
+AdminRouter.delete("/agents/:userId/delete", deleteAgentAccount);
+AdminRouter.put("/agents/:userId/flag-account", flagOrUnflagAgentAccount);
+AdminRouter.put("/agents/:userId/allProperties", getAllAgentProperties);
 
-      const result = await adminController.getUsersByType({
-        userType: "Agent",
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        search: search as string,
-        filters,
-      });
 
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+// LANDOWNERS MANAGEMENT ROUTES
+AdminRouter.get("/landowners", getAllLandlords);
+AdminRouter.get("/landowners/:userId", getSingleLandlord);
+AdminRouter.get("/landowners/dashboard", getLandlordDashboardStatistics);
+AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
+AdminRouter.delete("/landowners/:userId/delete", deleteLandlordAction);
+AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
+AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 
-AdminRouter.get(
-  "/agents/upgrade-requests",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { page = "1", limit = "10" } = req.query;
 
-      const result = await adminController.getAllUpgradeRequests(
-        Number(page),
-        Number(limit),
-      );
+// PREFERENCE MANAGEMENT ROUTES
+// this is for "developers" or "tenants" or "shortlets" or "buyers"
+AdminRouter.get("/preferences/:preferenceMode", getPreferencesByMode);
+AdminRouter.get("/preferences/:preferenceId/approvePreference", approvePreference);
+AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
+AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
+AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties);
 
-      return res.status(200).json({
-        success: true,
-        data: result.data,
-        pagination: {
-          total: result.total,
-          currentPage: result.currentPage,
-          totalPages: Math.ceil(result.total / Number(limit)),
-          perPage: Number(limit),
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
-AdminRouter.get(
-  "/landowners",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { page = "1", limit = "10", search = "", ...filters } = req.query;
+// PROPERTY MANAGEMENT ROUTES
+AdminRouter.get("/properties/", getAllProperties);
+AdminRouter.get("/properties/stats", getPropertyStats);
+AdminRouter.get("/properties/:propertyId/getOne", getSinglePropertyDetails);
+AdminRouter.patch("/properties/:propertyId/update", updatePropertyStatusAsAdmin);
+AdminRouter.delete("/properties/:propertyId/delete", deleteProperty);
+AdminRouter.post("/properties/:propertyId/approval-status", setPropertyApprovalStatus);
+AdminRouter.get("/properties/:propertyId/inspections", getPropertyInspections);
 
-      const result = await adminController.getUsersByType({
-        userType: "Landowners",
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        search: search as string,
-        filters,
-      });
 
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+// TESTIMONIALS MANAGEMENT ROUTES
+AdminRouter.get("/testimonials", getAllTestimonials);
+AdminRouter.get("/testimonials/latestApproved", getLatestApprovedTestimonials);
+AdminRouter.get("/testimonials/:testimonialId", getTestimonial);
+AdminRouter.post("/testimonials/create", createTestimonial);
+AdminRouter.put("/testimonials/:testimonialId/update", updateTestimonial);
+AdminRouter.put("/testimonials/:testimonialId/updateStatus", updateTestimonialStatus);
+AdminRouter.delete("/testimonials/:testimonialId/delete", deleteTestimonial);
 
-AdminRouter.get("/agents/:userId", async (req, res, next) => {
-  try {
-    const result = await adminController.getAgentProfile(req.params.userId);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-});
 
-AdminRouter.get("/landowners/:userId", async (req, res, next) => {
-  try {
-    const result = await adminController.getLandownerProfile(req.params.userId);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-});
+// BUYERS MANAGEMENT ROUTES
+AdminRouter.get("/buyers", getAllBuyers);
+AdminRouter.get("/buyers/:buyerId", getSingleBuyer);
+AdminRouter.post("/buyers/create", createBuyer);
+AdminRouter.put("/buyers/:buyerId/update", updateBuyer);
+AdminRouter.delete("/buyers/:buyerId/delete", deleteBuyer);
+AdminRouter.get("/buyers/:buyerId/allPreferences", getBuyerPreferences);
 
-AdminRouter.put(
-  "/landowners/:userId/flag-account",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { userId } = req.params;
-      const { status } = req.body;
 
-      if (typeof status !== "boolean") {
-        return res.status(400).json({
-          success: false,
-          message: "status (boolean) is required in the body.",
-        });
-      }
 
-      const message = await adminController.flagOrUnflagLandowner(
-        userId,
-        status,
-      );
 
-      return res.status(200).json({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
-AdminRouter.post(
-  "/agents/approve-agent",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { agentId, approved } = req.body;
-
-      if (!agentId || typeof approved !== "boolean") {
-        return res.status(400).json({
-          success: false,
-          message: "agentId and approved (boolean) are required.",
-        });
-      }
-
-      const message = await adminController.approveAgentOnboarding(
-        agentId,
-        approved,
-      );
-
-      return res.status(200).json({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.put(
-  "/agents/:agentId/flag-account",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { agentId } = req.params;
-      const { status } = req.body;
-
-      if (typeof status !== "boolean") {
-        return res.status(400).json({
-          success: false,
-          message: "status (boolean) is required in the body.",
-        });
-      }
-
-      const message = await adminController.flagOrUnflagAgent(agentId, status);
-
-      return res.status(200).json({
-        success: true,
-        message,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
 AdminRouter.get(
   "/users/:userId/properties",
@@ -370,278 +163,12 @@ AdminRouter.get(
   },
 );
 
-AdminRouter.post(
-  "/agents/:agentId/status",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { agentId } = req.params;
-      const { status, reason } = req.body;
 
-      if (typeof status !== "boolean") {
-        return res
-          .status(400)
-          .json({ success: false, message: "status must be a boolean" });
-      }
-
-      const response = await adminController.toggleAgentAccountStatus(
-        agentId,
-        status,
-        reason,
-      );
-      return res.status(200).json({ success: true, message: response });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.delete(
-  "/agents/:agentId/delete",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { agentId } = req.params;
-      const { reason } = req.body;
-
-      if (!reason) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Reason is required" });
-      }
-
-      const result = await adminController.deleteAgent(agentId, reason);
-      return res.status(200).json({ success: true, message: result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-/**
- * PROPERTIES/BRIEFS MANAGEMENT ROUTES
- */
-AdminRouter.get(
-  "/all-properties",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const filters = {
-        ownerType: req.query.ownerType as "Agent" | "Landowners" | "All",
-        isPremium: req.query.isPremium as string,
-        isApproved: req.query.isApproved as string,
-        isRejected: req.query.isRejected as string,
-        isAvailable: req.query.isAvailable as string,
-        briefType: req.query.briefType
-          ? Array.isArray(req.query.briefType)
-            ? req.query.briefType
-            : [req.query.briefType]
-          : [],
-        location: req.query.location as string,
-        propertyType: req.query.propertyType as string,
-        priceMin: req.query.priceMin as string,
-        priceMax: req.query.priceMax as string,
-        isPreference: req.query.isPreference as string,
-        buildingType: req.query.buildingType
-          ? Array.isArray(req.query.buildingType)
-            ? req.query.buildingType
-            : [req.query.buildingType]
-          : [],
-        page: req.query.page as string,
-        limit: req.query.limit as string,
-      };
-
-      const properties = await adminController.getAllProperties(filters);
-
-      return res.status(200).json({
-        success: true,
-        data: properties.data.map(formatPropertyDataForTable),
-        pagination: {
-          total: properties.total,
-          currentPage: properties.currentPage,
-          totalPages: properties.totalPages,
-          perPage: properties.perPage,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.get("/properties/stats", async (req, res, next) => {
-  try {
-    const stats = await adminController.getPropertyStats();
-    return res.status(200).json({ success: true, data: stats });
-  } catch (error) {
-    next(error);
-  }
-});
-
-AdminRouter.delete(
-  "/properties/:propertyId/delete",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { propertyId } = req.params;
-
-      if (!propertyId) {
-        return res
-          .status(400)
-          .json({ success: false, message: "propertyId is required" });
-      }
-
-      const message = await adminController.deletePropertyById(propertyId);
-
-      return res.status(200).json({ success: true, message });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.get(
-  "/properties/:propertyId",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { propertyId } = req.params;
-
-      const data = await adminController.getSinglePropertyDetails(propertyId);
-
-      return res.status(200).json({ success: true, data });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.get(
-  "/properties/:propertyId/inspections",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { propertyId } = req.params;
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 10;
-
-      const result = await adminController.getPropertyInspections(
-        propertyId,
-        page,
-        limit,
-      );
-
-      res.status(200).json({
-        success: true,
-        data: result.inspections,
-        pagination: {
-          total: result.total,
-          currentPage: result.currentPage,
-          totalPages: result.totalPages,
-          perPage: result.perPage,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.post(
-  "/properties/:propertyId/approval-status",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { propertyId } = req.params;
-      const { action } = req.body;
-
-      if (!["approve", "reject"].includes(action)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid action. Use "approve" or "reject".',
-        });
-      }
-
-      const message = await adminController.setPropertyApprovalStatus(
-        propertyId,
-        action,
-      );
-      return res.status(200).json({ success: true, message });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
 /**
  * BUYERS MANAGEMENT ROUTES
  */
-AdminRouter.get("/buyers", async (req, res, next) => {
-  try {
-    const { page = 1, limit = 10, status } = req.query;
-    const data = await adminController.getAllBuyers({
-      page: Number(page),
-      limit: Number(limit),
-      status: status as string,
-    });
-    return res.status(200).json({ success: true, ...data });
-  } catch (error) {
-    next(error);
-  }
-});
 
-// Create buyer
-AdminRouter.post("/buyers", async (req, res, next) => {
-  try {
-    const data = await adminController.createBuyer(req.body);
-    return res.status(201).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Update buyer
-AdminRouter.put("/buyers/:id/update", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const data = await adminController.updateBuyer(id, req.body);
-    return res.status(200).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Delete buyer
-AdminRouter.delete("/buyers/:id/delete", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    await adminController.deleteBuyer(id);
-    return res
-      .status(200)
-      .json({ success: true, message: "Buyer deleted successfully" });
-  } catch (error) {
-    next(error);
-  }
-});
-
-AdminRouter.get("/buyers/:id", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const data = await adminController.getSingleBuyer(id);
-    return res.status(200).json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
-});
-
-AdminRouter.get("/buyers/:id/preferences", async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    const data = await adminController.getBuyerPreferences(
-      id,
-      Number(page),
-      Number(limit),
-    );
-    return res.status(200).json({ success: true, ...data });
-  } catch (error) {
-    next(error);
-  }
-});
 
 AdminRouter.get("/buyers/:id/inspections", async (req, res, next) => {
   try {
@@ -659,104 +186,6 @@ AdminRouter.get("/buyers/:id/inspections", async (req, res, next) => {
   }
 });
 
-/**
- * TESTIMONIALS MANAGEMENT ROUTES
- */
-// Create Testimonial
-AdminRouter.post(
-  "/testimonials",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await adminController.createTestimonial(req.body);
-      return res.status(201).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-// Update Testimonial
-AdminRouter.put(
-  "/testimonials/:id",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await adminController.updateTestimonial(
-        req.params.id,
-        req.body,
-      );
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-// Get Single Testimonial
-AdminRouter.get(
-  "/testimonials/:id",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await adminController.getTestimonial(req.params.id);
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-// Get All Testimonials with pagination, search, sort
-AdminRouter.get(
-  "/testimonials",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await adminController.getAllTestimonials(req.query);
-      return res.status(200).json({ success: true, ...result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-// Delete Testimonial
-AdminRouter.delete(
-  "/testimonials/:id",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      await adminController.deleteTestimonial(req.params.id);
-      return res
-        .status(200)
-        .json({ success: true, message: "Testimonial deleted successfully" });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-AdminRouter.patch(
-  "/testimonials/:id/status",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-
-      if (!["approved", "rejected", "pending"].includes(status)) {
-        return res
-          .status(400)
-          .json({ success: false, error: "Invalid status value" });
-      }
-
-      const result = await adminController.updateTestimonialStatus(id, status);
-
-      return res.status(200).json({
-        success: true,
-        message: "Testimonial status updated successfully",
-        testimonial: result,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
 /**
  * PREFERENCES MANAGEMENT ROUTES
@@ -817,6 +246,10 @@ AdminRouter.get(
     }
   },
 );
+
+
+
+
 
 // not using
 AdminRouter.get(
@@ -937,26 +370,6 @@ AdminRouter.get(
   },
 );
 
-AdminRouter.get(
-  "/all-agents",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { page = "1", limit = "10", type, userType, approved } = req.query;
-
-      const agents = await adminController.getAgents(
-        Number(page),
-        Number(limit),
-        type as string,
-        userType as string,
-        approved as string,
-      );
-
-      return res.status(200).json({ success: true, ...agents });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
 AdminRouter.post(
   "/property/new",
@@ -1017,21 +430,6 @@ AdminRouter.post(
   },
 );
 
-AdminRouter.post(
-  "/upgrade-agent",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { agentId, approved } = req.body;
-      const response = await adminController.approveUpgradeRequest(
-        agentId,
-        approved,
-      );
-      return res.status(200).json({ success: true, response });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
 AdminRouter.put(
   "/property/:propertyId",
@@ -1066,18 +464,6 @@ AdminRouter.get(
   },
 );
 
-AdminRouter.post(
-  "/approve-preference",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const preferenceId: any = req.query.preferenceId;
-      const result = await adminController.approvePreference(preferenceId);
-      return res.status(200).json({ success: true, data: result });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
 
 AdminRouter.get(
   "/preferences/:buyerId",

@@ -94,19 +94,26 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         return res.status(HttpStatusCodes.OK).json({
           success: true,
           message: "Login successful",
-          token,
-          user: {
-            ...userResponse,
-            agentData,
-            isAccountApproved: user.accountApproved,
-          },
+          data: {
+            token,
+            user: {
+              ...userResponse,
+              agentData,
+              isAccountApproved: user.accountApproved,
+            }
+          }
         });  
       } else {
         return res.status(HttpStatusCodes.OK).json({
           success: true,
           message: "Login successful",
-          token,
-          user: userResponse,
+          data: {
+            token,
+            user: {
+              token,
+              user: userResponse,
+            }
+          }
         });
       }
     }
@@ -114,8 +121,13 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Login successful",
-      token,
-      user: userResponse,
+      data: {
+        token,
+        user: {
+          token,
+          user: userResponse,
+        }
+      }
     });
 
   } catch (err: any) {

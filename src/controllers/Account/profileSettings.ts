@@ -60,7 +60,9 @@ export const getProfile = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Profile fetched successfully",
-      user: responseData,
+      data: {
+        user: responseData,
+      }
     });
   } catch (err) {
     next(err);

@@ -44,8 +44,10 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: 'Email verified successfully!',
-        token,
-        user: userResponse,
+        data: {
+          token,
+          user: userResponse,
+        }
     });
 };
 
