@@ -135,10 +135,11 @@ export const getPreferencesByMode = async (
       success: true,
       message: "Preferences fetched successfully",
       data: preferences,
-      meta: {
+      pagination: {
         total,
+        limit,
         page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / Number(limit)),
       },
     });
   } catch (err) {
@@ -224,6 +225,74 @@ export const getSinglePreference = async (
           limit: closedLimit,
           items: paginatedClosed,
         },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+export const getPreferenceModeStats = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const modeParam = req.params.preferenceMode?.toString().toLowerCase();
+
+    const modeMap: Record<string, string> = {
+      buyers: "buy",
+      tenants: "tenant",
+      shortlets: "shortlet",
+      developers: "developer",
+    };
+
+    const preferenceMode = modeMap[modeParam || ""];
+
+    if (!preferenceMode) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        message:
+          "Invalid preference mode. Use one of: buyers, tenants, shortlets, developers.",
+      });
+    }
+
+    const all = await DB.Models.Preference.find({ preferenceMode });
+
+    const total = all.length;
+
+    const active = all.filter((p) =>
+      ["pending", "approved", "matched"].includes(p.status),
+    ).length;
+
+    const closed = all.filter((p) => p.status === "closed").length;
+
+    const approved = all.filter((p) => p.status === "approved").length;
+
+    // Calculate avgBudget: average of midpoints of budgetMin and budgetMax
+    const budgetPoints = all
+      .filter((p) => typeof p.budgetMin === "number" && typeof p.budgetMax === "number")
+      .map((p) => (p.budgetMin + p.budgetMax) / 2);
+
+    const avgBudget =
+      budgetPoints.length > 0
+        ? budgetPoints.reduce((sum, val) => sum + val, 0) / budgetPoints.length
+        : 0;
+
+    const approvedRate = total > 0 ? (approved / total) * 100 : 0;
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: `Stats for ${preferenceMode}`,
+      data: {
+        preferenceMode,
+        total,
+        active,
+        closed,
+        approved,
+        avgBudget: Math.round(avgBudget * 100) / 100, // round to 2 decimal places
+        approvedRate: Math.round(approvedRate * 100) / 100, // round to %
       },
     });
   } catch (err) {

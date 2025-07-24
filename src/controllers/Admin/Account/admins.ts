@@ -56,10 +56,11 @@ export const getAdmins = async (
       success: true,
       message: "Admins fetched successfully",
       data: admins,
-      meta: {
+      pagination: {
         total,
+        limit,
         page: Number(page),
-        pages: Math.ceil(total / Number(limit)),
+        totalPages: Math.ceil(total / Number(limit)),
       },
     });
   } catch (err) {
