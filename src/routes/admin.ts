@@ -24,6 +24,7 @@ import { updatePropertyStatusAsAdmin } from "../controllers/Admin/Property/updat
 import { approvePreference } from "../controllers/Admin/preference/approvePreference";
 import { createTestimonial, deleteTestimonial, getAllTestimonials, getLatestApprovedTestimonials, getTestimonial, updateTestimonial, updateTestimonialStatus } from "../controllers/Admin/ExtralPages/testimonials";
 import { createBuyer, deleteBuyer, getAllBuyers, getBuyerPreferences, getSingleBuyer, updateBuyer } from "../controllers/Admin/Account/buyers";
+import { rejectPreference } from "src/controllers/Admin/preference/rejectPreference";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -101,7 +102,8 @@ AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 // this is for "developers" or "tenants" or "shortlets" or "buyers"
 AdminRouter.get("/preferences/:preferenceMode", getPreferencesByMode);
 AdminRouter.get("/preferences/:preferenceMode/stats", getPreferenceModeStats);
-AdminRouter.put("/preferences/:preferenceId/approvePreference", approvePreference);
+AdminRouter.patch("/preferences/:preferenceId/approve", approvePreference);
+AdminRouter.patch("/preferences/:preferenceId/reject", rejectPreference);
 AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
 AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
 AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties);

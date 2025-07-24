@@ -121,7 +121,7 @@ export class AdminInspectionController {
 
   /**
    * Update the inspection's status (e.g., approve, reject transaction, etc.)
-   */
+   */ 
 
   public async updateInspectionStatus(
     req: AppRequest,

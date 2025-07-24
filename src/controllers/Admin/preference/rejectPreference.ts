@@ -4,7 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 
-export const approvePreference = async (
+export const rejectPreference = async (
   req: Request,
   res: Response,
   next: NextFunction,
@@ -21,23 +21,22 @@ export const approvePreference = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found");
     }
 
-    if (preference.status === "approved") {
+    if (preference.status === "rejected") {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Preference is already approved",
+        "Preference is already rejected",
       );
     }
 
-    preference.status = "approved";
+    preference.status = "rejected";
     await preference.save();
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Preference approved successfully",
+      message: "Preference rejected successfully",
       data: preference,
     });
   } catch (err) {
     next(err);
   }
 };
-

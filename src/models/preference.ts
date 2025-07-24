@@ -36,7 +36,7 @@ export interface IPreference {
   additionalInfo?: string;
 
   assignedAgent?: Types.ObjectId;
-  status: "pending" | "approved" | "matched" | "closed";
+  status: "pending" | "approved" | "matched" | "closed" | "rejected";
 
   createdAt: Date;
   updatedAt: Date;
@@ -101,7 +101,7 @@ export class Preference {
 
         status: {
           type: String,
-          enum: ["pending", "approved", "matched", "closed"],
+          enum: ["pending", "approved", "matched", "closed", "rejected"],
           default: "pending",
         },
       },
