@@ -3,6 +3,7 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
+import mongoose from "mongoose";
 
 // either by "developer" or "buyer" or "tenant" or "shortlet"
 export const getPreferencesByMode = async (
@@ -154,14 +155,21 @@ export const getSinglePreference = async (
   try {
     const { preferenceId } = req.params;
 
-    if (!preferenceId) {
+    if (!preferenceId || !mongoose.Types.ObjectId.isValid(preferenceId)) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "Preference ID is required",
+        message: "Valid Preference ID is required",
       });
     }
 
-    // Fetch the current preference and buyer
+    // Pagination query params
+    const activePage = parseInt(req.query.activePage as string) || 1;
+    const activeLimit = parseInt(req.query.activeLimit as string) || 10;
+
+    const closedPage = parseInt(req.query.closedPage as string) || 1;
+    const closedLimit = parseInt(req.query.closedLimit as string) || 10;
+
+    // Fetch the current preference with populated fields
     const currentPreference = await DB.Models.Preference.findById(preferenceId)
       .populate("buyer")
       .populate("assignedAgent");
@@ -174,18 +182,26 @@ export const getSinglePreference = async (
 
     const buyerId = currentPreference.buyer?._id;
 
-    // Fetch all other preferences of that buyer except current
+    // Fetch all other preferences of the buyer
     const otherPreferences = await DB.Models.Preference.find({
-      _id: { $ne: preferenceId },
+      _id: { $ne: new mongoose.Types.ObjectId(preferenceId) },
       buyer: buyerId,
     });
 
-    const activePreferences = otherPreferences.filter((p) =>
+    // Filter into active and closed
+    const allActive = otherPreferences.filter((p) =>
       ["pending", "approved", "matched"].includes(p.status),
     );
+    const allClosed = otherPreferences.filter((p) => p.status === "closed");
 
-    const closedPreferences = otherPreferences.filter(
-      (p) => p.status === "closed",
+    // Apply pagination manually
+    const paginatedActive = allActive.slice(
+      (activePage - 1) * activeLimit,
+      activePage * activeLimit,
+    );
+    const paginatedClosed = allClosed.slice(
+      (closedPage - 1) * closedLimit,
+      closedPage * closedLimit,
     );
 
     return res.status(HttpStatusCodes.OK).json({
@@ -194,8 +210,20 @@ export const getSinglePreference = async (
       data: {
         buyerProfile: currentPreference.buyer,
         currentPreference,
-        activePreferences,
-        closedPreferences,
+
+        activePreferences: {
+          total: allActive.length,
+          page: activePage,
+          limit: activeLimit,
+          items: paginatedActive,
+        },
+
+        closedPreferences: {
+          total: allClosed.length,
+          page: closedPage,
+          limit: closedLimit,
+          items: paginatedClosed,
+        },
       },
     });
   } catch (err) {
