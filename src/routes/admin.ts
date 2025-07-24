@@ -100,7 +100,7 @@ AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 // PREFERENCE MANAGEMENT ROUTES
 // this is for "developers" or "tenants" or "shortlets" or "buyers"
 AdminRouter.get("/preferences/:preferenceMode", getPreferencesByMode);
-AdminRouter.get("/preferences/:preferenceId/approvePreference", approvePreference);
+AdminRouter.put("/preferences/:preferenceId/approvePreference", approvePreference);
 AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
 AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
 AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties);

@@ -104,7 +104,7 @@ export class AdminPreferencesController {
       },
     };
   }
-
+ 
   public async getPreferencesForBuyer(buyerId: string) {
     if (!Types.ObjectId.isValid(buyerId)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid buyer ID");
