@@ -1,7 +1,7 @@
 import express from "express";
-import { postPreference } from "../controllers/Public/preference/postPreference";
-import { getBuyerPreferenceById } from "../controllers/Public/Preference/getBuyerSinglePreference";
-import { updateBuyerPreferenceById } from "../controllers/Public/Preference/updatePreference";
+import { postPreference } from "../controllers/public/preference/postPreference";
+import { getBuyerPreferenceById } from "../controllers/public/preference/getBuyerSinglePreference";
+import { updateBuyerPreferenceById } from "../controllers/public/preference/updatePreference";
 
 const preferenceRouter = express.Router();
 
