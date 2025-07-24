@@ -131,15 +131,13 @@ export const getAllBuyers = async (req: AppRequest, res: Response, next: NextFun
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Buyers fetched successfully",
-      data: {
-        buyers,
-        pagination: {
-          total,
-          currentPage: pageNum,
-          totalPages: Math.ceil(total / limitNum),
-          perPage: limitNum,
-        },
-      },
+      data: buyers,
+      pagination: {
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+        limit: limitNum,
+      }
     });
   } catch (err) {
     next(err);
@@ -171,15 +169,13 @@ export const getBuyerPreferences = async (req: AppRequest, res: Response, next: 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Buyer preferences fetched successfully",
-      data: {
-        preferences,
-        pagination: {
-          total,
-          currentPage: pageNum,
-          totalPages: Math.ceil(total / limitNum),
-          perPage: limitNum,
-        },
-      },
+      data: preferences,
+      pagination: {
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+        limit: limitNum,
+      }
     });
   } catch (err) {
     next(err);

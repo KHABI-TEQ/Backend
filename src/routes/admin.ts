@@ -14,7 +14,7 @@ import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../con
 import { createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
 import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
-import { getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
+import { getPreferenceModeStats, getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
 import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
 import { selectMatchedPreferenceProperties } from "../controllers/Admin/preference/submitMatchedProperties";
 import { setPropertyApprovalStatus } from "../controllers/Admin/Property/setPropertyApprovalStatus";
@@ -96,10 +96,11 @@ AdminRouter.delete("/landowners/:userId/delete", deleteLandlordAction);
 AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
 AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 
-
+ 
 // PREFERENCE MANAGEMENT ROUTES
 // this is for "developers" or "tenants" or "shortlets" or "buyers"
 AdminRouter.get("/preferences/:preferenceMode", getPreferencesByMode);
+AdminRouter.get("/preferences/:preferenceMode/stats", getPreferenceModeStats);
 AdminRouter.put("/preferences/:preferenceId/approvePreference", approvePreference);
 AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
 AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
