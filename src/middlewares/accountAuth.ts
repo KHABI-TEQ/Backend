@@ -5,13 +5,15 @@ import { AppRequest } from "../types/express";
 
 const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
-    const authHeader = req.headers.authorization || req.headers.Authorization;
-    if (!authHeader) {
+    const rawAuthHeader = req.headers.authorization || req.headers.Authorization;
+
+    if (!rawAuthHeader || typeof rawAuthHeader !== "string") {
       req.user = null;
       return next();
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = rawAuthHeader.split(" ")[1];
+
     if (!token) {
       return res.status(401).json({ message: "Token missing" });
     }
@@ -43,10 +45,11 @@ const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) =
         });
       }
 
-      req.user = agent; // optional: attach agent details if needed
+      req.user = agent; // Optionally attach agent details
+    } else {
+      req.user = user;
     }
 
-    req.user = user;
     return next();
   } catch (error) {
     console.error("[AUTH] Error in accountAuth middleware:", error);
