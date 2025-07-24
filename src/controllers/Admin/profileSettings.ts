@@ -12,7 +12,7 @@ export const getAdminProfile = async (
   next: NextFunction,
 ) => {
   try {
-    const adminId = req.user?._id;
+    const adminId = req.admin?._id;
     if (!adminId) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
     }
