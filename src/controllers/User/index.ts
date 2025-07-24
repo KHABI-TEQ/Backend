@@ -12,7 +12,7 @@ import { assignReferralCode } from "../../utils/generateReferralCode";
 import { isReferralEligible } from "../../utils/isreferralEligible";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID as string);
-
+ 
 interface GoogleUserInfo extends TokenPayload {}
 
 async function verifyIdToken(idToken: string): Promise<GoogleUserInfo | null> {
@@ -588,50 +588,4 @@ export class UserController {
     const result = await DB.Models.Property.findByIdAndDelete(_id);
     return !!result;
   }
-
-
-  public async getReferralDashboard(userId: string) {
-  const user = await DB.Models.User.findById(userId);
-
-  if (!user) {
-    throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
-  }
-
-  const eligible = await isReferralEligible(user);
-
-  if (!eligible) {
-    throw new RouteError(
-      HttpStatusCodes.FORBIDDEN,
-      "You are not eligible to view referral dashboard"
-    );
-  }
-
-  // Assign referralCode if not yet set
-  const referralCode = await assignReferralCode(user);
-  const referralLink = `${process.env.CLIENT_LINK}/register?ref=${referralCode}`;
-
-  // Count all referrals made by the user
-  const totalReferrals = await DB.Models.Referral.countDocuments({ referrer: user._id });
-
-  // Calculate total commission earned (approved only)
-  const result = await DB.Models.ReferralCommission.aggregate([
-    { $match: { referrer: user._id, status: "approved" } },
-    {
-      $group: {
-        _id: null,
-        totalEarned: { $sum: "$amount" }
-      }
-    }
-  ]);
-
-  const totalCommission = result[0]?.totalEarned || 0;
-
-  return {
-    referralCode,
-    referralLink,
-    totalReferrals,
-    commissionEarned: totalCommission
-  };
-}
-
 }

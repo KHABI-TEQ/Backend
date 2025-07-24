@@ -9,6 +9,4 @@ export interface AppRequest<
   user?: any;
   users?: any;
   admin?: any;
-  headers?: any;
-  url?: any;
 }
