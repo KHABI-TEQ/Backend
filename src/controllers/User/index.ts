@@ -8,8 +8,6 @@ import sendEmail from '../../common/send.email';
 import { OAuth2Client, TokenPayload } from 'google-auth-library/build/src';
 import jwt from 'jsonwebtoken';
 import crypto from "crypto";
-import { assignReferralCode } from "../../utils/generateReferralCode";
-import { isReferralEligible } from "../../utils/isreferralEligible";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID as string);
  
@@ -79,10 +77,6 @@ export class UserController {
       }
     }
 
-    // Generate unique referral code for this new user
-    const selfReferralCode = crypto.randomBytes(6).toString("hex").toUpperCase();
-
-
     const passwordHash = await bcrypt.hash(password, 10);
     const accountId = await this.generateAccountiD();
     const newUser = await DB.Models.User.create({
@@ -93,8 +87,6 @@ export class UserController {
       phoneNumber,
       userType,
       accountId,
-      referralCode: selfReferralCode,
-      referredBy: referrerUser?.referralCode || null,
       accountApproved: userType === 'Landowners' ? true : false,
       accountStatus: userType === 'Landowners' ? 'active' : 'inactive',
     });
