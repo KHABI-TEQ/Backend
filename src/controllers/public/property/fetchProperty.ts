@@ -123,8 +123,9 @@ export const getSingleProperty = async (
 
     const property = await DB.Models.Property.findOne({
       _id: propertyId,
-      isPublished: true,
+      isApproved: true,
       isDeleted: false,
+      status: "approved",
     }).lean();
 
     if (!property) {
@@ -133,10 +134,29 @@ export const getSingleProperty = async (
       );
     }
 
+    const { briefType, location } = property;
+
+    const similarProperties = await DB.Models.Property.find({
+      _id: { $ne: property._id },
+      briefType,
+      "location.state": location.state,
+      "location.localGovernment": location.localGovernment,
+      "location.area": location.area,
+      isApproved: true,
+      isDeleted: false,
+      status: "approved",
+    })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .lean();
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Property fetched successfully",
-      data: property,
+      data: {
+        property,
+        similarProperties,
+      },
     });
   } catch (err) {
     next(err);

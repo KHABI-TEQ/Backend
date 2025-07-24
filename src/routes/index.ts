@@ -1,6 +1,4 @@
 import { NextFunction, Request, Response } from "express";
-import PropertyRentRouter from "./property.rent.api.actions";
-import PropertySellRouter from "./property.sell.api.actions";
 import AgentRouter from "./agent.api";
 import HttpStatusCodes from "../common/HttpStatusCodes";
 import cloudinary from "../common/cloudinary";
@@ -24,6 +22,7 @@ import { getLatestApprovedTestimonials } from "../controllers/public/testimonial
 import { AuthRouter } from "./auth";
 import { preferenceRouter } from "./preference";
 import AccountRouter from "./account";
+import { submitContactForm } from "../controllers/public/contactUs";
 
 const router = express.Router();
 
@@ -191,6 +190,9 @@ router.get(
   },
 );
 
+// Contact Form
+router.post("/contact-us/submit", submitContactForm);
+
 // Testimonials route
 router.get("/testimonials", getLatestApprovedTestimonials);
 
@@ -205,6 +207,7 @@ router.use("/preferences", preferenceRouter);
 
 // All Inspections Routes
 router.use("/inspections", inspectRouter);
+
 
 // All Acoounts Routes
 router.use("/account", AccountRouter);

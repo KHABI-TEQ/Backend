@@ -9,7 +9,7 @@ import {
   fetchSingleProperty,
   fetchAllProperties,
 } from "../controllers/Account/Property/fetchProperty";
-import { fetchUserInspections } from "../controllers/Account/fetchInpections";
+import { fetchUserInspections, getOneUserInspection } from "../controllers/Account/fetchInpections";
 
 import {
   getAllNotifications,
@@ -27,8 +27,12 @@ import {
   updateNotificationSettings,
   updateProfile,
 } from "../controllers/Account/profileSettings";
+import { accountAuth } from "../middlewares/accountAuth";
+import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 
 const AccountRouter = express.Router();
+
+AccountRouter.use(accountAuth);
 
 // PROFILE ROUTES
 AccountRouter.get("/profile", getProfile);
@@ -48,6 +52,11 @@ AccountRouter.get("/property/fetchAll", fetchAllProperties);
 
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
+AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
+
+// PREFERENCES ROUTES
+AccountRouter.get("/my-preferences/fetchAll", getMatchedPreferencesForOwner);
+AccountRouter.get("/my-preferences/:matchId", getOneMatchedPreferenceForOwner);
 
 // NOTIFICATIONS ROUTES
 AccountRouter.get("/notifications", getAllNotifications);
