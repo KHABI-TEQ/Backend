@@ -1,16 +1,13 @@
 import { NextFunction, Request, Response } from "express";
-import AgentRouter from "./agent.api";
 import HttpStatusCodes from "../common/HttpStatusCodes";
 import cloudinary from "../common/cloudinary";
 
 import express from "express";
 import multer from "multer";
-import { DB, PropertyRequestController } from "../controllers";
+import { DB } from "../controllers";
 import AdminRouter from "./admin";
 import propertyRouter from "./property";
-import { buyerRouter } from "./buyer";
 import { documentVerificationController } from "../controllers/DocumentVerification";
-import { AdminController } from "../controllers/Admin";
 import inspectRouter from "./inspectionRouter";
 
 import {
@@ -29,9 +26,6 @@ const router = express.Router();
 // Configure Multer (Store file in memory before uploading)
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
-
-const propertyRequest = new PropertyRequestController();
-const adminController = new AdminController();
 
 /**
  * ******************************************************
@@ -208,24 +202,10 @@ router.use("/preferences", preferenceRouter);
 // All Inspections Routes
 router.use("/inspections", inspectRouter);
 
-
 // All Acoounts Routes
 router.use("/account", AccountRouter);
-
-// router.use("/properties/rents", PropertyRentRouter);
-// router.use("/properties/sell", PropertySellRouter);
-// router.use("/properties/buy/request", BuyPropertySellRequest);
-// router.use("/properties/rent/request", RentPropertyRentRequest);
-
-// All Admin Routes
 router.use("/admin", AdminRouter);
 
-router.use("/agent", AgentRouter);
-router.use("/buyers", buyerRouter);
-
-// Add one more middleware namely `authorize` after passport.authenticate to authorize user for access
-// console `req.user` and `req` in authorize middleware
-// router.use('/property-rent', passport.authenticate('jwt', {session: false}), PropertyRentRouter);
 
 // Export the base-router
 export default router;

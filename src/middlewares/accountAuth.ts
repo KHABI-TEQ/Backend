@@ -44,11 +44,9 @@ const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) =
           message: "Account not approved. You cannot perform this action.",
         });
       }
-
-      req.user = agent; // Optionally attach agent details
-    } else {
-      req.user = user;
     }
+
+    req.user = user; 
 
     return next();
   } catch (error) {

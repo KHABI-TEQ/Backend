@@ -1,19 +1,8 @@
 import { connect, connection, Connection } from "mongoose";
 import {
-  IPropertySellModel,
-  IPropertyRentModel,
-  PropertyRent,
-  PropertySell,
+  IInspectionBookingModel,
   IAgentModel,
   Agent,
-  IBuyerOrRent,
-  BuyerOrRent,
-  IBuyerOrRentModel,
-  IPropertyRequestModel,
-  PropertyRequest,
-  IInspectionSlotModel,
-  IInspectionBookingModel,
-  InspectionSlot,
   InspectionBooking,
   IAdminModel,
   Admin,
@@ -42,18 +31,13 @@ import {
   PasswordResetToken,
   IMatchedPreferencePropertyModel,
   MatchedPreferenceProperty,
+  PropertyView,
+  IPropertyView,
 } from "../models/index";
 
-import { IOwnerModel, Owner } from "../models/property.owner";
 
 declare interface IModels {
-  PropertySell: IPropertySellModel;
-  PropertyRent: IPropertyRentModel;
-  Owner: IOwnerModel;
   Agent: IAgentModel;
-  BuyerOrRent: IBuyerOrRentModel;
-  PropertyRequest: IPropertyRequestModel;
-  InspectionSlot: IInspectionSlotModel;
   InspectionActivityLog: IInspectionActivityLogModel;
   InspectionBooking: IInspectionBookingModel;
   Admin: IAdminModel;
@@ -69,6 +53,7 @@ declare interface IModels {
   VerificationToken: typeof VerificationToken;
   PasswordResetToken: typeof PasswordResetToken;
   MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
+  PropertyView: typeof PropertyView;
 }
 
 export class DB {
@@ -88,13 +73,7 @@ export class DB {
     this.mongoDB.on("error", this.error);
 
     this.models = {
-      PropertyRent: new PropertyRent().model,
-      PropertySell: new PropertySell().model,
-      Owner: new Owner().model,
       Agent: new Agent().model,
-      BuyerOrRent: new BuyerOrRent().model,
-      PropertyRequest: new PropertyRequest().model,
-      InspectionSlot: new InspectionSlot().model,
       InspectionActivityLog: InspectionActivityLogModel,
       InspectionBooking: new InspectionBooking().model,
       Admin: new Admin().model,
@@ -110,6 +89,7 @@ export class DB {
       VerificationToken: VerificationToken,
       PasswordResetToken: PasswordResetToken,
       MatchedPreferenceProperty: MatchedPreferenceProperty,
+      PropertyView: PropertyView,
     };
   }
 
@@ -129,26 +109,3 @@ export class DB {
     console.info("Mongoose has errored", error);
   }
 }
-
-export { AgentController, IAgentController } from "./Agent";
-export {
-  PropertyRentController,
-  IPropertyRentController,
-} from "./Property.Rent";
-export {
-  PropertySellController,
-  IPropertySellController,
-} from "./Property.Sell";
-export {
-  BuyerOrRentPropertyRentController,
-  IBuyerOrRentPropertyRentController,
-} from "./Property.Rent.Request";
-
-export {
-  BuyerOrRentPropertySellController,
-  IBuyerOrRentPropertySellController,
-} from "./Property.Sell.Request";
-export {
-  PropertyRequestController,
-  IPropertRequestController,
-} from "./Property.Request";

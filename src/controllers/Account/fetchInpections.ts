@@ -86,3 +86,89 @@ export const getOneUserInspection = async (
     next(err);
   }
 };
+
+
+export const getInspectionStats = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user._id;
+
+    const baseFilter = { owner: userId };
+
+    const [
+      totalInspections,
+      pendingInspections,
+      completedInspections,
+      cancelledInspections,
+      avgResponse
+    ] = await Promise.all([
+      DB.Models.InspectionBooking.countDocuments(baseFilter),
+
+      DB.Models.InspectionBooking.countDocuments({
+        ...baseFilter,
+        status: {
+          $in: [
+            "pending_transaction",
+            "inspection_rescheduled",
+            "inspection_approved",
+            "active_negotiation",
+            "negotiation_countered",
+            "negotiation_accepted",
+            "negotiation_rejected",
+            "negotiation_cancelled",
+          ],
+        },
+      }),
+
+      DB.Models.InspectionBooking.countDocuments({
+        ...baseFilter,
+        status: "completed",
+      }),
+
+      DB.Models.InspectionBooking.countDocuments({
+        ...baseFilter,
+        status: "cancelled",
+      }),
+
+      DB.Models.InspectionBooking.aggregate([
+        { $match: { owner: userId } },
+        {
+          $project: {
+            createdAt: 1,
+            updatedAt: 1,
+            diffInHours: {
+              $divide: [
+                { $subtract: ["$updatedAt", "$createdAt"] },
+                1000 * 60 * 60, // milliseconds to hours
+              ],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            avgResponseTimeInHours: { $avg: "$diffInHours" },
+          },
+        },
+      ]),
+    ]);
+
+    const averageResponseTimeInHours = avgResponse[0]?.avgResponseTimeInHours || 0;
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: {
+        totalInspections,
+        pendingInspections,
+        completedInspections,
+        cancelledInspections,
+        averageResponseTimeInHours: Number(averageResponseTimeInHours.toFixed(2)),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
