@@ -11,15 +11,15 @@ export const deletePropertyById = async (
   try {
     const { propertyId } = req.params;
 
-    const rentDeleted = await DB.Models.PropertyRent.findByIdAndDelete(propertyId).exec();
-    const sellDeleted = await DB.Models.PropertySell.findByIdAndDelete(propertyId).exec();
+    // const rentDeleted = await DB.Models.PropertyRent.findByIdAndDelete(propertyId).exec();
+    // const sellDeleted = await DB.Models.PropertySell.findByIdAndDelete(propertyId).exec();
 
-    if (!rentDeleted && !sellDeleted) {
-      return res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        message: "Property not found",
-      });
-    }
+    // if (!rentDeleted && !sellDeleted) {
+    //   return res.status(HttpStatusCodes.NOT_FOUND).json({
+    //     success: false,
+    //     message: "Property not found",
+    //   });
+    // }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
