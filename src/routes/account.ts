@@ -22,6 +22,7 @@ import {
 import {
   changeEmail,
   changePassword,
+  getDashboardData,
   getProfile,
   requestAccountDeletion,
   updateNotificationSettings,
@@ -33,9 +34,10 @@ import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "
 const AccountRouter = express.Router();
 
 AccountRouter.use(accountAuth);
-
+ 
 // PROFILE ROUTES
 AccountRouter.get("/profile", getProfile);
+AccountRouter.get("/dashboard", getDashboardData);
 AccountRouter.patch("/updateAccount", updateProfile);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.put("/changePassword", changePassword);
