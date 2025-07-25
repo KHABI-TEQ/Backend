@@ -14,5 +14,9 @@ preferenceRouter.get(
   "/getByBuyer/:buyerId/:preferenceId",
   getBuyerPreferenceById,
 );
+preferenceRouter.get(
+  "/getMatchedProps/:buyerId/:preferenceId",
+  getBuyerPreferenceById,
+);
 
 export { preferenceRouter };
