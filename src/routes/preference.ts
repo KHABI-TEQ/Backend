@@ -2,6 +2,7 @@ import express from "express";
 import { postPreference } from "../controllers/public/preference/postPreference";
 import { getBuyerPreferenceById } from "../controllers/public/preference/getBuyerSinglePreference";
 import { updateBuyerPreferenceById } from "../controllers/public/preference/updatePreference";
+import { getPaginatedMatchedProperties } from "../controllers/public/preference/fetchMatchedProperties";
 
 const preferenceRouter = express.Router();
 
@@ -16,7 +17,7 @@ preferenceRouter.get(
 );
 preferenceRouter.get(
   "/getMatchedProps/:buyerId/:preferenceId",
-  getBuyerPreferenceById,
+  getPaginatedMatchedProperties,
 );
 
 export { preferenceRouter };
