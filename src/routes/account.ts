@@ -9,7 +9,7 @@ import {
   fetchSingleProperty,
   fetchAllProperties,
 } from "../controllers/Account/Property/fetchProperty";
-import { fetchUserInspections, getOneUserInspection } from "../controllers/Account/fetchInpections";
+import { fetchUserInspections, getInspectionStats, getOneUserInspection } from "../controllers/Account/fetchInpections";
 
 import {
   getAllNotifications,
@@ -18,6 +18,8 @@ import {
   markAllNotificationsAsRead,
   deleteAllNotifications,
   deleteNotificationById,
+  bulkDeleteNotifications,
+  markNotificationAsUnRead,
 } from "../controllers/Account/notifications";
 import {
   changeEmail,
@@ -54,6 +56,7 @@ AccountRouter.get("/property/fetchAll", fetchAllProperties);
 
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
+AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
 
 // PREFERENCES ROUTES
@@ -63,15 +66,11 @@ AccountRouter.get("/my-preferences/:matchId", getOneMatchedPreferenceForOwner);
 // NOTIFICATIONS ROUTES
 AccountRouter.get("/notifications", getAllNotifications);
 AccountRouter.get("/notifications/:notificationId", getNotificationById);
-AccountRouter.patch(
-  "/notifications/:notificationId/markRead",
-  markNotificationAsRead,
-);
-AccountRouter.patch("/notifications/markAllRead", markAllNotificationsAsRead);
-AccountRouter.delete(
-  "/notifications/:notificationId/delete",
-  deleteNotificationById,
-);
+AccountRouter.put("/notifications/:notificationId/markRead", markNotificationAsRead);
+AccountRouter.put("/notifications/:notificationId/markUnRead", markNotificationAsUnRead);
+AccountRouter.put("/notifications/markAllRead", markAllNotificationsAsRead);
+AccountRouter.delete("/notifications/:notificationId/delete", deleteNotificationById);
 AccountRouter.delete("/notifications/deleteAll", deleteAllNotifications);
+AccountRouter.delete("/notifications/bulkDelete", bulkDeleteNotifications);
 
 export default AccountRouter;

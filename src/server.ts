@@ -9,12 +9,10 @@ dotenv.config();
 import BaseRouter from './routes';
 import { RouteError } from './common/classes';
 import cors from 'cors';
-import CronJob from './common/cron.job';
+// import CronJob from './common/cron.job';
 import KeepAlive from './services/cron-job';
 import path from 'path';
 
-// // Init Auth service
-// require('./services/authorize');
 
 // Init express
 const app = express();
@@ -48,23 +46,16 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use(express.static('public'));
 
-CronJob();
+// CronJob();
 KeepAlive();
 
 // Add APIs
 
 app.use('/api', BaseRouter);
+
 app.get('/', (req: Request, res: Response) => {
   return res.sendFile('welcome.html', { root: path.join(__dirname, '../public') });
 });
-
-// app.use('/', (req: Request, res: Response) => {
-//   res.sendFile('./public/welcome.html', { root: __dirname });
-// });
-
-// app.use('*', (req: Request, res: Response) => {
-//   res.redirect('/');
-// });
 
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error Handler:', err);

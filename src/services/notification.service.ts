@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { DB } from '../controllers';
 import { INotificationDoc } from '../models/notification';
 
@@ -11,9 +12,27 @@ class NotificationService {
       customDate?: string;
       month?: number;
       year?: number;
+      withPagination?: boolean;
     }
-  ): Promise<INotificationDoc[]> {
-    const { page = 1, limit = 5, search = '', customDate, month, year } = params;
+  ): Promise<{
+    data: INotificationDoc[];
+    pagination?: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const {
+      page = 1,
+      limit = 5,
+      search = '',
+      customDate,
+      month,
+      year,
+      withPagination = false,
+    } = params;
+
     const filter: Record<string, any> = { user: userId };
 
     if (search) {
@@ -37,10 +56,26 @@ class NotificationService {
       filter.createdAt = { $gte: start, $lte: end };
     }
 
-    return DB.Models.Notification.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit);
+    const query = DB.Models.Notification.find(filter).sort({ createdAt: -1 });
+
+    if (withPagination) {
+      const total = await DB.Models.Notification.countDocuments(filter);
+      const data = await query.skip((page - 1) * limit).limit(limit);
+      const totalPages = Math.ceil(total / limit);
+
+      return {
+        data,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+        },
+      };
+    }
+
+    const data = await query.limit(limit);
+    return { data };
   }
 
   public async getById(id: string): Promise<INotificationDoc | null> {
@@ -49,6 +84,11 @@ class NotificationService {
 
   public async markRead(id: string): Promise<boolean> {
     const result = await DB.Models.Notification.findByIdAndUpdate(id, { isRead: true });
+    return !!result;
+  }
+
+  public async markUnRead(id: string): Promise<boolean> {
+    const result = await DB.Models.Notification.findByIdAndUpdate(id, { isRead: false });
     return !!result;
   }
 
@@ -75,6 +115,19 @@ class NotificationService {
   }): Promise<INotificationDoc> {
     return DB.Models.Notification.create(payload);
   }
+
+  public async bulkDelete(
+    ids: string[],
+    userId: string
+  ): Promise<{ deletedCount: number }> {
+    const result = await DB.Models.Notification.deleteMany({
+      _id: { $in: ids.map((id) => new Types.ObjectId(id)) },
+      user: userId,
+    });
+
+    return { deletedCount: result.deletedCount || 0 };
+  }
+
 }
 
 export default new NotificationService();

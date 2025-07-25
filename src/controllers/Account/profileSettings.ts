@@ -262,113 +262,74 @@ export const getDashboardData = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
 
-    let dashboardData: any = {};
+    const basePropertyQuery = {
+      owner: userId,
+      isDeleted: { $ne: true },
+    };
 
+    const totalBriefs = await DB.Models.Property.countDocuments(basePropertyQuery);
+
+    const totalActiveBriefs = await DB.Models.Property.countDocuments({
+      ...basePropertyQuery,
+      status: "active",
+    });
+
+    const totalPendingBriefs = await DB.Models.Property.countDocuments({
+      ...basePropertyQuery,
+      status: "pending",
+    });
+
+    const newPendingBriefs = await DB.Models.Property.find({
+      ...basePropertyQuery,
+      status: "pending",
+    })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("_id briefType status createdAt pictures price location.area location.localGovernment location.state");
+
+    const totalViews = 0; // Placeholder for when view tracking is implemented
+
+    // Inspection metrics
+    const totalInspectionRequests = await DB.Models.InspectionBooking.countDocuments({
+      owner: userId,
+    });
+
+    const totalCompletedInspectionRequests = await DB.Models.InspectionBooking.countDocuments({
+      owner: userId,
+      status: "completed",
+    });
+
+    const dashboardData: Record<string, any> = {
+      totalBriefs,
+      totalActiveBriefs,
+      totalPendingBriefs,
+      newPendingBriefs,
+      totalViews,
+      totalInspectionRequests,
+      totalCompletedInspectionRequests,
+    };
+
+    // If Landowner, add propertySold
     if (user.userType === "Landowners") {
-      // Landowner Dashboard Data
-      const totalBriefs = await DB.Models.Property.countDocuments({
-        owner: userId,
-      });
-      const totalActiveBriefs = await DB.Models.Property.countDocuments({
-        owner: userId,
-        status: "active", // Assuming 'active' is a status for active briefs
-      });
-
-      // Total Views - This would typically come from a separate tracking mechanism
-      // For this example, we'll just set it to 0 or retrieve if available in Property model
-      const totalViews = 0; // Placeholder
-
       const propertySold = await DB.Models.Property.countDocuments({
-        owner: userId,
-        isSold: true, // Assuming a boolean field 'isSold'
+        ...basePropertyQuery,
+        status: "sold",
       });
+      dashboardData.propertySold = propertySold;
+    }
 
-      const totalInspectionRequest =
-        await DB.Models.InspectionBooking.countDocuments({ owner: userId });
-      const totalCompletedInspection =
-        await DB.Models.InspectionBooking.countDocuments({
-          owner: userId,
-          status: "completed",
-        });
-
-      dashboardData = {
-        totalBriefs,
-        totalActiveBriefs,
-        totalViews,
-        propertySold,
-        totalInspectionRequest,
-        totalCompletedInspection,
-      };
-    } else if (user.userType === "Agent") {
-      // Agent Dashboard Data
-      const totalBriefs = await DB.Models.Property.countDocuments({
-        agent: userId,
-      });
-      const activeBriefs = await DB.Models.Property.countDocuments({
-        agent: userId,
-        status: "active",
-      }); // Assuming 'active' status for agent's active briefs
-
-      // Completed Deals - This might involve checking transactions where the agent was involved and the deal is closed
+    // If Agent, add completedDeals, commission, preference matches
+    if (user.userType === "Agent") {
       const completedDeals = await DB.Models.Transaction.countDocuments({
         agent: userId,
         status: "completed",
-      }); // Assuming 'agent' field and 'completed' status in Transaction model
-
-      // Total Commission - This would depend on your commission structure and transaction records
-      // For this example, we'll just set it to 0
-      const totalCommission = 0; // Placeholder
-
-      const totalInspectionRequest =
-        await DB.Models.InspectionBooking.countDocuments({
-          bookedBy: userId,
-          bookedByModel: "Agent",
-        });
-      const totalCompletedInspection =
-        await DB.Models.InspectionBooking.countDocuments({
-          bookedBy: userId,
-          bookedByModel: "Agent",
-          status: "completed",
-        });
-
-      // Optimized way to get totalPreference
-      const matchedPreferenceProperties = await DB.Models.MatchedPreferenceProperty.find(
-        { buyer: userId },
-        { matchedProperties: 1 } // Only project the matchedProperties array
-      ).lean();
-
-      // Collect all unique property IDs from matched preferences
-      const allMatchedPropertyIds: Types.ObjectId[] = [];
-      matchedPreferenceProperties.forEach(doc => {
-        allMatchedPropertyIds.push(...doc.matchedProperties);
       });
 
-      // Filter out duplicates to avoid redundant lookups if a property appears in multiple preferences
-      const uniqueMatchedPropertyIds = [...new Set(allMatchedPropertyIds.map(id => id.toString()))].map(id => new Types.ObjectId(id));
+      const totalCommission = 0; // Replace with actual commission logic
 
-      // Query properties owned by the current user that are in the list of unique matched property IDs
-      const ownedMatchedPropertiesCount = await DB.Models.Property.countDocuments({
-        _id: { $in: uniqueMatchedPropertyIds },
-        owner: userId,
-      });
-
-      const totalPreference = ownedMatchedPropertiesCount;
-
-
-      dashboardData = {
-        totalBriefs,
-        activeBriefs,
+      Object.assign(dashboardData, {
         completedDeals,
         totalCommission,
-        totalInspectionRequest,
-        totalCompletedInspection,
-        totalPreference,
-      };
-    } else {
-      // Handle other user types or return a generic message
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: "Dashboard data not available for this user type.",
       });
     }
 
@@ -381,3 +342,4 @@ export const getDashboardData = async (
     next(err);
   }
 };
+
