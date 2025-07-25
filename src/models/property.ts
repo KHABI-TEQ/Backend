@@ -102,7 +102,7 @@ export class Property {
         landSize: {
           measurementType: { type: String, required: true },
           size: { type: Number, required: true },
-        },
+        }, 
         docOnProperty: [
           {
             docName: { type: String, required: true },
