@@ -3,6 +3,7 @@ import { AppRequest } from "../../types/express";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
+import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
 
 export const fetchUserInspections = async (
   req: AppRequest,
@@ -34,7 +35,6 @@ export const fetchUserInspections = async (
 
     const inspections = await DB.Models.InspectionBooking.find(filter)
       .populate("propertyId")
-      .populate("-requestedBy")
       .populate("transaction")
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
@@ -42,10 +42,14 @@ export const fetchUserInspections = async (
 
     const total = await DB.Models.InspectionBooking.countDocuments(filter);
 
+    const formattedInspections = inspections.map((inspection) =>
+      formatInspectionForTable(inspection),
+    );
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: inspections,
-      meta: {
+      data: formattedInspections,
+      pagination: {
         total,
         page: Number(page),
         limit: Number(limit),
@@ -56,7 +60,6 @@ export const fetchUserInspections = async (
     next(err);
   }
 };
-
 
 export const getOneUserInspection = async (
   req: AppRequest,
@@ -86,7 +89,6 @@ export const getOneUserInspection = async (
     next(err);
   }
 };
-
 
 export const getInspectionStats = async (
   req: AppRequest,

@@ -47,7 +47,10 @@ export interface IInspectionBooking {
   counterCount: number; // Track how many times the price has been countered
 }
 
-export interface IInspectionBookingDoc extends IInspectionBooking, Document {}
+export interface IInspectionBookingDoc extends IInspectionBooking, Document {
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export type IInspectionBookingModel = Model<IInspectionBookingDoc>;
 

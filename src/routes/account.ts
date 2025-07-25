@@ -53,7 +53,7 @@ AccountRouter.patch("/property/:propertyId/updateStatus", updatePropertyStatus);
 AccountRouter.get("/property/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/property/:propertyId/delete", deleteProperty);
 AccountRouter.get("/property/fetchAll", fetchAllProperties);
-
+ 
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
