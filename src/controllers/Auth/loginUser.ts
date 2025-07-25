@@ -1,17 +1,16 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
-import { DB } from "..";
 import crypto from "crypto";
+import { DB } from "..";
 import { generateToken, RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
-import { verifyEmailTemplate } from "../../common/email.template";
-import { generalTemplate } from "../../common/email.template";
+import { verifyEmailTemplate, generalTemplate } from "../../common/email.template";
 import sendEmail from "../../common/send.email";
 
 export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = String(email || "").toLowerCase().trim();
 
     const user = await DB.Models.User.findOne({ email: normalizedEmail });
 
@@ -33,7 +32,6 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 
     // Re-send verification email if not verified
     if (!user.isAccountVerified) {
-      // Remove any existing tokens
       await DB.Models.VerificationToken.deleteMany({ userId: user._id });
 
       const token = crypto.randomBytes(32).toString("hex");
@@ -55,11 +53,22 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         html: mail,
       });
 
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Email not verified. A verification link has been sent.");
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Email not verified. A verification link has been sent."
+      );
     }
 
-    if (user.isInActive || user.isDeleted || user.accountStatus === "inactive" || user.accountStatus === "deleted") {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Your account is inactive or has been deleted. Please contact support.");
+    if (
+      user.isInActive ||
+      user.isDeleted ||
+      user.accountStatus === "inactive" ||
+      user.accountStatus === "deleted"
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Your account is inactive or has been deleted. Please contact support."
+      );
     }
 
     const token = generateToken({
@@ -87,49 +96,37 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       accountId: user.accountId,
     };
 
+    // Agent-specific logic
     if (user.userType === "Agent") {
       const agentData = await DB.Models.Agent.findOne({ userId: user._id });
 
-      if (agentData?.agentType) {
-        return res.status(HttpStatusCodes.OK).json({
-          success: true,
-          message: "Login successful",
-          data: {
-            token,
-            user: {
-              ...userResponse,
-              agentData,
-              isAccountApproved: user.accountApproved,
-            }
+      const userWithAgent = agentData?.agentType
+        ? {
+            ...userResponse,
+            agentData,
+            isAccountApproved: user.accountApproved,
           }
-        });  
-      } else {
-        return res.status(HttpStatusCodes.OK).json({
-          success: true,
-          message: "Login successful",
-          data: {
-            token,
-            user: {
-              token,
-              user: userResponse,
-            }
-          }
-        });
-      }
+        : userResponse;
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          token,
+          user: userWithAgent,
+        },
+      });
     }
 
+    // All other users
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Login successful",
       data: {
         token,
-        user: {
-          token,
-          user: userResponse,
-        }
-      }
+        user: userResponse,
+      },
     });
-
   } catch (err: any) {
     console.error("Login error:", err.message);
     next(err);
