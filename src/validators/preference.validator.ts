@@ -89,7 +89,7 @@ export const preferenceValidationSchema = Joi.object({
   }).required(),
 
   contactInfo: Joi.object().required(),
-
+ 
   nearbyLandmark: Joi.string().allow(""),
   additionalNotes: Joi.string().allow(""),
 

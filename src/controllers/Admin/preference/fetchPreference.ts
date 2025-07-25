@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import mongoose from "mongoose";
+import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
 
 // either by "developer" or "buyer" or "tenant" or "shortlet"
 export const getPreferencesByMode = async (
@@ -131,10 +132,16 @@ export const getPreferencesByMode = async (
 
     const total = await DB.Models.Preference.countDocuments(filter);
 
+    const formattedPreferences = preferences.map(pref => {
+      const plainObjectFromMongoose = pref.toObject({ getters: true, virtuals: true });
+      const formattedInputForFormatter = plainObjectFromMongoose as unknown as PreferencePayload;
+      return formatPreferenceForFrontend(formattedInputForFormatter);
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Preferences fetched successfully",
-      data: preferences,
+      data: formattedPreferences, // Send the formatted data
       pagination: {
         total,
         limit,
@@ -205,25 +212,38 @@ export const getSinglePreference = async (
       closedPage * closedLimit,
     );
 
+    // 1. Format currentPreference
+    const formattedCurrentPreference = formatPreferenceForFrontend(
+      currentPreference.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload
+    );
+
+    // 2. Format paginatedActive items
+    const formattedPaginatedActive = paginatedActive.map(pref =>
+      formatPreferenceForFrontend(pref.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload)
+    );
+
+    // 3. Format paginatedClosed items
+    const formattedPaginatedClosed = paginatedClosed.map(pref =>
+      formatPreferenceForFrontend(pref.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload)
+    );
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Preference fetched successfully",
       data: {
         buyerProfile: currentPreference.buyer,
-        currentPreference,
-
+        currentPreference: formattedCurrentPreference, // Use the formatted version
         activePreferences: {
           total: allActive.length,
           page: activePage,
           limit: activeLimit,
-          items: paginatedActive,
+          items: formattedPaginatedActive, // Use the formatted version
         },
-
         closedPreferences: {
           total: allClosed.length,
           page: closedPage,
           limit: closedLimit,
-          items: paginatedClosed,
+          items: formattedPaginatedClosed, // Use the formatted version
         },
       },
     });
@@ -272,8 +292,8 @@ export const getPreferenceModeStats = async (
 
     // Calculate avgBudget: average of midpoints of budgetMin and budgetMax
     const budgetPoints = all
-      .filter((p) => typeof p.budgetMin === "number" && typeof p.budgetMax === "number")
-      .map((p) => (p.budgetMin + p.budgetMax) / 2);
+      .filter((p) => typeof p.budget.minPrice === "number" && typeof p.budget.maxPrice === "number")
+      .map((p) => (p.budget.minPrice + p.budget.maxPrice) / 2);
 
     const avgBudget =
       budgetPoints.length > 0
