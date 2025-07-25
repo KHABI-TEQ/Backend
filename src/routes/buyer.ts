@@ -33,21 +33,21 @@ buyerRouter.get(
   },
 );
 
-buyerRouter.post(
-  "/submit-preference",
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await buyerController.submitPreference(req.body);
-      return res.status(201).json({
-        success: true,
-        message: result.message,
-        data: result.preference,
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+// buyerRouter.post(
+//   "/submit-preference",
+//   async (req: Request, res: Response, next: NextFunction) => {
+//     try {
+//       const result = await buyerController.submitPreference(req.body);
+//       return res.status(201).json({
+//         success: true,
+//         message: result.message,
+//         data: result.preference,
+//       });
+//     } catch (error) {
+//       next(error);
+//     }
+//   },
+// );
 
 // buyerRouter.post(
 //   '/update-inspection/:inspectionId',

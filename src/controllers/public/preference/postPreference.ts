@@ -20,22 +20,72 @@ export const postPreference = async (
       abortEarly: false,
     });
 
-    // Prepare data to save
+    console.log(payload, "ccc")
+
+    const rawContactInfo = payload.contactInfo || {};
+
+    // Extract only expected fields
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      companyName,
+      contactPerson,
+      cacRegistrationNumber,
+    } = rawContactInfo;
+
+    
+
+    // Ensure required fields for Buyer model
+    const normalizedBuyerPayload: {
+      fullName: string;
+      email: string;
+      phoneNumber: string;
+      companyName?: string;
+      contactPerson?: string;
+      cacRegistrationNumber?: string;
+    } = {
+      fullName: fullName || companyName || "Unnamed Buyer",
+      email: email || "unknown@example.com", // fallback email
+      phoneNumber: phoneNumber || "00000000000", // fallback phone number
+      ...(companyName && { companyName }),
+      ...(contactPerson && { contactPerson }),
+      ...(cacRegistrationNumber && { cacRegistrationNumber }),
+    };
+
+    console.log(normalizedBuyerPayload, "buyer.....")
+
+    // Check if buyer already exists
+    let buyer = await DB.Models.Buyer.findOne({
+      $or: [
+        { email: normalizedBuyerPayload.email },
+        {
+          fullName: normalizedBuyerPayload.fullName,
+          phoneNumber: normalizedBuyerPayload.phoneNumber,
+        },
+      ],
+    });
+
+    if (!buyer) {
+      buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
+    }
+
+    // Prepare preference data
     const preferenceData = {
       ...payload,
-      buyer: req.user._id,
+      contactInfo: normalizedBuyerPayload,
+      buyer: buyer._id,
       status: payload.status || "pending",
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
 
-    // Send Email to Buyer/User
+    // Send email
     const userMailBody = preferenceMail(preferenceData);
-
     const userGeneralMail = generalEmailLayout(userMailBody);
 
     await sendEmail({
-      to: req.user.email,
+      to: buyer.email,
       subject: "Preference Submitted Successfully",
       text: userGeneralMail,
       html: userGeneralMail,
