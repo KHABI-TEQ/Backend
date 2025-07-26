@@ -29,15 +29,25 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
         isFlagged: user.isFlagged,
         accountId: user.accountId,
     };
-
+ 
     if (user.userType === 'Agent') {
         const agentData = await DB.Models.Agent.findOne({ userId: user._id });
-        return res.status(HttpStatusCodes.OK).json({
-            message: 'Email verified successfully!',
-            token,
-            user: userResponse,
+
+        const userWithAgent = agentData?.agentType
+        ? {
+            ...userResponse,
             agentData,
             isAccountApproved: user.accountApproved,
+          }
+        : userResponse;
+
+        return res.status(HttpStatusCodes.OK).json({
+            success: true,
+            message: 'Email verified successfully!',
+            data: {
+              token,
+              user: userWithAgent,
+            }
         });
     }
 
