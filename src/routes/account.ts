@@ -47,12 +47,12 @@ AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
 
 // PROPERTY ROUTES
-AccountRouter.post("/property/create", postProperty);
-AccountRouter.patch("/property/:propertyId/edit", editProperty);
-AccountRouter.patch("/property/:propertyId/updateStatus", updatePropertyStatus);
-AccountRouter.get("/property/:propertyId/getOne", fetchSingleProperty);
-AccountRouter.delete("/property/:propertyId/delete", deleteProperty);
-AccountRouter.get("/property/fetchAll", fetchAllProperties);
+AccountRouter.post("/properties/create", postProperty);
+AccountRouter.patch("/properties/:propertyId/edit", editProperty);
+AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus);
+AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
+AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
+AccountRouter.get("/properties/fetchAll", fetchAllProperties);
  
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);

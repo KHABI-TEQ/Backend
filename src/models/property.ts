@@ -42,6 +42,8 @@ export interface IProperty {
   };
   pictures?: string[];
   videos?: string[];
+  employmentType?: string;
+  tenantGenderPreferences?: string;
   description: string;
   addtionalInfo?: string;
   isTenanted: string;
@@ -167,6 +169,8 @@ export class Property {
           required: true,
         },
         reason: { type: String },
+        employmentType: { type: String },
+        tenantGenderPreferences: { type: String },
         briefType: { type: String },
         isPremium: { type: Boolean, default: false },
         isApproved: { type: Boolean, default: false },
