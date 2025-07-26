@@ -9,7 +9,7 @@ inspectRouter.post(
   InspectionActionsController.submitInspectionRequest,
 );
 
-// Process inspection actions - accept, reject, counter, request_changes
+// Process inspection actions - accept, reject, counter
 inspectRouter.post(
   "/:inspectionId/actions/:userId",
   InspectionActionsController.processInspectionAction.bind(

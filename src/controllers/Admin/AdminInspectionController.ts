@@ -14,6 +14,7 @@ import {
 import notificationService from "../../services/notification.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { AppRequest } from "../../types/express";
+import { InspectionLoiRejectionTemplate } from "../../common/emailTemplates/inspectionMails";
 
 export class AdminInspectionController {
   /**
@@ -322,6 +323,116 @@ export class AdminInspectionController {
       data: inspection,
     });
   }
+
+
+  public async approveOrRejectLOIDocs(
+    req: AppRequest,
+    res: Response
+  ): Promise<Response> {
+    const { id } = req.params;
+    const { status, reason } = req.body;
+
+    const allowedStatuses = ["approve", "reject"];
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Invalid inspection ID"
+      );
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Invalid LOI status"
+      );
+    }
+
+    const inspection = await DB.Models.InspectionBooking.findById(id)
+      .populate("requestedBy")
+      .populate("propertyId")
+      .populate("owner");
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+    }
+
+    // Set approveLOI value based on action
+    const approveLOI = status === "approve";
+
+    // Update LOI status
+    inspection.approveLOI = approveLOI;
+    if (status === "reject") {
+      inspection.status = "negotiation_cancelled";
+      inspection.stage = "cancelled";
+    }
+     
+    await inspection.save();
+
+    const buyer = inspection.requestedBy as any;
+    const property = inspection.propertyId as any;
+    const owner = inspection.owner as any;
+
+    const location = `${property.location?.state}, ${property.location?.localGovernment}, ${property.location?.area}`;
+    const formattedPrice = property.price?.toLocaleString("en-US") ?? "N/A";
+    const negotiationPrice = inspection.negotiationPrice?.toLocaleString("en-US") ?? "N/A";
+
+    const emailData = {
+      propertyType: property.propertyType,
+      location,
+      price: formattedPrice,
+      inspectionDate: inspection.inspectionDate,
+      inspectionTime: inspection.inspectionTime,
+      isNegotiating: inspection.isNegotiating,
+      negotiationPrice,
+      letterOfIntention: inspection.letterOfIntention,
+      agentName: owner?.fullName ?? owner?.firstName ?? "N/A",
+      reason: reason ?? "No reason provided"
+    };
+
+    if (status === "reject") {
+      // Send rejection email to buyer
+      const buyerRejectionHtml = InspectionLoiRejectionTemplate(
+        buyer.fullName,
+        emailData
+      );
+
+      await sendEmail({
+        to: buyer.email,
+        subject: `LOI Document Rejected`,
+        html: generalTemplate(buyerRejectionHtml),
+        text: generalTemplate(buyerRejectionHtml),
+      });
+
+      await InspectionLogService.logActivity({
+        inspectionId: inspection._id.toString(),
+        propertyId: property._id.toString(),
+        senderId: req.admin?._id.toString(),
+        senderModel: "Admin",
+        senderRole: "admin",
+        message: `LOI document rejected by admin.`,
+        meta: { approveLOI, reason }
+      });
+    }
+
+    if (status === "approve") {
+      await InspectionLogService.logActivity({
+        inspectionId: inspection._id.toString(),
+        propertyId: property._id.toString(),
+        senderId: req.admin?._id.toString(),
+        senderModel: "Admin",
+        senderRole: "admin",
+        message: `LOI document approved by admin.`,
+        meta: { approveLOI }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `LOI status updated to ${approveLOI ? "approved" : "rejected"}`,
+      data: inspection,
+    });
+  }
+
 
   public async getInspectionStats(
     req: Request,

@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { DB } from "../..";
 import { RouteError } from "../../../common/classes";
@@ -12,10 +12,11 @@ import {
 import { InspectionValidator } from "../../../validators/inspection.validator";
 import { InspectionActionHandler } from "../../../handlers/inspection-action.handler";
 import { InspectionEmailService } from "../../../services/inspection-email.service";
+import { AppRequest } from "../../../types/express";
 
 class InspectionActionsController {
   public async processInspectionAction(
-    req: Request,
+    req: AppRequest,
     res: Response,
     next: NextFunction,
   ) {
@@ -93,6 +94,18 @@ class InspectionActionsController {
       );
     }
 
+    if (
+      inspection.stage === "negotiation" &&
+      actionData.action === "counter" &&
+      (typeof actionData.counterPrice !== "number" || isNaN(actionData.counterPrice))
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Counter price is required and must be a valid number for price negotiations"
+      );
+    }
+
+
     // Validate action-specific requirements
     InspectionValidator.validateActionRequirements(actionData);
 
@@ -164,7 +177,6 @@ class InspectionActionsController {
         action: actionData.action,
         inspectionType: actionData.inspectionType,
         counterPrice: actionData.counterPrice,
-        documentUrl: actionData.documentUrl,
         dateTimeChanged,
       },
     });
@@ -204,7 +216,7 @@ class InspectionActionsController {
   }
 
   public async getInspectionDetails(
-    req: Request,
+    req: AppRequest,
     res: Response,
     next: NextFunction,
   ) {
@@ -270,7 +282,7 @@ class InspectionActionsController {
   }
 
   public async validateInspectionAccess(
-    req: Request,
+    req: AppRequest,
     res: Response,
     next: NextFunction,
   ) {
@@ -320,7 +332,7 @@ class InspectionActionsController {
   }
 
   public async getUserInspections(
-    req: Request,
+    req: AppRequest,
     res: Response,
     next: NextFunction,
   ) {
@@ -359,7 +371,7 @@ class InspectionActionsController {
   }
 
   public async getInspectionHistory(
-    req: Request,
+    req: AppRequest,
     res: Response,
     next: NextFunction,
   ) {
@@ -380,7 +392,7 @@ class InspectionActionsController {
   }
 
   public async submitInspectionRequest(
-    req: Request,
+    req: AppRequest,
     res: Response,
     next: NextFunction,
   ): Promise<void> {
@@ -395,10 +407,8 @@ class InspectionActionsController {
       }
 
       const {
-        inspectionType,
-        inspectionDate,
-        inspectionTime,
         requestedBy,
+        inspectionDetails,
         transaction,
         properties,
       } = validation.data!;
@@ -432,11 +442,12 @@ class InspectionActionsController {
         // Determine isNegotiating and isLOI based on presence of negotiationPrice and letterOfIntention
         const isNegotiating =
           typeof prop.negotiationPrice === "number" &&
-          prop.negotiationPrice > 0; // Added condition for negotiationPrice > 0
+          prop.negotiationPrice > 0;
         const isLOI = !!prop.letterOfIntention;
 
-        // Determine inspectionMode based on inspectionType or default to "in_person"
-        const inspectionMode = prop.inspectionMode || "in_person";
+        // Determine inspectionMode based on inspectionDetails or property-specific override
+        const inspectionMode = inspectionDetails.inspectionMode || "in_person";
+        const inspectionType = prop.inspectionType; // Now comes from individual property
 
         const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
 
@@ -444,14 +455,14 @@ class InspectionActionsController {
           propertyId: prop.propertyId,
           bookedBy: buyer._id,
           bookedByModel: "Buyer",
-          inspectionDate: new Date(inspectionDate),
-          inspectionTime,
+          inspectionDate: new Date(inspectionDetails.inspectionDate),
+          inspectionTime: inspectionDetails.inspectionTime,
           status: "pending_transaction",
           requestedBy: buyer._id,
           transaction: transactionDoc._id,
           isNegotiating,
           isLOI,
-          inspectionType,
+          inspectionType, // Use the inspectionType from the property object
           inspectionMode,
           inspectionStatus: "new",
           negotiationPrice: prop.negotiationPrice || 0,
@@ -477,8 +488,8 @@ class InspectionActionsController {
             inspectionType,
             negotiationPrice: prop.negotiationPrice || 0,
             letterOfIntention: prop.letterOfIntention || null,
-            inspectionDate,
-            inspectionTime,
+            inspectionDate: inspectionDetails.inspectionDate,
+            inspectionTime: inspectionDetails.inspectionTime,
             inspectionMode,
           },
         });

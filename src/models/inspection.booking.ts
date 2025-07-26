@@ -27,12 +27,11 @@ export interface IInspectionBooking {
   isNegotiating: boolean;
   isLOI: boolean;
   inspectionType: "price" | "LOI";
-  inspectionMode: "in_person" | "virtual" | "developer_visit";
+  inspectionMode: "in_person" | "virtual";
   inspectionStatus?:
     | "accepted"
     | "rejected"
     | "countered"
-    | "requested_changes"
     | "new";
 
   negotiationPrice: number;
@@ -40,6 +39,8 @@ export interface IInspectionBooking {
   reason?: string;
 
   owner: Types.ObjectId;
+
+  approveLOI?: boolean;
 
   pendingResponseFrom?: "buyer" | "seller" | "admin";
   stage: "negotiation" | "inspection" | "completed" | "cancelled";
@@ -112,7 +113,7 @@ export class InspectionBooking {
 
         inspectionMode: {
           type: String,
-          enum: ["in_person", "virtual", "developer_visit"],
+          enum: ["in_person", "virtual"],
           required: true,
         },
 
@@ -122,7 +123,6 @@ export class InspectionBooking {
             "accepted",
             "rejected",
             "countered",
-            "requested_changes",
             "new",
           ],
           default: "new",
@@ -134,6 +134,8 @@ export class InspectionBooking {
         reason: { type: String },
 
         owner: { type: Schema.Types.ObjectId, required: true, ref: "User" },
+
+        approveLOI: { type: Boolean, default: false },
 
         pendingResponseFrom: {
           type: String,
