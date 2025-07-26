@@ -87,7 +87,7 @@ export const fetchAllProperties = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: properties,
-      meta: {
+      pagination: {
         total,
         page: Number(page),
         limit: Number(limit),

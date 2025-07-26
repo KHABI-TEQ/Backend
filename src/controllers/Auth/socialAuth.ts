@@ -39,12 +39,22 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
 
     if (user.userType === 'Agent') {
         const agentData = await DB.Models.Agent.findOne({ userId: user._id });
-        return res.status(HttpStatusCodes.OK).json({
-            message: 'Login successful',
-            token,
-            user: userResponse,
+
+        const userWithAgent = agentData?.agentType
+        ? {
+            ...userResponse,
             agentData,
             isAccountApproved: user.accountApproved,
+          }
+        : userResponse;
+
+        return res.status(HttpStatusCodes.OK).json({
+            success: true,
+            message: 'Login successful',
+            data: {
+              token,
+              user: userWithAgent,
+            }
         });
     }
 
@@ -60,7 +70,6 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
 
 // ✅ GOOGLE AUTH HANDLER
 export const googleAuth = async (req: Request, res: Response, next: NextFunction) => {
-  // userType is now optional
   const { idToken, userType } = req.body;
 
   try {
@@ -80,87 +89,79 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
     let user = await DB.Models.User.findOne({ email: normalizedEmail });
 
     if (user) {
-      // User found: proceed with login logic
       if (!user.googleId) {
         user.googleId = sub;
         await user.save();
       }
 
-      // Comprehensive account status checks for existing users
       if (!user.isAccountVerified) {
         throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account requires email verification.');
       }
-      
-      if (user.isInActive || user.isDeleted || user.accountStatus === 'inactive' || user.accountStatus === 'deleted') {
-        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is inactive or has been deleted. Please contact support.');
+
+      if (
+        user.isInActive || user.isDeleted ||
+        user.accountStatus === 'inactive' || user.accountStatus === 'deleted'
+      ) {
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is inactive or has been deleted.');
       }
 
-      await sendLoginSuccessResponse(user, res);
-
-    } else {
-      // User not found: determine if it's a registration attempt or an error
-      if (userType) {
-        // userType was provided, proceed with registration
-        const accountId = await generateUniqueAccountId();
-        const newUser = await DB.Models.User.create({
-          email: normalizedEmail,
-          firstName: given_name,
-          lastName: family_name,
-          userType, // Use the provided userType
-          googleId: sub,
-          isAccountVerified: true,
-          accountApproved: userType === 'Agent' ? false : true,
-          accountStatus: 'active',
-          profile_picture: picture,
-          accountId,
-          isAccountInRecovery: false,
-          isInActive: false,
-          isDeleted: false,
-          isFlagged: false,
-        });
-
-        if (userType === 'Agent') {
-          // Assuming DB.Models.Agent exists and has a userId field
-          await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
-        } 
-
-      } else {
-        throw new RouteError(
-          HttpStatusCodes.NOT_FOUND,
-          'Account not found. If you are a new user, please register first, specifying your account type (Landowners or Agent).'
-        );
-      }
+      return await sendLoginSuccessResponse(user, res);
     }
+
+    // No user found: create new one if userType provided
+    if (!userType) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        'Account not found. If you are a new user, please register first, specifying your account type (Landowners or Agent).'
+      );
+    }
+
+    const accountId = await generateUniqueAccountId();
+    const newUser = await DB.Models.User.create({
+      email: normalizedEmail,
+      firstName: given_name,
+      lastName: family_name,
+      userType,
+      googleId: sub,
+      isAccountVerified: true,
+      accountApproved: userType === 'Agent' ? false : true,
+      accountStatus: userType === 'Agent' ? 'inactive' : 'active',
+      profile_picture: picture,
+      accountId,
+      isAccountInRecovery: false,
+      isInActive: false,
+      isDeleted: false,
+      isFlagged: false,
+    });
+
+    if (userType === 'Agent') {
+      await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
+    }
+
+    return await sendLoginSuccessResponse(newUser, res);
+
   } catch (err) {
     console.error('Google OAuth Error:', err);
-    // Pass custom RouteError to the next middleware (your error handler)
-    next(err);
-    if (err instanceof RouteError) {
-      next(err);
-    } else {
-      next(new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Google login failed'));
-    }
+    next(err instanceof RouteError ? err : new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Google login failed'));
   }
 };
 
+
 // ✅ FACEBOOK AUTH HANDLER
 export const facebookAuth = async (req: Request, res: Response, next: NextFunction) => {
-  // userType is now optional
-  const { idToken, userType } = req.body; // idToken here is actually accessToken from Facebook
+  const { idToken, userType } = req.body;
 
   try {
-    // 1. Verify access token with Facebook
     const fbUrl = `https://graph.facebook.com/me?fields=id,first_name,last_name,email,picture&access_token=${idToken}`;
     const fbRes = await fetch(fbUrl);
     const fbData = await fbRes.json();
 
-    // Check for Facebook API errors
     if (fbData.error) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, fbData.error.message || 'Invalid Facebook token.');
     }
 
     if (!fbData.email) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Facebook email not found. Please ensure your Facebook account has an email.');
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Facebook email not found.');
     }
 
     const { id, email, first_name, last_name, picture } = fbData;
@@ -169,63 +170,59 @@ export const facebookAuth = async (req: Request, res: Response, next: NextFuncti
     let user = await DB.Models.User.findOne({ email: normalizedEmail });
 
     if (user) {
-      // User found: proceed with login logic
       if (!user.facebookId) {
         user.facebookId = id;
         await user.save();
       }
 
-      // Comprehensive account status checks for existing users
       if (!user.isAccountVerified) {
         throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account requires email verification.');
       }
-      
-      if (user.isInActive || user.isDeleted || user.accountStatus === 'inactive' || user.accountStatus === 'deleted') {
-        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is inactive or has been deleted. Please contact support.');
+
+      if (
+        user.isInActive || user.isDeleted ||
+        user.accountStatus === 'inactive' || user.accountStatus === 'deleted'
+      ) {
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is inactive or has been deleted.');
       }
 
-      await sendLoginSuccessResponse(user, res);
-
-    } else {
-      // User not found: determine if it's a registration attempt or an error
-      if (userType) {
-        // userType was provided, proceed with registration
-        const accountId = await generateUniqueAccountId();
-        const newUser = await DB.Models.User.create({
-          email: normalizedEmail,
-          firstName: first_name,
-          lastName: last_name,
-          userType, // Use the provided userType
-          facebookId: id,
-          isAccountVerified: true, // Facebook email is considered verified by Facebook
-          accountApproved: userType === 'Agent' ? false : true, // Agents require approval
-          accountStatus: userType === 'Agent' ? 'inactive' : 'active',
-          profile_picture: picture?.data?.url || '', // Handle nested picture data
-          accountId,
-          isAccountInRecovery: false,
-          isInActive: false,
-          isDeleted: false,
-          isFlagged: false,
-        });
-
-        if (userType === 'Agent') {
-          await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
-        }
-
-      } else {
-        // userType was NOT provided, and account not found.
-        throw new RouteError(
-          HttpStatusCodes.NOT_FOUND,
-          'Account not found. If you are a new user, please register first, specifying your account type (Landowners or Agent).'
-        );
-      }
+      return await sendLoginSuccessResponse(user, res);
     }
+
+    // No user found
+    if (!userType) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        'Account not found. If you are a new user, please register first, specifying your account type (Landowners or Agent).'
+      );
+    }
+
+    const accountId = await generateUniqueAccountId();
+    const newUser = await DB.Models.User.create({
+      email: normalizedEmail,
+      firstName: first_name,
+      lastName: last_name,
+      userType,
+      facebookId: id,
+      isAccountVerified: true,
+      accountApproved: userType === 'Agent' ? false : true,
+      accountStatus: userType === 'Agent' ? 'inactive' : 'active',
+      profile_picture: picture?.data?.url || '',
+      accountId,
+      isAccountInRecovery: false,
+      isInActive: false,
+      isDeleted: false,
+      isFlagged: false,
+    });
+
+    if (userType === 'Agent') {
+      await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
+    }
+
+    return await sendLoginSuccessResponse(newUser, res);
+
   } catch (err) {
     console.error('Facebook OAuth Error:', err);
-    if (err instanceof RouteError) {
-      next(err);
-    } else {
-      next(new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Facebook login failed'));
-    }
+    next(err instanceof RouteError ? err : new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Facebook login failed'));
   }
 };
