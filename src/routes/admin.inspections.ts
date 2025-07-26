@@ -22,5 +22,8 @@ AdminInspRouter.get('/inspections/:id', use(controller.getSingleInspection.bind(
 // Update or approve an inspection status
 AdminInspRouter.patch('/inspections/:id/status', use(controller.updateInspectionStatus.bind(controller)));
 
+// Update or approve or reject LOI document
+AdminInspRouter.patch('/inspections/:id/approveOrRejectLOI', use(controller.approveOrRejectLOIDocs.bind(controller)));
+
 
 export default AdminInspRouter;
