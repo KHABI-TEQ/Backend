@@ -184,7 +184,7 @@ export class Property {
       },
       { timestamps: true },
     );
-
+ 
     this.propertyModel = model<IPropertyDoc>("Property", schema);
   }
 
