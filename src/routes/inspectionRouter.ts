@@ -41,4 +41,10 @@ inspectRouter.get(
   InspectionActionsController.getInspectionHistory,
 );
 
+// Get inspection history/logs
+inspectRouter.get(
+  "/:inspectionId/reOpen",
+  InspectionActionsController.reopenInspection,
+);
+
 export default inspectRouter;

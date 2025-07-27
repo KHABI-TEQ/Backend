@@ -505,6 +505,52 @@ class InspectionActionsController {
       next(error);
     }
   }
+
+  public async reopenInspection(
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const { inspectionId } = req.params;
+
+    const inspection = await DB.Models.InspectionBooking.findById(inspectionId);
+    if (!inspection) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        `Inspection with ID ${inspectionId} not found.`,
+      );
+    }
+
+    // Simply touch the row to update the `updatedAt` timestamp
+    inspection.markModified("updatedAt");
+    await inspection.save();
+
+    await InspectionLogService.logActivity({
+      inspectionId: inspection._id.toString(),
+      propertyId: inspection.propertyId.toString(),
+      senderId: req.user?._id?.toString() || "system",
+      senderModel: req.user?.model || "Admin",
+      senderRole: req.user?.role || "admin",
+      message: `Inspection reopened. No changes made to date or time.`,
+      status: inspection.status,
+      stage: inspection.stage,
+      meta: {
+        action: "reopen",
+      },
+    });
+
+    res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Inspection reopened successfully.",
+      data: inspection,
+    });
+  } catch (error) {
+    console.error("reopenInspection error:", error);
+    next(error);
+  }
+}
+
 }
 
 export default new InspectionActionsController();
