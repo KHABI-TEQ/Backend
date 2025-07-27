@@ -17,6 +17,7 @@ const briefTypeToPreferenceType: Record<string, string> = {
 const calculateMatchScore = (property: any, preference: any): number => {
   let score = 0;
 
+  // Location match (local government)
   if (
     property.location?.localGovernment &&
     preference.location?.localGovernmentAreas?.includes(property.location.localGovernment)
@@ -24,25 +25,29 @@ const calculateMatchScore = (property: any, preference: any): number => {
     score += 30;
   }
 
+  // Budget match
   const price = Number(property.price?.toString().replace(/[^\d.]/g, "")) || 0;
   if (
-    preference.budgetMin != null &&
-    preference.budgetMax != null &&
-    price >= preference.budgetMin &&
-    price <= preference.budgetMax
+    preference.budget?.minPrice != null &&
+    preference.budget?.maxPrice != null &&
+    price >= preference.budget.minPrice &&
+    price <= preference.budget.maxPrice
   ) {
     score += 40;
   }
 
+  // Preference type match
   const propertyPrefType = briefTypeToPreferenceType[property.briefType] || "";
   if (propertyPrefType === preference.preferenceType) {
     score += 30;
   }
 
+  // Bedroom match
   const minBed = preference.propertyDetails?.minBedrooms;
   const bedCount = Number(property.additionalFeatures?.noOfBedroom) || 0;
   if (minBed && bedCount >= minBed) score += 5;
 
+  // Bathroom match
   const minBath = preference.propertyDetails?.minBathrooms;
   const bathCount = Number(property.additionalFeatures?.noOfBathroom) || 0;
   if (minBath && bathCount >= minBath) score += 5;
@@ -74,15 +79,13 @@ export const findMatchedProperties = async (
 
     const finalQuery: any = {
       "location.state": preference.location?.state,
-      listingStatus: "listed",
-      isPublished: true,
-      isDraft: false,
+      isDeleted: false,
+      isRejected: false,
+      isApproved: true,
       briefType: { $in: Object.keys(briefTypeToPreferenceType) },
     };
 
-    const rawMatches = await DB.Models.Property.find(finalQuery)
-      .populate("agent")
-      .lean();
+    const rawMatches = await DB.Models.Property.find(finalQuery).lean();
 
     const withScore = rawMatches.map((property) => {
       const matchScore = calculateMatchScore(property, preference);
@@ -90,18 +93,24 @@ export const findMatchedProperties = async (
       return {
         ...formatted,
         matchScore,
-        isPriority: false, // temp, to be added below
+        isPriority: false, // temp placeholder
       };
     });
 
-    withScore.sort((a, b) => b.matchScore - a.matchScore);
+    // ✅ Filter out properties with 0 match score
+    const filtered = withScore.filter((p) => p.matchScore > 0);
 
-    const cutoff = Math.ceil(withScore.length * 0.8);
-    const prioritized = withScore.map((item, index) => ({
+    // Sort by match score descending
+    filtered.sort((a, b) => b.matchScore - a.matchScore);
+
+    // Mark top 80% as priority
+    const cutoff = Math.ceil(filtered.length * 0.8);
+    const prioritized = filtered.map((item, index) => ({
       ...item,
       isPriority: index < cutoff,
     }));
 
+    // Pagination
     const paginated = prioritized.slice((+page - 1) * +limit, +page * +limit);
 
     return res.status(HttpStatusCodes.OK).json({
