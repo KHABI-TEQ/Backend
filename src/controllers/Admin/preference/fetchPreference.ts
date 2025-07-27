@@ -170,13 +170,6 @@ export const getSinglePreference = async (
       });
     }
 
-    // Pagination query params
-    const activePage = parseInt(req.query.activePage as string) || 1;
-    const activeLimit = parseInt(req.query.activeLimit as string) || 10;
-
-    const closedPage = parseInt(req.query.closedPage as string) || 1;
-    const closedLimit = parseInt(req.query.closedLimit as string) || 10;
-
     // Fetch the current preference with populated fields
     const currentPreference = await DB.Models.Preference.findById(preferenceId)
       .populate("buyer")
@@ -196,54 +189,38 @@ export const getSinglePreference = async (
       buyer: buyerId,
     });
 
-    // Filter into active and closed
-    const allActive = otherPreferences.filter((p) =>
-      ["pending", "approved", "matched"].includes(p.status),
-    );
+    // Filter active and closed preferences
+    const matched = otherPreferences.filter((p) => p.status === "matched");
+    const approved = otherPreferences.filter((p) => p.status === "approved");
+    const pending = otherPreferences.filter((p) => p.status === "pending");
     const allClosed = otherPreferences.filter((p) => p.status === "closed");
 
-    // Apply pagination manually
-    const paginatedActive = allActive.slice(
-      (activePage - 1) * activeLimit,
-      activePage * activeLimit,
-    );
-    const paginatedClosed = allClosed.slice(
-      (closedPage - 1) * closedLimit,
-      closedPage * closedLimit,
-    );
+    // Combine active preferences in order: matched → approved → pending
+    const orderedActive = [...matched, ...approved, ...pending];
 
-    // 1. Format currentPreference
+    // Format preferences
     const formattedCurrentPreference = formatPreferenceForFrontend(
       currentPreference.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload
     );
 
-    // 2. Format paginatedActive items
-    const formattedPaginatedActive = paginatedActive.map(pref =>
-      formatPreferenceForFrontend(pref.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload)
-    );
-
-    // 3. Format paginatedClosed items
-    const formattedPaginatedClosed = paginatedClosed.map(pref =>
-      formatPreferenceForFrontend(pref.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload)
-    );
+    const formatMany = (prefs: typeof otherPreferences) =>
+      prefs.map((pref) =>
+        formatPreferenceForFrontend(
+          pref.toObject({ getters: true, virtuals: true }) as unknown as PreferencePayload,
+        ),
+      );
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Preference fetched successfully",
       data: {
         buyerProfile: currentPreference.buyer,
-        currentPreference: formattedCurrentPreference, // Use the formatted version
+        currentPreference: formattedCurrentPreference,
         activePreferences: {
-          total: allActive.length,
-          page: activePage,
-          limit: activeLimit,
-          items: formattedPaginatedActive, // Use the formatted version
+          items: formatMany(orderedActive),
         },
         closedPreferences: {
-          total: allClosed.length,
-          page: closedPage,
-          limit: closedLimit,
-          items: formattedPaginatedClosed, // Use the formatted version
+          items: formatMany(allClosed),
         },
       },
     });
