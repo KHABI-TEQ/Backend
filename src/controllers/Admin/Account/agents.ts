@@ -226,8 +226,7 @@ export const approveAgentOnboardingStatus = async (
   next: NextFunction,
 ) => {
   try {
-    const { _id } = req.params; // User ID
-    const { approved } = req.body; // boolean
+    const { userId, approved } = req.body; // boolean
 
     if (typeof approved !== 'boolean') {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
@@ -237,7 +236,7 @@ export const approveAgentOnboardingStatus = async (
     }
 
     const userAcct = await DB.Models.User.findByIdAndUpdate(
-      _id,
+      userId,
       { accountApproved: approved },
       { new: true }
     ).exec();
@@ -535,14 +534,13 @@ export const approveAgentUpgradeRequestStatus = async (
  * @param req - The Express request object, containing query parameters for filtering, searching, and pagination.
  * @param res - The Express response object.
  * @param next - The next middleware function.
- */
+ */ 
 export const getAllAgents = async (
   req: AppRequest,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    // Safely parse pagination parameters
     const safePage = Math.max(1, Number(req.query.page) || 1);
     const safeLimit = Math.max(1, Number(req.query.limit) || 10);
     const skip = (safePage - 1) * safeLimit;
@@ -553,16 +551,15 @@ export const getAllAgents = async (
       isInActive,
       isFlagged,
       accountApproved,
-      accountStatus, // Added filter
-      excludeInactive, // Added filter for convenience
+      accountStatus,
+      excludeInactive,
       sortBy = "createdAt",
       sortOrder = "desc",
     } = req.query;
 
-    const query: any = { userType: "Agent" }; // Always filter for users of type 'Agent'
+    const match: any = { userType: "Agent" };
     const searchConditions: any[] = [];
 
-    // Construct search conditions for multiple fields
     if (search && search.toString().trim()) {
       const regex = new RegExp(search.toString().trim(), "i");
       searchConditions.push(
@@ -570,59 +567,69 @@ export const getAllAgents = async (
         { firstName: regex },
         { lastName: regex },
         { phoneNumber: regex },
-        { fullName: regex },
+        { fullName: regex }
       );
     }
 
     if (searchConditions.length > 0) {
-      query.$or = searchConditions;
+      match.$or = searchConditions;
     }
 
-    // Apply explicit filters if provided in query parameters
-    if (isAccountVerified !== undefined) {
-      query.isAccountVerified = isAccountVerified === "true";
-    }
-    if (isInActive !== undefined) {
-      query.isInActive = isInActive === "true";
-    }
-    if (isFlagged !== undefined) {
-      query.isFlagged = isFlagged === "true";
-    }
-    if (accountApproved !== undefined) {
-      query.accountApproved = accountApproved === "true";
-    }
+    if (isAccountVerified !== undefined)
+      match.isAccountVerified = isAccountVerified === "true";
 
-    // Apply accountStatus filter if present and not "null"
-    if (accountStatus && accountStatus !== "null") {
-        query.accountStatus = accountStatus;
-    }
+    if (isInActive !== undefined)
+      match.isInActive = isInActive === "true";
 
-    // Implement excludeInactive logic: if true, set isInActive to false
-    // Also checking for 'false' string to allow explicit override
-    if (excludeInactive !== false && excludeInactive !== "false") {
-      query.isInActive = false;
-    }
+    if (isFlagged !== undefined)
+      match.isFlagged = isFlagged === "true";
 
+    if (accountApproved !== undefined)
+      match.accountApproved = accountApproved === "true";
 
-    // Determine sorting order
-    const sortObj: any = {};
-    sortObj[sortBy.toString()] = sortOrder === "asc" ? 1 : -1;
+    if (accountStatus && accountStatus !== "null")
+      match.accountStatus = accountStatus;
 
-    // Fetch agents from the User model with filters, sorting, and pagination
-    const agents = await DB.Models.User.find(query)
-      .sort(sortObj)
-      .skip(skip)
-      .limit(safeLimit)
-      .lean(); // Use .lean() for plain JavaScript objects for better performance
+    if (excludeInactive !== false && excludeInactive !== "false")
+      match.isInActive = false;
 
-    // Get total count for pagination metadata
-    const total = await DB.Models.User.countDocuments(query);
+    // Sorting
+    const sort: any = {};
+    sort[sortBy.toString()] = sortOrder === "asc" ? 1 : -1;
+
+    const pipeline = [
+      { $match: match },
+      {
+        $lookup: {
+          from: "agents",
+          localField: "_id",
+          foreignField: "userId",
+          as: "agentProfile",
+        },
+      },
+      { $unwind: { path: "$agentProfile", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          password: 0,
+          googleId: 0,
+          facebookId: 0,
+          __v: 0,
+          "agentProfile.__v": 0,
+        },
+      },
+      { $sort: sort },
+      { $skip: skip },
+      { $limit: safeLimit },
+    ];
+
+    const agents = await DB.Models.User.aggregate(pipeline);
+    const total = await DB.Models.User.countDocuments(match);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Agents fetched successfully",
       data: agents,
-      pagination: { // Standardized pagination object name
+      pagination: {
         page: safePage,
         limit: safeLimit,
         total,
@@ -633,6 +640,7 @@ export const getAllAgents = async (
     next(err);
   }
 };
+
 
 
 /**
