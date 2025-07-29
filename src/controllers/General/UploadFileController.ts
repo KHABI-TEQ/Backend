@@ -23,7 +23,7 @@ const fileTypeConfig: Record<
   },
   "property-file": {
     extensions: ["pdf", "docx", "doc"],
-    maxSizeMB: 10,
+    maxSizeMB: 5,
     resourceType: "raw",
     folder: "property-files",
   },
@@ -35,12 +35,12 @@ const fileTypeConfig: Record<
   },
   "property-video": {
     extensions: ["mp4", "mov", "avi", "webm", "flv", "mkv"],
-    maxSizeMB: 50,
+    maxSizeMB: 20,
     resourceType: "video",
     folder: "property-videos",
   },
   default: {
-    extensions: ["jpg", "jpeg", "png", "pdf"],
+    extensions: ["jpg", "jpeg", "png", "pdf", "docs", "webp"],
     maxSizeMB: 5,
     resourceType: "raw",
     folder: "other-files",

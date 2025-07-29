@@ -32,6 +32,7 @@ import {
 } from "../controllers/Account/profileSettings";
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
+import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 
 const AccountRouter = express.Router();
 
@@ -40,6 +41,7 @@ AccountRouter.use(accountAuth);
 // PROFILE ROUTES
 AccountRouter.get("/profile", getProfile);
 AccountRouter.get("/dashboard", getDashboardData);
+AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 AccountRouter.patch("/updateAccount", updateProfile);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.put("/changePassword", changePassword);
