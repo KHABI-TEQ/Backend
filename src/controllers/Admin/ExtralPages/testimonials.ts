@@ -18,16 +18,16 @@ export const createTestimonial = async (req: AppRequest, res: Response, next: Ne
     next(err);
   }
 };
-
+ 
 // Update testimonial
 export const updateTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
-    const { id } = req.params;
-    if (!mongoose.isValidObjectId(id)) {
+    const { testimonialId } = req.params;
+    if (!mongoose.isValidObjectId(testimonialId)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid testimonial ID");
     }
 
-    const updated = await DB.Models.Testimonial.findByIdAndUpdate(id, req.body, { new: true });
+    const updated = await DB.Models.Testimonial.findByIdAndUpdate(testimonialId, req.body, { new: true });
     if (!updated) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Testimonial not found");
     }
