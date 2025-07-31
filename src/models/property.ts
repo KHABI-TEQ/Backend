@@ -8,19 +8,19 @@ export interface IProperty {
   rentalType?: string;
   shortletDuration?: string;
   holdDuration?: string;
-  price: number;
+  price?: number;
   location?: {
     state: string;
     localGovernment: string;
     area: string;
   };
   landSize?: {
-    measurementType: string;
-    size: number;
+    measurementType?: string;
+    size?: number;
   };
-  docOnProperty: {
-    docName: string;
-    isProvided: boolean;
+  docOnProperty?: {
+    docName?: string;
+    isProvided?: boolean;
   }[];
   owner: ObjectId; // Can be user or admin
   areYouTheOwner: boolean;
@@ -34,9 +34,9 @@ export interface IProperty {
   };
   jvConditions?: string[];
   shortletDetails?: {
-    streetAddress: string;
-    maxGuests: number;
-    availability: { minStay: number };
+    streetAddress?: string;
+    maxGuests?: number;
+    availability?: { minStay: number };
     pricing: { nightly: number; weeklyDiscount?: number };
     houseRules: { checkIn: string; checkOut: string };
   };
@@ -95,7 +95,7 @@ export class Property {
         rentalType: { type: String },
         shortletDuration: { type: String },
         holdDuration: { type: String },
-        price: { type: Number, required: true },
+        price: { type: Number },
         location: {
           state: { type: String },
           localGovernment: { type: String },
