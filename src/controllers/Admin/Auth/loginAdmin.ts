@@ -1,11 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { generateToken, RouteError } from "../../../common/classes";
+import { AppRequest } from "../../../types/express";
 
 export const loginAdmin = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ) => {
@@ -34,7 +35,7 @@ export const loginAdmin = async (
     if (!admin.isAccountVerified) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
-        "Admin account is not verified. Please contact the super admin."
+        "Admin account is not active. Please contact the super admin."
       );
     }
 
@@ -67,7 +68,7 @@ export const loginAdmin = async (
         admin: adminResponse,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Admin login error:", err.message);
     next(err);
   }
