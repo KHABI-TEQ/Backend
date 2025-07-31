@@ -11,7 +11,7 @@ export interface IDocumentVerification {
   transactionReceipt?: string;
   documents: {
     documentType: string;
-    documentNumber: string;
+    documentNumber?: string;
     documentUrl: string;
   }[];
   resultDocuments: string[];
@@ -38,7 +38,7 @@ export class DocumentVerification {
         transactionReceipt:{type:String},
         documents: [{ 
           documentType:{type: String, required: true },
-          documentNumber:{type:String, required: true},
+          documentNumber:{type:String},
           documentUrl:{type:String, required: true},
         }],
         resultDocuments: [{ type: String }],
