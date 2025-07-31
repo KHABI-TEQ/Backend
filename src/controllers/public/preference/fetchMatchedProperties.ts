@@ -16,7 +16,7 @@ export const getPaginatedMatchedProperties = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const { matchedId } = req.query;
+    const { matchedId, preferenceId } = req.params;
 
     // ✅ Validate matchedId
     if (!matchedId || !mongoose.Types.ObjectId.isValid(matchedId.toString())) {
