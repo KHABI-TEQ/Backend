@@ -20,6 +20,7 @@ import { AuthRouter } from "./auth";
 import { preferenceRouter } from "./preference";
 import AccountRouter from "./account";
 import { submitContactForm } from "../controllers/public/contactUs";
+import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
 
 const router = express.Router();
 
@@ -183,6 +184,9 @@ router.get(
     }
   },
 );
+
+// Contact Form
+router.post("/submitVerificationDocs", submitDocumentVerification);
 
 // Contact Form
 router.post("/contact-us/submit", submitContactForm);

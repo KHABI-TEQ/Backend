@@ -1,6 +1,6 @@
 import { Schema, model, Document, Model } from 'mongoose';
 import { Counter } from './counter'; 
-
+ 
 export interface IDocumentVerification {
   customId:string;
   fullName: string;
@@ -16,7 +16,7 @@ export interface IDocumentVerification {
   }[];
   resultDocuments: string[];
   status: 'pending' | 'confirmed'  | 'rejected' |  "in-progress" | 'successful';
-}
+} 
 
 
 export interface IDocumentVerificationDoc extends IDocumentVerification, Document {}
@@ -34,7 +34,7 @@ export class DocumentVerification {
         email: { type: String, required: true},
         phoneNumber: { type: String, required: true },
         address: { type: String, required: true },
-        amountPaid:{type:Number,required: true},
+        amountPaid:{type: Number, required: true},
         transactionReceipt:{type:String},
         documents: [{ 
           documentType:{type: String, required: true },
