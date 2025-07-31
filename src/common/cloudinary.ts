@@ -8,7 +8,7 @@ class CloudinaryAPIFileUpload {
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
   }
-
+ 
 
   public async uploadFile(fileBinaryData: string, public_id: string, folder: string) {
     try {

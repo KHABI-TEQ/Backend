@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from "express";
+import { Response, NextFunction } from "express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import cloudinary from "../../common/newCloudinary";
+import { AppRequest } from "../../types/express";
 
 /**
  * File Config Map — allowed extensions, max size (MB), resource type, upload folder
@@ -51,7 +52,7 @@ const fileTypeConfig: Record<
  * Upload File with Dynamic Extension & Size Validation
  */
 export const uploadFileToCloudinary = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction,
 ) => {
@@ -97,9 +98,11 @@ export const uploadFileToCloudinary = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "File uploaded successfully",
-      url: uploaded.secure_url,
-      public_id: uploaded.public_id,
-      resource_type: config.resourceType,
+      data: {
+        url: uploaded.secure_url,
+        public_id: uploaded.public_id,
+        resource_type: config.resourceType,
+      }
     });
   } catch (err: any) {
     console.error("Upload Error:", err.message);
@@ -111,7 +114,7 @@ export const uploadFileToCloudinary = async (
  * Delete File by Extracting Public ID from URL
  */
 export const deleteFileFromCloudinary = async (
-  req: Request,
+  req: AppRequest,
   res: Response,
   next: NextFunction,
 ) => {
@@ -131,7 +134,9 @@ export const deleteFileFromCloudinary = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "File deleted successfully",
-      result,
+      data: {
+        result
+      }
     });
   } catch (err: any) {
     console.error("Delete Error:", err.message);

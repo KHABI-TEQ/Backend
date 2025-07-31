@@ -6,7 +6,7 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-
+ 
 export const uploadFile = async (
   base64: string,
   filename: string,
@@ -17,6 +17,7 @@ export const uploadFile = async (
     public_id: filename,
     folder: folder,
     resource_type: resourceType,
+    type: "upload",
   });
 };
 

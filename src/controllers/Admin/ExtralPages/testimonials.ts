@@ -18,16 +18,21 @@ export const createTestimonial = async (req: AppRequest, res: Response, next: Ne
     next(err);
   }
 };
- 
+
 // Update testimonial
 export const updateTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;
+
     if (!mongoose.isValidObjectId(testimonialId)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid testimonial ID");
     }
 
-    const updated = await DB.Models.Testimonial.findByIdAndUpdate(testimonialId, req.body, { new: true });
+    const updated = await DB.Models.Testimonial.findByIdAndUpdate(testimonialId, req.body, {
+      new: true,
+      runValidators: true,
+    });
+
     if (!updated) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Testimonial not found");
     }
@@ -42,15 +47,17 @@ export const updateTestimonial = async (req: AppRequest, res: Response, next: Ne
   }
 };
 
-// Get single testimonial
+// Get a single testimonial
 export const getTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;
+
     if (!mongoose.isValidObjectId(testimonialId)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid testimonial ID");
     }
 
     const testimonial = await DB.Models.Testimonial.findById(testimonialId);
+
     if (!testimonial) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Testimonial not found");
     }
@@ -83,12 +90,13 @@ export const getAllTestimonials = async (req: AppRequest, res: Response, next: N
 
     const skip = (+page - 1) * +limit;
 
-    const testimonials = await DB.Models.Testimonial.find(filter)
-      .sort({ [sortBy as string]: order === "asc" ? 1 : -1 })
-      .skip(skip)
-      .limit(+limit);
-
-    const total = await DB.Models.Testimonial.countDocuments(filter);
+    const [testimonials, total] = await Promise.all([
+      DB.Models.Testimonial.find(filter)
+        .sort({ [sortBy as string]: order === "asc" ? 1 : -1 })
+        .skip(skip)
+        .limit(+limit),
+      DB.Models.Testimonial.countDocuments(filter),
+    ]);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -105,7 +113,7 @@ export const getAllTestimonials = async (req: AppRequest, res: Response, next: N
   }
 };
 
-// Get latest approved testimonials
+// Get latest approved testimonials (limit 10)
 export const getLatestApprovedTestimonials = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const testimonials = await DB.Models.Testimonial.find({ status: "approved" })
@@ -127,11 +135,13 @@ export const getLatestApprovedTestimonials = async (req: AppRequest, res: Respon
 export const deleteTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;
+
     if (!mongoose.isValidObjectId(testimonialId)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid testimonial ID");
     }
 
     const deleted = await DB.Models.Testimonial.findByIdAndDelete(testimonialId);
+
     if (!deleted) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Testimonial not found or already deleted");
     }
@@ -155,15 +165,24 @@ export const updateTestimonialStatus = async (req: AppRequest, res: Response, ne
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid testimonial ID");
     }
 
-    const updated = await DB.Models.Testimonial.findByIdAndUpdate(testimonialId, { status }, { new: true });
-    if (!updated) {
+    const allowedStatuses = ["pending", "approved", "rejected"];
+    if (!status || !allowedStatuses.includes(status)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid status. Must be 'pending', 'approved' or 'rejected'.");
+    }
+
+    const testimonial = await DB.Models.Testimonial.findById(testimonialId);
+    if (!testimonial) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Testimonial not found");
     }
 
+    testimonial.status = status;
+    testimonial.updatedAt = new Date();
+    await testimonial.save();
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Testimonial status updated",
-      data: updated,
+      message: `Testimonial status updated to '${status}' successfully`,
+      data: testimonial,
     });
   } catch (err) {
     next(err);

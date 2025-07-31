@@ -4,14 +4,13 @@ import multer from "multer";
 import { adminAuth } from "../middlewares/adminAuth";
 import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
 import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../controllers/Admin/profileSettings";
-import { createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
+import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
 import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
 import { getPreferenceModeStats, getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
 import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
 import { selectMatchedPreferenceProperties } from "../controllers/Admin/preference/submitMatchedProperties";
 import { setPropertyApprovalStatus } from "../controllers/Admin/Property/setPropertyApprovalStatus";
-import { deleteProperty } from "../controllers/Account/Property/deleteProperty";
 import { getAllProperties, getPropertyInspections, getPropertyStats, getSinglePropertyDetails } from "../controllers/Admin/Property/fetchProperties";
 import { updatePropertyStatusAsAdmin } from "../controllers/Admin/Property/updatePropertyStatus";
 import { approvePreference } from "../controllers/Admin/preference/approvePreference";
@@ -21,6 +20,8 @@ import { rejectPreference } from "../controllers/Admin/preference/rejectPreferen
 import { fetchAllVerifyDocs, fetchSingleVerifyDoc } from "../controllers/Admin/DocumentVerification/fetchVerifyDocument";
 import { confirmVerificationPayment, rejectVerificationPayment } from "../controllers/Admin/DocumentVerification/verifyPaymentHandlers";
 import { sendToVerificationProvider, uploadVerificationResult } from "../controllers/Admin/DocumentVerification/DocumentVerificationUploader";
+import { editPropertyAsAdmin } from "../controllers/Admin/Property/editProperty";
+import { deletePropertyById } from "../controllers/Admin/Property/deleteProperty";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -52,10 +53,11 @@ AdminRouter.post("/change-password", changeAdminPassword);
  * ADMIN MANAGEMENT ROUTES
  */
 AdminRouter.get("/admins/fetchAll", getAdmins);
-AdminRouter.post("/admins/create-admin", createAdmin);
-AdminRouter.get("/admins/:adminId", getSingleAdmin);
-AdminRouter.get("/admins/:adminId/update", updateAdmin);
-AdminRouter.delete("/admins/:adminId", deleteAdmin);
+AdminRouter.post("/admins/create", createAdmin);
+AdminRouter.get("/admins/:adminId/getOne", getSingleAdmin);
+AdminRouter.put("/admins/:adminId/update", updateAdmin);
+AdminRouter.delete("/admins/:adminId/delete", deleteAdmin);
+AdminRouter.patch("/admins/:adminId/status", changeAdminStatus);
 
 /**
  * AGENTS MANAGEMENT ROUTES
@@ -96,11 +98,12 @@ AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties
 AdminRouter.get("/properties/", getAllProperties);
 AdminRouter.get("/properties/stats", getPropertyStats);
 AdminRouter.get("/properties/:propertyId/getOne", getSinglePropertyDetails);
-AdminRouter.patch("/properties/:propertyId/update", updatePropertyStatusAsAdmin);
-AdminRouter.delete("/properties/:propertyId/delete", deleteProperty);
+AdminRouter.patch("/properties/:propertyId/update", editPropertyAsAdmin);
+AdminRouter.delete("/properties/:propertyId/delete", deletePropertyById);
 AdminRouter.post("/properties/:propertyId/approval-status", setPropertyApprovalStatus);
+AdminRouter.post("/properties/:propertyId/changeStatus", updatePropertyStatusAsAdmin);
 AdminRouter.get("/properties/:propertyId/inspections", getPropertyInspections);
-
+ 
 
 // TESTIMONIALS MANAGEMENT ROUTES
 AdminRouter.get("/testimonials", getAllTestimonials);

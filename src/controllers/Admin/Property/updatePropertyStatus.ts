@@ -22,16 +22,6 @@ export const updatePropertyStatusAsAdmin = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
     }
 
-    if (req.user.role !== "admin") {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Only admin can update status",
-      );
-    }
-
-    property.status = status;
-    property.reason = reason || property.reason;
-
     const inactiveStatuses = [
       "withdrawn",
       "expired",
@@ -48,9 +38,22 @@ export const updatePropertyStatusAsAdmin = async (
       "deleted",
     ];
 
-    const activeStatuses = ["approved", "active", "back_on_market", "pending"];
+    const activeStatuses = [
+      "approved",
+      "active",
+      "back_on_market",
+      "pending",
+    ];
 
+    // Update status & reason
+    property.status = status;
+    property.reason = reason || property.reason;
+
+    // Update availability
     property.isAvailable = activeStatuses.includes(status);
+
+    // Set isRejected flag
+    property.isRejected = status === "rejected";
 
     await property.save();
 

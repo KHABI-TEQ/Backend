@@ -16,62 +16,54 @@ export const getPaginatedMatchedProperties = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
 
-    const { buyerId, preferenceId } = req.query;
+    const { matchedId } = req.query;
 
-    // ✅ Validate ObjectIds
-    if (buyerId && !mongoose.Types.ObjectId.isValid(buyerId.toString())) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid buyerId");
+    // ✅ Validate matchedId
+    if (!matchedId || !mongoose.Types.ObjectId.isValid(matchedId.toString())) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid or missing matchedId");
     }
 
-    if (preferenceId && !mongoose.Types.ObjectId.isValid(preferenceId.toString())) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid preferenceId");
-    }
-
-    const filter: Record<string, any> = {};
-    if (buyerId) filter.buyer = buyerId;
-    if (preferenceId) filter.preference = preferenceId;
-
-    const total = await DB.Models.MatchedPreferenceProperty.countDocuments(filter);
-
-    const matches = await DB.Models.MatchedPreferenceProperty.find(filter)
-      .skip(skip)
-      .limit(limit)
+    // ✅ Find the matched record
+    const match = await DB.Models.MatchedPreferenceProperty.findById(matchedId)
       .populate({
         path: "matchedProperties",
         populate: { path: "owner" },
       })
       .populate("preference")
-      .populate("buyer")
-      .sort({ createdAt: -1 })
       .lean();
 
-    const formattedMatches = matches.map((match) => {
-      const formattedProperties = match.matchedProperties.map((property: any) =>
-        formatPropertyDataForTable(property),
-      );
+    if (!match) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Matched record not found");
+    }
 
-      return {
-        matchDetails: {
-            _id: match._id,
-            preference: match.preference,
-            buyer: match.buyer,
-            status: match.status,
-            notes: match.notes,
-            createdAt: match.createdAt,
-            updatedAt: match.updatedAt,
-        },
-        matchedProperties: formattedProperties,
-      };
+    const total = match.matchedProperties?.length || 0;
+    const paginatedProperties = match.matchedProperties.slice(skip, skip + limit);
+
+    const formattedProperties = paginatedProperties.map((property: any) => {
+      const formatted = formatPropertyDataForTable(property);
+      return { ...formatted, matchedId: match._id }; // attach matchedId to each
     });
+
+    const result = {
+      matchDetails: {
+        _id: match._id,
+        status: match.status,
+        notes: match.notes,
+        createdAt: match.createdAt,
+        updatedAt: match.updatedAt,
+      },
+      preference: match.preference,
+      matchedProperties: formattedProperties,
+    };
 
     res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: formattedMatches,
+      data: result,
       pagination: {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
-        total: total,
+        total,
       },
     });
   } catch (error) {

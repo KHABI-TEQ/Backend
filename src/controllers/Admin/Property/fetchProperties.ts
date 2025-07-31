@@ -37,6 +37,13 @@ export const getAllProperties = async (
       matchStage.propertyType = filters.propertyType;
     }
 
+    if (filters.status) {
+      const statuses = Array.isArray(filters.status)
+        ? filters.status
+        : [filters.status];
+      matchStage.status = { $in: statuses };
+    }
+
     // briefType array
     if (filters.briefType) {
       const briefTypes = Array.isArray(filters.briefType)
@@ -134,15 +141,10 @@ export const getPropertyStats = async (
 
     const active = allProperties.filter((p) => p.isAvailable === true);
     const inactive = allProperties.filter((p) => p.isAvailable !== true);
+    const deleted = allProperties.filter((p) => p.isDeleted === true);
 
     // Get count of matched property records from matchedProperty model
     const totalMatches = await MatchedProperty.countDocuments();
-
-    const recent = allProperties
-      .sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )
-      .slice(0, 5);
 
     const conversion = total ? (totalMatches / total) * 100 : 0;
     const averageResponseTime = Math.floor(Math.random() * 6) + 1; // Replace with actual logic if needed
@@ -154,8 +156,8 @@ export const getPropertyStats = async (
         total,
         active: active.length,
         inactive: inactive.length,
+        deleted: deleted.length,
         totalMatches,
-        recent,
         conversion: parseFloat(conversion.toFixed(2)),
         averageResponseTime,
       },

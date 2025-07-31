@@ -9,12 +9,12 @@ export interface IProperty {
   shortletDuration?: string;
   holdDuration?: string;
   price: number;
-  location: {
+  location?: {
     state: string;
     localGovernment: string;
     area: string;
   };
-  landSize: {
+  landSize?: {
     measurementType: string;
     size: number;
   };
@@ -26,7 +26,7 @@ export interface IProperty {
   areYouTheOwner: boolean;
   features?: string[];
   tenantCriteria?: string[];
-  additionalFeatures: {
+  additionalFeatures?: {
     noOfBedroom: number;
     noOfBathroom: number;
     noOfToilet: number;
@@ -44,10 +44,10 @@ export interface IProperty {
   videos?: string[];
   employmentType?: string;
   tenantGenderPreferences?: string;
-  description: string;
+  description?: string;
   addtionalInfo?: string;
-  isTenanted: string;
-  isAvailable: boolean;
+  isTenanted?: string;
+  isAvailable?: boolean;
   status:
     | "rejected"
     | "approved"
@@ -89,7 +89,7 @@ export class Property {
     const schema = new Schema<IPropertyDoc>(
       {
         propertyType: { type: String, required: true },
-        propertyCategory: { type: String, required: true },
+        propertyCategory: { type: String },
         propertyCondition: { type: String },
         typeOfBuilding: { type: String },
         rentalType: { type: String },
@@ -97,18 +97,18 @@ export class Property {
         holdDuration: { type: String },
         price: { type: Number, required: true },
         location: {
-          state: { type: String, required: true },
-          localGovernment: { type: String, required: true },
-          area: { type: String, required: true },
+          state: { type: String },
+          localGovernment: { type: String },
+          area: { type: String },
         },
         landSize: {
-          measurementType: { type: String, required: true },
-          size: { type: Number, required: true },
+          measurementType: { type: String },
+          size: { type: Number },
         }, 
         docOnProperty: [
           {
-            docName: { type: String, required: true },
-            isProvided: { type: Boolean, required: true },
+            docName: { type: String },
+            isProvided: { type: Boolean },
           },
         ],
         owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -139,9 +139,9 @@ export class Property {
         },
         pictures: [{ type: String }],
         videos: [{ type: String }],
-        description: { type: String, required: true },
+        description: { type: String },
         addtionalInfo: { type: String },
-        isTenanted: { type: String, enum: ["yes", "no"], required: true },
+        isTenanted: { type: String, enum: ["yes", "no", "i-live-in-it"], required: true },
         isAvailable: { type: Boolean, default: false },
         status: {
           type: String,

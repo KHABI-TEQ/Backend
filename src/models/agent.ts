@@ -1,4 +1,4 @@
-import { Schema, model, Document, Model, Types } from 'mongoose';
+import { Schema, model, models, Document, Model, Types } from 'mongoose';
 
 export interface IAgent {
   address: {
@@ -105,7 +105,7 @@ export class Agent {
       }
     );
 
-    this.AgentModel = model<IAgentDoc>('Agent', schema);
+    this.AgentModel = (models.Agent as Model<IAgentDoc>) || model<IAgentDoc>('Agent', schema);
   }
 
   public get model(): Model<IAgentDoc> {

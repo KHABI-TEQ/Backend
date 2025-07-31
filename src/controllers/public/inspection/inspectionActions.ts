@@ -126,7 +126,7 @@ class InspectionActionsController {
 
     // Process actions using handler
     const actionHandler = new InspectionActionHandler();
-
+ 
     const { update, logMessage, emailSubject, emailData } =
       actionHandler.handleAction(
         actionData,
