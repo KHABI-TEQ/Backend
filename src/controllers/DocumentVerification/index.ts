@@ -8,6 +8,7 @@ import sendEmail from '../../common/send.email';
 
 
 class DocumentVerificationController {
+  // should be removed.
  public async submitDocumentVerification(
   data: {
     fullName: string;
@@ -79,7 +80,7 @@ class DocumentVerificationController {
   }
 
   // Upload receipt
-  const extension = mime.extension(receiptFile.mimetype);
+  const extension = mime.extension(receiptFile.mimetype); 
   const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e4);
   const fileName = `receipt-${uniqueSuffix}.${extension}`;
   const receiptBase64 = `data:${receiptFile.mimetype};base64,${receiptFile.buffer.toString('base64')}`;
