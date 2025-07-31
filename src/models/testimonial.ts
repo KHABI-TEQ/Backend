@@ -1,6 +1,5 @@
 import { Schema, model, models, Document, Model } from 'mongoose';
 
-// 1. Interface
 export interface ITestimonial {
   fullName: string;
   occupation?: string;
@@ -8,17 +7,15 @@ export interface ITestimonial {
   message?: string;
   profileImage?: string;
   status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface ITestimonialDoc extends ITestimonial, Document {
   createdAt: Date;
   updatedAt: Date;
 }
 
-// 2. Mongoose Document Type
-export interface ITestimonialDoc extends ITestimonial, Document {}
-
-// 3. Mongoose Model Type
 export type ITestimonialModel = Model<ITestimonialDoc>;
 
-// 4. Class
 export class Testimonial {
   private TestimonialModel: ITestimonialModel;
 
@@ -43,7 +40,6 @@ export class Testimonial {
       }
     );
 
-    // ✅ Prevent OverwriteModelError
     this.TestimonialModel = models.Testimonial || model<ITestimonialDoc>('Testimonial', schema);
   }
 

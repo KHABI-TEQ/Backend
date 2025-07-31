@@ -1,6 +1,6 @@
 
 import { Response, NextFunction } from "express";
-import { DB } from "../..";
+import { DB } from "../.."; 
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { AppRequest } from "../../../types/express";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";

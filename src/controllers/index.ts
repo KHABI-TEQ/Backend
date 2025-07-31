@@ -1,8 +1,8 @@
 import { connect, connection, Connection } from "mongoose";
 import {
-  IInspectionBookingModel,
   IAgentModel,
   Agent,
+  IInspectionBookingModel,
   InspectionBooking,
   IAdminModel,
   Admin,
@@ -23,8 +23,6 @@ import {
   InspectionActivityLogModel,
   INotificationModel,
   Notification,
-  Testimonial,
-  ITestimonialModel,
   ContactUs,
   IContactUsModel,
   VerificationToken,
@@ -33,6 +31,8 @@ import {
   MatchedPreferenceProperty,
   PropertyView,
   IPropertyView,
+  ITestimonialModel,
+  Testimonial,
 } from "../models/index";
 
 
@@ -48,12 +48,12 @@ declare interface IModels {
   Preference: IPreferenceModel;
   DocumentVerification: IDocumentVerificationModel;
   Notification: INotificationModel;
-  Testimonial: ITestimonialModel;
   ContactUs: IContactUsModel;
   VerificationToken: typeof VerificationToken;
   PasswordResetToken: typeof PasswordResetToken;
   MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
   PropertyView: typeof PropertyView;
+  Testimonial: ITestimonialModel
 }
 
 export class DB {
@@ -74,9 +74,9 @@ export class DB {
 
     this.models = {
       Agent: new Agent().model,
-      InspectionActivityLog: InspectionActivityLogModel,
       InspectionBooking: new InspectionBooking().model,
       Admin: new Admin().model,
+      Testimonial: new Testimonial().model,
       User: new User().model,
       Property: new Property().model,
       Transaction: new Transaction().model,
@@ -84,12 +84,12 @@ export class DB {
       Preference: new Preference().model,
       DocumentVerification: new DocumentVerification().model,
       Notification: new Notification().model,
-      Testimonial: new Testimonial().model,
       ContactUs: new ContactUs().model,
       VerificationToken: VerificationToken,
       PasswordResetToken: PasswordResetToken,
       MatchedPreferenceProperty: MatchedPreferenceProperty,
       PropertyView: PropertyView,
+      InspectionActivityLog: InspectionActivityLogModel,
     };
   }
 

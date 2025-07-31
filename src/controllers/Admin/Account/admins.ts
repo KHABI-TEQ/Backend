@@ -260,11 +260,17 @@ export const changeAdminStatus = async (
 ) => {
   try {
     const { adminId } = req.params;
-    const statusFields = req.body;
+    const { status } = req.body;
+
+    let statusChanger = false;
+
+    if (status === "active") {
+      statusChanger = true;
+    }
 
     const updated = await DB.Models.Admin.findByIdAndUpdate(
       adminId,
-      statusFields,
+      { isAccountVerified: statusChanger },
       { new: true },
     ).lean();
 

@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { AppRequest } from "../../../types/express";
+import { RouteError } from "../../../common/classes";
 
 export const deletePropertyById = async (
   req: AppRequest,
@@ -11,19 +12,23 @@ export const deletePropertyById = async (
   try {
     const { propertyId } = req.params;
 
-    // const rentDeleted = await DB.Models.PropertyRent.findByIdAndDelete(propertyId).exec();
-    // const sellDeleted = await DB.Models.PropertySell.findByIdAndDelete(propertyId).exec();
+    const property = await DB.Models.Property.findById(propertyId);
+    if (!property) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
+    }
 
-    // if (!rentDeleted && !sellDeleted) {
-    //   return res.status(HttpStatusCodes.NOT_FOUND).json({
-    //     success: false,
-    //     message: "Property not found",
-    //   });
-    // }
+    property.status = "deleted";
+    property.isAvailable = false;
+    property.isRejected = false;
+    property.isDeleted = true;
+    property.reason = "Deleted by admin";
+
+    await property.save();
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: `Property with ID ${propertyId} has been deleted.`,
+      message: `Property with ID ${propertyId} has been marked as deleted.`,
+      data: property,
     });
   } catch (error) {
     next(error);

@@ -15,4 +15,4 @@ const verificationTokenSchema = new Schema<IVerificationToken>(
   { timestamps: true }
 );
 
-export const VerificationToken = model<IVerificationToken>('Testimonial', verificationTokenSchema);
+export const VerificationToken = model<IVerificationToken>('verificationToken', verificationTokenSchema);

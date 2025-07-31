@@ -3,7 +3,7 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
-
+ 
 export const deleteProperty = async (
   req: AppRequest,
   res: Response,
@@ -29,9 +29,12 @@ export const deleteProperty = async (
       );
     }
 
+    // Send mail to the owner
+
     // Soft delete: Set isDeleted to true and status to "deleted"
     property.isDeleted = true;
     property.isAvailable = false;
+    property.isRejected = false;
     property.status = "deleted";
     await property.save();
 
