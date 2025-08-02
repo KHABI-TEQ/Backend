@@ -8,6 +8,8 @@ import { resendPasswordResetCode } from "../controllers/Auth/resendPasswordReset
 import { verifyAccount } from "../controllers/Auth/verifyAccount";
 import { googleAuth, facebookAuth } from "../controllers/Auth/socialAuth";
 import { verifyPasswordResetCode } from "../controllers/Auth/verifyPasswordResetCode";
+import { oauthRegisterSchema, registerUserSchema } from "../validators/user.validator";
+import { validateJoi } from "../middlewares/validateJoi";
 
 const AuthRouter = express.Router();
 
@@ -15,13 +17,13 @@ const AuthRouter = express.Router();
 AuthRouter.post("/login", loginUser);
 
 // Registration route for "AGENTS" and "LANDOWNERS"
-AuthRouter.post("/register", registerUser);
+AuthRouter.post("/register", validateJoi(registerUserSchema), registerUser);
 
 // Google auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
-AuthRouter.post("/googleAuth", googleAuth);
+AuthRouter.post("/googleAuth", validateJoi(oauthRegisterSchema), googleAuth);
 
 // FaceBook auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
-AuthRouter.post("/facebookAuth", facebookAuth);
+AuthRouter.post("/facebookAuth", validateJoi(oauthRegisterSchema), facebookAuth);
 
 // Reset Password Request route for "AGENTS" and "LANDOWNERS"
 AuthRouter.post("/resetPasswordRequest", requestPasswordReset);

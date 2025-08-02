@@ -7,10 +7,9 @@ import { IUserDoc } from '../models';
 interface TokenPayload {
   id: string;
   email: string;
-  userType: "Agent" | "Landowners" | "Admin";
+  userType: "Agent" | "Landowners" | "Admin" | "FieldAgent";
   [key: string]: any; // Extendable for other optional fields like role, permissions, etc.
 }
-
 
 /**
  * Error with status code and message.

@@ -15,3 +15,4 @@ export * from "./admin";
 export * from "./user";
 export * from "./propertyView";
 export * from "./testimonial";
+export * from "./referralLog";
