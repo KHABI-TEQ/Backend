@@ -4,17 +4,14 @@ import crypto from "crypto";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
-import { verifyEmailTemplate } from "../../common/email.template";
-import { generalTemplate } from "../../common/email.template";
+import { verifyEmailTemplate, generalTemplate } from "../../common/email.template";
 import sendEmail from "../../common/send.email";
-import { generateUniqueAccountId } from "../../utils/generateUniqueAccountId";
+import { generateUniqueAccountId, generateUniqueReferralCode } from "../../utils/generateUniqueAccountId";
+import { referralService } from "../../services/referral.service";
+import { Types } from "mongoose";
 
 /**
  * Traditional Registration
- * @param req
- * @param res
- * @param next
- * @returns
  */
 export const registerUser = async (
   req: Request,
@@ -30,7 +27,7 @@ export const registerUser = async (
       userType,
       phoneNumber,
       address,
-      referralCode,
+      referreredCode,
     } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -47,27 +44,26 @@ export const registerUser = async (
 
     let referrerUser = null;
 
-    if (referralCode) {
-      referrerUser = await DB.Models.User.findOne({ referralCode });
+    if (referreredCode) {
+      referrerUser = await DB.Models.User.findOne({
+        referralCode: referreredCode,
+        accountStatus: "active",
+        isAccountVerified: true,
+        isDeleted: false,
+      });
 
       if (!referrerUser) {
         throw new RouteError(
           HttpStatusCodes.BAD_REQUEST,
-          "Invalid referral code.",
+          "Invalid or inactive referral code.",
         );
       }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const accountId = await generateUniqueAccountId();
+    const referralCode = await generateUniqueReferralCode();
 
-    // Generate unique referral code for this new user
-    const selfReferralCode = crypto
-      .randomBytes(6)
-      .toString("hex")
-      .toUpperCase();
-
-    // Create the new user
     const newUser = await DB.Models.User.create({
       firstName,
       lastName,
@@ -77,6 +73,8 @@ export const registerUser = async (
       phoneNumber,
       address,
       accountId,
+      referralCode,
+      referredBy: referreredCode,
       isAccountInRecovery: false,
       profile_picture: "",
       isInActive: false,
@@ -87,7 +85,6 @@ export const registerUser = async (
       accountApproved: false,
     });
 
-    // If the user is an agent, create agent profile
     if (userType === "Agent") {
       await DB.Models.Agent.create({
         userId: newUser._id,
@@ -95,7 +92,18 @@ export const registerUser = async (
       });
     }
 
-    // Email verification
+    // ✅ Log the referral if valid
+    if (referrerUser && newUser) {
+      await referralService.createReferralLog({
+        referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+        referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+        rewardType: "registration_bonus",
+        triggerAction: "user_signup",
+        note: "Referral at account registration",
+      });
+    }
+
+    // Generate and send email verification link
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
 

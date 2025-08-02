@@ -19,3 +19,30 @@ export const generateUniqueAccountId = async (): Promise<string> => {
 
   return accountId;
 };
+
+
+/**
+ * Generates a unique 8-character alphanumeric referral code.
+ * Repeats until no other user has the same code.
+ */
+export const generateUniqueReferralCode = async (): Promise<string> => {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const codeLength = 8;
+
+  const generateCode = () =>
+    Array.from({ length: codeLength }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+
+  let isUnique = false;
+  let referralCode = "";
+
+  while (!isUnique) {
+    const candidate = generateCode();
+    const exists = await DB.Models.User.findOne({ referralCode: candidate }).lean();
+    if (!exists) {
+      referralCode = candidate;
+      isUnique = true;
+    }
+  }
+
+  return referralCode;
+};

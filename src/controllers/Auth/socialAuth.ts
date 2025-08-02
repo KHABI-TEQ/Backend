@@ -1,14 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
 import { DB } from '..';
-import { generateUniqueAccountId } from '../../utils/generateUniqueAccountId';
+import { generateUniqueAccountId, generateUniqueReferralCode } from '../../utils/generateUniqueAccountId';
 import HttpStatusCodes from '../../common/HttpStatusCodes';
 import { generateToken, RouteError } from '../../common/classes';
+import { AppRequest } from '../../types/express';
+import { referralService } from '../../services/referral.service';
+import { Types } from 'mongoose';
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID!);
 
-// 🔄 Shared response formatter
 // Assuming 'user' is of type IUserDoc (from your models/User.ts)
 const sendLoginSuccessResponse = async (user: any, res: Response) => { 
     const token = generateToken({
@@ -69,8 +71,8 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
 };
 
 // ✅ GOOGLE AUTH HANDLER
-export const googleAuth = async (req: Request, res: Response, next: NextFunction) => {
-  const { idToken, userType } = req.body;
+export const googleAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
+  const { idToken, userType, referreredCode } = req.body;
 
   try {
     const ticket = await googleClient.verifyIdToken({
@@ -108,6 +110,24 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
       return await sendLoginSuccessResponse(user, res);
     }
 
+    let referrerUser = null;
+    
+    if (referreredCode) {
+      referrerUser = await DB.Models.User.findOne({
+        referralCode: referreredCode,
+        accountStatus: "active",
+        isAccountVerified: true,
+        isDeleted: false,
+      });
+
+      if (!referrerUser) {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Invalid or inactive referral code.",
+        );
+      }
+    }
+
     // No user found: create new one if userType provided
     if (!userType) {
       throw new RouteError(
@@ -117,6 +137,8 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
     }
 
     const accountId = await generateUniqueAccountId();
+    const referralCode = await generateUniqueReferralCode();
+
     const newUser = await DB.Models.User.create({
       email: normalizedEmail,
       firstName: given_name,
@@ -124,6 +146,8 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
       userType,
       googleId: sub,
       isAccountVerified: true,
+      referralCode,
+      referredBy: referreredCode,
       accountApproved: userType === 'Agent' ? false : true,
       accountStatus: userType === 'Agent' ? 'inactive' : 'active',
       profile_picture: picture,
@@ -138,6 +162,18 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
       await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
     }
 
+    // ✅ Log the referral if valid
+    if (referrerUser && newUser) {
+      await referralService.createReferralLog({
+        referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+        referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+        rewardStatus: newUser.userType == "Landowners" ? 'granted' : 'pending',
+        rewardType: "registration_bonus",
+        triggerAction: "user_signup",
+        note: "Referral at account registration",
+      });
+    }
+
     return await sendLoginSuccessResponse(newUser, res);
 
   } catch (err) {
@@ -148,8 +184,8 @@ export const googleAuth = async (req: Request, res: Response, next: NextFunction
 
 
 // ✅ FACEBOOK AUTH HANDLER
-export const facebookAuth = async (req: Request, res: Response, next: NextFunction) => {
-  const { idToken, userType } = req.body;
+export const facebookAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
+  const { idToken, userType, referreredCode } = req.body;
 
   try {
     const fbUrl = `https://graph.facebook.com/me?fields=id,first_name,last_name,email,picture&access_token=${idToken}`;
@@ -189,6 +225,25 @@ export const facebookAuth = async (req: Request, res: Response, next: NextFuncti
       return await sendLoginSuccessResponse(user, res);
     }
 
+    let referrerUser = null;
+    
+    if (referreredCode) {
+      referrerUser = await DB.Models.User.findOne({
+        referralCode: referreredCode,
+        accountStatus: "active",
+        isAccountVerified: true,
+        isDeleted: false,
+      });
+
+      if (!referrerUser) {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Invalid or inactive referral code.",
+        );
+      }
+    }
+
+    
     // No user found
     if (!userType) {
       throw new RouteError(
@@ -198,6 +253,8 @@ export const facebookAuth = async (req: Request, res: Response, next: NextFuncti
     }
 
     const accountId = await generateUniqueAccountId();
+    const referralCode = await generateUniqueReferralCode();
+
     const newUser = await DB.Models.User.create({
       email: normalizedEmail,
       firstName: first_name,
@@ -205,6 +262,8 @@ export const facebookAuth = async (req: Request, res: Response, next: NextFuncti
       userType,
       facebookId: id,
       isAccountVerified: true,
+      referralCode,
+      referredBy: referreredCode,
       accountApproved: userType === 'Agent' ? false : true,
       accountStatus: userType === 'Agent' ? 'inactive' : 'active',
       profile_picture: picture?.data?.url || '',
@@ -217,6 +276,18 @@ export const facebookAuth = async (req: Request, res: Response, next: NextFuncti
 
     if (userType === 'Agent') {
       await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
+    }
+
+    // ✅ Log the referral if valid
+    if (referrerUser && newUser) {
+      await referralService.createReferralLog({
+        referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+        referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+        rewardStatus: newUser.userType == "Landowners" ? 'granted' : 'pending',
+        rewardType: "registration_bonus",
+        triggerAction: "user_signup",
+        note: "Referral at account registration",
+      });
     }
 
     return await sendLoginSuccessResponse(newUser, res);

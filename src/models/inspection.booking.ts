@@ -20,7 +20,6 @@ export interface IInspectionBooking {
     | "completed"
     | "cancelled";
 
-  slotId: Types.ObjectId;
   requestedBy: Types.ObjectId;
   transaction: Types.ObjectId;
 
@@ -33,6 +32,8 @@ export interface IInspectionBooking {
   negotiationPrice: number;
   letterOfIntention?: string;
   reason?: string;
+
+  assignedFieldAgent?: Types.ObjectId;
 
   owner: Types.ObjectId;
   approveLOI?: boolean;
@@ -78,9 +79,9 @@ export class InspectionBooking {
           default: "pending_transaction",
           required: true,
         },
-        slotId: { type: Schema.Types.ObjectId },
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
         transaction: { type: Schema.Types.ObjectId, required: true, ref: "Transaction" },
+        assignedFieldAgent: { type: Schema.Types.ObjectId, ref: "User" },
         isNegotiating: { type: Boolean, default: false },
         isLOI: { type: Boolean, default: false },
         inspectionType: {

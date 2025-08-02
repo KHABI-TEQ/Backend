@@ -245,7 +245,7 @@ export class InspectionActionHandler {
   ): ActionResult {
     // Increment the counterCount. If it doesn't exist, initialize to 1.
     const newCounterCount = (inspection.counterCount || 0) + 1;
-
+ 
     const update: CounterUpdateData = {
       inspectionType: actionData.inspectionType,
       isLOI: false,
@@ -253,7 +253,14 @@ export class InspectionActionHandler {
       inspectionStatus: dateTimeChanged ? "countered" : "accepted",
       isNegotiating: true,
       pendingResponseFrom: isSeller ? "buyer" : "seller",
-      stage: typeof inspection.counterPrice === "number" && !isNaN(inspection.counterPrice) && inspection.counterPrice > 0 ? "negotiation" : "inspection",
+      stage:
+      inspection.stage === "inspection"
+      ? "inspection"
+      : typeof actionData.counterPrice === "number" &&
+        !isNaN(actionData.counterPrice) &&
+        actionData.counterPrice > 0
+      ? "negotiation"
+      : inspection.stage || "inspection",
       counterCount: newCounterCount, // Assign the new counter count
       inspectionMode: actionData.inspectionMode,
     };

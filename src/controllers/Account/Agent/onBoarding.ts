@@ -38,7 +38,7 @@ export const completeOnboardingAgent = async (
     if (!user) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
-        message: 'Authenticated user not found.',
+        message: 'Account not found.',
       });
     }
 
@@ -46,7 +46,7 @@ export const completeOnboardingAgent = async (
     if (!agent) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
-        message: 'Agent profile not found for this user.',
+        message: 'Agent profile not found for this account.',
       });
     }
 
@@ -64,6 +64,13 @@ export const completeOnboardingAgent = async (
     agent.isInUpgrade = false;
     agent.isFlagged = false;
     agent.accountStatus = 'active';
+
+    if (user.referredBy) {
+      await DB.Models.ReferralLog.updateOne(
+        { referredUserId: user._id, rewardType: "registration_bonus" },
+        { $set: { rewardStatus: "granted" } }
+      );
+    }
 
     await agent.save();
 

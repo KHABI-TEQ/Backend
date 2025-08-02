@@ -33,6 +33,8 @@ import {
   IPropertyView,
   ITestimonialModel,
   Testimonial,
+  IReferralLog,
+  ReferralLogModel
 } from "../models/index";
 
 
@@ -53,8 +55,9 @@ declare interface IModels {
   PasswordResetToken: typeof PasswordResetToken;
   MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
   PropertyView: typeof PropertyView;
+  ReferralLog: typeof ReferralLogModel;
   Testimonial: ITestimonialModel
-}
+} 
 
 export class DB {
   private static instance: DB;
@@ -89,6 +92,7 @@ export class DB {
       PasswordResetToken: PasswordResetToken,
       MatchedPreferenceProperty: MatchedPreferenceProperty,
       PropertyView: PropertyView,
+      ReferralLog: ReferralLogModel,
       InspectionActivityLog: InspectionActivityLogModel,
     };
   }

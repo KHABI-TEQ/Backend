@@ -8,25 +8,25 @@ export interface IUser {
   phoneNumber?: string; // Optional
   isAccountInRecovery: boolean;
   address?: {
-    // Optional as it might be added later
     street?: string;
     state?: string;
     localGovtArea?: string;
   };
   fullName?: string; // Virtual, or can be stored
   profile_picture?: string; // Optional
-
   isAccountVerified: boolean;
   isInActive: boolean;
   isDeleted: boolean;
   accountApproved: boolean; // For Agents
   accountStatus: "active" | "inactive" | "deleted"; // Use string literal union
-  userType: "Landowners" | "Agent"; // Use string literal union
+  userType: "Landowners" | "Agent" | "FieldAgent"; // Use string literal union
   isFlagged: boolean;
   accountId: string; // Unique identifier for the account
   googleId?: string; // For Google OAuth
   facebookId?: string; // For Facebook OAuth
   enableNotifications?: boolean;
+  referralCode?: string;
+  referredBy?: string;
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -64,7 +64,7 @@ export class User {
         },
         userType: {
           type: String,
-          enum: ["Landowners", "Agent"],
+          enum: ["Landowners", "Agent", "FieldAgent"],
           required: true,
         },
         isFlagged: { type: Boolean, default: false },
@@ -73,6 +73,8 @@ export class User {
         googleId: { type: String, unique: true, sparse: true }, // For Google OAuth
         facebookId: { type: String, unique: true, sparse: true }, // For Facebook OAuth
         enableNotifications: { type: Boolean, default: true },
+        referralCode: { type: String, unique: true, sparse: true },
+        referredBy: { type: String },
       },
       {
         timestamps: true, // Adds createdAt and updatedAt

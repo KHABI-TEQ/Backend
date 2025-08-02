@@ -83,6 +83,14 @@ export const verifyAccount = async (req: Request, res: Response, next: NextFunct
       return res.status(HttpStatusCodes.OK).json({ message: "Account already verified. please login" });
     }
 
+    // 🔄 Referral reward status update if user is a Landowner
+    if (user.userType === "Landowners" && user.referredBy) {
+      await DB.Models.ReferralLog.updateOne(
+        { referredUserId: user._id, rewardType: "registration_bonus" },
+        { $set: { rewardStatus: "granted" } }
+      );
+    }
+
     user.isAccountVerified = true;
     user.accountStatus = "active";
     await user.save();
