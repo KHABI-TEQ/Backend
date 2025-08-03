@@ -47,7 +47,7 @@ AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.put("/changePassword", changePassword);
 AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
- 
+  
 // PROPERTY ROUTES
 AccountRouter.post("/properties/create", postProperty);
 AccountRouter.patch("/properties/:propertyId/edit", editProperty);

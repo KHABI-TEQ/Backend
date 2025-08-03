@@ -179,3 +179,49 @@ export const getAssignedInspectionStats = async (
     next(err);
   }
 };
+
+
+// Submit inspection attendance report
+export const submitInspectionReport = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { inspectionId } = req.params;
+    const {
+      buyerPresent,
+      sellerPresent,
+      notes,
+      wasSuccessful,
+    } = req.body;
+
+    const inspection = await DB.Models.InspectionBooking.findOne({
+      _id: inspectionId,
+      assignedFieldAgent: req.user._id,
+    });
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found or not assigned to you");
+    }
+
+    // Update report fields
+    inspection.inspectionReport = {
+      buyerPresent: Boolean(buyerPresent),
+      sellerPresent: Boolean(sellerPresent),
+      notes: notes || "",
+      wasSuccessful: wasSuccessful ?? (buyerPresent && sellerPresent),
+      submittedAt: new Date(),
+    };
+
+    await inspection.save();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Inspection report submitted successfully",
+      data: inspection.inspectionReport,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -34,7 +34,9 @@ import {
   ITestimonialModel,
   Testimonial,
   IReferralLog,
-  ReferralLogModel
+  ReferralLogModel,
+  IFieldAgentModel,
+  FieldAgent,
 } from "../models/index";
 
 
@@ -56,7 +58,8 @@ declare interface IModels {
   MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
   PropertyView: typeof PropertyView;
   ReferralLog: typeof ReferralLogModel;
-  Testimonial: ITestimonialModel
+  Testimonial: ITestimonialModel;
+  FieldAgent: IFieldAgentModel;
 } 
 
 export class DB {
@@ -94,6 +97,7 @@ export class DB {
       PropertyView: PropertyView,
       ReferralLog: ReferralLogModel,
       InspectionActivityLog: InspectionActivityLogModel,
+      FieldAgent: new FieldAgent().model,
     };
   }
 

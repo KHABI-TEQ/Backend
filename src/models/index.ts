@@ -16,3 +16,4 @@ export * from "./user";
 export * from "./propertyView";
 export * from "./testimonial";
 export * from "./referralLog";
+export * from "./fieldAgent";
