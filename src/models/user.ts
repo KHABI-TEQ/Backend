@@ -2,28 +2,28 @@ import { Schema, model, Document, Model } from "mongoose";
 
 export interface IUser {
   email: string;
-  password?: string; // Optional for social logins
+  password?: string;
   firstName: string;
   lastName: string;
-  phoneNumber?: string; // Optional
+  phoneNumber?: string;
   isAccountInRecovery: boolean;
   address?: {
     street?: string;
     state?: string;
     localGovtArea?: string;
   };
-  fullName?: string; // Virtual, or can be stored
-  profile_picture?: string; // Optional
+  fullName?: string;
+  profile_picture?: string;
   isAccountVerified: boolean;
   isInActive: boolean;
   isDeleted: boolean;
   accountApproved: boolean; // For Agents
-  accountStatus: "active" | "inactive" | "deleted"; // Use string literal union
-  userType: "Landowners" | "Agent" | "FieldAgent"; // Use string literal union
+  accountStatus: "active" | "inactive" | "deleted";
+  userType: "Landowners" | "Agent" | "FieldAgent";
   isFlagged: boolean;
-  accountId: string; // Unique identifier for the account
-  googleId?: string; // For Google OAuth
-  facebookId?: string; // For Facebook OAuth
+  accountId: string;
+  googleId?: string;
+  facebookId?: string;
   enableNotifications?: boolean;
   referralCode?: string;
   referredBy?: string;
@@ -40,11 +40,10 @@ export class User {
     const schema = new Schema(
       {
         email: { type: String, required: true, unique: true },
-        password: { type: String }, // Optional for social logins
+        password: { type: String },
         firstName: { type: String, required: true },
         lastName: { type: String, required: true },
         phoneNumber: { type: String },
-        // fullName: { type: String }, // Can be a virtual
         address: {
           street: { type: String },
           state: { type: String },
@@ -53,10 +52,10 @@ export class User {
         isAccountInRecovery: { type: Boolean, default: false },
         profile_picture: { type: String },
 
-        isAccountVerified: { type: Boolean, default: false }, // Replaces emailVerified
+        isAccountVerified: { type: Boolean, default: false },
         isInActive: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },
-        accountApproved: { type: Boolean, default: false }, // Specific for agents
+        accountApproved: { type: Boolean, default: false },
         accountStatus: {
           type: String,
           enum: ["active", "inactive", "deleted"],
@@ -68,18 +67,38 @@ export class User {
           required: true,
         },
         isFlagged: { type: Boolean, default: false },
-        accountId: { type: String, required: true, unique: true }, // Ensure unique account ID
+        accountId: { type: String, required: true, unique: true },
 
-        googleId: { type: String, unique: true, sparse: true }, // For Google OAuth
-        facebookId: { type: String, unique: true, sparse: true }, // For Facebook OAuth
+        googleId: { type: String, unique: true, sparse: true },
+        facebookId: { type: String, unique: true, sparse: true },
         enableNotifications: { type: Boolean, default: true },
         referralCode: { type: String, unique: true, sparse: true },
         referredBy: { type: String },
       },
       {
-        timestamps: true, // Adds createdAt and updatedAt
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
+        timestamps: true,
+        toJSON: { 
+          virtuals: true,
+          transform(doc, ret) {
+          delete ret.password;
+          delete ret.__v;
+          delete ret.googleId;
+          delete ret.facebookId;
+          delete ret.isDeleted;
+          return ret;
+      },
+        },
+        toObject: { 
+          virtuals: true,
+          transform(doc, ret) {
+            delete ret.password;
+            delete ret.__v;
+            delete ret.googleId;
+            delete ret.facebookId;
+            delete ret.isDeleted;
+            return ret;
+          },
+        },
       },
     );
 

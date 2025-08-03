@@ -17,20 +17,33 @@ import { approvePreference } from "../controllers/Admin/preference/approvePrefer
 import { createTestimonial, deleteTestimonial, getAllTestimonials, getLatestApprovedTestimonials, getTestimonial, updateTestimonial, updateTestimonialStatus } from "../controllers/Admin/ExtralPages/testimonials";
 import { createBuyer, deleteBuyer, getAllBuyers, getBuyerPreferences, getSingleBuyer, updateBuyer } from "../controllers/Admin/Account/buyers";
 import { rejectPreference } from "../controllers/Admin/preference/rejectPreference";
-import { fetchAllVerifyDocs, fetchSingleVerifyDoc } from "../controllers/Admin/DocumentVerification/fetchVerifyDocument";
+import { fetchAllVerifyDocs, fetchSingleVerifyDoc, fetchVerifyDocStats } from "../controllers/Admin/DocumentVerification/fetchVerifyDocument";
 import { confirmVerificationPayment, rejectVerificationPayment } from "../controllers/Admin/DocumentVerification/verifyPaymentHandlers";
 import { sendToVerificationProvider, uploadVerificationResult } from "../controllers/Admin/DocumentVerification/DocumentVerificationUploader";
 import { editPropertyAsAdmin } from "../controllers/Admin/Property/editProperty";
 import { deletePropertyById } from "../controllers/Admin/Property/deleteProperty";
+import { assignInspectionToFieldAgent, createFieldAgent, deleteFieldAgentAccount, flagOrUnflagFieldAgentAccount, getAllFieldAgents, getFieldAgentAssignedInspections, getFieldAgentDashboardStatistics, getSingleFieldAgentProfile, toggleFieldAgentStatus, updateFieldAgent } from "../controllers/Admin/Account/fieldAgent";
+import { validateJoi } from "../middlewares/validateJoi";
+import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
+import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 const AdminRouter = express.Router();
 
-
+ 
 // Allow login and create-admin without auth
 AdminRouter.post("/login", loginAdmin);
+
+AdminRouter.post(
+  "/upload-single-file",
+  upload.single("file"),
+  uploadFileToCloudinary,
+);
+
+AdminRouter.delete("/delete-single-file", deleteFileFromCloudinary);
+
 
 
 /**
@@ -83,6 +96,18 @@ AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount
 AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 
  
+AdminRouter.get("/field-agents", getAllFieldAgents);
+AdminRouter.get("/field-agents/dashboard", getFieldAgentDashboardStatistics);
+AdminRouter.post("/field-agents/assignInspection", assignInspectionToFieldAgent);
+AdminRouter.post("/field-agents/create", validateJoi(createFieldAgentSchema), createFieldAgent);
+AdminRouter.get("/field-agents/:userId", getSingleFieldAgentProfile);
+AdminRouter.put("/field-agents/:userId/status", toggleFieldAgentStatus);
+AdminRouter.delete("/field-agents/:userId/delete", deleteFieldAgentAccount);
+AdminRouter.put("/field-agents/:userId/flag-account", flagOrUnflagFieldAgentAccount);
+AdminRouter.put("/field-agents/:userId/update-account", updateFieldAgent);
+AdminRouter.get("/field-agents/:userId/allAssignedInspections", getFieldAgentAssignedInspections);
+
+ 
 // PREFERENCE MANAGEMENT ROUTES
 // this is for "developers" or "tenants" or "shortlets" or "buyers"
 AdminRouter.get("/preferences/:preferenceMode", getPreferencesByMode);
@@ -129,6 +154,7 @@ AdminRouter.get("/buyers/:buyerId/allPreferences", getBuyerPreferences);
 
 // =======================DOCUMENT VERIFICATION FUNCTIONALITIES==================================
 AdminRouter.get("/verification-docs", fetchAllVerifyDocs);
+AdminRouter.get("/verification-docs/stats", fetchVerifyDocStats);
 AdminRouter.get("/verification-doc/:documentId", fetchSingleVerifyDoc);
 
 AdminRouter.post("/confirm-verification-payment/:documentId", confirmVerificationPayment);

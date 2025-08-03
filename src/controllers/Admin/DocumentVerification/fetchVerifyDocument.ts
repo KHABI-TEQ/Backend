@@ -12,22 +12,22 @@ export const fetchAllVerifyDocs = async (
   next: NextFunction
 ) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+    const limit = Math.max(parseInt(req.query.limit as string) || 10, 1);
     const filter = (req.query.status as string) || "pending";
 
-    if (
-      ![
-        "pending",
-        "confirmed",
-        "rejected",
-        "in-progress",
-        "successful",
-      ].includes(filter)
-    ) {
+    const allowedStatuses = [
+      "pending",
+      "confirmed",
+      "rejected",
+      "in-progress",
+      "successful",
+    ];
+
+    if (!allowedStatuses.includes(filter)) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        `Invalid filtering. Filter must be one of: "pending", "confirmed", "rejected", "in-progress" or "successful"`
+        `Invalid filter. Must be one of: ${allowedStatuses.join(", ")}`
       );
     }
 
@@ -41,11 +41,50 @@ export const fetchAllVerifyDocs = async (
       DB.Models.DocumentVerification.countDocuments({ status: filter }),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
+
+    res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: records,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET: /verification-docs/stats
+export const fetchVerifyDocStats = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const allowedStatuses = [
+      "pending",
+      "confirmed",
+      "rejected",
+      "in-progress",
+      "successful",
+    ];
+
+    // Count each status individually
+    const statusCountsPromise = allowedStatuses.map((status) =>
+      DB.Models.DocumentVerification.countDocuments({ status })
+    );
+
+    // Run all promises in parallel
     const [
       totalDocuments,
       totalVerifiedDocuments,
-      confirmedDocs,
-      totalAmountAcrossAll,
+      confirmedDocsAgg,
+      totalDocsAgg,
+      ...statusCounts
     ] = await Promise.all([
       DB.Models.DocumentVerification.countDocuments(),
       DB.Models.DocumentVerification.countDocuments({
@@ -58,10 +97,11 @@ export const fetchAllVerifyDocs = async (
       DB.Models.DocumentVerification.aggregate([
         { $group: { _id: null, totalAmount: { $sum: "$amountPaid" } } },
       ]),
+      ...statusCountsPromise,
     ]);
 
-    const totalConfirmedAmount = confirmedDocs[0]?.totalAmount || 0;
-    const grandTotalAmount = totalAmountAcrossAll[0]?.totalAmount || 0;
+    const totalConfirmedAmount = confirmedDocsAgg[0]?.totalAmount || 0;
+    const grandTotalAmount = totalDocsAgg[0]?.totalAmount || 0;
 
     const verifiedPercentage = totalDocuments
       ? ((totalVerifiedDocuments / totalDocuments) * 100).toFixed(2)
@@ -71,22 +111,28 @@ export const fetchAllVerifyDocs = async (
       ? ((totalConfirmedAmount / grandTotalAmount) * 100).toFixed(2)
       : "0.00";
 
+    const statusBreakdown = allowedStatuses.reduce((acc, status, index) => {
+      acc[status] = statusCounts[index];
+      return acc;
+    }, {} as Record<string, number>);
+
     res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: records,
-      total,
-      page,
-      stats: {
+      data: {
+        totalDocuments,
         totalVerifiedDocuments,
         verifiedPercentage: `${verifiedPercentage}%`,
         totalConfirmedAmount,
+        grandTotalAmount,
         amountPercentage: `${amountPercentage}%`,
+        statusBreakdown,
       },
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 // GET: /verification-doc/:documentId
 export const fetchSingleVerifyDoc = async (

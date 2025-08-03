@@ -22,7 +22,6 @@ export interface IInspectionBooking {
 
   requestedBy: Types.ObjectId;
   transaction: Types.ObjectId;
-
   isNegotiating: boolean;
   isLOI: boolean;
   inspectionType: "price" | "LOI";
@@ -32,13 +31,20 @@ export interface IInspectionBooking {
   negotiationPrice: number;
   letterOfIntention?: string;
   reason?: string;
-
   assignedFieldAgent?: Types.ObjectId;
 
   owner: Types.ObjectId;
   approveLOI?: boolean;
   pendingResponseFrom?: "buyer" | "seller" | "admin";
   stage: "negotiation" | "inspection" | "completed" | "cancelled";
+
+  inspectionReport?: {
+    buyerPresent?: boolean;
+    sellerPresent?: boolean;
+    notes?: string;
+    wasSuccessful?: boolean;
+    submittedAt?: Date;
+  };
 
   counterCount: number;
 }
@@ -57,10 +63,10 @@ export class InspectionBooking {
     const schema = new Schema<IInspectionBookingDoc>(
       {
         propertyId: { type: Schema.Types.ObjectId, required: true, ref: "Property" },
-        bookedBy: { type: Schema.Types.ObjectId },
-        bookedByModel: { type: String },
-        inspectionDate: { type: Date },
-        inspectionTime: { type: String },
+        bookedBy: { type: Schema.Types.ObjectId, required: true },
+        bookedByModel: { type: String, required: true },
+        inspectionDate: { type: Date, required: true },
+        inspectionTime: { type: String, required: true },
         status: {
           type: String,
           enum: [
@@ -77,11 +83,9 @@ export class InspectionBooking {
             "cancelled",
           ],
           default: "pending_transaction",
-          required: true,
         },
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
         transaction: { type: Schema.Types.ObjectId, required: true, ref: "Transaction" },
-        assignedFieldAgent: { type: Schema.Types.ObjectId, ref: "User" },
         isNegotiating: { type: Boolean, default: false },
         isLOI: { type: Boolean, default: false },
         inspectionType: {
@@ -102,6 +106,7 @@ export class InspectionBooking {
         negotiationPrice: { type: Number, default: 0 },
         letterOfIntention: { type: String },
         reason: { type: String },
+        assignedFieldAgent: { type: Schema.Types.ObjectId, ref: "User" },
         owner: { type: Schema.Types.ObjectId, required: true, ref: "User" },
         approveLOI: { type: Boolean, default: false },
         pendingResponseFrom: {
@@ -115,6 +120,14 @@ export class InspectionBooking {
           default: "negotiation",
         },
         counterCount: { type: Number, default: 0 },
+
+        inspectionReport: {
+          buyerPresent: { type: Boolean, default: null },
+          sellerPresent: { type: Boolean, default: null },
+          notes: { type: String },
+          wasSuccessful: { type: Boolean },
+          submittedAt: { type: Date },
+        },
       },
       {
         timestamps: true,
@@ -123,7 +136,8 @@ export class InspectionBooking {
       }
     );
 
-    this.InspectionBookingModel = models.InspectionBooking || model<IInspectionBookingDoc>('InspectionBooking', schema);
+    this.InspectionBookingModel =
+      models.InspectionBooking || model<IInspectionBookingDoc>("InspectionBooking", schema);
   }
 
   public get model(): IInspectionBookingModel {
@@ -132,7 +146,6 @@ export class InspectionBooking {
 
   public async canCounter(id: string): Promise<boolean> {
     const record = await this.model.findById(id);
-    if (!record) return false;
-    return record.counterCount < 3;
+    return !!record && record.counterCount < 3;
   }
 }

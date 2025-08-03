@@ -261,7 +261,7 @@ export class InspectionActionHandler {
         actionData.counterPrice > 0
       ? "negotiation"
       : inspection.stage || "inspection",
-      counterCount: newCounterCount, // Assign the new counter count
+      counterCount: newCounterCount,
       inspectionMode: actionData.inspectionMode,
     };
 
