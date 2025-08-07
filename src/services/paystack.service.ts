@@ -54,6 +54,7 @@ export class PaystackService {
       {
         email,
         amount: amount * 100, // convert to kobo
+        callback_url: `${process.env.CLIENT_LINK}/payment-verification`,
         reference,
         currency,
         metadata: {
@@ -93,6 +94,8 @@ export class PaystackService {
       );
 
       const data = response.data.data;
+
+      console.log(data, "verify data resp....")
 
       // Update DB regardless of success or failure
       const updatedTx = await DB.Models.NewTransaction.findOneAndUpdate(
