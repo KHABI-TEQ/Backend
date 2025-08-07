@@ -23,8 +23,7 @@ export interface InspectionDetails {
 }
 
 export interface Transaction {
-  fullName: string;
-  transactionReceipt: string;
+  amount: number;
 }
 
 export interface PropertyPayload {
@@ -37,7 +36,7 @@ export interface PropertyPayload {
 export interface SubmitInspectionPayload {
   requestedBy: RequestedBy;
   inspectionDetails: InspectionDetails;
-  transaction: Transaction;
+  inspectionAmount: number;
   properties: PropertyPayload[];
 }
 

@@ -90,7 +90,7 @@ static validateSubmitInspectionPayload(data: any): {
   const {
     requestedBy,
     inspectionDetails,
-    transaction,
+    inspectionAmount,
     properties,
   } = data;
 
@@ -155,24 +155,13 @@ static validateSubmitInspectionPayload(data: any): {
   }
 
 
-  // Validate transaction
-  if (!transaction || typeof transaction !== "object") {
-    return { success: false, error: "Transaction object is required" };
-  }
+  // Validate inspectionAmount
   if (
-    typeof transaction.fullName !== "string" ||
-    transaction.fullName.trim() === ""
+    inspectionAmount === undefined ||
+    typeof inspectionAmount !== 'number' ||
+    isNaN(inspectionAmount)
   ) {
-    return { success: false, error: "Transaction fullName is required" };
-  }
-  if (
-    typeof transaction.transactionReceipt !== "string" ||
-    !/^https?:\/\/\S+$/.test(transaction.transactionReceipt)
-  ) {
-    return {
-      success: false,
-      error: "Transaction receipt is required and must be a valid URL",
-    };
+    return { success: false, error: 'Valid inspection amount (number) is required' };
   }
 
   // Validate properties
@@ -247,7 +236,7 @@ static validateSubmitInspectionPayload(data: any): {
     data: {
       requestedBy,
       inspectionDetails,
-      transaction,
+      inspectionAmount,
       properties,
     },
   };

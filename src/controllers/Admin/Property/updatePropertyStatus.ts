@@ -3,6 +3,9 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { PropertyApprovedOrDisapprovedTemplate } from "../../../common/emailTemplates/property";
+import sendEmail from "../../../common/send.email";
 
 export const updatePropertyStatusAsAdmin = async (
   req: AppRequest,
@@ -36,24 +39,40 @@ export const updatePropertyStatusAsAdmin = async (
       "never_listed",
       "rejected",
       "deleted",
-    ];
-
-    const activeStatuses = [
-      "approved",
-      "active",
-      "back_on_market",
       "pending",
     ];
 
-    // Update status & reason
+    const activeStatuses = ["approved", "active", "back_on_market"];
+
+    // Update property status and reason
     property.status = status;
-    property.reason = reason || property.reason;
+    property.reason = reason ?? property.reason;
 
-    // Update availability
-    property.isAvailable = activeStatuses.includes(status);
+    // Set availability and approval flags
+    const isActive = activeStatuses.includes(status);
+    property.isAvailable = isActive;
+    property.isApproved = isActive;
 
-    // Set isRejected flag
+    // Set rejection flag
     property.isRejected = status === "rejected";
+
+    // Send email only if status is "approved" or "rejected"
+    if (status === "approved" || status === "rejected") {
+      const ownerName =
+        (property.owner as any).fullName ||
+        `${(property.owner as any).firstName || ""} ${(property.owner as any).lastName || ""}`.trim();
+
+      const mailBody = generalEmailLayout(
+        PropertyApprovedOrDisapprovedTemplate(ownerName, status, property),
+      );
+
+      await sendEmail({
+        to: (property.owner as any).email,
+        subject: `Property ${status === "approved" ? "Approved" : "Rejected"}`,
+        html: mailBody,
+        text: mailBody,
+      });
+    }
 
     await property.save();
 
@@ -66,3 +85,4 @@ export const updatePropertyStatusAsAdmin = async (
     next(err);
   }
 };
+

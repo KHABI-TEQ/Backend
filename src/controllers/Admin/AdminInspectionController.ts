@@ -5,7 +5,7 @@ import { Request, Response } from "express";
 import { RouteError } from "../../common/classes";
 import { IInspectionBooking } from "../../models";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
-import {
+import { 
   generalTemplate,
   InspectionRequestWithNegotiation,
   InspectionRequestWithNegotiationSellerTemplate,

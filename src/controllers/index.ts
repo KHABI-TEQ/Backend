@@ -37,6 +37,10 @@ import {
   ReferralLogModel,
   IFieldAgentModel,
   FieldAgent,
+  NewTransaction,
+  INewTransactionModel,
+  Subscription,
+  ISubscriptionModel,
 } from "../models/index";
 
 
@@ -60,6 +64,8 @@ declare interface IModels {
   ReferralLog: typeof ReferralLogModel;
   Testimonial: ITestimonialModel;
   FieldAgent: IFieldAgentModel;
+  NewTransaction: INewTransactionModel;
+  Subscription: ISubscriptionModel;
 } 
 
 export class DB {
@@ -98,6 +104,8 @@ export class DB {
       ReferralLog: ReferralLogModel,
       InspectionActivityLog: InspectionActivityLogModel,
       FieldAgent: new FieldAgent().model,
+      NewTransaction: new NewTransaction().model,
+      Subscription: new Subscription().model,
     };
   }
 

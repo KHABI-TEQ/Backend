@@ -1,4 +1,4 @@
-import { Schema, model, Document, Model } from 'mongoose';
+import { Schema, model, Document, Model, Types } from 'mongoose';
 import { Counter } from './counter'; 
  
 export interface IDocumentVerification {
@@ -8,14 +8,14 @@ export interface IDocumentVerification {
   phoneNumber: string;
   address: string;
   amountPaid: number;
-  transactionReceipt?: string;
+  transaction: Types.ObjectId;
   documents: {
     documentType: string;
     documentNumber?: string;
     documentUrl: string;
   }[];
   resultDocuments: string[];
-  status: 'pending' | 'confirmed'  | 'rejected' |  "in-progress" | 'successful';
+  status: 'pending' | 'confirmed'  | 'rejected' |  "in-progress" | 'successful' | 'payment-failed';
 } 
 
 
@@ -28,14 +28,18 @@ export class DocumentVerification {
 
   constructor() {
     const schema = new Schema(
-      {
+      { 
         customId: { type: String, unique: true },
         fullName: { type: String, required: true },
         email: { type: String, required: true},
         phoneNumber: { type: String, required: true },
         address: { type: String, required: true },
         amountPaid:{type: Number, required: true},
-        transactionReceipt:{type:String},
+        transaction: {
+          type: Schema.Types.ObjectId,
+          ref: 'NewTransaction',
+          required: true,
+        },
         documents: [{ 
           documentType:{type: String, required: true },
           documentNumber:{type:String},
@@ -44,7 +48,7 @@ export class DocumentVerification {
         resultDocuments: [{ type: String }],
         status: {
           type: String,
-          enum: ['pending', 'confirmed',  "in-progress", "rejected", 'successful'],
+          enum: ['pending', 'confirmed',  "in-progress", "rejected", 'successful', 'payment-failed'],
           default: 'pending',
         },
       },
