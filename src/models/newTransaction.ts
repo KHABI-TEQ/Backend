@@ -1,0 +1,138 @@
+import {
+  Schema,
+  model,
+  Document,
+  Model,
+  ObjectId,
+  Types,
+} from 'mongoose';
+
+export type TransactionType =
+  | 'payment'
+  | 'withdrawal'
+  | 'deposit'
+  | 'transfer'
+  | 'refund'
+  | 'subscription'
+  | 'inspection'
+  | 'document-verification';
+
+export type PaymentMode =
+  | 'card'
+  | 'bank_transfer'
+  | 'ussd'
+  | 'wallet'
+  | 'crypto'
+  | 'cash'
+  | 'others';
+
+export interface INewTransaction {
+  reference: string;
+  fromWho: {
+    kind: 'User' | 'Buyer';
+    item: ObjectId;
+  };
+  amount: number;
+  currency?: string;
+  status?: 'pending' | 'success' | 'failed' | 'cancelled';
+  transactionType: TransactionType;
+  paymentMode: PaymentMode;
+  paymentDetails?: Record<string, any>;
+  platform?: string;
+  meta?: Record<string, any>;
+}
+
+export interface INewTransactionDoc extends INewTransaction, Document {}
+
+export type INewTransactionModel = Model<INewTransactionDoc>;
+
+export class NewTransaction {
+  private newTransactionModel: INewTransactionModel;
+
+  constructor() {
+    const schema = new Schema<INewTransactionDoc>(
+      {
+        reference: {
+          type: String,
+          required: true,
+          unique: true,
+        },
+        fromWho: {
+          kind: {
+            type: String,
+            enum: ['User', 'Buyer'],
+            required: true,
+          },
+          item: {
+            type: Schema.Types.ObjectId,
+            required: true,
+            refPath: 'fromWho.kind',
+          },
+        },
+        amount: {
+          type: Number,
+          required: true,
+        },
+        currency: {
+          type: String,
+          default: 'NGN',
+        },
+        status: {
+          type: String,
+          enum: ['pending', 'success', 'failed', 'cancelled'],
+          default: 'pending',
+        },
+        transactionType: {
+          type: String,
+          enum: [
+            'payment',
+            'withdrawal',
+            'deposit',
+            'transfer',
+            'refund',
+            'subscription',
+            'inspection',
+            'document-verification',
+          ],
+          required: true,
+        },
+        paymentMode: {
+          type: String,
+          enum: [
+            'card',
+            'bank_transfer',
+            'ussd',
+            'wallet',
+            'crypto',
+            'cash',
+            'others',
+          ],
+          required: true,
+        },
+        paymentDetails: {
+          type: Schema.Types.Mixed,
+          default: {},
+        },
+        platform: {
+          type: String,
+          default: 'web',
+        },
+        meta: {
+          type: Schema.Types.Mixed,
+          default: {},
+        },
+      },
+      {
+        timestamps: true,
+      }
+    );
+
+    schema.index({ reference: 1 });
+
+    this.newTransactionModel = model<INewTransactionDoc>('newTransaction', schema);
+  }
+
+  public get model(): INewTransactionModel {
+    return this.newTransactionModel;
+  }
+}

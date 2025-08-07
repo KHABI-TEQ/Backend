@@ -1,14 +1,9 @@
-interface VerificationDoc {
-  documentType: string;
-  documentNumber: string;
-}
-
-interface GenerateVerificationEmailParams {
+export interface GenerateVerificationEmailParams {
   fullName: string;
   phoneNumber: string;
   address: string;
   amountPaid: number;
-  documents: VerificationDoc[];
+  documents: any;
 }
 
 export const generateVerificationSubmissionEmail = ({
@@ -20,7 +15,7 @@ export const generateVerificationSubmissionEmail = ({
 }: GenerateVerificationEmailParams): string => {
   const docsList = documents
     .map(
-      (doc, index) =>
+      (doc: any, index: any) =>
         `<li><strong>Document ${index + 1}:</strong> ${doc.documentType} (No: ${doc.documentNumber})</li>`
     )
     .join('');

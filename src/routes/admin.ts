@@ -117,7 +117,7 @@ AdminRouter.patch("/preferences/:preferenceId/reject", rejectPreference);
 AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
 AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
 AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties);
-
+ 
 
 // PROPERTY MANAGEMENT ROUTES
 AdminRouter.get("/properties/", getAllProperties);
@@ -125,10 +125,9 @@ AdminRouter.get("/properties/stats", getPropertyStats);
 AdminRouter.get("/properties/:propertyId/getOne", getSinglePropertyDetails);
 AdminRouter.patch("/properties/:propertyId/update", editPropertyAsAdmin);
 AdminRouter.delete("/properties/:propertyId/delete", deletePropertyById);
-AdminRouter.post("/properties/:propertyId/approval-status", setPropertyApprovalStatus);
 AdminRouter.post("/properties/:propertyId/changeStatus", updatePropertyStatusAsAdmin);
 AdminRouter.get("/properties/:propertyId/inspections", getPropertyInspections);
- 
+  
 
 // TESTIMONIALS MANAGEMENT ROUTES
 AdminRouter.get("/testimonials", getAllTestimonials);

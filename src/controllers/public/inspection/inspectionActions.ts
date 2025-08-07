@@ -13,6 +13,8 @@ import { InspectionValidator } from "../../../validators/inspection.validator";
 import { InspectionActionHandler } from "../../../handlers/inspection-action.handler";
 import { InspectionEmailService } from "../../../services/inspection-email.service";
 import { AppRequest } from "../../../types/express";
+import { PaystackService } from "../../../services/paystack.service";
+import { Types } from "mongoose";
 
 class InspectionActionsController {
   public async processInspectionAction(
@@ -409,7 +411,7 @@ class InspectionActionsController {
       const {
         requestedBy,
         inspectionDetails,
-        transaction,
+        inspectionAmount,
         properties,
       } = validation.data!;
 
@@ -420,12 +422,18 @@ class InspectionActionsController {
         { upsert: true, new: true },
       );
 
-      // Save the transaction
-      const transactionDoc = await DB.Models.Transaction.create({
-        ...transaction,
-        buyerId: buyer._id,
-      });
-
+      // Generate payment link
+      const paymentResponse = await PaystackService.initializePayment({
+        email: buyer.email,
+        amount: inspectionAmount,
+        fromWho: {
+          kind: "Buyer",
+          item: new Types.ObjectId(buyer._id as Types.ObjectId),
+        },
+        transactionType: "inspection",
+        paymentMode: "web",
+      })
+     
       const savedInspections = [];
 
       for (const prop of properties) {
@@ -459,7 +467,7 @@ class InspectionActionsController {
           inspectionTime: inspectionDetails.inspectionTime,
           status: "pending_transaction",
           requestedBy: buyer._id,
-          transaction: transactionDoc._id,
+          transaction: paymentResponse.transactionId,
           isNegotiating,
           isLOI,
           inspectionType, // Use the inspectionType from the property object
@@ -498,7 +506,10 @@ class InspectionActionsController {
       res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Inspection request submitted",
-        data: savedInspections,
+        data: {
+          inspections: savedInspections,
+          transaction: paymentResponse
+        },
       });
     } catch (error) {
       console.error("submitInspectionRequest error:", error);
@@ -507,49 +518,49 @@ class InspectionActionsController {
   }
 
   public async reopenInspection(
-  req: AppRequest,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  try {
-    const { inspectionId } = req.params;
+    req: AppRequest,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const { inspectionId } = req.params;
 
-    const inspection = await DB.Models.InspectionBooking.findById(inspectionId);
-    if (!inspection) {
-      throw new RouteError(
-        HttpStatusCodes.NOT_FOUND,
-        `Inspection with ID ${inspectionId} not found.`,
-      );
+      const inspection = await DB.Models.InspectionBooking.findById(inspectionId);
+      if (!inspection) {
+        throw new RouteError(
+          HttpStatusCodes.NOT_FOUND,
+          `Inspection with ID ${inspectionId} not found.`,
+        );
+      }
+
+      // Simply touch the row to update the `updatedAt` timestamp
+      inspection.markModified("updatedAt");
+      await inspection.save();
+
+      await InspectionLogService.logActivity({
+        inspectionId: inspection._id.toString(),
+        propertyId: inspection.propertyId.toString(),
+        senderId: req.user?._id?.toString() || "system",
+        senderModel: req.user?.model || "Admin",
+        senderRole: req.user?.role || "admin",
+        message: `Inspection reopened. No changes made to date or time.`,
+        status: inspection.status,
+        stage: inspection.stage,
+        meta: {
+          action: "reopen",
+        },
+      });
+
+      res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Inspection reopened successfully.",
+        data: inspection,
+      });
+    } catch (error) {
+      console.error("reopenInspection error:", error);
+      next(error);
     }
-
-    // Simply touch the row to update the `updatedAt` timestamp
-    inspection.markModified("updatedAt");
-    await inspection.save();
-
-    await InspectionLogService.logActivity({
-      inspectionId: inspection._id.toString(),
-      propertyId: inspection.propertyId.toString(),
-      senderId: req.user?._id?.toString() || "system",
-      senderModel: req.user?.model || "Admin",
-      senderRole: req.user?.role || "admin",
-      message: `Inspection reopened. No changes made to date or time.`,
-      status: inspection.status,
-      stage: inspection.stage,
-      meta: {
-        action: "reopen",
-      },
-    });
-
-    res.status(HttpStatusCodes.OK).json({
-      success: true,
-      message: "Inspection reopened successfully.",
-      data: inspection,
-    });
-  } catch (error) {
-    console.error("reopenInspection error:", error);
-    next(error);
   }
-}
 
 }
 

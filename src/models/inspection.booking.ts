@@ -53,7 +53,7 @@ export interface IInspectionBookingDoc extends IInspectionBooking, Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
+ 
 export type IInspectionBookingModel = Model<IInspectionBookingDoc>;
 
 export class InspectionBooking {
