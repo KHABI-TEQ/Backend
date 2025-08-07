@@ -185,6 +185,8 @@ router.get(
   },
 );
 
+// router.get("/verify-payment", PaystackService.verifyPayment)
+
 // Contact Form
 router.post("/submitVerificationDocs", submitDocumentVerification);
 

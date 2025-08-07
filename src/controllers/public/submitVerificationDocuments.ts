@@ -26,7 +26,7 @@ export const submitDocumentVerification = async (
     ) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing required fields.");
     }
-
+ 
     // Create or retrieve the buyer by email
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
       { email: contactInfo.email },
