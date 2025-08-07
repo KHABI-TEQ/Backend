@@ -102,6 +102,8 @@ export class PaystackService {
         { reference },
         {
           status: data.status === 'success' ? 'success' : 'failed',
+          currency: data.currency,
+          paymentMode: data.channel,
           paymentDetails: {
             ...data,
             channel: data.channel,

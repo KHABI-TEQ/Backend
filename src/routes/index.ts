@@ -21,6 +21,7 @@ import { preferenceRouter } from "./preference";
 import AccountRouter from "./account";
 import { submitContactForm } from "../controllers/public/contactUs";
 import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
+import { paymentVerification } from "../controllers/public/paymentVerification";
 
 const router = express.Router();
 
@@ -185,7 +186,7 @@ router.get(
   },
 );
 
-// router.get("/verify-payment", PaystackService.verifyPayment)
+router.get("/verify-payment", paymentVerification)
 
 // Contact Form
 router.post("/submitVerificationDocs", submitDocumentVerification);
