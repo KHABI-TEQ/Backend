@@ -43,7 +43,6 @@ export const submitDocumentVerification = async (
         item: new Types.ObjectId(buyer._id as Types.ObjectId),
       },
       transactionType: "document-verification",
-      paymentMode: "web",
     })
 
     const newDoc = await DB.Models.DocumentVerification.create({

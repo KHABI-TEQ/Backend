@@ -431,7 +431,6 @@ class InspectionActionsController {
           item: new Types.ObjectId(buyer._id as Types.ObjectId),
         },
         transactionType: "inspection",
-        paymentMode: "web",
       })
      
       const savedInspections = [];
