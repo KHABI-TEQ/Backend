@@ -147,8 +147,10 @@ AdminRouter.put("/buyers/:buyerId/update", updateBuyer);
 AdminRouter.delete("/buyers/:buyerId/delete", deleteBuyer);
 AdminRouter.get("/buyers/:buyerId/allPreferences", getBuyerPreferences);
 
-
-
+// TRANSACTION MANAGEMENT ROUTES
+AdminRouter.get("/transactions", getAllBuyers);
+AdminRouter.get("/transactions/:transactionId", getSingleBuyer);
+AdminRouter.post("/transactions/:transactionId/manaualVerification", createBuyer);
 
 
 // =======================DOCUMENT VERIFICATION FUNCTIONALITIES==================================

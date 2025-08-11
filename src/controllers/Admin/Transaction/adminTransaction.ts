@@ -1,0 +1,138 @@
+import { Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
+import { DB } from "../..";
+import HttpStatusCodes from "../../../common/HttpStatusCodes";
+import { RouteError } from "../../../common/classes";
+import { AppRequest } from "../../../types/express";
+
+// Get all transactions
+export const getAllTransactions = async (req: AppRequest, res: Response, next: NextFunction) => {
+  try {
+    const {
+      page = "1",
+      limit = "20",
+      status,
+      transactionType,
+    } = req.query as {
+      page?: string;
+      limit?: string;
+      status?: string;
+      transactionType?: string;
+    };
+
+    const pageNum = Math.max(parseInt(page, 10), 1);
+    const limitNum = Math.max(parseInt(limit, 10), 1);
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter: Record<string, any> = {};
+
+    // Normalize and validate filters
+    const allowedStatuses = ["pending", "success", "failed"];
+    const allowedTransactionTypes = [
+      "inspection",
+      "subscription",
+      "investment",
+      "advertisement",
+      "custom",
+    ];
+
+    if (status && allowedStatuses.includes(status)) {
+      filter.status = status;
+    }
+
+    if (transactionType && allowedTransactionTypes.includes(transactionType)) {
+      filter.transactionType = transactionType;
+    }
+
+    const [transactions, total] = await Promise.all([
+      DB.Models.NewTransaction.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .populate("fromWho.item")
+        .lean(),
+
+      DB.Models.NewTransaction.countDocuments(filter),
+    ]);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Transactions fetched successfully",
+      data: transactions,
+      pagination: {
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+        limit: limitNum,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// Get single transaction by ID
+export const getTransactionById = async (req: AppRequest, res: Response, next: NextFunction) => {
+  try {
+    const { transactionId } = req.params;
+
+    if (!mongoose.isValidObjectId(transactionId)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid transaction ID");
+    }
+
+    const transaction = await DB.Models.NewTransaction.findById(transactionId)
+      .populate("fromWho.item")
+      .lean();
+
+    if (!transaction) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Transaction not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Transaction fetched successfully",
+      data: transaction,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Validate transaction (mark as success)
+export const validateTransaction = async (req: AppRequest, res: Response, next: NextFunction) => {
+  try {
+    const { transactionId } = req.params;
+
+    if (!mongoose.isValidObjectId(transactionId)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid transaction ID");
+    }
+
+    const transaction = await DB.Models.NewTransaction.findById(transactionId);
+
+    if (!transaction) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Transaction not found");
+    }
+
+    if (transaction.status === 'success') {
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Transaction already validated",
+      });
+    }
+
+    transaction.status = "success";
+    await transaction.save();
+
+    // You can trigger side effects here e.g., sending email, enabling access, etc.
+    // await handleTransactionTypeEffect(transaction);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Transaction validated successfully",
+      data: transaction,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

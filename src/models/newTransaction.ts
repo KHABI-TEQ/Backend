@@ -17,15 +17,6 @@ export type TransactionType =
   | 'inspection'
   | 'document-verification';
 
-export type PaymentMode =
-  | 'card'
-  | 'bank_transfer'
-  | 'ussd'
-  | 'wallet'
-  | 'crypto'
-  | 'cash'
-  | 'others';
-
 export interface INewTransaction {
   reference: string;
   fromWho: {
@@ -36,7 +27,7 @@ export interface INewTransaction {
   currency?: string;
   status?: 'pending' | 'success' | 'failed' | 'cancelled';
   transactionType: TransactionType;
-  paymentMode: PaymentMode;
+  paymentMode?: string;
   paymentDetails?: Record<string, any>;
   platform?: string;
   meta?: Record<string, any>;
@@ -96,19 +87,7 @@ export class NewTransaction {
           ],
           required: true,
         },
-        paymentMode: {
-          type: String,
-          enum: [
-            'card',
-            'bank_transfer',
-            'ussd',
-            'wallet',
-            'crypto',
-            'cash',
-            'others',
-          ],
-          required: true,
-        },
+        paymentMode: {type: String},
         paymentDetails: {
           type: Schema.Types.Mixed,
           default: {},
