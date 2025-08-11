@@ -3,6 +3,9 @@ import { AppRequest } from "../../../../types/express";
 import { DB } from "../../..";
 import HttpStatusCodes from "../../../../common/HttpStatusCodes";
 import { RouteError } from "../../../../common/classes";
+import sendEmail from "../../../../common/send.email";
+import { generalEmailLayout } from "../../../../common/emailTemplates/emailLayout";
+import { generateAdminVerificationReportEmail } from "../../../../common/emailTemplates/documentVerificationMails";
 
 /**
  * Verify a document verification access code
@@ -132,6 +135,23 @@ export const submitVerificationReport = async (
     ];
 
     await docVerification.save();
+
+    const adminEmailHTML = generalEmailLayout(
+      generateAdminVerificationReportEmail({
+        adminName: "Admin",
+        requesterName: docVerification.fullName,
+        documentCustomId: docVerification.customId,
+        reports: formattedReports,
+        verificationPageLink: `https://kb-admin-fe.vercel.app/verify_document/${docVerification.status}/${documentId}`
+      })
+    );
+
+    await sendEmail({
+      to: process.env.ADMIN_EMAIL as string,
+      subject: `New Verification Report Submitted for Document ${docVerification.customId}`,
+      html: adminEmailHTML,
+      text: `New verification reports submitted for document ${docVerification.customId}. Please check the admin panel at ${process.env.FRONTEND_URL}/admin/document-verification/${documentId}`
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

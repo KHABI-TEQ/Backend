@@ -5,8 +5,8 @@ const ThirdPartyRouter = express.Router();
 
 
 ThirdPartyRouter.post("/verifyAccessCode", verifyAccessCode);
-ThirdPartyRouter.get("/getDocumentDetails", getDocumentVerificationDetails);
+ThirdPartyRouter.get("/getDocumentDetails/:documentId", getDocumentVerificationDetails);
 
-ThirdPartyRouter.post("/submit-report", submitVerificationReport);
+ThirdPartyRouter.post("/submit-report/:documentId", submitVerificationReport);
 
 export default ThirdPartyRouter;

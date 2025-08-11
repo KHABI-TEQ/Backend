@@ -7,7 +7,7 @@ import { InspectionLogService } from './inspectionLog.service';
 import { generalTemplate, InspectionRequestWithNegotiation, InspectionRequestWithNegotiationSellerTemplate, InspectionTransactionRejectionTemplate } from '../common/email.template';
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
-import { GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
+import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -335,7 +335,7 @@ export class PaystackService {
     return subscription;
   }
 
-  /**
+ /**
    * Handles the effects of a document verification payment.
    */
   static async handleDocumentVerificationPayment(transaction: any) {
@@ -375,23 +375,22 @@ export class PaystackService {
           text: mailBody,
         });
 
-        // Send verification code to third-party
-        const thirdPartyBody = `
-          A new document verification request has been submitted.
-
-          Access Code: ${accessCode}
-          Name: ${docVerification.fullName}
-          Phone: ${docVerification.phoneNumber}
-          Address: ${docVerification.address}
-
-          Please use the access code to verify the document.
-        `;
+        // Prepare third-party email
+        const thirdPartyEmailHTML = generalEmailLayout(
+          generateThirdPartyVerificationEmail({
+            recipientName: "Verification Officer",
+            requesterName: docVerification.fullName,
+            message: "Please review the submitted documents and confirm verification status.",
+            accessCode: accessCode,
+            accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+          })
+        );
 
         await sendEmail({
-          to: process.env.THIRD_PARTY_EMAIL, // your third-party email
+          to: process.env.THIRD_PARTY_EMAIL as string,
           subject: "New Document Verification Request",
-          text: thirdPartyBody,
-          html: `<pre>${thirdPartyBody}</pre>`
+          html: thirdPartyEmailHTML,
+          text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
         });
       }
 
@@ -400,6 +399,7 @@ export class PaystackService {
 
     return docVerification;
   }
+
 
 
 }
