@@ -335,7 +335,7 @@ export class PaystackService {
     return subscription;
   }
 
-   /**
+  /**
    * Handles the effects of a document verification payment.
    */
   static async handleDocumentVerificationPayment(transaction: any) {
@@ -349,33 +349,53 @@ export class PaystackService {
       const newStatus = transaction.status === "success" ? "successful" : "payment-failed";
 
       docVerification.status = newStatus;
-      docVerification.save();
 
       if (transaction.status === "success") {
-        
-        const emailPrams: GenerateVerificationEmailParams = {
-            fullName: docVerification.fullName,
-            phoneNumber: docVerification.phoneNumber,
-            address: docVerification.address,
-            amountPaid: docVerification.amountPaid,
-            documents: docVerification.documents
+        // Generate a 6-digit unique code
+        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+        docVerification.accessCode.code = accessCode;
+
+        const emailParams: GenerateVerificationEmailParams = {
+          fullName: docVerification.fullName,
+          phoneNumber: docVerification.phoneNumber,
+          address: docVerification.address,
+          amountPaid: docVerification.amountPaid,
+          documents: docVerification.documents
         };
 
-        // Send mail
+        // Send confirmation mail to user
         const mailBody = generalEmailLayout(
-            generateVerificationSubmissionEmail(emailPrams)
-        )
+          generateVerificationSubmissionEmail(emailParams)
+        );
 
         await sendEmail({
-            to: docVerification.email,
-            subject: "Document Verification Submission Received – Under Review",
-            html: mailBody,
-            text: mailBody,
+          to: docVerification.email,
+          subject: "Document Verification Submission Received – Under Review",
+          html: mailBody,
+          text: mailBody,
         });
 
-      } else {
-        
+        // Send verification code to third-party
+        const thirdPartyBody = `
+          A new document verification request has been submitted.
+
+          Access Code: ${accessCode}
+          Name: ${docVerification.fullName}
+          Phone: ${docVerification.phoneNumber}
+          Address: ${docVerification.address}
+
+          Please use the access code to verify the document.
+        `;
+
+        await sendEmail({
+          to: process.env.THIRD_PARTY_EMAIL, // your third-party email
+          subject: "New Document Verification Request",
+          text: thirdPartyBody,
+          html: `<pre>${thirdPartyBody}</pre>`
+        });
       }
+
+      await docVerification.save();
     }
 
     return docVerification;

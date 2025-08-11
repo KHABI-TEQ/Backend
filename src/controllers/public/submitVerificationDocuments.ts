@@ -5,7 +5,7 @@ import { AppRequest } from "../../types/express";
 import { RouteError } from "../../common/classes";
 import { PaystackService } from "../../services/paystack.service";
 import { Types } from "mongoose";
-
+ 
 // Controller to create a document verification request
 export const submitDocumentVerification = async (
   req: AppRequest,
