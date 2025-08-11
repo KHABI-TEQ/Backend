@@ -62,7 +62,7 @@ export class DocumentVerification {
           token: { type: String },
           status: {
             type: String,
-            enum: ['pending', "rejected"],
+            enum: ['pending', "approved"],
             default: 'pending',
           }
         },
