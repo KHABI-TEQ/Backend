@@ -16,8 +16,8 @@ export interface IDocumentVerification {
   }[];
   resultDocuments: string[];
   accessCode?: {
-    code?: string;
-    status?: 'pending' | 'approved'
+    token?: string;
+    status?: 'pending' | 'approved';
   };
   status: 'pending' | 'confirmed' | 'rejected' | "in-progress" | 'successful' | 'payment-failed';
 
@@ -59,7 +59,7 @@ export class DocumentVerification {
         }],
         resultDocuments: [{ type: String }],
         accessCode: {
-          code: { type: String },
+          token: { type: String },
           status: {
             type: String,
             enum: ['pending', "rejected"],
