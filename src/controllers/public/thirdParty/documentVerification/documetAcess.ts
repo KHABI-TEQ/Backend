@@ -30,7 +30,7 @@ export const verifyAccessCode = async (
     }
 
     // Check if access codes match
-    if (docVerification.accessCode?.code !== accessCode) {
+    if (docVerification.accessCode?.token !== accessCode) {
       return res.status(HttpStatusCodes.OK).json({
         success: false,
         message: "Invalid access code"

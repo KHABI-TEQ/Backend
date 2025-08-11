@@ -353,7 +353,7 @@ export class PaystackService {
       if (transaction.status === "success") {
         // Generate a 6-digit unique code
         const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-        docVerification.accessCode.code = accessCode;
+        docVerification.accessCode.token = accessCode;
 
         const emailParams: GenerateVerificationEmailParams = {
           fullName: docVerification.fullName,
