@@ -19,6 +19,7 @@ import { getLatestApprovedTestimonials } from "../controllers/public/testimonial
 import { AuthRouter } from "./auth";
 import { preferenceRouter } from "./preference";
 import AccountRouter from "./account";
+import thirdPartyRouter from "./thirdParty";
 import { submitContactForm } from "../controllers/public/contactUs";
 import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
 import { paymentVerification } from "../controllers/public/paymentVerification";
@@ -190,6 +191,9 @@ router.get("/verify-payment", paymentVerification)
 
 // Contact Form
 router.post("/submitVerificationDocs", submitDocumentVerification);
+
+// All Properties Routes
+router.use("/third-party", thirdPartyRouter);
 
 // Contact Form
 router.post("/contact-us/submit", submitContactForm);

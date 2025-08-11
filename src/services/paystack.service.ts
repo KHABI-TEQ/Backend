@@ -7,7 +7,7 @@ import { InspectionLogService } from './inspectionLog.service';
 import { generalTemplate, InspectionRequestWithNegotiation, InspectionRequestWithNegotiationSellerTemplate, InspectionTransactionRejectionTemplate } from '../common/email.template';
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
-import { GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
+import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -335,7 +335,7 @@ export class PaystackService {
     return subscription;
   }
 
-   /**
+ /**
    * Handles the effects of a document verification payment.
    */
   static async handleDocumentVerificationPayment(transaction: any) {
@@ -349,37 +349,57 @@ export class PaystackService {
       const newStatus = transaction.status === "success" ? "successful" : "payment-failed";
 
       docVerification.status = newStatus;
-      docVerification.save();
 
       if (transaction.status === "success") {
-        
-        const emailPrams: GenerateVerificationEmailParams = {
-            fullName: docVerification.fullName,
-            phoneNumber: docVerification.phoneNumber,
-            address: docVerification.address,
-            amountPaid: docVerification.amountPaid,
-            documents: docVerification.documents
+        // Generate a 6-digit unique code
+        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+        docVerification.accessCode.code = accessCode;
+
+        const emailParams: GenerateVerificationEmailParams = {
+          fullName: docVerification.fullName,
+          phoneNumber: docVerification.phoneNumber,
+          address: docVerification.address,
+          amountPaid: docVerification.amountPaid,
+          documents: docVerification.documents
         };
 
-        // Send mail
+        // Send confirmation mail to user
         const mailBody = generalEmailLayout(
-            generateVerificationSubmissionEmail(emailPrams)
-        )
+          generateVerificationSubmissionEmail(emailParams)
+        );
 
         await sendEmail({
-            to: docVerification.email,
-            subject: "Document Verification Submission Received – Under Review",
-            html: mailBody,
-            text: mailBody,
+          to: docVerification.email,
+          subject: "Document Verification Submission Received – Under Review",
+          html: mailBody,
+          text: mailBody,
         });
 
-      } else {
-        
+        // Prepare third-party email
+        const thirdPartyEmailHTML = generalEmailLayout(
+          generateThirdPartyVerificationEmail({
+            recipientName: "Verification Officer",
+            requesterName: docVerification.fullName,
+            message: "Please review the submitted documents and confirm verification status.",
+            accessCode: accessCode,
+            accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+          })
+        );
+
+        await sendEmail({
+          to: process.env.THIRD_PARTY_EMAIL as string,
+          subject: "New Document Verification Request",
+          html: thirdPartyEmailHTML,
+          text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+        });
       }
+
+      await docVerification.save();
     }
 
     return docVerification;
   }
+
 
 
 }
