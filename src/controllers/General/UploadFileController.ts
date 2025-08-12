@@ -12,7 +12,7 @@ const fileTypeConfig: Record<
   {
     extensions: string[];
     maxSizeMB: number;
-    resourceType: "image" | "raw" | "video";
+    resourceType: "image" | "raw" | "video" | "auto";
     folder: string;
   }
 > = {
@@ -29,7 +29,7 @@ const fileTypeConfig: Record<
     folder: "property-files",
   },
   "identity-doc": {
-    extensions: ["jpg", "jpeg", "png", "pdf"],
+    extensions: ["jpg", "jpeg", "png", "pdf", "doc", "docx"],
     maxSizeMB: 5,
     resourceType: "raw",
     folder: "identity-docs",
@@ -41,9 +41,9 @@ const fileTypeConfig: Record<
     folder: "property-videos",
   },
   default: {
-    extensions: ["jpg", "jpeg", "png", "pdf", "docs", "webp"],
+    extensions: ["jpg", "jpeg", "png", "pdf", "docs", "doc", "docx", "webp"],
     maxSizeMB: 5,
-    resourceType: "raw",
+    resourceType: "auto",
     folder: "other-files",
   },
 };
@@ -80,7 +80,7 @@ export const uploadFileToCloudinary = async (
         HttpStatusCodes.BAD_REQUEST,
         `File too large. Max allowed is ${config.maxSizeMB} MB`,
       );
-    }
+    } 
 
     // ✅ Upload to Cloudinary
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
