@@ -11,7 +11,7 @@ export const uploadFile = async (
   base64: string,
   filename: string,
   folder: string,
-  resourceType: "image" | "raw" | "video" = "raw",
+  resourceType: "image" | "raw" | "video" | "auto" = "auto",
 ): Promise<UploadApiResponse> => {
   return cloudinary.uploader.upload(base64, {
     public_id: filename,
