@@ -36,7 +36,6 @@ export const fetchAssignedInspections = async (
 
     const inspections = await DB.Models.InspectionBooking.find(filter)
       .populate("propertyId")
-      .populate("transaction")
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .sort({ createdAt: -1 });
@@ -63,6 +62,36 @@ export const fetchAssignedInspections = async (
 };
 
 
+// Fetch 5 most recent inspections assigned to field agent
+export const fetchRecentAssignedInspections = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const filter: any = {
+      assignedFieldAgent: req.user._id,
+    };
+
+    const inspections = await DB.Models.InspectionBooking.find(filter)
+      .populate("propertyId")
+      .sort({ createdAt: -1 })
+      .limit(5);
+
+    const formattedInspections = inspections.map((inspection) =>
+      formatInspectionForTable(inspection),
+    );
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: formattedInspections,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // Fetch single assigned inspection
 export const getOneAssignedInspection = async (
   req: AppRequest,
@@ -78,7 +107,6 @@ export const getOneAssignedInspection = async (
     })
       .populate("propertyId")
       .populate("requestedBy")
-      .populate("transaction");
 
     if (!inspection) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
@@ -192,8 +220,8 @@ export const submitInspectionReport = async (
     const {
       buyerPresent,
       sellerPresent,
+      buyerInterest,
       notes,
-      wasSuccessful,
     } = req.body;
 
     const inspection = await DB.Models.InspectionBooking.findOne({
@@ -205,12 +233,18 @@ export const submitInspectionReport = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found or not assigned to you");
     }
 
-    // Update report fields
+     // Determine status based on attendance
+    const bothPresent = Boolean(buyerPresent) && Boolean(sellerPresent);
+    const status = bothPresent ? "completed" : "absent";
+
     inspection.inspectionReport = {
+      ...inspection.inspectionReport,
       buyerPresent: Boolean(buyerPresent),
       sellerPresent: Boolean(sellerPresent),
+      buyerInterest: buyerInterest || null,
       notes: notes || "",
-      wasSuccessful: wasSuccessful ?? (buyerPresent && sellerPresent),
+      wasSuccessful: bothPresent,
+      status,
       submittedAt: new Date(),
     };
 
@@ -225,3 +259,103 @@ export const submitInspectionReport = async (
     next(err);
   }
 };
+
+// Start an inspection
+export const startInspection = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { inspectionId } = req.params;
+
+    const inspection = await DB.Models.InspectionBooking.findOne({
+      _id: inspectionId,
+      assignedFieldAgent: req.user._id,
+    });
+
+    if (!inspection) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        "Inspection not found or not assigned to you"
+      );
+    }
+
+    if (inspection.status === "completed") {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Inspection has already been completed"
+      );
+    }
+
+    if (inspection.inspectionReport.status === "in-progress") {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Inspection already started"
+      );
+    }
+
+    inspection.inspectionReport.status = "in-progress";
+    inspection.inspectionReport.inspectionStartedAt = new Date();
+
+    await inspection.save();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Inspection started successfully",
+      data: {
+        status: inspection.inspectionReport.status,
+        startedAt: inspection.inspectionReport.inspectionStartedAt,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Stop / Complete an inspection
+export const completeInspection = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { inspectionId } = req.params;
+
+    const inspection = await DB.Models.InspectionBooking.findOne({
+      _id: inspectionId,
+      assignedFieldAgent: req.user._id,
+    });
+
+    if (!inspection) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        "Inspection not found or not assigned to you"
+      );
+    }
+
+    if (inspection.inspectionReport.status !== "in-progress") {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "You can only complete an inspection that is in progress"
+      );
+    }
+
+    inspection.inspectionReport.status = "awaiting-report";
+    inspection.inspectionReport.inspectionCompletedAt = new Date();
+
+    await inspection.save();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Inspection marked as complete, pending report submission",
+      data: {
+        status: inspection.inspectionReport.status,
+        completedAt: inspection.inspectionReport.inspectionCompletedAt,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+

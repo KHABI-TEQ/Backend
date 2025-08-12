@@ -25,6 +25,9 @@ AdminInspRouter.post('/inspections/:id/attachFieldAgent', use(controller.attachF
 // remove attached field agent to an inspection
 AdminInspRouter.delete('/inspections/:id/removeFieldAgent', use(controller.removeFieldAgentFromInspection.bind(controller)));
 
+// delete inspection
+AdminInspRouter.delete('/inspections/:id/delete', use(controller.deleteInspectionAndTransaction.bind(controller)));
+
 // Update or approve an inspection status
 AdminInspRouter.patch('/inspections/:id/status', use(controller.updateInspectionStatus.bind(controller)));
 

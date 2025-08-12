@@ -42,31 +42,30 @@ export class FieldAgent {
   constructor() {
     const schema = new Schema(
       {
-        whatsappNumber: { type: String, required: true },
+        whatsappNumber: { type: String },
         address: {
           street: { type: String },
           homeNo: { type: String },
-          state: { type: String, required: true },
-          localGovtArea: { type: String, required: true },
+          state: { type: String },
+          localGovtArea: { type: String },
         },
         govtId: {
           typeOfId: {
             type: String,
-            enum: ['national-id', 'voter-card', 'international-passport', 'drivers-license'],
-            required: true,
+            enum: ['national-id', 'voter-card', 'international-passport', 'drivers-license']
           },
-          idNumber: { type: String, required: true },
+          idNumber: { type: String },
           docImg: { type: [String], default: [] }, // optional image(s)
         },
         utilityBill: {
-          name: { type: String, required: true },
+          name: { type: String },
           docImg: { type: [String], default: [] }, // optional image(s)
         },
-        regionOfOperation: { type: [String], required: true },
+        regionOfOperation: { type: [String] },
         guarantors: [
           {
-            fullName: { type: String, required: true },
-            phoneNumber: { type: String, required: true },
+            fullName: { type: String },
+            phoneNumber: { type: String },
             relationship: { type: String },
             address: { type: String },
           },

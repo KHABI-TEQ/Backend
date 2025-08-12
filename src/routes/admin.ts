@@ -26,6 +26,7 @@ import { assignInspectionToFieldAgent, createFieldAgent, deleteFieldAgentAccount
 import { validateJoi } from "../middlewares/validateJoi";
 import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
+import { deleteTransactionDetails, getAllTransactions, getTransactionById, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -148,9 +149,10 @@ AdminRouter.delete("/buyers/:buyerId/delete", deleteBuyer);
 AdminRouter.get("/buyers/:buyerId/allPreferences", getBuyerPreferences);
 
 // TRANSACTION MANAGEMENT ROUTES
-AdminRouter.get("/transactions", getAllBuyers);
-AdminRouter.get("/transactions/:transactionId", getSingleBuyer);
-AdminRouter.post("/transactions/:transactionId/manaualVerification", createBuyer);
+AdminRouter.get("/transactions", getAllTransactions);
+AdminRouter.get("/transactions/:transactionId", getTransactionById);
+AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
+AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
 
 
 // =======================DOCUMENT VERIFICATION FUNCTIONALITIES==================================
