@@ -33,6 +33,7 @@ import {
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
+import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 
 const AccountRouter = express.Router();
 
@@ -60,6 +61,16 @@ AccountRouter.get("/properties/fetchAll", fetchAllProperties);
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
+
+
+// FIELD AGENT INSPECTIONS ROUTES
+AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);
+AccountRouter.get("/inspectionsFieldAgent/fetchRecent", fetchRecentAssignedInspections);
+AccountRouter.get("/inspectionsFieldAgent/stats", getAssignedInspectionStats);
+AccountRouter.get("/inspectionsFieldAgent/:inspectionId", getOneAssignedInspection);
+AccountRouter.post("/inspectionsFieldAgent/:inspectionId/submitReport", submitInspectionReport);
+AccountRouter.post("/inspectionsFieldAgent/:inspectionId/startInspection", startInspection);
+AccountRouter.post("/inspectionsFieldAgent/:inspectionId/stopInspection", completeInspection);
 
 // PREFERENCES ROUTES
 AccountRouter.get("/my-preferences/fetchAll", getMatchedPreferencesForOwner);

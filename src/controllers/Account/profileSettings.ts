@@ -262,18 +262,53 @@ export const getDashboardData = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
 
+    // FieldAgent: inspection-focused dashboard
+    if (user.userType === "FieldAgent") {
+      const totalInspections = await DB.Models.InspectionBooking.countDocuments({
+        assignedFieldAgent: userId,
+      });
+
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      const assignedToday = await DB.Models.InspectionBooking.countDocuments({
+        assignedFieldAgent: userId,
+        createdAt: { $gte: startOfToday },
+      });
+
+      const completedInspections = await DB.Models.InspectionBooking.countDocuments({
+        assignedFieldAgent: userId,
+        status: "completed",
+      });
+
+      const completionRate =
+        totalInspections > 0
+          ? parseFloat(((completedInspections / totalInspections) * 100).toFixed(2))
+          : 0;
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Dashboard data fetched successfully",
+        data: {
+          totalInspections,
+          assignedToday,
+          completedInspections,
+          completionRate,
+        },
+      });
+    }
+
+    // Other user types (Landowners, Agent) keep their existing logic
     const basePropertyQuery = {
       owner: userId,
       isDeleted: { $ne: true },
     };
 
     const totalBriefs = await DB.Models.Property.countDocuments(basePropertyQuery);
-
     const totalActiveBriefs = await DB.Models.Property.countDocuments({
       ...basePropertyQuery,
       status: "active",
     });
-
     const totalPendingBriefs = await DB.Models.Property.countDocuments({
       ...basePropertyQuery,
       status: "pending",
@@ -285,15 +320,14 @@ export const getDashboardData = async (
     })
       .sort({ createdAt: -1 })
       .limit(5)
-      .select("_id briefType status createdAt pictures price location.area location.localGovernment location.state");
+      .select(
+        "_id briefType status createdAt pictures price location.area location.localGovernment location.state"
+      );
 
     const totalViews = 0; // Placeholder for when view tracking is implemented
-
-    // Inspection metrics
     const totalInspectionRequests = await DB.Models.InspectionBooking.countDocuments({
       owner: userId,
     });
-
     const totalCompletedInspectionRequests = await DB.Models.InspectionBooking.countDocuments({
       owner: userId,
       status: "completed",
@@ -309,7 +343,6 @@ export const getDashboardData = async (
       totalCompletedInspectionRequests,
     };
 
-    // If Landowner, add propertySold
     if (user.userType === "Landowners") {
       const propertySold = await DB.Models.Property.countDocuments({
         ...basePropertyQuery,
@@ -318,19 +351,13 @@ export const getDashboardData = async (
       dashboardData.propertySold = propertySold;
     }
 
-    // If Agent, add completedDeals, commission, preference matches
     if (user.userType === "Agent") {
       const completedDeals = await DB.Models.Transaction.countDocuments({
         agent: userId,
         status: "completed",
       });
-
       const totalCommission = 0; // Replace with actual commission logic
-
-      Object.assign(dashboardData, {
-        completedDeals,
-        totalCommission,
-      });
+      Object.assign(dashboardData, { completedDeals, totalCommission });
     }
 
     return res.status(HttpStatusCodes.OK).json({
@@ -342,4 +369,6 @@ export const getDashboardData = async (
     next(err);
   }
 };
+
+
 

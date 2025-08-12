@@ -779,4 +779,49 @@ export class AdminInspectionController {
       );
     }
   }
+
+
+  /**
+   * Delete an inspection and its attached transaction
+   */
+  public async deleteInspectionAndTransaction(
+    req: AppRequest,
+    res: Response
+  ): Promise<Response> {
+    const { id } = req.params;
+
+    if (!mongoose.isValidObjectId(id)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid inspection ID");
+    }
+
+    // Find the inspection with any linked transaction
+    const inspection = await DB.Models.InspectionBooking.findById(id);
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+    }
+
+    // If inspection is completed, you may want to block deletion
+    if (inspection.stage === "completed") {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Completed inspections cannot be deleted"
+      );
+    }
+
+    // Delete linked transaction if exists
+    if (inspection.transaction) {
+      await DB.Models.NewTransaction.findByIdAndDelete(inspection.transaction);
+    }
+
+    // Delete inspection
+    await inspection.deleteOne();
+
+    return res.status(200).json({
+      success: true,
+      message: `Inspection and linked transaction deleted successfully.`,
+    });
+  }
+
+
 }

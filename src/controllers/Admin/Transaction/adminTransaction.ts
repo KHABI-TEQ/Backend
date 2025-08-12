@@ -46,6 +46,7 @@ export const getAllTransactions = async (req: AppRequest, res: Response, next: N
 
     const [transactions, total] = await Promise.all([
       DB.Models.NewTransaction.find(filter)
+        .select("-paymentDetails -__v")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
@@ -131,6 +132,33 @@ export const validateTransaction = async (req: AppRequest, res: Response, next: 
       success: true,
       message: "Transaction validated successfully",
       data: transaction,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Delete transaction details
+ */
+export const deleteTransactionDetails = async (req: AppRequest, res: Response, next: NextFunction) => {
+  try {
+    const { transactionId } = req.params;
+
+    if (!mongoose.isValidObjectId(transactionId)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid transaction ID");
+    }
+
+    const deleted = await DB.Models.NewTransaction.findByIdAndDelete(transactionId);
+
+    if (!deleted) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Transaction not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Transaction deleted successfully",
     });
   } catch (err) {
     next(err);

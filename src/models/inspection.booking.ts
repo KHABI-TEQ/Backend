@@ -41,8 +41,12 @@ export interface IInspectionBooking {
   inspectionReport?: {
     buyerPresent?: boolean;
     sellerPresent?: boolean;
+    buyerInterest?: "very-interested" | "interested" |  "neutral" | "not-interested";
+    status: "pending" | "in-progress" | "awaiting-report" | "postponed" | "completed" | "cancelled" | "absent";
     notes?: string;
     wasSuccessful?: boolean;
+    inspectionStartedAt?: Date;
+    inspectionCompletedAt?: Date;
     submittedAt?: Date;
   };
 
@@ -127,8 +131,20 @@ export class InspectionBooking {
         inspectionReport: {
           buyerPresent: { type: Boolean, default: false },
           sellerPresent: { type: Boolean, default: false },
+          buyerInterest: {
+            type: String,
+            enum: ["very-interested", "interested", "neutral", "not-interested"],
+            default: null,
+          },
           notes: { type: String, default: null },
+          status: {
+            type: String,
+            enum: ["pending", "in-progress", "awaiting-report", "postponed", "completed", "cancelled", "absent"],
+            default: "pending",
+          },
           wasSuccessful: { type: Boolean, default: false },
+          inspectionStartedAt: { type: Date },
+          inspectionCompletedAt: { type: Date },
           submittedAt: { type: Date },
         },
       },
