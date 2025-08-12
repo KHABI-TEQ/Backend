@@ -51,7 +51,7 @@ export class DocumentVerification {
           type: Schema.Types.ObjectId,
           ref: 'NewTransaction',
           required: true,
-        },
+        }, 
         documents: [{ 
           documentType: { type: String, required: true },
           documentNumber: { type: String },
@@ -62,7 +62,7 @@ export class DocumentVerification {
           token: { type: String },
           status: {
             type: String,
-            enum: ['pending', "rejected"],
+            enum: ['pending', "approved"],
             default: 'pending',
           }
         },

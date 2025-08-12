@@ -83,9 +83,13 @@ export class InspectionBooking {
             "cancelled",
           ],
           default: "pending_transaction",
-        },
+        }, 
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
-        transaction: { type: Schema.Types.ObjectId, required: true, ref: "Transaction" },
+        transaction: {
+          type: Schema.Types.ObjectId,
+          ref: 'newTransaction',
+          required: true,
+        },
         isNegotiating: { type: Boolean, default: false },
         isLOI: { type: Boolean, default: false },
         inspectionType: {
@@ -120,12 +124,11 @@ export class InspectionBooking {
           default: "negotiation",
         },
         counterCount: { type: Number, default: 0 },
-
         inspectionReport: {
-          buyerPresent: { type: Boolean, default: null },
-          sellerPresent: { type: Boolean, default: null },
-          notes: { type: String },
-          wasSuccessful: { type: Boolean },
+          buyerPresent: { type: Boolean, default: false },
+          sellerPresent: { type: Boolean, default: false },
+          notes: { type: String, default: null },
+          wasSuccessful: { type: Boolean, default: false },
           submittedAt: { type: Date },
         },
       },

@@ -45,3 +45,70 @@ export function InspectionLoiRejectionTemplate(
     <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
   `;
 }
+
+
+export function FieldAgentAssignmentTemplate(
+  fieldAgent: any,
+  propertyData: any
+): string {
+  return `
+    <p>Dear ${fieldAgent.firstName},</p>
+
+    <p style="margin-top: 10px;">
+      You have been <strong>assigned</strong> to conduct a property inspection.
+    </p>
+
+    <ul style="background-color: #FAFAFA; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location.area}, ${propertyData.location.localGovernment}, ${propertyData.location.state}</li>
+    </ul>
+
+    <ul style="background-color: #E6F7FF; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Schedule:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Mode:</strong> ${propertyData.inspectionMode}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Please review the details and ensure you are available and prepared for the inspection.
+    </p>
+
+    <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
+  `;
+}
+
+export function FieldAgentRemovalTemplate(
+  fieldAgent: any,
+  propertyData: any
+): string {
+  return `
+    <p>Dear ${fieldAgent.firstName},</p>
+
+    <p style="margin-top: 10px;">
+      This is to inform you that you have been <strong>removed</strong> from the scheduled property inspection below.
+    </p>
+
+    <ul style="background-color: #FAFAFA; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Type:</strong> ${propertyData.propertyType}</li>
+      <li><strong>Location:</strong> ${propertyData.location.area}, ${propertyData.location.localGovernment}, ${propertyData.location.state}</li>
+    </ul>
+
+    <ul style="background-color: #FFF4F4; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Schedule:</strong></p>
+      <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
+      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Mode:</strong> ${propertyData.inspectionMode}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      If you have any questions or believe this change was made in error, please contact the operations team.
+    </p>
+
+    <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
+  `;
+}
+
+
