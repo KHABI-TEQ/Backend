@@ -147,7 +147,13 @@ export const fetchSingleVerifyDoc = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid document ID");
     }
 
-    const doc = await DB.Models.DocumentVerification.findById(documentId);
+    const doc = await DB.Models.DocumentVerification
+      .findById(documentId)
+      .populate({
+        path: "transaction",
+        model: "newTransaction",
+        select: "-__v",
+      });
 
     if (!doc) {
       throw new RouteError(

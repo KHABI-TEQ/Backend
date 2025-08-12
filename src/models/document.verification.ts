@@ -51,7 +51,7 @@ export class DocumentVerification {
           type: Schema.Types.ObjectId,
           ref: 'NewTransaction',
           required: true,
-        },
+        }, 
         documents: [{ 
           documentType: { type: String, required: true },
           documentNumber: { type: String },
