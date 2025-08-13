@@ -170,3 +170,47 @@ export const fetchSingleVerifyDoc = async (
     next(err);
   }
 };
+
+
+// DELETE: /verification-doc/:documentId
+export const deleteVerifyDoc = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { documentId } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(documentId)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid document ID");
+    }
+
+    // Find the document
+    const doc = await DB.Models.DocumentVerification.findById(documentId);
+
+    if (!doc) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        "Verification record not found"
+      );
+    }
+
+    // If linked to a transaction, delete it
+    if (doc.transaction) {
+      await DB.Models.NewTransaction.findByIdAndDelete(doc.transaction);
+    }
+
+    // Delete the document verification record
+    await DB.Models.DocumentVerification.findByIdAndDelete(documentId);
+
+    res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Document verification and related transaction deleted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+

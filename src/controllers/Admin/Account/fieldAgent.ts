@@ -139,6 +139,11 @@ export const updateFieldAgent = async (
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Field Agent not found"));
     }
 
+    // Check account status
+    if (user.isDeleted) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has been deleted");
+    }
+
     // Update user info
     if (email !== undefined) user.email = email;
     if (firstName !== undefined) user.firstName = firstName;
@@ -207,6 +212,11 @@ export const toggleFieldAgentStatus = async (
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "User not found or not a field agent"));
     }
 
+    // Check account status
+    if (user.isDeleted) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has been deleted");
+    }
+
     // Update user and field agent status
     user.accountStatus = "active";
     user.isInActive = status;
@@ -264,22 +274,33 @@ export const deleteFieldAgentAccount = async (
     const { userId } = req.params;
     const { reason } = req.body;
 
-    if (!reason) {
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: "Reason for deletion is required.",
-      });
-    }
-
+    // Get User and validate type
     const user = await DB.Models.User.findById(userId).exec();
-
     if (!user || user.userType !== "FieldAgent") {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Field Agent not found"));
     }
 
-    // Perform soft-delete on both User and FieldAgent records
-    await DB.Models.User.findByIdAndUpdate(user._id, { isDeleted: true }).exec();
-    await DB.Models.FieldAgent.findOneAndUpdate({ userId: user._id }, { isDeleted: true }).exec();
+    // Fetch related FieldAgent record
+    const fieldAgent = await DB.Models.FieldAgent.findOne({ userId: user._id }).exec();
+    if (!fieldAgent) {
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Field Agent profile not found"));
+    }
+
+    // ✅ Check if already deleted
+    if (user.isDeleted || fieldAgent.isDeleted) {
+      return next(new RouteError(HttpStatusCodes.BAD_REQUEST, "Field Agent account has already been deleted"));
+    }
+
+    // Perform soft-delete on both User and FieldAgent
+    await DB.Models.User.findByIdAndUpdate(user._id, {
+      isDeleted: true,
+      accountApproved: false
+    }).exec();
+
+    await DB.Models.FieldAgent.findByIdAndUpdate(fieldAgent._id, {
+      isDeleted: true,
+      accountApproved: false
+    }).exec();
 
     // Send email
     const mailBody = generalEmailLayout(
@@ -304,6 +325,7 @@ export const deleteFieldAgentAccount = async (
     next(err);
   }
 };
+
 
 /**
  * Assigns a property inspection to a field agent.
@@ -510,7 +532,11 @@ export const getAllFieldAgents = async (
       sortOrder = "desc",
     } = req.query;
 
-    const userMatch: any = { userType: "FieldAgent" };
+    const userMatch: any = { 
+      userType: "FieldAgent", 
+      isDeleted: false // exclude deleted users
+    };
+
     const searchConditions: any[] = [];
 
     if (search && search.toString().trim()) {
@@ -531,7 +557,7 @@ export const getAllFieldAgents = async (
     const sort: any = {};
     sort[sortBy.toString()] = sortOrder === "asc" ? 1 : -1;
 
-    const pipeline = [
+    const basePipeline = [
       { $match: userMatch },
       {
         $lookup: {
@@ -544,6 +570,7 @@ export const getAllFieldAgents = async (
       { $unwind: { path: "$fieldAgentProfile", preserveNullAndEmptyArrays: true } },
       {
         $match: {
+          "fieldAgentProfile.isDeleted": false, // exclude deleted field agent profile
           ...(isInActive !== undefined && { "fieldAgentProfile.isInActive": isInActive === "true" }),
           ...(isFlagged !== undefined && { "fieldAgentProfile.isFlagged": isFlagged === "true" }),
           ...(regionOfOperation && { "fieldAgentProfile.regionOfOperation": regionOfOperation }),
@@ -558,33 +585,18 @@ export const getAllFieldAgents = async (
           __v: 0,
           "fieldAgentProfile.__v": 0,
         },
-      },
-      { $sort: sort },
-      { $skip: skip },
-      { $limit: safeLimit },
+      }
     ];
 
     const [fieldAgents, totalResults] = await Promise.all([
-      DB.Models.User.aggregate(pipeline),
       DB.Models.User.aggregate([
-        { $match: userMatch },
-        {
-          $lookup: {
-            from: "fieldagents",
-            localField: "_id",
-            foreignField: "userId",
-            as: "fieldAgentProfile",
-          },
-        },
-        { $unwind: { path: "$fieldAgentProfile", preserveNullAndEmptyArrays: true } },
-        {
-          $match: {
-            ...(isInActive !== undefined && { "fieldAgentProfile.isInActive": isInActive === "true" }),
-            ...(isFlagged !== undefined && { "fieldAgentProfile.isFlagged": isFlagged === "true" }),
-            ...(regionOfOperation && { "fieldAgentProfile.regionOfOperation": regionOfOperation }),
-            ...(whatsappNumber && { "fieldAgentProfile.whatsappNumber": new RegExp(whatsappNumber.toString(), "i") }),
-          },
-        },
+        ...basePipeline,
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: safeLimit },
+      ]),
+      DB.Models.User.aggregate([
+        ...basePipeline,
         { $count: "total" },
       ]),
     ]);
@@ -816,4 +828,27 @@ export const getFieldAgentAssignedInspections = async (
   } catch (err) {
     next(err);
   }
+};
+
+
+/**
+ * Validate Field Agent account is active & approved
+ */
+export const validateActiveFieldAgent = async (fieldAgentId: string) => {
+
+  // Fetch field agent record
+  const fieldAgent = await DB.Models.FieldAgent.findById(fieldAgentId).exec();
+  if (!fieldAgent) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "Field agent not found");
+  }
+
+  // Check account status
+  if (fieldAgent.isDeleted) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has been deleted");
+  }
+  if (!fieldAgent.accountApproved) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has not been approved");
+  }
+
+  return fieldAgent; // Return it so caller can use the details
 };
