@@ -100,12 +100,20 @@ export const findMatchedProperties = async (
     // ✅ Filter out properties with 0 match score
     const filtered = withScore.filter((p) => p.matchScore > 0);
 
-    // Sort by match score descending
-    filtered.sort((a, b) => b.matchScore - a.matchScore);
+    // ✅ Separate into exact matches (score === 100) and partial matches
+    const exactMatches = filtered.filter((p) => p.matchScore === 100);
+    const partialMatches = filtered.filter((p) => p.matchScore < 100);
+
+    // Sort each group by score (descending)
+    exactMatches.sort((a, b) => b.matchScore - a.matchScore);
+    partialMatches.sort((a, b) => b.matchScore - a.matchScore);
+
+    // Merge so exact matches come first
+    const sorted = [...exactMatches, ...partialMatches];
 
     // Mark top 80% as priority
-    const cutoff = Math.ceil(filtered.length * 0.8);
-    const prioritized = filtered.map((item, index) => ({
+    const cutoff = Math.ceil(sorted.length * 0.8);
+    const prioritized = sorted.map((item, index) => ({
       ...item,
       isPriority: index < cutoff,
     }));

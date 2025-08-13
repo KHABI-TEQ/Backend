@@ -34,6 +34,7 @@ import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
+import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 
 const AccountRouter = express.Router();
 
@@ -61,6 +62,11 @@ AccountRouter.get("/properties/fetchAll", fetchAllProperties);
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
+
+
+// TRANSACTIONS ROUTES
+AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
+AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
 
 
 // FIELD AGENT INSPECTIONS ROUTES

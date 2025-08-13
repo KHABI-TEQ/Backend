@@ -1,5 +1,5 @@
 import { Schema, model, Model, models, Document, Types } from "mongoose";
-
+ 
 // Location Interface
 export interface ILocation {
   state: string;

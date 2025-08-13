@@ -17,7 +17,7 @@ import { approvePreference } from "../controllers/Admin/preference/approvePrefer
 import { createTestimonial, deleteTestimonial, getAllTestimonials, getLatestApprovedTestimonials, getTestimonial, updateTestimonial, updateTestimonialStatus } from "../controllers/Admin/ExtralPages/testimonials";
 import { createBuyer, deleteBuyer, getAllBuyers, getBuyerPreferences, getSingleBuyer, updateBuyer } from "../controllers/Admin/Account/buyers";
 import { rejectPreference } from "../controllers/Admin/preference/rejectPreference";
-import { fetchAllVerifyDocs, fetchSingleVerifyDoc, fetchVerifyDocStats } from "../controllers/Admin/DocumentVerification/fetchVerifyDocument";
+import { deleteVerifyDoc, fetchAllVerifyDocs, fetchSingleVerifyDoc, fetchVerifyDocStats } from "../controllers/Admin/DocumentVerification/fetchVerifyDocument";
 import { confirmVerificationPayment, rejectVerificationPayment } from "../controllers/Admin/DocumentVerification/verifyPaymentHandlers";
 import { sendToVerificationProvider, uploadVerificationResult } from "../controllers/Admin/DocumentVerification/DocumentVerificationUploader";
 import { editPropertyAsAdmin } from "../controllers/Admin/Property/editProperty";
@@ -159,6 +159,7 @@ AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTra
 AdminRouter.get("/verification-docs", fetchAllVerifyDocs);
 AdminRouter.get("/verification-docs/stats", fetchVerifyDocStats);
 AdminRouter.get("/verification-doc/:documentId", fetchSingleVerifyDoc);
+AdminRouter.delete("/verification-docs/:documentId", deleteVerifyDoc);
 
 AdminRouter.post("/confirm-verification-payment/:documentId", confirmVerificationPayment);
 AdminRouter.post("/reject-verification-payment/:documentId", rejectVerificationPayment);
