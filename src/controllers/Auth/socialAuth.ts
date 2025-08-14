@@ -75,10 +75,12 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
   const { idToken, userType, referreredCode } = req.body;
 
   try {
+    
     const ticket = await googleClient.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID!,
     });
+
     const payload = ticket.getPayload();
 
     if (!payload?.email) {
