@@ -5,7 +5,7 @@ import { AppRequest } from "../../types/express";
 import { RouteError } from "../../common/classes";
 import { PaystackService } from "../../services/paystack.service";
 import { Types } from "mongoose";
- 
+
 // Controller to create a document verification request
 export const submitDocumentVerification = async (
   req: AppRequest,
@@ -13,26 +13,27 @@ export const submitDocumentVerification = async (
   next: NextFunction
 ) => {
   try {
-    const { contactInfo, paymentInfo, documentsMetadata } = req.body;
+    const { contactInfo, paymentInfo, documentMetadata } = req.body;
 
+    // Validate required fields
     if (
-      !contactInfo?.fullName ||
       !contactInfo?.email ||
-      !contactInfo?.phoneNumber ||
-      !contactInfo?.address ||
       !paymentInfo?.amountPaid ||
-      !Array.isArray(documentsMetadata) ||
-      documentsMetadata.length === 0
+      !Array.isArray(documentMetadata) ||
+      documentMetadata.length === 0
     ) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing required fields.");
     }
- 
+
     // Create or retrieve the buyer by email
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
       { email: contactInfo.email },
       { $setOnInsert: contactInfo },
-      { upsert: true, new: true },
+      { upsert: true, new: true }
     );
+
+    // Generate a shared docCode for this submission batch
+    const docCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     // Generate payment link
     const paymentResponse = await PaystackService.initializePayment({
@@ -43,28 +44,32 @@ export const submitDocumentVerification = async (
         item: new Types.ObjectId(buyer._id as Types.ObjectId),
       },
       transactionType: "document-verification",
-    })
-
-    const newDoc = await DB.Models.DocumentVerification.create({
-      fullName: contactInfo.fullName,
-      email: contactInfo.email,
-      phoneNumber: contactInfo.phoneNumber,
-      address: contactInfo.address,
-      amountPaid: paymentInfo.amountPaid,
-      transaction: paymentResponse.transactionId,
-      documents: documentsMetadata.map((doc) => ({
-        documentType: doc.documentType,
-        documentNumber: doc.documentNumber,
-        documentUrl: doc.uploadedUrl,
-      })),
     });
- 
+
+    // Create a record for each document in the metadata array
+    const createdDocs = await Promise.all(
+      documentMetadata.map((doc) =>
+        DB.Models.DocumentVerification.create({
+          buyerId: buyer._id,
+          docCode,
+          amountPaid: paymentInfo.amountPaid,
+          transaction: paymentResponse.transactionId,
+          documents: {
+            documentType: doc.documentType,
+            documentNumber: doc.documentNumber,
+            documentUrl: doc.uploadedUrl,
+          },
+          docType: doc.documentType,
+        })
+      )
+    );
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Verification document submitted successfully.",
+      message: "Verification documents submitted successfully.",
       data: {
-        documentSubmitted: newDoc,
-        transaction: paymentResponse
+        documentsSubmitted: createdDocs,
+        transaction: paymentResponse,
       },
     });
   } catch (error) {

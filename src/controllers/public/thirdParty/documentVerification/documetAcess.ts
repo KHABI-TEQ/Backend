@@ -102,55 +102,53 @@ export const submitVerificationReport = async (
 ) => {
   try {
     const { documentId } = req.params;
-    const { reports } = req.body;
+    const { report } = req.body;
 
-    if (!Array.isArray(reports) || reports.length === 0) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Reports array is required");
-    }
+    const docVerification = await DB.Models.DocumentVerification.findById(documentId).populate("buyerId");
 
-    const docVerification = await DB.Models.DocumentVerification.findById(documentId);
     if (!docVerification) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Document verification record not found");
     }
 
-    const formattedReports = reports.map(report => {
-      if (!report.originalDocumentType) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Each report must include originalDocumentType");
-      }
-      if (!["verified", "rejected"].includes(report.status)) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Status must be either 'verified' or 'rejected'");
-      }
-      return {
-        originalDocumentType: report.originalDocumentType,
-        newDocumentUrl: report.newDocumentUrl,
-        description: report.description,
-        status: report.status,
-        verifiedAt: new Date(),
-      };
-    });
+    if (!report.originalDocumentType) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Each report must include originalDocumentType");
+    }
+    if (!["verified", "rejected"].includes(report.status)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Status must be either 'verified' or 'rejected'");
+    }
+    
+    const formattedReport = {
+      originalDocumentType: report.originalDocumentType,
+      newDocumentUrl: report.newDocumentUrl,
+      description: report.description,
+      status: report.status,
+      verifiedAt: new Date(),
+    };
 
-    docVerification.verificationReports = [
-      ...(docVerification.verificationReports || []),
-      ...formattedReports
-    ];
+    docVerification.verificationReports = {
+      ...(docVerification.verificationReports),
+      ...formattedReport
+    };
 
     await docVerification.save();
+
+    const buyerData = docVerification.buyerId as any;
 
     const adminEmailHTML = generalEmailLayout(
       generateAdminVerificationReportEmail({
         adminName: "Admin",
-        requesterName: docVerification.fullName,
-        documentCustomId: docVerification.customId,
-        reports: formattedReports,
+        requesterName: buyerData.fullName,
+        documentCustomId: buyerData._id,
+        report: formattedReport,
         verificationPageLink: `https://kb-admin-fe.vercel.app/verify_document/${docVerification.status}/${documentId}`
       })
     );
 
     await sendEmail({
-      to: "info@khabiteqrealty.com",
-      subject: `New Verification Report Submitted for Document ${docVerification.customId}`,
+      to: process.env.DOCUMENT_ADMIN_MAIL,
+      subject: `New Verification Report Submitted for Document ${docVerification._id}`,
       html: adminEmailHTML,
-      text: `New verification reports submitted for document ${docVerification.customId}. Please check the admin panel at ${process.env.FRONTEND_URL}/admin/document-verification/${documentId}`
+      text: `New verification reports submitted for document ${docVerification._id}. Please check the admin panel at https://kb-admin-fe.vercel.app/verify_document/${docVerification.status}/${documentId}`
     });
 
     return res.status(HttpStatusCodes.OK).json({
