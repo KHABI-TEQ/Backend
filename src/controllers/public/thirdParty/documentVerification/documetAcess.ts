@@ -147,7 +147,7 @@ export const submitVerificationReport = async (
     );
 
     await sendEmail({
-      to: process.env.ADMIN_EMAIL as string,
+      to: "info@khabiteqrealty.com",
       subject: `New Verification Report Submitted for Document ${docVerification.customId}`,
       html: adminEmailHTML,
       text: `New verification reports submitted for document ${docVerification.customId}. Please check the admin panel at ${process.env.FRONTEND_URL}/admin/document-verification/${documentId}`
