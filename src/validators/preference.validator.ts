@@ -45,21 +45,55 @@ export const preferenceValidationSchema = Joi.object({
   }).optional(),
 
   // For Joint Venture
+  // developmentDetails: Joi.object({
+  //   minLandSize: Joi.string(),
+  //   measurementUnit: Joi.string(),
+  //   jvType: Joi.string(),
+  //   propertyType: Joi.string(),
+  //   expectedStructureType: Joi.string(),
+  //   timeline: Joi.string(),
+  //   budgetRange: Joi.string(),
+  //   documentTypes: Joi.array().items(Joi.string()).default([]),
+  //   landConditions: Joi.array().items(Joi.string()).default([]),
+  //   buildingType: Joi.string(),
+  //   propertyCondition: Joi.string(),
+  //   minBedrooms: Joi.string(),
+  //   minBathrooms: Joi.number(),
+  //   purpose: Joi.string(),
+  // }).optional(),
+
+
   developmentDetails: Joi.object({
-    minLandSize: Joi.string(),
-    measurementUnit: Joi.string(),
-    jvType: Joi.string(),
-    propertyType: Joi.string(),
-    expectedStructureType: Joi.string(),
-    timeline: Joi.string(),
-    budgetRange: Joi.string(),
-    documentTypes: Joi.array().items(Joi.string()).default([]),
-    landConditions: Joi.array().items(Joi.string()).default([]),
-    buildingType: Joi.string(),
-    propertyCondition: Joi.string(),
-    minBedrooms: Joi.string(),
-    minBathrooms: Joi.number(),
-    purpose: Joi.string(),
+    minLandSize: Joi.string().trim(),
+    maxLandSize: Joi.string().trim(),
+    measurementUnit: Joi.string().trim(),
+    developmentTypes: Joi.array()
+      .items(
+        Joi.string().valid(
+          "residential",
+          "commercial",
+          "mixed-use",
+          "industrial"
+        )
+      )
+      .default([]),
+    preferredSharingRatio: Joi.string().trim(),
+    proposalDetails: Joi.string().trim(),
+    minimumTitleRequirements: Joi.array()
+      .items(
+        Joi.string().valid(
+          "certificate-of-occupancy",
+          "governors-consent",
+          "survey-plan",
+          "deed-of-assignment",
+          "excision",
+          "gazette",
+          "family-receipt"
+        )
+      )
+      .default([]),
+    willingToConsiderPendingTitle: Joi.boolean(),
+    additionalRequirements: Joi.string().trim(),
   }).optional(),
 
   // For Shortlet

@@ -8,7 +8,7 @@ import { preferenceValidationSchema } from "../../../validators/preference.valid
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";
-
+ 
 export const postPreference = async (
   req: AppRequest,
   res: Response,
