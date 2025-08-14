@@ -5,7 +5,7 @@ import { updateBuyerPreferenceById } from "../controllers/public/preference/upda
 import { getPaginatedMatchedProperties } from "../controllers/public/preference/fetchMatchedProperties";
 import { getAllApprovedPreferences } from "../controllers/public/preference/getAllApprovedPreferences";
 import { fetchSinglePreference } from "../controllers/public/preference/fetchSinglePreference";
-
+ 
 const preferenceRouter = express.Router();
 
 preferenceRouter.post("/submit", postPreference);

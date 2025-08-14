@@ -34,21 +34,25 @@ export interface IPropertyDetails {
 
 // Development Details for Joint-Venture
 export interface IDevelopmentDetails {
-  minLandSize?: string; // Changed to string to match payload
-  measurementUnit?: string; // Changed from measurementType
-  jvType?: string;
-  propertyType?: string;
-  expectedStructureType?: string;
-  timeline?: string;
-  budgetRange?: string;
-  documentTypes?: string[]; // Changed from documents
-  landConditions?: string[]; // New field
-  buildingType?: string; // Added from payload
-  propertyCondition?: string; // Added from payload
-  minBedrooms?: string; // Added from payload
-  minBathrooms?: number; // Added from payload
-  purpose?: string; // Added from payload
+  minLandSize?: string;
+  maxLandSize?: string;
+  measurementUnit?: string;
+  developmentTypes?: ("residential" | "commercial" | "mixed-use" | "industrial")[];
+  preferredSharingRatio?: string;
+  proposalDetails?: string;
+  minimumTitleRequirements?: (
+    | "certificate-of-occupancy"
+    | "governors-consent"
+    | "survey-plan"
+    | "deed-of-assignment"
+    | "excision"
+    | "gazette"
+    | "family-receipt"
+  )[];
+  willingToConsiderPendingTitle?: boolean;
+  additionalRequirements?: string;
 }
+
 
 // Booking Details for Shortlet
 export interface IBookingDetails {
@@ -87,7 +91,7 @@ export interface IGeneralContactInfo {
 // Contact Info for Joint-Venture
 export interface IJVContactInfo {
   companyName?: string;
-  contactPerson: string;
+  contactPerson?: string;
   email: string;
   phoneNumber: string;
   cacRegistrationNumber?: string;
@@ -201,20 +205,31 @@ export class Preference {
         },
 
         developmentDetails: {
-          minLandSize: String, // Stored as string
-          measurementUnit: String, // Stored as string
-          jvType: String,
-          propertyType: String,
-          expectedStructureType: String,
-          timeline: String,
-          budgetRange: String,
-          documentTypes: [String],
-          landConditions: [String],
-          buildingType: String,
-          propertyCondition: String,
-          minBedrooms: String,
-          minBathrooms: Number,
-          purpose: String,
+          minLandSize: { type: String },
+          maxLandSize: { type: String },
+          measurementUnit: { type: String },
+          developmentTypes: {
+            type: [String],
+            enum: ["residential", "commercial", "mixed-use", "industrial"],
+            default: [],
+          },
+          preferredSharingRatio: { type: String },
+          proposalDetails: { type: String },
+          minimumTitleRequirements: {
+            type: [String],
+            enum: [
+              "certificate-of-occupancy",
+              "governors-consent",
+              "survey-plan",
+              "deed-of-assignment",
+              "excision",
+              "gazette",
+              "family-receipt",
+            ],
+            default: [],
+          },
+          willingToConsiderPendingTitle: { type: Boolean, default: false },
+          additionalRequirements: { type: String },
         },
 
         bookingDetails: {
@@ -246,9 +261,7 @@ export class Preference {
           fullName: { type: String, required: function(this: any) { // Required for General and Shortlet
             return this.preferenceType === "buy" || this.preferenceType === "rent" || this.preferenceType === "shortlet";
           }},
-          contactPerson: { type: String, required: function(this: any) { // Required for JV
-            return this.preferenceType === "joint-venture";
-          }},
+          contactPerson: { type: String },
           email: { type: String, required: true },
           phoneNumber: { type: String, required: true },
           companyName: String,
