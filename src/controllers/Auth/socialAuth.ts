@@ -7,92 +7,133 @@ import { generateToken, RouteError } from '../../common/classes';
 import { AppRequest } from '../../types/express';
 import { referralService } from '../../services/referral.service';
 import { Types } from 'mongoose';
-import axios from 'axios';
 
 // Initialize Google OAuth client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID!);
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID!,
+  process.env.GOOGLE_CLIENT_SECRET!,
+  'postmessage' // Use 'postmessage' for web applications using authorization code flow
+);
 
-// Assuming 'user' is of type IUserDoc (from your models/User.ts)
-const sendLoginSuccessResponse = async (user: any, res: Response) => { 
-    const token = generateToken({
-        id: user._id,
-        email: user.email,
-        userType: user.userType,
-        accountId: user.accountId,
-    });
-
-    const userResponse = {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phoneNumber: user.phoneNumber,
-        userType: user.userType,
-        isAccountVerified: user.isAccountVerified,
-        accountApproved: user.accountApproved,
-        isAccountInRecovery: user.isAccountInRecovery,
-        address: user.address,
-        profile_picture: user.profile_picture,
-        isInActive: user.isInActive,
-        isDeleted: user.isDeleted,
-        accountStatus: user.accountStatus,
-        isFlagged: user.isFlagged,
-        accountId: user.accountId,
-    };
-
-    if (user.userType === 'Agent') {
-        const agentData = await DB.Models.Agent.findOne({ userId: user._id });
-
-        const userWithAgent = agentData?.agentType
-        ? {
-            ...userResponse,
-            agentData,
-            isAccountApproved: user.accountApproved,
-          }
-        : userResponse;
-
-        return res.status(HttpStatusCodes.OK).json({
-            success: true,
-            message: 'Login successful',
-            data: {
-              token,
-              user: userWithAgent,
-            }
-        });
-    }
-
-    return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          token,
-          user: userResponse,
-        }
-    });
+// Helper function to detect if input is authorization code or ID token
+const isAuthorizationCode = (token: string): boolean => {
+  // Authorization codes typically start with "4/" and are longer
+  // ID tokens are JWT format with 3 segments (header.payload.signature)
+  return token.startsWith('4/') || token.split('.').length !== 3;
 };
 
-// ✅ GOOGLE AUTH HANDLER
+// Existing sendLoginSuccessResponse function remains the same
+const sendLoginSuccessResponse = async (user: any, res: Response) => {
+  const token = generateToken({
+    id: user._id,
+    email: user.email,
+    userType: user.userType,
+    accountId: user.accountId,
+  });
+
+  const userResponse = {
+    id: user._id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    userType: user.userType,
+    isAccountVerified: user.isAccountVerified,
+    accountApproved: user.accountApproved,
+    isAccountInRecovery: user.isAccountInRecovery,
+    address: user.address,
+    profile_picture: user.profile_picture,
+    isInActive: user.isInActive,
+    isDeleted: user.isDeleted,
+    accountStatus: user.accountStatus,
+    isFlagged: user.isFlagged,
+    accountId: user.accountId,
+  };
+
+  if (user.userType === 'Agent') {
+    const agentData = await DB.Models.Agent.findOne({ userId: user._id });
+    const userWithAgent = agentData?.agentType
+      ? {
+          ...userResponse,
+          agentData,
+          isAccountApproved: user.accountApproved,
+        }
+      : userResponse;
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: userWithAgent,
+      }
+    });
+  }
+
+  return res.status(HttpStatusCodes.OK).json({
+    success: true,
+    message: 'Login successful',
+    data: {
+      token,
+      user: userResponse,
+    }
+  });
+};
+
+// ✅ UPDATED GOOGLE AUTH HANDLER
 export const googleAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   const { idToken, userType, referreredCode } = req.body;
 
   try {
+    let payload;
 
-    const { data } = await axios.post("https://oauth2.googleapis.com/token", {
-      code: idToken, // actually the auth code
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: "YOUR_REDIRECT_URI",
-      grant_type: "authorization_code"
-    });
+    if (isAuthorizationCode(idToken)) {
+      // Handle authorization code flow
+      console.log('Received authorization code, exchanging for tokens...');
+      console.log('Authorization code (first 20 chars):', idToken.substring(0, 20) + '...');
+      
+      try {
+        const { tokens } = await googleClient.getToken(idToken);
+        console.log('Token exchange successful, received tokens:', Object.keys(tokens));
+        
+        if (!tokens.id_token) {
+          throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'No ID token received from Google.');
+        }
 
-    const googleIdToken = data.id_token;
-
-    const ticket = await googleClient.verifyIdToken({
-      idToken: googleIdToken,
-      audience: process.env.GOOGLE_CLIENT_ID!,
-    });
-
-    const payload = ticket.getPayload();
+        // Verify the ID token we just received
+        const ticket = await googleClient.verifyIdToken({
+          idToken: tokens.id_token,
+          audience: process.env.GOOGLE_CLIENT_ID!,
+        });
+        
+        payload = ticket.getPayload();
+      } catch (tokenError) {
+        console.error('Token exchange error details:', {
+          error: tokenError.message,
+          code: tokenError.code,
+          status: tokenError.status
+        });
+        
+        // More specific error handling
+        if (tokenError.message?.includes('invalid_grant')) {
+          throw new RouteError(
+            HttpStatusCodes.BAD_REQUEST, 
+            'Invalid authorization code. The code may have expired, already been used, or the redirect URI may not match.'
+          );
+        }
+        throw tokenError;
+      }
+    } else {
+      // Handle ID token directly
+      console.log('Received ID token, verifying...');
+      
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID!,
+      });
+      
+      payload = ticket.getPayload();
+    }
 
     if (!payload?.email) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid Google token: Email not found.');
@@ -114,8 +155,10 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       }
 
       if (
-        user.isInActive || user.isDeleted ||
-        user.accountStatus === 'inactive' || user.accountStatus === 'deleted'
+        user.isInActive ||
+        user.isDeleted ||
+        user.accountStatus === 'inactive' ||
+        user.accountStatus === 'deleted'
       ) {
         throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is inactive or has been deleted.');
       }
@@ -124,7 +167,6 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     }
 
     let referrerUser = null;
-    
     if (referreredCode) {
       referrerUser = await DB.Models.User.findOne({
         referralCode: referreredCode,
@@ -172,7 +214,10 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     });
 
     if (userType === 'Agent') {
-      await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
+      await DB.Models.Agent.create({
+        userId: newUser._id,
+        accountStatus: 'active'
+      });
     }
 
     // ✅ Log the referral if valid
@@ -188,7 +233,6 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     }
 
     return await sendLoginSuccessResponse(newUser, res);
-
   } catch (err) {
     console.error('Google OAuth Error:', err);
     next(err instanceof RouteError ? err : new RouteError(HttpStatusCodes.INTERNAL_SERVER_ERROR, 'Google login failed'));
