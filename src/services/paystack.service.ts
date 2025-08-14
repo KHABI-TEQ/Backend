@@ -95,8 +95,6 @@ export class PaystackService {
 
       const data = response.data.data;
 
-      console.log(data, "verify data resp....")
-
       // Update DB regardless of success or failure
       const updatedTx = await DB.Models.NewTransaction.findOneAndUpdate(
         { reference },
@@ -386,8 +384,9 @@ export class PaystackService {
           })
         );
 
+        // send mail to the third party
         await sendEmail({
-          to: process.env.THIRD_PARTY_EMAIL as string,
+          to: "Khabitech@gmail.com",
           subject: "New Document Verification Request",
           html: thirdPartyEmailHTML,
           text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
