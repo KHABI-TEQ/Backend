@@ -7,6 +7,7 @@ import { generateToken, RouteError } from '../../common/classes';
 import { AppRequest } from '../../types/express';
 import { referralService } from '../../services/referral.service';
 import { Types } from 'mongoose';
+import axios from 'axios';
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID!);
@@ -75,9 +76,19 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
   const { idToken, userType, referreredCode } = req.body;
 
   try {
-    
+
+    const { data } = await axios.post("https://oauth2.googleapis.com/token", {
+      code: idToken, // actually the auth code
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: "YOUR_REDIRECT_URI",
+      grant_type: "authorization_code"
+    });
+
+    const googleIdToken = data.id_token;
+
     const ticket = await googleClient.verifyIdToken({
-      idToken,
+      idToken: googleIdToken,
       audience: process.env.GOOGLE_CLIENT_ID!,
     });
 
