@@ -104,12 +104,12 @@ export interface GenerateAdminVerificationReportEmailParams {
   adminName: string;
   requesterName: string;
   documentCustomId: string;
-  reports: {
+  report: {
     originalDocumentType: string;
     status: string;
     description?: string;
     newDocumentUrl?: string;
-  }[];
+  };
   verificationPageLink: string;
 }
 
@@ -117,17 +117,17 @@ export const generateAdminVerificationReportEmail = ({
   adminName,
   requesterName,
   documentCustomId,
-  reports,
+  report,
   verificationPageLink
 }: GenerateAdminVerificationReportEmailParams): string => {
-  const reportsHtml = reports.map(report => `
+  const reportsHtml = `
     <li style="margin-bottom: 12px;">
       <strong>Document Type:</strong> ${report.originalDocumentType} <br />
       <strong>Status:</strong> ${report.status} <br />
       <strong>Description:</strong> ${report.description ?? "N/A"} <br />
       ${report.newDocumentUrl ? `<strong>New Document:</strong> <a href="${report.newDocumentUrl}" style="color: #0066cc; text-decoration: none;" target="_blank">View Document</a>` : ""}
     </li>
-  `).join("");
+  `;
 
   return `
     <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">

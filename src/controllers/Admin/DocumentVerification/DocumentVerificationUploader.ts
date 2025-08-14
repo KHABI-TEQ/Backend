@@ -7,6 +7,8 @@ import sendEmail from "../../../common/send.email";
 import cloudinary from "../../../common/cloudinary";
 import { verificationGeneralTemplate } from "../../../common/email.template";
 import { AppRequest } from "../../../types/express";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { generateThirdPartyVerificationEmail } from "../../../common/emailTemplates/documentVerificationMails";
 
 // === Send to Verification Provider ===
 export const sendToVerificationProvider = async (
@@ -17,67 +19,57 @@ export const sendToVerificationProvider = async (
   try {
     const { email } = req.body;
     const { documentId } = req.params;
-    const id = new mongoose.Types.ObjectId(documentId);
 
-    const doc = await DB.Models.DocumentVerification.findById(id);
+    const doc = await DB.Models.DocumentVerification.findById(documentId).populate('buyerId');
+
     if (!doc) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Verification record not found");
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Document Verification record not found");
     }
 
-    if (!doc.documents || doc.documents.length === 0) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "No documents found for this record");
-    }
+    // Generate a 6-digit unique code
+    const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+    doc.accessCode.token = accessCode;
 
-    const documentDetailsHtml = doc.documents
-      .map((docItem, i) => {
-        return `
-        <li>
-          <strong>Document ${i + 1}:</strong><br />
-          Type: ${docItem.documentType}<br />
-          Number: ${docItem.documentNumber}<br />
-          <a href="${docItem.documentUrl}" target="_blank">View Document</a>
-        </li>
-      `;
+    const buyerData = doc.buyerId as any;
+
+    // Determine department based on docType
+    const hasSurveyPlan = doc.documents.documentType == '"survey-plan"';
+
+    const recipientEmail = hasSurveyPlan
+      ? process.env.SURVEY_GENERAL_MAIL // Survey Plan Department
+      : process.env.GENERAL_VERIFICATION_MAIL; // General Verification Department
+
+    // Prepare third-party email
+    const thirdPartyEmailHTML = generalEmailLayout(
+      generateThirdPartyVerificationEmail({
+        recipientName: hasSurveyPlan
+          ? "Survey Plan Officer"
+          : "Verification Officer",
+        requesterName: buyerData?.fullName || "",
+        message:
+          "Please review the submitted documents and confirm verification status.",
+        accessCode: accessCode,
+        accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${doc._id}`,
       })
-      .join("");
-
-    const providerMailBody = verificationGeneralTemplate(`
-      <p>Dear Verification Partner,</p>
-      <p>We are reaching out from <strong>Khabiteq Realty</strong> regarding a request to verify the authenticity of the following document(s):</p>
-      <ul>${documentDetailsHtml}</ul>
-      <p><strong>Reference:</strong> ${doc.customId}</p>
-      <p>Please confirm the validity of these documents.</p>
-    `);
+    );
 
     await sendEmail({
-      to: email,
-      subject: "Document Verification Request – Khabiteq Realty",
-      text: providerMailBody,
-      html: providerMailBody,
+      to: recipientEmail,
+      subject: hasSurveyPlan
+        ? "New Survey Plan Verification Request"
+        : "New Document Verification Request",
+      html: thirdPartyEmailHTML,
+      text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${doc._id}`,
     });
-
-    const userMailBody = verificationGeneralTemplate(`
-      <p>Dear ${doc.fullName},</p>
-      <p>Your documents have been forwarded to our certified verification partners. We’ll notify you once the results are ready.</p>
-    `);
-
-    await sendEmail({
-      to: doc.email,
-      subject: "Your Document Verification is in Progress",
-      text: userMailBody,
-      html: userMailBody,
-    });
-
-    doc.status = "in-progress";
-    await doc.save();
-
+    
     res.json({
       success: true,
       data: {
-        message: "Verification documents sent to provider and user notified",
-        providerEmail: email,
+        message: "Verification request sent",
+        recordId: doc._id,
       },
     });
+   
   } catch (err) {
     next(err);
   }
@@ -98,7 +90,7 @@ export const uploadVerificationResult = async (
     }
 
     const id = new mongoose.Types.ObjectId(documentId);
-    const doc = await DB.Models.DocumentVerification.findById(id);
+    const doc = await DB.Models.DocumentVerification.findById(id).populate('buyerId');
     if (!doc) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Verification not found");
     }
@@ -109,6 +101,8 @@ export const uploadVerificationResult = async (
         "The verification result for this document has already been sent"
       );
     }
+
+    const buyerData = doc.buyerId as any;
 
     const results: string[] = [];
 
@@ -127,14 +121,14 @@ export const uploadVerificationResult = async (
       .join("");
 
     const htmlBody = verificationGeneralTemplate(`
-      <p>Dear ${doc.fullName},</p>
+      <p>Dear ${buyerData.fullName},</p>
       <p>We are pleased to inform you that the verification process for your submitted documents has been successfully completed.</p>
       <p>You can find the result documents below:</p>
       <ul>${resultLinksHtml}</ul>
     `);
 
     await sendEmail({
-      to: doc.email,
+      to: buyerData.email,
       subject: "Verification Result Uploaded",
       text: htmlBody,
       html: htmlBody,

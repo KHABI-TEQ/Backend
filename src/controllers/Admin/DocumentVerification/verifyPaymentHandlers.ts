@@ -56,7 +56,8 @@ export const rejectVerificationPayment = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid document ID");
     }
 
-    const doc = await DB.Models.DocumentVerification.findById(documentId);
+    const doc = await DB.Models.DocumentVerification.findById(documentId).populate("buyerId");
+
     if (!doc) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Record not found");
     }
@@ -71,8 +72,10 @@ export const rejectVerificationPayment = async (
     doc.status = "rejected";
     await doc.save();
 
+    const buyerData = doc.buyerId as any;
+
     const mailBody = verificationGeneralTemplate(`
-      <p>Dear ${doc.fullName},</p>
+      <p>Dear ${buyerData.fullName},</p>
 
       <p>We are writing to inform you that your recent document verification request has been declined.</p>
 
@@ -91,16 +94,16 @@ export const rejectVerificationPayment = async (
       <p>You may reinitiate the verification process after making the necessary corrections.</p>
 
       <p>For further support, please contact our team.</p>
-      <p><strong>Reference:</strong> ${doc.customId}</p>
+      <p><strong>Reference:</strong> ${buyerData._id}</p>
     `);
 
     await sendEmail({
-      to: doc.email,
+      to: buyerData.email,
       subject: "Document Verification Rejected",
       text: mailBody,
       html: mailBody,
     });
-
+ 
     res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Verification rejected successfully",

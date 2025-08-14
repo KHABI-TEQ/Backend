@@ -5,6 +5,7 @@ export interface IBuyer {
   phoneNumber: string;
   email: string;
   companyName?: string;
+  address?: string;
   contactPerson?: string;
   cacRegistrationNumber?: string;
 } 
@@ -23,6 +24,7 @@ export class Buyer {
         email: { type: String, required: true },
         phoneNumber: { type: String, required: true },
         companyName: { type: String },
+        address: { type: String },
         contactPerson: { type: String },
         cacRegistrationNumber: { type: String },
       },

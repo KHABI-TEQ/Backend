@@ -155,157 +155,157 @@ export class PaystackService {
   /**
    * Handles the side effects of a successful or failed inspection payment.
    */
-    static async handleInspectionPaymentEffect(transaction: INewTransactionDoc) {
-        const inspection = await DB.Models.InspectionBooking.findOne({
-        transaction: transaction._id,
-        });
+  static async handleInspectionPaymentEffect(transaction: INewTransactionDoc) {
+      const inspection = await DB.Models.InspectionBooking.findOne({
+      transaction: transaction._id,
+      });
 
-        if (!inspection) return;
+      if (!inspection) return;
 
-        if (inspection.status === "pending_transaction") {
-            
-            let updatedStatus: IInspectionBooking["status"];
-            let updatedStage: IInspectionBooking["stage"];
-            let pendingResponseFrom: IInspectionBooking["pendingResponseFrom"];
+      if (inspection.status === "pending_transaction") {
+          
+          let updatedStatus: IInspectionBooking["status"];
+          let updatedStage: IInspectionBooking["stage"];
+          let pendingResponseFrom: IInspectionBooking["pendingResponseFrom"];
 
-            const buyer = inspection.requestedBy as any;
-            const property = inspection.propertyId as any;
-            const owner = inspection.owner as any;
+          const buyer = inspection.requestedBy as any;
+          const property = inspection.propertyId as any;
+          const owner = inspection.owner as any;
 
-            const location = `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`;
-            const formattedPrice = property.price?.toLocaleString("en-US") ?? "N/A";
-            const negotiationPrice =
-            inspection.negotiationPrice?.toLocaleString("en-US") ?? "N/A";
+          const location = `${property.location.state}, ${property.location.localGovernment}, ${property.location.area}`;
+          const formattedPrice = property.price?.toLocaleString("en-US") ?? "N/A";
+          const negotiationPrice =
+          inspection.negotiationPrice?.toLocaleString("en-US") ?? "N/A";
 
-            const emailData = {
-                propertyType: property.propertyType,
-                location,
-                price: formattedPrice,
-                inspectionDate: inspection.inspectionDate,
-                inspectionTime: inspection.inspectionTime,
-                isNegotiating: inspection.isNegotiating,
-                negotiationPrice,
-                letterOfIntention: inspection.letterOfIntention,
-                agentName: owner.fullName || owner.firstName,
-            };
+          const emailData = {
+              propertyType: property.propertyType,
+              location,
+              price: formattedPrice,
+              inspectionDate: inspection.inspectionDate,
+              inspectionTime: inspection.inspectionTime,
+              isNegotiating: inspection.isNegotiating,
+              negotiationPrice,
+              letterOfIntention: inspection.letterOfIntention,
+              agentName: owner.fullName || owner.firstName,
+          };
 
-            if (transaction.status === "success") {
+          if (transaction.status === "success") {
 
-                const isPrice = inspection.inspectionType === "price";
-                const isLOI = inspection.inspectionType === "LOI";
-                const hasNegotiationPrice = inspection.negotiationPrice > 0;
-                const hasLOIDocument =
-                    inspection.letterOfIntention &&
-                    inspection.letterOfIntention.trim() !== "";
+              const isPrice = inspection.inspectionType === "price";
+              const isLOI = inspection.inspectionType === "LOI";
+              const hasNegotiationPrice = inspection.negotiationPrice > 0;
+              const hasLOIDocument =
+                  inspection.letterOfIntention &&
+                  inspection.letterOfIntention.trim() !== "";
 
-                if (isPrice) {
-                    inspection.isNegotiating = hasNegotiationPrice;
-                    updatedStage = hasNegotiationPrice ? "negotiation" : "inspection";
-                } else if (isLOI) {
-                    inspection.isLOI = !!hasLOIDocument;
-                    updatedStage = hasLOIDocument ? "negotiation" : "inspection";
-                }
+              if (isPrice) {
+                  inspection.isNegotiating = hasNegotiationPrice;
+                  updatedStage = hasNegotiationPrice ? "negotiation" : "inspection";
+              } else if (isLOI) {
+                  inspection.isLOI = !!hasLOIDocument;
+                  updatedStage = hasLOIDocument ? "negotiation" : "inspection";
+              }
 
-                pendingResponseFrom = "seller";
-                updatedStatus = inspection.isNegotiating
-                    ? "negotiation_countered"
-                    : "active_negotiation";
-                
-                await InspectionLogService.logActivity({
-                    inspectionId: inspection._id.toString(),
-                    propertyId: property._id.toString(),
-                    senderId: owner?._id.toString(),
-                    senderModel: "Buyer",
-                    senderRole: "buyer",
-                    message: `Inspection transaction approved successfully - status updated to ${updatedStatus}`,
-                    status: updatedStatus,
-                    stage: updatedStage,
-                });
-                
-                const buyerEmailHtml = InspectionRequestWithNegotiation(
-                    buyer.fullName,
-                    emailData,
-                );
-                
-                const sellerEmailHtml = InspectionRequestWithNegotiationSellerTemplate(
-                    owner.fullName || owner.firstName,
-                    {
-                        ...emailData,
-                        responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
-                    },
-                );
-                
-                await sendEmail({
-                    to: buyer.email,
-                    subject: `Inspection Request Submitted`,
-                    html: generalTemplate(buyerEmailHtml),
-                    text: generalTemplate(buyerEmailHtml),
-                });
+              pendingResponseFrom = "seller";
+              updatedStatus = inspection.isNegotiating
+                  ? "negotiation_countered"
+                  : "active_negotiation";
+              
+              await InspectionLogService.logActivity({
+                  inspectionId: inspection._id.toString(),
+                  propertyId: property._id.toString(),
+                  senderId: owner?._id.toString(),
+                  senderModel: "Buyer",
+                  senderRole: "buyer",
+                  message: `Inspection transaction approved successfully - status updated to ${updatedStatus}`,
+                  status: updatedStatus,
+                  stage: updatedStage,
+              });
+              
+              const buyerEmailHtml = InspectionRequestWithNegotiation(
+                  buyer.fullName,
+                  emailData,
+              );
+              
+              const sellerEmailHtml = InspectionRequestWithNegotiationSellerTemplate(
+                  owner.fullName || owner.firstName,
+                  {
+                      ...emailData,
+                      responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
+                  },
+              );
+              
+              await sendEmail({
+                  to: buyer.email,
+                  subject: `Inspection Request Submitted`,
+                  html: generalTemplate(buyerEmailHtml),
+                  text: generalTemplate(buyerEmailHtml),
+              });
 
-                await sendEmail({
-                    to: owner.email,
-                    subject: `New Offer Received – Action Required`,
-                    html: generalTemplate(sellerEmailHtml),
-                    text: generalTemplate(sellerEmailHtml),
-                });
+              await sendEmail({
+                  to: owner.email,
+                  subject: `New Offer Received – Action Required`,
+                  html: generalTemplate(sellerEmailHtml),
+                  text: generalTemplate(sellerEmailHtml),
+              });
 
-                const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
-                
-                await notificationService.createNotification({
-                    user: owner._id,
-                    title: "New Inspection Request",
-                    message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
-                    meta: {
-                        propertyId: property._id,
-                        inspectionId: inspection._id,
-                        status: updatedStatus,
-                    },
-                });
-                
+              const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
+              
+              await notificationService.createNotification({
+                  user: owner._id,
+                  title: "New Inspection Request",
+                  message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
+                  meta: {
+                      propertyId: property._id,
+                      inspectionId: inspection._id,
+                      status: updatedStatus,
+                  },
+              });
+              
 
-            } else {
+          } else {
 
-                updatedStatus = "transaction_failed";
-                updatedStage = "cancelled";
-                pendingResponseFrom = "admin";
-                // send mail to buyer only
-                const buyerRejectionHtml = InspectionTransactionRejectionTemplate(
-                    buyer.fullName,
-                    {
-                        ...emailData,
-                        rejectionReason:
-                        "Your inspection request was not approved. Please contact support for more info.",
-                    },
-                );
-                
-                await sendEmail({
-                    to: buyer.email,
-                    subject: `Inspection Request Rejected`,
-                    html: generalTemplate(buyerRejectionHtml),
-                    text: generalTemplate(buyerRejectionHtml),
-                });
+              updatedStatus = "transaction_failed";
+              updatedStage = "cancelled";
+              pendingResponseFrom = "admin";
+              // send mail to buyer only
+              const buyerRejectionHtml = InspectionTransactionRejectionTemplate(
+                  buyer.fullName,
+                  {
+                      ...emailData,
+                      rejectionReason:
+                      "Your inspection request was not approved. Please contact support for more info.",
+                  },
+              );
+              
+              await sendEmail({
+                  to: buyer.email,
+                  subject: `Inspection Request Rejected`,
+                  html: generalTemplate(buyerRejectionHtml),
+                  text: generalTemplate(buyerRejectionHtml),
+              });
 
-                await InspectionLogService.logActivity({
-                    inspectionId: inspection._id.toString(),
-                    propertyId: property._id.toString(),
-                    senderId: owner?._id.toString(),
-                    senderModel: "Buyer",
-                    senderRole: "buyer",
-                    message: `Inspection transaction rejected by payment system.`,
-                    status: updatedStatus,
-                    stage: updatedStage,
-                });
-            }
+              await InspectionLogService.logActivity({
+                  inspectionId: inspection._id.toString(),
+                  propertyId: property._id.toString(),
+                  senderId: owner?._id.toString(),
+                  senderModel: "Buyer",
+                  senderRole: "buyer",
+                  message: `Inspection transaction rejected by payment system.`,
+                  status: updatedStatus,
+                  stage: updatedStage,
+              });
+          }
 
-            inspection.pendingResponseFrom = pendingResponseFrom;
-            inspection.status = updatedStatus;
-            inspection.stage = updatedStage;
+          inspection.pendingResponseFrom = pendingResponseFrom;
+          inspection.status = updatedStatus;
+          inspection.stage = updatedStage;
 
-            await inspection.save();
-        }
+          await inspection.save();
+      }
 
-        return inspection;
-    }
+      return inspection;
+  }
 
   /**
    * Handles the side effects of a subscription payment.
@@ -334,71 +334,86 @@ export class PaystackService {
   }
 
  /**
-   * Handles the effects of a document verification payment.
-   */
+ * Handles the effects of a document verification payment.
+ */
   static async handleDocumentVerificationPayment(transaction: any) {
-    const docVerification = await DB.Models.DocumentVerification.findOne({
+    const docVerifications = await DB.Models.DocumentVerification.find({
       transaction: transaction._id,
-    });
+    }).populate("buyerId");
 
-    if (!docVerification) return;
+    if (!docVerifications.length) return;
 
-    if (docVerification.status === "pending") {
-      const newStatus = transaction.status === "success" ? "successful" : "payment-failed";
+    for (const docVerification of docVerifications) {
+      if (docVerification.status === "pending") {
+        const newStatus =
+          transaction.status === "success" ? "successful" : "payment-failed";
+        docVerification.status = newStatus;
 
-      docVerification.status = newStatus;
+        const buyerData = docVerification.buyerId as any;
 
-      if (transaction.status === "success") {
-        // Generate a 6-digit unique code
-        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-        docVerification.accessCode.token = accessCode;
+        if (transaction.status === "success") {
+          // Generate a 6-digit unique code
+          const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+          docVerification.accessCode.token = accessCode;
 
-        const emailParams: GenerateVerificationEmailParams = {
-          fullName: docVerification.fullName,
-          phoneNumber: docVerification.phoneNumber,
-          address: docVerification.address,
-          amountPaid: docVerification.amountPaid,
-          documents: docVerification.documents
-        };
+          // Send confirmation email to buyer
+          const emailParams: GenerateVerificationEmailParams = {
+            fullName: buyerData?.fullName || "",
+            phoneNumber: buyerData?.phoneNumber || "",
+            address: buyerData?.address || "",
+            amountPaid: docVerification.amountPaid,
+            documents: docVerification.documents,
+          };
 
-        // Send confirmation mail to user
-        const mailBody = generalEmailLayout(
-          generateVerificationSubmissionEmail(emailParams)
-        );
+          const buyerMailBody = generalEmailLayout(
+            generateVerificationSubmissionEmail(emailParams)
+          );
 
-        await sendEmail({
-          to: docVerification.email,
-          subject: "Document Verification Submission Received – Under Review",
-          html: mailBody,
-          text: mailBody,
-        });
+          await sendEmail({
+            to: buyerData?.email,
+            subject:
+              "Document Verification Submission Received – Under Review",
+            html: buyerMailBody,
+            text: buyerMailBody,
+          });
 
-        // Prepare third-party email
-        const thirdPartyEmailHTML = generalEmailLayout(
-          generateThirdPartyVerificationEmail({
-            recipientName: "Verification Officer",
-            requesterName: docVerification.fullName,
-            message: "Please review the submitted documents and confirm verification status.",
-            accessCode: accessCode,
-            accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
-          })
-        );
+          // Determine department based on docType
+          const hasSurveyPlan = docVerification.documents.documentType == '"survey-plan"';
 
-        // send mail to the third party
-        await sendEmail({
-          to: "Khabitech@gmail.com",
-          subject: "New Document Verification Request",
-          html: thirdPartyEmailHTML,
-          text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
-        });
+          const recipientEmail = hasSurveyPlan
+            ? process.env.SURVEY_GENERAL_MAIL // Survey Plan Department
+            : process.env.GENERAL_VERIFICATION_MAIL; // General Verification Department
+
+          // Prepare third-party email
+          const thirdPartyEmailHTML = generalEmailLayout(
+            generateThirdPartyVerificationEmail({
+              recipientName: hasSurveyPlan
+                ? "Survey Plan Officer"
+                : "Verification Officer",
+              requesterName: buyerData?.fullName || "",
+              message:
+                "Please review the submitted documents and confirm verification status.",
+              accessCode: accessCode,
+              accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+            })
+          );
+
+          await sendEmail({
+            to: recipientEmail,
+            subject: hasSurveyPlan
+              ? "New Survey Plan Verification Request"
+              : "New Document Verification Request",
+            html: thirdPartyEmailHTML,
+            text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+          });
+        }
+
+        await docVerification.save();
       }
-
-      await docVerification.save();
     }
 
-    return docVerification;
+    return docVerifications;
   }
-
 
 
 }
