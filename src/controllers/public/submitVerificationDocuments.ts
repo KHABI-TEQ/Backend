@@ -13,17 +13,37 @@ export const submitDocumentVerification = async (
   next: NextFunction
 ) => {
   try {
-    const { contactInfo, paymentInfo, documentMetadata } = req.body;
+    const { contactInfo, paymentInfo, documentsMetadata } = req.body;
+
+    const initialAmount = 20000;
 
     // Validate required fields
     if (
       !contactInfo?.email ||
       !paymentInfo?.amountPaid ||
-      !Array.isArray(documentMetadata) ||
-      documentMetadata.length === 0
+      !Array.isArray(documentsMetadata) ||
+      documentsMetadata.length === 0
     ) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing required fields.");
     }
+
+    // Validate number of documents
+    if (documentsMetadata.length > 2) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "You can only upload a maximum of 2 documents."
+      );
+    }
+
+    // Validate payment amount
+    const expectedAmount = documentsMetadata.length * initialAmount;
+    if (paymentInfo.amountPaid !== expectedAmount) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        `Invalid payment amount. Expected ${expectedAmount} for ${documentsMetadata.length} document(s).`
+      );
+    }
+
 
     // Create or retrieve the buyer by email
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
@@ -48,7 +68,7 @@ export const submitDocumentVerification = async (
 
     // Create a record for each document in the metadata array
     const createdDocs = await Promise.all(
-      documentMetadata.map((doc) =>
+      documentsMetadata.map((doc) =>
         DB.Models.DocumentVerification.create({
           buyerId: buyer._id,
           docCode,
