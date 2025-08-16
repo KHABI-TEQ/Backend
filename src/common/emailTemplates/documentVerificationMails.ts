@@ -13,12 +13,7 @@ export const generateVerificationSubmissionEmail = ({
   amountPaid,
   documents,
 }: GenerateVerificationEmailParams): string => {
-  const docsList = documents
-    .map(
-      (doc: any, index: any) =>
-        `<li><strong>Document ${index + 1}:</strong> ${doc.documentType} (No: ${doc.documentNumber})</li>`
-    )
-    .join('');
+  const docsList = `<li><strong>Document 1:</strong> ${documents.documentType} (No: ${documents.documentNumber})</li>`
 
   return `
     <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
