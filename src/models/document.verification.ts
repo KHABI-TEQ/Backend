@@ -18,10 +18,10 @@ export interface IDocumentVerification {
   status: 'pending' | 'confirmed' | 'rejected' | 'in-progress' | 'successful' | 'payment-failed';
   docType: 'certificate-of-occupancy' | 'deed-of-partition' | 'deed-of-assignment' | 'governors-consent' | 'survey-plan' | 'deed-of-lease';
   verificationReports?: {
-    originalDocumentType: string;
+    originalDocumentType?: string;
     newDocumentUrl?: string;
     description?: string;
-    status: 'verified' | 'rejected';
+    status?: 'verified' | 'rejected' | 'pending';
     verifiedAt?: Date;
   };
 }
@@ -84,10 +84,10 @@ export class DocumentVerification {
           required: true,
         },
         verificationReports: {
-          originalDocumentType: { type: String, required: true },
+          originalDocumentType: { type: String },
           newDocumentUrl: { type: String },
           description: { type: String },
-          status: { type: String, enum: ['verified', 'rejected'], required: true },
+          status: { type: String, enum: ['verified', 'rejected', 'pending'], default: 'pending', },
           verifiedAt: { type: Date },
         },
       },

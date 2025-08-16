@@ -106,6 +106,35 @@ export const getAllProperties = async (
   }
 };
 
+
+// Fetch 5 Random Approved Properties (Public)
+export const getRandomProperties = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const properties = await DB.Models.Property.aggregate([
+      {
+        $match: {
+          isApproved: true,
+          isDeleted: false,
+          status: "approved",
+        },
+      },
+      { $sample: { size: 5 } }, // Randomly select 5
+    ]);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: properties,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
 // Fetch Single Property by ID (Public)
 export const getSingleProperty = async (
   req: AppRequest,
