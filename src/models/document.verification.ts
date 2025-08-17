@@ -1,8 +1,8 @@
 import { Schema, model, Document, Model, Types } from 'mongoose';
 
 export interface IDocumentVerification {
-  buyerId: Types.ObjectId; // Reference to Buyer model
-  docCode: string; // Grouping code
+  buyerId: Types.ObjectId;
+  docCode: string;
   amountPaid: number;
   transaction: Types.ObjectId;
   documents: {
@@ -10,19 +10,19 @@ export interface IDocumentVerification {
     documentNumber?: string;
     documentUrl: string;
   };
-  resultDocuments: string[];
   accessCode?: {
     token?: string;
     status?: 'pending' | 'approved';
   };
-  status: 'pending' | 'confirmed' | 'rejected' | 'in-progress' | 'successful' | 'payment-failed';
+  status: 'pending' | 'registered' | 'unregistered' | 'in-progress' | 'payment-approved' | 'payment-failed';
   docType: 'certificate-of-occupancy' | 'deed-of-partition' | 'deed-of-assignment' | 'governors-consent' | 'survey-plan' | 'deed-of-lease';
   verificationReports?: {
     originalDocumentType?: string;
     newDocumentUrl?: string;
     description?: string;
-    status?: 'verified' | 'rejected' | 'pending';
+    status?: 'registered' | 'unregistered' | 'pending';
     verifiedAt?: Date;
+    selfVerification: boolean;
   };
 }
 
@@ -47,14 +47,11 @@ export class DocumentVerification {
           required: true,
         },
 
-        // CHANGED: documents is now a single object, not an array
         documents: {
           documentType: { type: String, required: true },
           documentNumber: { type: String },
           documentUrl: { type: String, required: true },
         },
-
-        resultDocuments: [{ type: String }],
 
         accessCode: {
           token: { type: String },
@@ -67,7 +64,7 @@ export class DocumentVerification {
 
         status: {
           type: String,
-          enum: ['pending', 'confirmed', 'in-progress', 'rejected', 'successful', 'payment-failed'],
+          enum: ['pending', 'registered', 'in-progress', 'unregistered', 'payment-approved', 'payment-failed'],
           default: 'pending',
         },
 
@@ -87,8 +84,9 @@ export class DocumentVerification {
           originalDocumentType: { type: String },
           newDocumentUrl: { type: String },
           description: { type: String },
-          status: { type: String, enum: ['verified', 'rejected', 'pending'], default: 'pending', },
+          status: { type: String, enum: ['registered', 'unregistered', 'pending'], default: 'pending', },
           verifiedAt: { type: Date },
+          selfVerification: { type: Boolean, default: false },
         },
       },
       { timestamps: true }

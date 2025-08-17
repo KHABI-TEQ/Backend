@@ -18,8 +18,7 @@ import { createTestimonial, deleteTestimonial, getAllTestimonials, getLatestAppr
 import { createBuyer, deleteBuyer, getAllBuyers, getBuyerPreferences, getSingleBuyer, updateBuyer } from "../controllers/Admin/Account/buyers";
 import { rejectPreference } from "../controllers/Admin/preference/rejectPreference";
 import { deleteVerifyDoc, fetchAllVerifyDocs, fetchSingleVerifyDoc, fetchVerifyDocStats } from "../controllers/Admin/DocumentVerification/fetchVerifyDocument";
-import { confirmVerificationPayment, rejectVerificationPayment } from "../controllers/Admin/DocumentVerification/verifyPaymentHandlers";
-import { sendToVerificationProvider, uploadVerificationResult } from "../controllers/Admin/DocumentVerification/DocumentVerificationUploader";
+import { adminDocumentVerification, sendToVerificationProvider } from "../controllers/Admin/DocumentVerification/DocumentVerificationUploader";
 import { editPropertyAsAdmin } from "../controllers/Admin/Property/editProperty";
 import { deletePropertyById } from "../controllers/Admin/Property/deleteProperty";
 import { assignInspectionToFieldAgent, createFieldAgent, deleteFieldAgentAccount, flagOrUnflagFieldAgentAccount, getAllFieldAgents, getFieldAgentAssignedInspections, getFieldAgentDashboardStatistics, getSingleFieldAgentProfile, toggleFieldAgentStatus, updateFieldAgent } from "../controllers/Admin/Account/fieldAgent";
@@ -27,6 +26,7 @@ import { validateJoi } from "../middlewares/validateJoi";
 import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 import { deleteTransactionDetails, getAllTransactions, getTransactionById, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
+import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -160,12 +160,18 @@ AdminRouter.get("/verification-docs", fetchAllVerifyDocs);
 AdminRouter.get("/verification-docs/stats", fetchVerifyDocStats);
 AdminRouter.get("/verification-doc/:documentId", fetchSingleVerifyDoc);
 AdminRouter.delete("/verification-docs/:documentId", deleteVerifyDoc);
-
-AdminRouter.post("/confirm-verification-payment/:documentId", confirmVerificationPayment);
-AdminRouter.post("/reject-verification-payment/:documentId", rejectVerificationPayment);
 AdminRouter.post("/send-to-provider/:documentId", sendToVerificationProvider);
-AdminRouter.post("/upload-result/:documentId", upload.array("resultDocuments"), uploadVerificationResult);
 
+AdminRouter.post("/verification-docs/:documentId/uploadReport", adminDocumentVerification);
+
+
+// SETTINGS ROUTES
+AdminRouter.post("/settings/create", createSetting);
+AdminRouter.post("/settings/bulkCreateOrUpdate", bulkUpsertSettings);
+AdminRouter.put("/settings/:key/update", updateSetting);
+AdminRouter.get("/settings/:key/getOne", getSetting);
+AdminRouter.get("/settings/getAll", getAllSettings);
+AdminRouter.delete("/settings/:key/delete", deleteSetting);
 
 AdminRouter.use(AdminInspRouter);
 
