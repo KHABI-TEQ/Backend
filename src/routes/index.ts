@@ -21,6 +21,7 @@ import thirdPartyRouter from "./thirdParty";
 import { submitContactForm } from "../controllers/public/contactUs";
 import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
 import { paymentVerification } from "../controllers/public/paymentVerification";
+import { fetchSystemSettings } from "../controllers/public/systemSettings";
 
 const router = express.Router();
 
@@ -135,6 +136,7 @@ router.post(
   },
 );
 
+router.get("/getSystemSettings", fetchSystemSettings)
 
 router.get("/verify-payment", paymentVerification)
 

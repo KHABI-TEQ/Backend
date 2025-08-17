@@ -346,7 +346,7 @@ export class PaystackService {
     for (const docVerification of docVerifications) {
       if (docVerification.status === "pending") {
         const newStatus =
-          transaction.status === "success" ? "successful" : "payment-failed";
+          transaction.status === "success" ? "payment-approved" : "payment-failed";
         docVerification.status = newStatus;
 
         const buyerData = docVerification.buyerId as any;

@@ -75,61 +75,65 @@ export const sendToVerificationProvider = async (
   }
 };
 
-// === Upload Result Documents ===
-export const uploadVerificationResult = async (
+// === Admin Document Verification (Registered / Unregistered + Report) ===
+export const adminDocumentVerification = async (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { documentId } = req.params;
-    const files = req.files as Express.Multer.File[];
+    const { verificationReport } = req.body;
 
-    if (!files || files.length === 0) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "File is required");
+    if (!["registered", "unregistered"].includes(verificationReport.status)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Status must be either 'registered' or 'unregistered'"
+      );
     }
 
     const id = new mongoose.Types.ObjectId(documentId);
-    const doc = await DB.Models.DocumentVerification.findById(id).populate('buyerId');
+    const doc = await DB.Models.DocumentVerification.findById(id).populate("buyerId");
     if (!doc) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Verification not found");
     }
 
-    if (doc.status === "successful") {
+    if (["registered", "unregistered"].includes(doc.status)) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "The verification result for this document has already been sent"
+        "This document has already been verified by Admin"
       );
     }
 
     const buyerData = doc.buyerId as any;
 
-    const results: string[] = [];
+    // Update status and report
+    doc.status = verificationReport.status;
+    doc.verificationReports = {
+      ...(doc.verificationReports || {}),
+      originalDocumentType: verificationReport?.originalDocumentType || doc.documents.documentType,
+      description: verificationReport?.description,
+      status: verificationReport.status,
+      verifiedAt: new Date(),
+      selfVerification: true,
+    };
 
-    for (const file of files) {
-      const fileBase64 = `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
-      const fileUrl = await cloudinary.uploadDoc(fileBase64, "result", "verification-documents");
-      results.push(fileUrl);
-    }
-
-    doc.resultDocuments = results;
-    doc.status = "successful";
     await doc.save();
 
-    const resultLinksHtml = results
-      .map((url, i) => `<li><a href="${url}" target="_blank">Result Document ${i + 1}</a></li>`)
-      .join("");
-
+    // Email body
     const htmlBody = verificationGeneralTemplate(`
       <p>Dear ${buyerData.fullName},</p>
-      <p>We are pleased to inform you that the verification process for your submitted documents has been successfully completed.</p>
-      <p>You can find the result documents below:</p>
-      <ul>${resultLinksHtml}</ul>
+      <p>Your submitted document has been reviewed and marked as <strong>${status.toUpperCase()}</strong> by our Admin team.</p>
+      ${
+        verificationReport?.description
+          ? `<p><strong>Verification Report:</strong> ${verificationReport.description}</p>`
+          : ""
+      }
     `);
 
     await sendEmail({
       to: buyerData.email,
-      subject: "Verification Result Uploaded",
+      subject: `Document Verification Result - ${status.toUpperCase()}`,
       text: htmlBody,
       html: htmlBody,
     });
@@ -137,7 +141,7 @@ export const uploadVerificationResult = async (
     res.json({
       success: true,
       data: {
-        message: "Result uploaded and sent to user",
+        message: `Admin verification completed. Document marked as ${status}`,
         recordId: doc._id,
       },
     });
@@ -145,3 +149,5 @@ export const uploadVerificationResult = async (
     next(err);
   }
 };
+
+

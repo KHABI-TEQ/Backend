@@ -14,14 +14,14 @@ export const fetchAllVerifyDocs = async (
   try {
     const page = Math.max(parseInt(req.query.page as string) || 1, 1);
     const limit = Math.max(parseInt(req.query.limit as string) || 10, 1);
-    const filter = (req.query.status as string) || "pending";
+    const filter = (req.query.status as string) || "payment-approved";
 
     const allowedStatuses = [
-      "pending",
-      "confirmed",
-      "rejected",
+      "payment-approved",
+      "registered",
+      "unregistered",
       "in-progress",
-      "successful",
+      "payment-failed",
     ];
 
     if (!allowedStatuses.includes(filter)) {
@@ -33,8 +33,15 @@ export const fetchAllVerifyDocs = async (
 
     const skip = (page - 1) * limit;
 
+    // Fetch with population
     const [records, total] = await Promise.all([
       DB.Models.DocumentVerification.find({ status: filter })
+        .populate("buyerId")
+        .populate({
+          path: "transaction",
+          model: "newTransaction",
+          select: "-__v -paymentDetails",
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -43,9 +50,17 @@ export const fetchAllVerifyDocs = async (
 
     const totalPages = Math.ceil(total / limit);
 
+    // ✅ Group records by docCode
+    const grouped = records.reduce((acc: any, record: any) => {
+      const code = record.docCode || "UNKNOWN";
+      if (!acc[code]) acc[code] = [];
+      acc[code].push(record);
+      return acc;
+    }, {});
+
     res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: records,
+      data: grouped, // 👈 grouped by docCode
       pagination: {
         total,
         page,
@@ -58,6 +73,8 @@ export const fetchAllVerifyDocs = async (
   }
 };
 
+
+
 // GET: /verification-docs/stats
 export const fetchVerifyDocStats = async (
   req: AppRequest,
@@ -66,11 +83,11 @@ export const fetchVerifyDocStats = async (
 ) => {
   try {
     const allowedStatuses = [
-      "pending",
-      "confirmed",
-      "rejected",
+      "payment-approved",
+      "registered",
+      "unregistered",
       "in-progress",
-      "successful",
+      "payment-failed",
     ];
 
     // Count each status individually
@@ -88,10 +105,10 @@ export const fetchVerifyDocStats = async (
     ] = await Promise.all([
       DB.Models.DocumentVerification.countDocuments(),
       DB.Models.DocumentVerification.countDocuments({
-        status: { $in: ["confirmed", "successful"] },
+        status: { $in: ["registered"] },
       }),
       DB.Models.DocumentVerification.aggregate([
-        { $match: { status: "confirmed" } },
+        { $match: { status: "payment-approved" } },
         { $group: { _id: null, totalAmount: { $sum: "$amountPaid" } } },
       ]),
       DB.Models.DocumentVerification.aggregate([
@@ -149,10 +166,11 @@ export const fetchSingleVerifyDoc = async (
 
     const doc = await DB.Models.DocumentVerification
       .findById(documentId)
+      .populate("buyerId")
       .populate({
         path: "transaction",
         model: "newTransaction",
-        select: "-__v",
+        select: "-__v -paymentDetails",
       });
 
     if (!doc) {

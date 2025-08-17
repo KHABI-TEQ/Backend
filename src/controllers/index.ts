@@ -41,6 +41,8 @@ import {
   INewTransactionModel,
   Subscription,
   ISubscriptionModel,
+  ISystemSettingModel,
+  SystemSetting,
 } from "../models/index";
 
 
@@ -66,6 +68,7 @@ declare interface IModels {
   FieldAgent: IFieldAgentModel;
   NewTransaction: INewTransactionModel;
   Subscription: ISubscriptionModel;
+  SystemSetting: ISystemSettingModel;
 } 
 
 export class DB {
@@ -106,6 +109,7 @@ export class DB {
       FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
       Subscription: new Subscription().model,
+      SystemSetting: new SystemSetting().model,
     };
   }
 
