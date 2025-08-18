@@ -16,7 +16,7 @@ export interface IDocumentVerification {
   };
   status: 'pending' | 'registered' | 'unregistered' | 'in-progress' | 'payment-approved' | 'payment-failed';
   docType: 'certificate-of-occupancy' | 'deed-of-partition' | 'deed-of-assignment' | 'governors-consent' | 'survey-plan' | 'deed-of-lease';
-  verificationReports?: {
+  verificationReports?: { 
     originalDocumentType?: string;
     newDocumentUrl?: string;
     description?: string;

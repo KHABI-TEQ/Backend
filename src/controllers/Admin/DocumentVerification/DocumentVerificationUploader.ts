@@ -17,7 +17,6 @@ export const sendToVerificationProvider = async (
   next: NextFunction
 ) => {
   try {
-    const { email } = req.body;
     const { documentId } = req.params;
 
     const doc = await DB.Models.DocumentVerification.findById(documentId).populate('buyerId');
