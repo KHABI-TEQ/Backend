@@ -10,7 +10,7 @@ import { AppRequest } from "../../types/express";
 const fileTypeConfig: Record<
   string,
   {
-    extensions: string[];
+    extensions: string[]; // empty [] means allow all
     maxSizeMB: number;
     resourceType: "image" | "raw" | "video" | "auto";
     folder: string;
@@ -24,26 +24,26 @@ const fileTypeConfig: Record<
   },
   "property-file": {
     extensions: ["pdf", "docx", "doc"],
-    maxSizeMB: 5,
+    maxSizeMB: 10,
     resourceType: "raw",
     folder: "property-files",
   },
   "identity-doc": {
     extensions: ["jpg", "jpeg", "png", "pdf", "doc", "docx"],
-    maxSizeMB: 5,
+    maxSizeMB: 10,
     resourceType: "raw",
     folder: "identity-docs",
   },
   "property-video": {
     extensions: ["mp4", "mov", "avi", "webm", "flv", "mkv"],
-    maxSizeMB: 20,
+    maxSizeMB: 50,
     resourceType: "video",
     folder: "property-videos",
   },
   default: {
-    extensions: ["jpg", "jpeg", "png", "pdf", "docs", "doc", "docx", "webp"],
-    maxSizeMB: 5,
-    resourceType: "auto",
+    extensions: [], // ✅ allow any file type
+    maxSizeMB: 50, // bigger limit since docs/zips can be large
+    resourceType: "raw", // ✅ raw supports any type
     folder: "other-files",
   },
 };
@@ -64,9 +64,12 @@ export const uploadFileToCloudinary = async (
 
     const config = fileTypeConfig[fileFor] || fileTypeConfig["default"];
 
-    // ✅ Validate File Extension
+    // ✅ Validate File Extension (only if extensions are defined)
     const fileExt = req.file.originalname.split(".").pop()?.toLowerCase();
-    if (!fileExt || !config.extensions.includes(fileExt)) {
+    if (
+      config.extensions.length > 0 &&
+      (!fileExt || !config.extensions.includes(fileExt))
+    ) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         `Invalid file extension. Allowed: ${config.extensions.join(", ")}`,
@@ -80,7 +83,7 @@ export const uploadFileToCloudinary = async (
         HttpStatusCodes.BAD_REQUEST,
         `File too large. Max allowed is ${config.maxSizeMB} MB`,
       );
-    } 
+    }
 
     // ✅ Upload to Cloudinary
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
@@ -102,7 +105,7 @@ export const uploadFileToCloudinary = async (
         url: uploaded.secure_url,
         public_id: uploaded.public_id,
         resource_type: config.resourceType,
-      }
+      },
     });
   } catch (err: any) {
     console.error("Upload Error:", err.message);
@@ -134,9 +137,7 @@ export const deleteFileFromCloudinary = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "File deleted successfully",
-      data: {
-        result
-      }
+      data: { result },
     });
   } catch (err: any) {
     console.error("Delete Error:", err.message);

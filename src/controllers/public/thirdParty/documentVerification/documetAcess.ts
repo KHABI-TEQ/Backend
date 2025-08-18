@@ -110,8 +110,8 @@ export const submitVerificationReport = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Document verification record not found");
     }
 
-    if (!["verified", "rejected"].includes(report.status)) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Status must be either 'verified' or 'rejected'");
+    if (!["registered", "unregistered"].includes(report.status)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Status must be either 'registered' or 'unregistered'");
     }
     
     const formattedReport = {
