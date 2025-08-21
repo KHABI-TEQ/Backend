@@ -125,23 +125,51 @@ export const getPreferencesByMode = async (
 
     const preferences = await DB.Models.Preference.find(filter)
       .populate("buyer")
-      .populate("assignedAgent")
       .sort(sortObj)
       .skip(skip)
       .limit(Number(limit));
 
     const total = await DB.Models.Preference.countDocuments(filter);
 
-    const formattedPreferences = preferences.map(pref => {
-      const plainObjectFromMongoose = pref.toObject({ getters: true, virtuals: true });
-      const formattedInputForFormatter = plainObjectFromMongoose as unknown as PreferencePayload;
-      return formatPreferenceForFrontend(formattedInputForFormatter);
+    // === fetch matches for all preferences in one query ===
+    const preferenceIds = preferences.map((pref) => pref._id);
+
+    const matchedData = await DB.Models.MatchedPreferenceProperty.find({
+      preference: { $in: preferenceIds },
+    });
+
+    // Map preferenceId -> { status, count }
+    const matchedMap: Record<string, { status: string; count: number }> = {};
+    matchedData.forEach((match) => {
+      matchedMap[match.preference.toString()] = {
+        status: match.status,
+        count: match.matchedProperties?.length || 0,
+      };
+    });
+
+    // Format preferences + attach matches
+    const formattedPreferences = preferences.map((pref) => {
+      const plainObject = pref.toObject({ getters: true, virtuals: true });
+      const formattedInput = plainObject as unknown as PreferencePayload;
+      const formatted = formatPreferenceForFrontend(formattedInput);
+
+      const matchInfo = matchedMap[pref._id.toString()] || {
+        status: "pending",
+        count: 0,
+      };
+
+      formatted.matches = {
+        ...matchInfo,
+        hasMatch: matchInfo.count > 0, // 👈 new property
+      };
+
+      return formatted;
     });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Preferences fetched successfully",
-      data: formattedPreferences, // Send the formatted data
+      data: formattedPreferences,
       pagination: {
         total,
         limit,

@@ -51,19 +51,48 @@ export class AdminInspectionController {
       const currentPage = Math.max(1, parseInt(page as string, 10));
       const perPage = Math.min(100, parseInt(limit as string, 10));
 
+      const userRestrictedData = {
+        password: 0,
+        __v: 0,
+        isDeleted: 0,
+        isInActive: 0,
+        isAccountInRecovery: 0,
+        isAccountVerified: 0,
+        accountApproved: 0,
+        isFlagged: 0,
+        googleId: 0,
+        facebookId: 0,
+        enableNotifications: 0,
+        referralCode: 0,
+        referredBy: 0,
+        createdAt: 0,
+        updatedAt: 0
+      };
+
       const total = await DB.Models.InspectionBooking.countDocuments(query);
       const inspections = await DB.Models.InspectionBooking.find(query)
         .populate("propertyId")
-        .populate("owner")
+        .populate({
+          path: "owner",
+          model: "User",
+          select: userRestrictedData,
+        })
         .populate("requestedBy")
         .populate({
-            path: "transaction",
-            model: "newTransaction",
-            select: "-__v -paymentDetails",
+          path: "transaction",
+          model: "newTransaction",
+          select: "-__v -paymentDetails",
+          match: { status: { $ne: "pending" } }, // exclude pending
+        })
+        .populate({
+          path: "assignedFieldAgent",
+          model: "User",
+          select: userRestrictedData,
         })
         .skip((currentPage - 1) * perPage)
         .limit(perPage)
-        .sort({ createdAt: -1 });
+        .sort({ createdAt: -1 })
+        .lean();
 
       return res.status(200).json({
         success: true,
@@ -829,8 +858,8 @@ export class AdminInspectionController {
 
 
   /**
-   * Delete an inspection and its attached transaction
-   */
+ * Delete an inspection and its attached transaction
+ */
   public async deleteInspectionAndTransaction(
     req: AppRequest,
     res: Response
@@ -841,14 +870,21 @@ export class AdminInspectionController {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid inspection ID");
     }
 
-    // Find the inspection with any linked transaction
-    const inspection = await DB.Models.InspectionBooking.findById(id);
+    // Find inspection with field agent + transaction populated
+    const inspection = await DB.Models.InspectionBooking.findById(id)
+      .populate({
+        path: "assignedFieldAgent",
+        model: DB.Models.User.modelName,
+        select: "firstName lastName email phoneNumber"
+      })
+      .populate("propertyId")
+      .populate("transaction");
 
     if (!inspection) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
 
-    // If inspection is completed, you may want to block deletion
+    // If inspection is completed, block deletion
     if (inspection.stage === "completed") {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
@@ -856,9 +892,50 @@ export class AdminInspectionController {
       );
     }
 
+    // If a field agent is assigned, remove inspection reference from their profile
+    if (inspection.assignedFieldAgent) {
+      const removedAgent = inspection.assignedFieldAgent as any;
+
+      await DB.Models.FieldAgent.updateOne(
+        { userId: removedAgent._id },
+        { $pull: { assignedInspections: inspection._id } }
+      );
+
+      // Notify the agent (optional but recommended)
+      const property = inspection.propertyId as any;
+      const propertyData = {
+        propertyType: property.propertyType,
+        location: property.location,
+        inspectionDate: inspection.inspectionDate,
+        inspectionTime: inspection.inspectionTime,
+        inspectionMode: inspection.inspectionMode,
+      };
+
+      const removeFieldAgentBody = generalEmailLayout(
+        FieldAgentRemovalTemplate(removedAgent, propertyData)
+      );
+
+      await sendEmail({
+        to: removedAgent.email,
+        subject: `Inspection Deleted`,
+        html: removeFieldAgentBody,
+        text: removeFieldAgentBody,
+      });
+
+      await notificationService.createNotification({
+        user: removedAgent._id.toString(),
+        title: "Inspection Deleted",
+        message: `Your assignment for ${property.propertyType} at ${property.location.area}, ${property.location.localGovernment}, ${property.location.state} was removed because the inspection was deleted.`,
+        meta: {
+          propertyId: property._id,
+          inspectionId: inspection._id,
+        },
+      });
+    }
+
     // Delete linked transaction if exists
     if (inspection.transaction) {
-      await DB.Models.NewTransaction.findByIdAndDelete(inspection.transaction);
+      await DB.Models.NewTransaction.findByIdAndDelete(inspection.transaction._id);
     }
 
     // Delete inspection
@@ -866,9 +943,10 @@ export class AdminInspectionController {
 
     return res.status(200).json({
       success: true,
-      message: `Inspection and linked transaction deleted successfully.`,
+      message: `Inspection, linked transaction, and field agent assignment removed successfully.`,
     });
   }
+
 
 
 }

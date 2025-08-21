@@ -42,8 +42,8 @@ const fileTypeConfig: Record<
   },
   default: {
     extensions: [], // ✅ allow any file type
-    maxSizeMB: 50, // bigger limit since docs/zips can be large
-    resourceType: "raw", // ✅ raw supports any type
+    maxSizeMB: 50,  // bigger limit for docs/zips
+    resourceType: "raw", // ✅ raw supports any file type
     folder: "other-files",
   },
 };
@@ -64,8 +64,10 @@ export const uploadFileToCloudinary = async (
 
     const config = fileTypeConfig[fileFor] || fileTypeConfig["default"];
 
-    // ✅ Validate File Extension (only if extensions are defined)
+    // ✅ Extract extension
     const fileExt = req.file.originalname.split(".").pop()?.toLowerCase();
+
+    // ✅ Validate File Extension (only if extensions are defined)
     if (
       config.extensions.length > 0 &&
       (!fileExt || !config.extensions.includes(fileExt))
@@ -85,9 +87,10 @@ export const uploadFileToCloudinary = async (
       );
     }
 
-    // ✅ Upload to Cloudinary
+    // ✅ Upload to Cloudinary with extension preserved
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
-    const filename = Date.now() + "-" + fileFor;
+    const filename =
+      Date.now() + "-" + fileFor + (fileExt ? `.${fileExt}` : "");
 
     const uploaded = await cloudinary.uploadFile(
       fileBase64,
@@ -102,7 +105,7 @@ export const uploadFileToCloudinary = async (
       success: true,
       message: "File uploaded successfully",
       data: {
-        url: uploaded.secure_url,
+        url: uploaded.secure_url, // ✅ now includes extension
         public_id: uploaded.public_id,
         resource_type: config.resourceType,
       },
@@ -156,7 +159,10 @@ export const extractPublicIdFromUrl = (url: string): string => {
 
     const publicIdParts = parts.slice(uploadIndex + 1);
     const filename = publicIdParts.pop()!;
-    const filenameWithoutExt = filename.substring(0, filename.lastIndexOf("."));
+    const filenameWithoutExt = filename.includes(".")
+      ? filename.substring(0, filename.lastIndexOf("."))
+      : filename;
+
     return [...publicIdParts, filenameWithoutExt].join("/");
   } catch (error) {
     throw new Error("Failed to extract public_id: " + (error as any).message);
