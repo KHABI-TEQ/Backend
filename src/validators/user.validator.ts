@@ -42,4 +42,4 @@ export const oauthRegisterSchema = Joi.object({
   }),
   referreredCode: Joi.string().optional(),
 });
-
+ 

@@ -31,7 +31,7 @@ export const confirmVerificationPayment = async (
       );
     }
 
-    doc.status = "confirmed";
+    doc.status = "registered";
     await doc.save();
 
     res.status(HttpStatusCodes.OK).json({
@@ -65,11 +65,11 @@ export const rejectVerificationPayment = async (
     if (doc.status !== "pending") {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Only pending records can be rejected"
+        "Only pending records can be unregistered"
       );
     }
 
-    doc.status = "rejected";
+    doc.status = "unregistered";
     await doc.save();
 
     const buyerData = doc.buyerId as any;
