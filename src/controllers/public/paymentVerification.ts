@@ -27,7 +27,7 @@ export const paymentVerification = async (
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
         message: `Transaction verification failed: ${verificationResult.reason || "Unknown error"}`,
-        data: verificationResult.transaction || null,
+        data: verificationResult.transaction || verificationResult,
       });
     }
 

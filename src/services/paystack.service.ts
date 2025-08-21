@@ -157,9 +157,9 @@ export class PaystackService {
    */
   static async handleInspectionPaymentEffect(transaction: INewTransactionDoc) {
       const inspection = await DB.Models.InspectionBooking.findOne({
-      transaction: transaction._id,
+        transaction: transaction._id,
       });
-
+ 
       if (!inspection) return;
 
       if (inspection.status === "pending_transaction") {

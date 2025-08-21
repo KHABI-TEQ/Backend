@@ -5,6 +5,17 @@ import { AppRequest } from "../../types/express";
 import { RouteError } from "../../common/classes";
 import { PaystackService } from "../../services/paystack.service";
 import { Types } from "mongoose";
+import { SystemSettingService } from "../../services/systemSetting.service";
+
+// Map of document names to their corresponding price setting keys
+const listDocNames: Record<string, string> = {
+  "certificate-of-occupancy": "certificate-of-occupancy_price",
+  "deed-of-partition": "deed-of-partition_price",
+  "deed-of-assignment": "deed-of-assignment_price",
+  "governors-consent": "governors-consent_price",
+  "survey-plan": "survey-plan_price",
+  "deed-of-lease": "deed-of-lease_price",
+};
 
 // Controller to create a document verification request
 export const submitDocumentVerification = async (
@@ -14,8 +25,6 @@ export const submitDocumentVerification = async (
 ) => {
   try {
     const { contactInfo, paymentInfo, documentsMetadata } = req.body;
-
-    const initialAmount = 20000;
 
     // Validate required fields
     if (
@@ -35,15 +44,32 @@ export const submitDocumentVerification = async (
       );
     }
 
+    // Calculate expected total amount from document types
+    let expectedAmount = 0;
+    const docPrices: Record<string, number> = {};
+
+    for (const doc of documentsMetadata) {
+      const priceKey = listDocNames[doc.documentType];
+      if (!priceKey) {
+        docPrices[doc.documentType] = 0; // default to 0 if not found
+        continue;
+      }
+
+      const setting = await SystemSettingService.getSetting(priceKey);
+      // ✅ Extract numeric value properly
+      const price = setting ? Number(setting.value) : 0;
+
+      docPrices[doc.documentType] = price;
+      expectedAmount += price;
+    }
+
     // Validate payment amount
-    const expectedAmount = documentsMetadata.length * initialAmount;
     if (paymentInfo.amountPaid !== expectedAmount) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         `Invalid payment amount. Expected ${expectedAmount} for ${documentsMetadata.length} document(s).`
       );
     }
-
 
     // Create or retrieve the buyer by email
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
@@ -68,11 +94,12 @@ export const submitDocumentVerification = async (
 
     // Create a record for each document in the metadata array
     const createdDocs = await Promise.all(
-      documentsMetadata.map((doc) =>
-        DB.Models.DocumentVerification.create({
+      documentsMetadata.map((doc) => {
+        const docAmount = docPrices[doc.documentType] ?? 0;
+        return DB.Models.DocumentVerification.create({
           buyerId: buyer._id,
           docCode,
-          amountPaid: paymentInfo.amountPaid,
+          amountPaid: docAmount, // ✅ per-document price
           transaction: paymentResponse.transactionId,
           documents: {
             documentType: doc.documentType,
@@ -80,14 +107,15 @@ export const submitDocumentVerification = async (
             documentUrl: doc.uploadedUrl,
           },
           docType: doc.documentType,
-        })
-      )
+        });
+      })
     );
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Verification documents submitted successfully.",
       data: {
+        totalExpectedAmount: expectedAmount,
         documentsSubmitted: createdDocs,
         transaction: paymentResponse,
       },
@@ -96,3 +124,4 @@ export const submitDocumentVerification = async (
     next(error);
   }
 };
+
