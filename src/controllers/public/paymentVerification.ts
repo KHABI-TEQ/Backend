@@ -36,7 +36,7 @@ export const paymentVerification = async (
       message: "Transaction verified successfully",
       data: {
         transaction: verificationResult.transaction,
-        typeEffect: verificationResult,
+        typeEffect: verificationResult.dynamicType,
       }
     });
 
