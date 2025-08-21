@@ -4,7 +4,7 @@ export interface IMatchedPreferenceProperty {
   preference: Types.ObjectId; // Reference to the buyer's preference
   buyer: Types.ObjectId; // The buyer ID
   matchedProperties: Types.ObjectId[]; // Array of matched property IDs
-  status: "pending" | "notified" | "interested" | "closed"; // Status of this match set
+  status: "pending" | "notified" | "interested" | "closed" | "inspection-requested"; // Status of this match set
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -31,7 +31,7 @@ const MatchedPreferencePropertySchema =
       ],
       status: {
         type: String,
-        enum: ["pending", "notified", "interested", "closed"],
+        enum: ["pending", "notified", "interested", "closed", "inspection-requested"],
         default: "pending",
       },
       notes: { type: String },

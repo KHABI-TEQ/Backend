@@ -15,8 +15,8 @@ export const registerUserSchema = Joi.object({
     "string.empty": "Password is required.",
     "string.min": "Password must be at least 6 characters.",
   }),
-  userType: Joi.string().trim().valid("User", "Agent", "FieldAgent").required().messages({
-    "any.only": "User type must be one of: User, Agent, Agent Field.",
+  userType: Joi.string().trim().valid("Landowners", "Agent", "FieldAgent").required().messages({
+    "any.only": "User type must be one of: Landowners, Agent, Agent Field.",
     "string.empty": "User type is required.",
     "any.required": "User type is required.",
   }),
@@ -37,8 +37,8 @@ export const oauthRegisterSchema = Joi.object({
     "string.empty": "ID token is required.",
     "any.required": "ID token is required.",
   }),
-  userType: Joi.string().trim().valid("User", "Agent", "FieldAgent").optional().messages({
-    "any.only": "User type must be one of: User, Agent, FieldAgent.",
+  userType: Joi.string().trim().valid("Landowners", "Agent", "FieldAgent").optional().messages({
+    "any.only": "User type must be one of: Landowners, Agent, FieldAgent.",
   }),
   referreredCode: Joi.string().optional(),
 });
