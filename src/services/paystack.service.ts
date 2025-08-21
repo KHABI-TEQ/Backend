@@ -115,12 +115,12 @@ export class PaystackService {
       );
 
       // Execute type-specific logic (send mail, etc.)
-      // const dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
+      const dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
 
       return {
         verified: data.status === 'success',
         transaction: updatedTx,
-        // dynamicType: dynamicResponse,
+        dynamicType: dynamicResponse,
         reason: data.status !== 'success' ? data.gateway_response : undefined,
       };
     } catch (error: any) {
@@ -158,12 +158,12 @@ export class PaystackService {
   static async handleInspectionPaymentEffect(transaction: INewTransactionDoc) {
       const inspection = await DB.Models.InspectionBooking.findOne({
         transaction: transaction._id,
-      });
+      }).populate("requestedBy").populate("propertyId").populate("owner");
  
       if (!inspection) return;
 
       if (inspection.status === "pending_transaction") {
-          
+
           let updatedStatus: IInspectionBooking["status"];
           let updatedStage: IInspectionBooking["stage"];
           let pendingResponseFrom: IInspectionBooking["pendingResponseFrom"];

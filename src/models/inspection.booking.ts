@@ -87,7 +87,7 @@ export class InspectionBooking {
             "cancelled",
           ],
           default: "pending_transaction",
-        }, 
+        },  
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
         transaction: {
           type: Schema.Types.ObjectId,
