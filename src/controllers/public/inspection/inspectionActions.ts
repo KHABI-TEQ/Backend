@@ -17,6 +17,7 @@ import { PaystackService } from "../../../services/paystack.service";
 import { Types } from "mongoose";
 
 class InspectionActionsController {
+
   public async processInspectionAction(
     req: AppRequest,
     res: Response,
@@ -421,7 +422,7 @@ class InspectionActionsController {
         { $setOnInsert: requestedBy },
         { upsert: true, new: true },
       );
-
+ 
       // Generate payment link
       const paymentResponse = await PaystackService.initializePayment({
         email: buyer.email,
