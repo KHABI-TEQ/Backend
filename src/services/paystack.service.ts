@@ -115,12 +115,12 @@ export class PaystackService {
       );
 
       // Execute type-specific logic (send mail, etc.)
-      const dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
+      // const dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
 
       return {
         verified: data.status === 'success',
         transaction: updatedTx,
-        dynamicType: dynamicResponse,
+        // dynamicType: dynamicResponse,
         reason: data.status !== 'success' ? data.gateway_response : undefined,
       };
     } catch (error: any) {
