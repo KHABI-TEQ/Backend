@@ -29,7 +29,8 @@ export const uploadFile = async (
   return cloudinary.uploader.upload(base64, uploadOptions);
 };
 
-export const deleteFile = async (publicId: string, resourceType: string = "auto") => {
+// ✅ Fixed: Default to "raw" instead of "auto" for delete operations
+export const deleteFile = async (publicId: string, resourceType: "image" | "raw" | "video" = "raw") => {
   return cloudinary.uploader.destroy(publicId, {
     resource_type: resourceType,
     invalidate: true,

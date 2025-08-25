@@ -534,7 +534,7 @@ export const getAllFieldAgents = async (
 
     const userMatch: any = { 
       userType: "FieldAgent", 
-      isDeleted: false // exclude deleted users
+      isDeleted: false
     };
 
     const searchConditions: any[] = [];
@@ -649,7 +649,7 @@ export const getSingleFieldAgentProfile = async (
 
     const inspections = await DB.Models.InspectionBooking.find({ 
         _id: { $in: fieldAgentData.assignedInspections } 
-    }).lean();
+    }).populate("propertyId").lean();
 
     const profileData = {
       user,

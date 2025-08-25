@@ -107,13 +107,6 @@ export const deleteAgentAccount = async (
     const { userId } = req.params;
     const { reason } = req.body; // Reason for deletion
 
-    if (!reason) {
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: "Reason for deletion is required.",
-      });
-    }
-
     const user = await DB.Models.User.findById(userId).exec();
 
     if (!user || user.userType !== "Agent") {
@@ -421,18 +414,21 @@ export const getAgentDashboardStatistics = async (
         isInActive: false,
         accountApproved: true,
         userType,
+        isDeleted: false,
       }),
       DB.Models.User.countDocuments({
         isInActive: true,
         accountApproved: true,
         userType,
+        isDeleted: false,
       }),
       DB.Models.User.countDocuments({
         isFlagged: true,
         accountApproved: true,
         userType,
+        isDeleted: false,
       }),
-      DB.Models.User.countDocuments({ userType }),
+      DB.Models.User.countDocuments({ userType, isDeleted: false }),
     ]);
 
     return res.status(HttpStatusCodes.OK).json({
@@ -557,7 +553,7 @@ export const getAllAgents = async (
       sortOrder = "desc",
     } = req.query;
 
-    const match: any = { userType: "Agent" };
+    const match: any = { userType: "Agent", isDeleted: false };
     const searchConditions: any[] = [];
 
     if (search && search.toString().trim()) {
