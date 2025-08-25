@@ -108,6 +108,7 @@ export const uploadFileToCloudinary = async (
         url: uploaded.secure_url, // ✅ now includes extension
         public_id: uploaded.public_id,
         resource_type: config.resourceType,
+        file_for: fileFor, // ✅ Store this for future deletion reference
       },
     });
   } catch (err: any) {
@@ -117,30 +118,75 @@ export const uploadFileToCloudinary = async (
 };
 
 /**
- * Delete File by Extracting Public ID from URL
+ * Helper function to determine resource type from URL or file extension
  */
+const determineResourceTypeFromUrl = (url: string): "image" | "raw" | "video" => {
+  const extension = url.split('.').pop()?.toLowerCase();
+  
+  if (!extension) return "raw";
+  
+  const imageExts = ["jpg", "jpeg", "png", "webp", "gif", "bmp", "svg"];
+  const videoExts = ["mp4", "mov", "avi", "webm", "flv", "mkv"];
+  
+  if (imageExts.includes(extension)) return "image";
+  if (videoExts.includes(extension)) return "video";
+  
+  return "raw";
+};
+
+/**
+ * Delete File by Extracting Public ID from URL
+ * ✅ Improved: Tries multiple resource types if deletion fails
+ */ 
 export const deleteFileFromCloudinary = async (
   req: AppRequest,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { url } = req.body;
+    const { url, resource_type } = req.body;
 
     if (!url)
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "File URL is required");
 
     const publicId = extractPublicIdFromUrl(url);
+    
+    // ✅ Use provided resource_type or determine from URL
+    let resourceType: "image" | "raw" | "video" = resource_type || determineResourceTypeFromUrl(url);
+    
+    let result = await cloudinary.deleteFile(publicId, resourceType);
 
-    const result = await cloudinary.deleteFile(publicId);
+    // ✅ If deletion fails with "not found", try other resource types
+    if (result.result === "not found") {
+      const resourceTypes: ("image" | "raw" | "video")[] = ["image", "raw", "video"];
+      
+      for (const type of resourceTypes) {
+        if (type !== resourceType) {
+          try {
+            result = await cloudinary.deleteFile(publicId, type);
+            if (result.result === "ok") {
+              resourceType = type; // Update to the successful type
+              break;
+            }
+          } catch (error) {
+            // Continue to next resource type
+            continue;
+          }
+        }
+      }
+    }
 
     if (result.result !== "ok" && result.result !== "not found")
       throw new Error("Failed to delete file");
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "File deleted successfully",
-      data: { result },
+      message: result.result === "not found" ? "File not found or already deleted" : "File deleted successfully",
+      data: { 
+        result: result.result,
+        resource_type: resourceType,
+        public_id: publicId
+      },
     });
   } catch (err: any) {
     console.error("Delete Error:", err.message);

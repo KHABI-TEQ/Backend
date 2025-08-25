@@ -36,7 +36,7 @@ export const getAllLandlords = async (
       sortOrder = "desc",
     } = req.query;
 
-    const query: any = { userType: "Landowners" };
+    const query: any = { userType: "Landowners", isDeleted: false };
     const searchConditions: any[] = [];
 
     if (search && search.toString().trim()) {

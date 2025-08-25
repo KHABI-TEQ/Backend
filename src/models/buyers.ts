@@ -8,6 +8,7 @@ export interface IBuyer {
   address?: string;
   contactPerson?: string;
   cacRegistrationNumber?: string;
+  whatsAppNumber?: string;
 } 
 
 export interface IBuyerDoc extends IBuyer, Document {}
@@ -27,6 +28,7 @@ export class Buyer {
         address: { type: String },
         contactPerson: { type: String },
         cacRegistrationNumber: { type: String },
+        whatsAppNumber: { type: String }
       },
       {
         timestamps: true,
