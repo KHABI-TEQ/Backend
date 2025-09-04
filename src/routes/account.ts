@@ -29,13 +29,16 @@ import {
   requestAccountDeletion,
   updateNotificationSettings,
   updateProfile,
+  validateAgentPublicAccess,
 } from "../controllers/Account/profileSettings";
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
-import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
+import { completeAgentKYC, completeOnboardingAgent, setAgentInspectionFee } from "../controllers/Account/Agent/onBoarding";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import { cancelSubscription, createSubscription, fetchUserSubscriptions, getUserSubscriptionDetails, toggleSubscriptionAutoRenewal } from "../controllers/Account/Agent/subscriptions";
+import { validateJoi } from "../middlewares/validateJoi";
+import { agentKycSchema } from "../validators/agentKYC.validator";
 
 const AccountRouter = express.Router();
 
@@ -50,7 +53,12 @@ AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.put("/changePassword", changePassword);
 AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
-   
+
+// AGENT UNIQUE ROUTES
+AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completeAgentKYC);
+AccountRouter.put("/updateInspectionFee", setAgentInspectionFee);
+AccountRouter.get("/validatePublicAccess/", validateAgentPublicAccess);
+
 // PROPERTY ROUTES
 AccountRouter.post("/properties/create", postProperty);
 AccountRouter.patch("/properties/:propertyId/edit", editProperty);

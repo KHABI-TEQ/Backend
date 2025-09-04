@@ -1,5 +1,6 @@
 import "dotenv/config";
-import mongoose from "mongoose";
+// import mongoose from "mongoose";
+import mongoose, { Document, Types } from "mongoose";
 
 // const run = async () => {
 //   try {
@@ -106,6 +107,107 @@ import mongoose from "mongoose";
 //     process.exit(0);
 //   } catch (err) {
 //     console.error("❌ Backfill failed:", err);
+//     process.exit(1);
+//   }
+// };
+
+// run();
+
+
+// const run = async () => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URL!);
+//     console.log("✅ Connected to MongoDB");
+
+//     const Agent = mongoose.model(
+//       "Agent",
+//       new mongoose.Schema({}, { strict: false }),
+//       "agents"
+//     );
+
+//     const result = await Agent.updateMany(
+//       {},
+//       {
+//         $set: {
+//           cacDoc: "",
+//           agentLicenseNumber: "",
+//           profileBio: "",
+//           specializations: [],
+//           languagesSpoken: [],
+//           servicesOffered: [],
+//           achievements: [],
+//           featuredListings: [],
+//           inspectionSettings: {
+//             inspectionPrice: 0,
+//             inspectionPriceEnabled: false,
+//           },
+//         },
+//       }
+//     );
+
+//     console.log(`✅ Backfill complete. Modified ${result.modifiedCount} Agent documents.`);
+//     process.exit(0);
+//   } catch (err) {
+//     console.error("❌ Backfill failed:", err);
+//     process.exit(1);
+//   }
+// };
+
+// run();
+
+
+const run = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URL!);
+    console.log("✅ Connected to MongoDB");
+
+    const Agent = mongoose.model(
+      "Agent",
+      new mongoose.Schema({}, { strict: false }),
+      "agents"
+    );
+
+    // Remove the isInUpgrade field from all agents
+    const result = await Agent.updateMany(
+      { isInUpgrade: { $exists: true } },
+      { $unset: { isInUpgrade: "" } }
+    );
+
+    console.log(`✅ Successfully removed upgradeData from ${result.modifiedCount} Agent documents.`);
+    process.exit(0);
+  } catch (err) {
+    console.error("❌ Script failed:", err);
+    process.exit(1);
+  }
+};
+
+run();
+
+// const run = async () => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URL!);
+//     console.log("✅ Connected to MongoDB");
+
+//     const Agent = mongoose.model(
+//       "Agent",
+//       new mongoose.Schema({}, { strict: false }),
+//       "agents"
+//     );
+
+//     // Add 'achievements' field as an empty array of objects for all agents that don't have it
+//     const result = await Agent.updateMany(
+//       { achievements: { $exists: false } },
+//       {
+//         $set: {
+//           achievements: [], // default empty array
+//         },
+//       }
+//     );
+
+//     console.log(`✅ Achievements column added. Modified ${result.modifiedCount} Agent documents.`);
+//     process.exit(0);
+//   } catch (err) {
+//     console.error("❌ Failed to add achievements column:", err);
 //     process.exit(1);
 //   }
 // };

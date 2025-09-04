@@ -9,7 +9,7 @@ export interface IAgent {
   };
   regionOfOperation: string[];
   agentType: string;
-  companyAgent: {
+  companyAgent?: {
     companyName?: string;
     cacNumber?: string;
   };
@@ -17,26 +17,13 @@ export interface IAgent {
   isDeleted?: boolean;
   accountApproved?: boolean;
   accountStatus?: string;
-  meansOfId: {
+  meansOfId?: {
     name: string;
     docImg: string[];
   }[];
-  isInUpgrade: boolean;
-  upgradeData: {
-    companyAgent: {
-      companyName?: string;
-      cacNumber?: string;
-    };
-    meansOfId: {
-      name: string;
-      docImg: string[];
-    }[];
-    requestDate?: Date;
-    approvedDate?: Date;
-  };
   isFlagged: boolean;
   userId:Types.ObjectId;
-  govtId: {
+  govtId?: {
     typeOfId: string;
     idNumber: string;
   };
@@ -44,8 +31,22 @@ export interface IAgent {
     inspectionPrice: number;
     inspectionPriceEnabled: boolean;
   };
-}
 
+  // NEW FIELDS
+  agentLicenseNumber?: string;
+  profileBio?: string;
+  specializations?: string[]; // e.g., Luxury, Rentals, Shortlet, JV
+  languagesSpoken?: string[]; // e.g., English, Yoruba, Igbo
+  servicesOffered?: string[]; // e.g., Consultation, Market Analysis, Management
+  achievements?: {
+    title: string;
+    description?: string;
+    fileUrl?: string;
+    dateAwarded?: Date;
+  }[];
+  featuredListings?: Types.ObjectId[]; // references to property IDs
+}
+ 
 export interface IAgentDoc extends IAgent, Document {}
 
 export type IAgentModel = Model<IAgentDoc>;
@@ -79,21 +80,6 @@ export class Agent {
           },
         ],
 
-        isInUpgrade: { type: Boolean, default: false },
-        upgradeData: {
-          companyAgent: {
-            companyName: { type: String },
-            cacNumber: { type: String },
-          },
-          meansOfId: [
-            {
-              name: { type: String },
-              docImg: { type: [String] },
-            },
-          ],
-          requestDate: { type: Date, default: Date.now },
-          approvedDate: { type: Date },
-        },
         isFlagged: { type: Boolean, default: false },
         userId: { type:Schema.Types.ObjectId, required: true, ref: 'User' },
         govtId: {
@@ -104,6 +90,25 @@ export class Agent {
           inspectionPrice: { type: Number, default: 0 },
           inspectionPriceEnabled: { type: Boolean, default: false },
         },
+
+        // NEW SCHEMA FIELDS
+        agentLicenseNumber: { type: String },
+        profileBio: { type: String },
+        specializations: { type: [String], default: [] },
+        languagesSpoken: { type: [String], default: [] },
+        servicesOffered: { type: [String], default: [] },
+        achievements: {
+          type: [
+            {
+              title: { type: String, required: true },
+              description: { type: String },
+              fileUrl: { type: String },
+              dateAwarded: { type: Date },
+            },
+          ],
+          default: [],
+        },
+        featuredListings: [{ type: Schema.Types.ObjectId, ref: 'Property' }],
       },
       {
         timestamps: true,
