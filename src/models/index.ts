@@ -19,4 +19,6 @@ export * from "./referralLog";
 export * from "./fieldAgent";
 export * from "./newTransaction";
 export * from "./subscription";
+export * from "./subscriptionPlan";
 export * from "./settings";
+export * from "./paymentMethod";
