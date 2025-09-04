@@ -27,6 +27,10 @@ export interface IUser {
   enableNotifications?: boolean;
   referralCode?: string;
   referredBy?: string;
+  publicAccess?: {
+    url?: string;
+    urlEnabled?: boolean;
+  };
 }
 
 export interface IUserDoc extends IUser, Document {}
@@ -74,6 +78,10 @@ export class User {
         enableNotifications: { type: Boolean, default: true },
         referralCode: { type: String, unique: true, sparse: true },
         referredBy: { type: String },
+        publicAccess: {
+          url: { type: String, unique: true, sparse: true, trim: true },
+          urlEnabled: { type: Boolean, default: false },
+        },
       },
       {
         timestamps: true,

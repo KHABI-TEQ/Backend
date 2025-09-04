@@ -27,6 +27,8 @@ import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 import { deleteTransactionDetails, getAllTransactions, getTransactionById, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
 import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
+import { createSubscriptionPlan, deleteSubscriptionPlan, getAllSubscriptionPlans, getSubscriptionPlan, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
+import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -154,6 +156,18 @@ AdminRouter.get("/transactions/:transactionId", getTransactionById);
 AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
 
+// SUBSCRIPTION PLANS MANAGEMENT ROUTES
+AdminRouter.post("/subsription-plans/createNew", createSubscriptionPlan);
+AdminRouter.put("/subsription-plans/:planId/update", updateSubscriptionPlan);
+AdminRouter.delete("/subsription-plans/:planId/deleteOne", deleteSubscriptionPlan);
+AdminRouter.get("/subsription-plans", getAllSubscriptionPlans);
+AdminRouter.get("/subsription-plans/:planId/getOne", getSubscriptionPlan);
+
+// SUBSCRIPTION PLANS MANAGEMENT ROUTES
+AdminRouter.get("/subscriptions", fetchUserSubscriptions);
+AdminRouter.get("/subscriptions/:subscriptionId", getSubscriptionDetails);
+AdminRouter.put("/subscriptions/:subscriptionId", updateSubscription);
+AdminRouter.post("/subscriptions/:subscriptionId", cancelSubscription);
 
 // =======================DOCUMENT VERIFICATION FUNCTIONALITIES==================================
 AdminRouter.get("/verification-docs", fetchAllVerifyDocs);

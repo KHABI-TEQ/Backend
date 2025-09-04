@@ -88,7 +88,7 @@ export const registerUser = async (
     if (userType === "Agent") {
       await DB.Models.Agent.create({
         userId: newUser._id,
-        accountStatus: "active",
+        accountStatus: "inactive",
       });
     }
 

@@ -48,6 +48,8 @@ export class AdminInspectionController {
       if (typeof isNegotiating !== "undefined")
         query.isNegotiating = isNegotiating === "true";
 
+      query.status = { $ne: "pending_transaction" };
+
       const currentPage = Math.max(1, parseInt(page as string, 10));
       const perPage = Math.min(100, parseInt(limit as string, 10));
 
@@ -68,7 +70,7 @@ export class AdminInspectionController {
         createdAt: 0,
         updatedAt: 0
       };
-
+ 
       const total = await DB.Models.InspectionBooking.countDocuments(query);
       const inspections = await DB.Models.InspectionBooking.find(query)
         .populate("propertyId")

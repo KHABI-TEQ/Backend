@@ -11,7 +11,7 @@ export interface ISubscription {
   transaction: Types.ObjectId;
   autoRenew?: boolean;
 }
-
+ 
 export interface ISubscriptionDoc extends ISubscription, Document {}
 
 export type ISubscriptionModel = Model<ISubscriptionDoc>;

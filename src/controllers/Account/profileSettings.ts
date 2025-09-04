@@ -1,9 +1,9 @@
-import { Response, NextFunction } from "express";
-import { AppRequest } from "../../types/express";
-import { DB } from "..";
-import HttpStatusCodes from "../../common/HttpStatusCodes";
-import { RouteError } from "../../common/classes";
-import bcrypt from "bcryptjs";
+import { Response, NextFunction } from "express"; 
+import { AppRequest } from "../../types/express"; 
+import { DB } from ".."; 
+import HttpStatusCodes from "../../common/HttpStatusCodes"; 
+import { RouteError } from "../../common/classes"; 
+import bcrypt from "bcryptjs"; 
 import { Types } from "mongoose";
 
 // Fetch Profile
@@ -49,13 +49,19 @@ export const getProfile = async (
         userId: user._id,
       }).lean();
 
-      if (agentData?.agentType) {
-        responseData = {
-          ...userResponse,
-          agentData,
-          isAccountApproved: user.accountApproved,
-        };
-      }
+      // Get active subscription for this agent
+      const activeSubscription = await DB.Models.Subscription.findOne({
+        user: user._id,
+        status: "active",
+        endDate: { $gte: new Date() },
+      }).lean();
+
+      responseData = {
+        ...userResponse,
+        agentData,
+        isAccountApproved: user.accountApproved,
+        activeSubscription: activeSubscription || null,
+      };
     }
 
     return res.status(HttpStatusCodes.OK).json({
@@ -63,7 +69,7 @@ export const getProfile = async (
       message: "Profile fetched successfully",
       data: {
         user: responseData,
-      }
+      },
     });
   } catch (err) {
     next(err);

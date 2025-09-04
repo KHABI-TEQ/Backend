@@ -41,8 +41,12 @@ import {
   INewTransactionModel,
   Subscription,
   ISubscriptionModel,
+  SubscriptionPlan,
+  ISubscriptionPlanModel,
   ISystemSettingModel,
   SystemSetting,
+  PaymentMethod,
+  IPaymentMethodModel,
 } from "../models/index";
 
 
@@ -68,7 +72,9 @@ declare interface IModels {
   FieldAgent: IFieldAgentModel;
   NewTransaction: INewTransactionModel;
   Subscription: ISubscriptionModel;
+  SubscriptionPlan: ISubscriptionPlanModel;
   SystemSetting: ISystemSettingModel;
+  PaymentMethod: IPaymentMethodModel;
 } 
 
 export class DB {
@@ -109,7 +115,9 @@ export class DB {
       FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
       Subscription: new Subscription().model,
+      SubscriptionPlan: new SubscriptionPlan().model,
       SystemSetting: new SystemSetting().model,
+      PaymentMethod: new PaymentMethod().model,
     };
   }
 

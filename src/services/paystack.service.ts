@@ -8,6 +8,10 @@ import { generalTemplate, InspectionRequestWithNegotiation, InspectionRequestWit
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
 import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
+import { generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } from '../common/emailTemplates/subscriptionMails';
+import { SystemSettingService } from './systemSetting.service';
+import { AccountService } from './account.service';
+import { PaymentMethodService } from './paymentMethod.service';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -79,6 +83,89 @@ export class PaystackService {
     };
   }
 
+
+  /**
+   * Automatically charge a user using saved authorization for auto-renewal
+   */
+  static async autoCharge({
+    userId,
+    subscriptionId,
+    amount,
+    authorizationCode,
+    email,
+    transactionType = 'subscription',
+    currency = 'NGN',
+  }: {
+    userId: Types.ObjectId | string;
+    subscriptionId: Types.ObjectId | string;
+    amount: number;
+    authorizationCode: string;
+    email: string;
+    transactionType?: string;
+    currency?: string;
+  }) {
+    try {
+      const reference = 'AR' + Math.floor(Math.random() * 9e14 + 1e14).toString();
+
+      // Create pending transaction record in DB
+      const transactionData = await DB.Models.NewTransaction.create({
+        reference,
+        fromWho: { kind: 'User', item: userId },
+        amount,
+        transactionType,
+        paymentMode: 'card',
+        status: 'pending',
+        currency,
+        meta: { subscriptionId, autoRenewal: true },
+      });
+
+      // Charge via Paystack using saved authorization code
+      const response = await axios.post(
+        `${PAYSTACK_BASE_URL}/transaction/charge_authorization`,
+        {
+          authorization_code: authorizationCode,
+          amount: amount * 100, // kobo
+          email,
+          reference,
+          currency,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      const data = response.data.data;
+
+      // Update DB transaction status based on Paystack response
+      const updatedTx = await DB.Models.NewTransaction.findByIdAndUpdate(
+        transactionData._id,
+        {
+          status: data.status === 'success' ? 'success' : 'failed',
+          paymentDetails: {
+            ...data,
+            paidAt: data.paid_at,
+            channel: data.channel,
+            authorization: data.authorization,
+            customer: data.customer,
+          },
+        },
+        { new: true }
+      );
+
+      return {
+        success: data.status === 'success',
+        transaction: updatedTx,
+        reason: data.status !== 'success' ? data.gateway_response : undefined,
+      };
+    } catch (err: any) {
+      console.error('Auto-charge failed:', err?.response?.data || err.message);
+      return { success: false, reason: err?.response?.data?.message || err.message };
+    }
+  }
+
    /**
    * Verifies a Paystack transaction by reference and updates the DB
    */
@@ -116,7 +203,7 @@ export class PaystackService {
 
       // Execute type-specific logic (send mail, etc.)
       const dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
-
+ 
       return {
         verified: data.status === 'success',
         transaction: updatedTx,
@@ -308,30 +395,101 @@ export class PaystackService {
   }
 
   /**
-   * Handles the side effects of a subscription payment.
-   */
+ * Handles the side effects of a subscription payment.
+ */
   static async handleSubscriptionPayment(transaction: any) {
     const subscription = await DB.Models.Subscription.findOne({
       transaction: transaction._id,
-    });
+    }).populate("user"); // so we can get user email, name
 
     if (!subscription) return;
 
     if (subscription.status === "pending") {
       const newStatus = transaction.status === "success" ? "active" : "cancelled";
 
-      subscription.status = newStatus
-      subscription.save();
+      const plan = await DB.Models.SubscriptionPlan.findOne({ code: subscription.plan });
+      if (!plan) return null;
+
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + plan.durationInDays);
+
+      subscription.status = newStatus;
+      subscription.startDate = startDate;
+      subscription.endDate = endDate;
+      await subscription.save();
+
+      // =======================
+      // Subscription Mails
+      // =======================
+      const user = subscription.user as any; // populated user
+      const fullName = `${user.firstName} ${user.lastName}`;
 
       if (transaction.status === "success") {
+
+        // create auto renewal authorization
+        if (subscription.autoRenew) {
+          await PaymentMethodService.createPaymentMethod({
+            userId: user._id,
+            type: transaction.paymentMode,
+            authorizationCode: transaction.paymentDetails.authorization.authorization_code,
+            last4: transaction.paymentDetails.authorization.last4,
+            expMonth: transaction.paymentDetails.authorization.exp_month,
+            expYear: transaction.paymentDetails.authorization.exp_year,
+            brand: transaction.paymentDetails.authorization.card_type,
+            bank: transaction.paymentDetails.authorization.bank,
+            reusable: transaction.paymentDetails.authorization.reusable,
+            customerCode: transaction.paymentDetails.customer.customer_code,
+            isDefault: true,
+          });
+        }
         
+        // create public link
+        const userPublicURL = await AccountService.createPublicUrl(user._id);
+        const publicAccessCompleteLink = `${process.env.FRONTEND_URL}/pv-account/${userPublicURL}`;
+
+        const successMailBody = generalEmailLayout(
+          generateSubscriptionSuccessEmail({
+            fullName,
+            planName: plan.name,
+            amount: transaction.amount / 100, // if Paystack stores in kobo
+            nextBillingDate: endDate.toDateString(),
+            transactionRef: transaction.reference,
+            publicAccessLink: publicAccessCompleteLink,
+          })
+        );
+
+        await sendEmail({
+          to: user.email,
+          subject: "Subscription Renewed Successfully",
+          html: successMailBody,
+          text: successMailBody,
+        });
+
       } else {
-        
+        const failureMailBody = generalEmailLayout(
+          generateSubscriptionFailureEmail({
+            fullName,
+            planName: plan.name,
+            amount: transaction.amount / 100,
+            transactionRef: transaction.reference,
+            retryLink: `${process.env.FRONTEND_URL}/billing/retry?subId=${subscription._id}`,
+          })
+        );
+
+        await sendEmail({
+          to: user.email,
+          subject: "Subscription Payment Failed",
+          html: failureMailBody,
+          text: failureMailBody,
+        });
       }
     }
 
     return subscription;
   }
+
+
 
  /**
  * Handles the effects of a document verification payment.
@@ -377,17 +535,21 @@ export class PaystackService {
             text: buyerMailBody,
           });
 
-          // Determine department based on docType
-          const hasSurveyPlan = docVerification.documents.documentType == '"survey-plan"';
+          const docType = (docVerification.documents.documentType || "")
+          .toLowerCase()
+          .trim(); // normalize
 
-          const recipientEmail = hasSurveyPlan
-            ? process.env.SURVEY_GENERAL_MAIL // Survey Plan Department
-            : process.env.GENERAL_VERIFICATION_MAIL; // General Verification Department
+          // Construct the setting key dynamically
+          const settingKey = `${docType}_verification_email`;
+
+          let recipientEmail =
+            (await SystemSettingService.getSetting(settingKey))?.value ||
+            process.env.GENERAL_VERIFICATION_MAIL; // fallback
 
           // Prepare third-party email
           const thirdPartyEmailHTML = generalEmailLayout(
             generateThirdPartyVerificationEmail({
-              recipientName: hasSurveyPlan
+              recipientName: docType === "survey-plan"
                 ? "Survey Plan Officer"
                 : "Verification Officer",
               requesterName: buyerData?.fullName || "",
@@ -400,7 +562,7 @@ export class PaystackService {
 
           await sendEmail({
             to: recipientEmail,
-            subject: hasSurveyPlan
+            subject: docType === "survey-plan"
               ? "New Survey Plan Verification Request"
               : "New Document Verification Request",
             html: thirdPartyEmailHTML,

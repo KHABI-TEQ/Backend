@@ -421,7 +421,7 @@ class InspectionActionsController {
         { email: requestedBy.email },
         { $setOnInsert: requestedBy },
         { upsert: true, new: true },
-      );
+      ); 
  
       // Generate payment link
       const paymentResponse = await PaystackService.initializePayment({

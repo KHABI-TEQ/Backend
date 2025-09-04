@@ -35,6 +35,7 @@ import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
+import { cancelSubscription, createSubscription, fetchUserSubscriptions, getUserSubscriptionDetails, toggleSubscriptionAutoRenewal } from "../controllers/Account/Agent/subscriptions";
 
 const AccountRouter = express.Router();
 
@@ -49,7 +50,7 @@ AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.put("/changePassword", changePassword);
 AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
-  
+   
 // PROPERTY ROUTES
 AccountRouter.post("/properties/create", postProperty);
 AccountRouter.patch("/properties/:propertyId/edit", editProperty);
@@ -63,6 +64,12 @@ AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
 
+// SUBSCRIPTION ROUTES
+AccountRouter.post("/subscriptions/makeSub", createSubscription);
+AccountRouter.get("/subscriptions/fetchAll", fetchUserSubscriptions);
+AccountRouter.get("/subscriptions/:subscriptionId", getUserSubscriptionDetails);
+AccountRouter.post("/subscriptions/:subscriptionId/cancel", cancelSubscription);
+AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSubscriptionAutoRenewal);
 
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);

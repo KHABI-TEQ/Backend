@@ -31,7 +31,7 @@ export interface INewTransaction {
   paymentDetails?: Record<string, any>;
   platform?: string;
   meta?: Record<string, any>;
-}
+} 
 
 export interface INewTransactionDoc extends INewTransaction, Document {}
 
