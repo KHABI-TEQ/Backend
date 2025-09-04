@@ -1,5 +1,5 @@
-// import "dotenv/config";
-// import mongoose from "mongoose";
+import "dotenv/config";
+import mongoose from "mongoose";
 
 // const run = async () => {
 //   try {
@@ -75,3 +75,39 @@
 
 // run();
 
+
+
+
+// const run = async () => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URL!);
+//     console.log("✅ Connected to MongoDB");
+
+//     const Agent = mongoose.model(
+//       "Agent",
+//       new mongoose.Schema({}, { strict: false }),
+//       "agents"
+//     );
+
+//     // Backfill `inspectionSettings` where it doesn't exist
+//     const result = await Agent.updateMany(
+//       { inspectionSettings: { $exists: false } },
+//       {
+//         $set: {
+//           inspectionSettings: {
+//             inspectionPrice: 0,
+//             inspectionPriceEnabled: false,
+//           },
+//         },
+//       }
+//     );
+
+//     console.log(`✅ Added inspectionSettings to ${result.modifiedCount} agents.`);
+//     process.exit(0);
+//   } catch (err) {
+//     console.error("❌ Backfill failed:", err);
+//     process.exit(1);
+//   }
+// };
+
+// run();

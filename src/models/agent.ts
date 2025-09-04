@@ -3,7 +3,6 @@ import { Schema, model, models, Document, Model, Types } from 'mongoose';
 export interface IAgent {
   address: {
     street: string;
-    // city?: string;
     homeNo: string;
     state: string;
     localGovtArea: string;
@@ -40,6 +39,10 @@ export interface IAgent {
   govtId: {
     typeOfId: string;
     idNumber: string;
+  };
+  inspectionSettings?: {
+    inspectionPrice: number;
+    inspectionPriceEnabled: boolean;
   };
 }
 
@@ -96,6 +99,10 @@ export class Agent {
         govtId: {
           typeOfId: { type: String },
           idNumber: { type: String },
+        },
+        inspectionSettings: {
+          inspectionPrice: { type: Number, default: 0 },
+          inspectionPriceEnabled: { type: Boolean, default: false },
         },
       },
       {
