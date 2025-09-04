@@ -22,6 +22,7 @@ import { submitContactForm } from "../controllers/public/contactUs";
 import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
+import { getPublicAgentProfile } from "../controllers/public/extralActions";
 
 const router = express.Router();
 
@@ -152,7 +153,10 @@ router.post("/contact-us/submit", submitContactForm);
 
 // Testimonials route
 router.get("/testimonials", getLatestApprovedTestimonials);
- 
+
+// All Auth Routes
+router.get("/pv-account/:publicAccessUID", getPublicAgentProfile);
+
 // All Auth Routes
 router.use("/auth", AuthRouter);
 

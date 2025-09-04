@@ -27,16 +27,13 @@ export const formatUpgradeAgentForTable = (agent: any) => {
     isFlagged: user?.isFlagged || false,
     agentId: agent._id,
     currentAgentType: agent.agentType,
-    requestedUpgradeAgentType: agent.upgradeData?.companyAgent?.companyName ? 'Company' : 'Individual',
-    upgradeRequestDate: agent.upgradeData?.requestDate ? new Date(agent.upgradeData.requestDate).toLocaleDateString() : '-',
+    requestedUpgradeAgentType: 'Individual',
+    upgradeRequestDate: '-',
     upgradeCompanyInfo: {
-      companyName: agent.upgradeData?.companyAgent?.companyName || '-',
-      cacNumber: agent.upgradeData?.companyAgent?.cacNumber || '-',
+      companyName: '-',
+      cacNumber: '-',
     },
-    upgradeMeansOfId: (agent.upgradeData?.meansOfId || []).map((id: any) => ({
-      name: id.name,
-      docImg: id.docImg,
-    })),
+    upgradeMeansOfId: {},
   };
 };
 

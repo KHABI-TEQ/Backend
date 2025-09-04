@@ -13,7 +13,7 @@ export interface IProperty {
     state: string;
     localGovernment: string;
     area: string;
-  };
+  }; 
   landSize?: {
     measurementType?: string;
     size?: number;

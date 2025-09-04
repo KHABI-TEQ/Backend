@@ -158,14 +158,12 @@ export const getAllAgentUpgradeRequests = async (
     const limit = Number(req.query.limit) || 10;
 
     const query = {
-      isInUpgrade: true,
       isDeleted: false,
     };
 
     const agents = await DB.Models.Agent.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
-      .sort({ "upgradeData.requestDate": -1 }) // Most recent requests first
       .populate("userId", "email firstName lastName phoneNumber fullName isAccountVerified accountStatus isFlagged") // Select useful user fields
       .exec();
 
@@ -180,13 +178,13 @@ export const getAllAgentUpgradeRequests = async (
         name: user ? `${user.firstName} ${user.lastName}` : null,
         email: user?.email || null,
         phoneNumber: user?.phoneNumber || null,
-        requestDate: agent.upgradeData?.requestDate || null,
+        requestDate: {},
         upgradeStatus: agent.accountApproved ? "Approved" : "Pending",
         accountStatus: user?.accountStatus || "unknown",
         accountVerified: user?.isAccountVerified || false,
         flagged: user?.isFlagged || false,
         agentType: agent.agentType,
-        companyAgent: agent.upgradeData?.companyAgent || null,
+        companyAgent: {},
       };
     });
 
@@ -481,27 +479,7 @@ export const approveAgentUpgradeRequestStatus = async (
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Agent record not found for this user"));
     }
 
-    const updateData: any = approved
-      ? {
-          isInUpgrade: false,
-          upgradeData: {
-            ...agent.upgradeData, // Keep existing upgradeData fields
-            approvedDate: new Date(),
-          },
-          // Assuming that on approval, 'individualAgent' typeOfId is cleared
-          // and 'companyAgent' details are potentially moved/confirmed.
-          // The original code moves companyAgent and meansOfId directly to root,
-          // which seems like a type change. Ensure your schema supports this.
-          individualAgent: { typeOfId: "" }, // Clear individual agent type if becoming company/approved
-          companyAgent: agent.upgradeData.companyAgent, // Reassign companyAgent details from upgradeData
-          meansOfId: agent.upgradeData.meansOfId, // Reassign meansOfId from upgradeData
-        }
-      : {
-          isInUpgrade: false, // Disapprove means setting isInUpgrade to false
-        };
-
-    await DB.Models.Agent.findByIdAndUpdate(agent._id, updateData).exec();
-
+ 
     const mailBody = generalEmailLayout(
       approved
         ? accountUpgradeApprovedTemplate(user.firstName)

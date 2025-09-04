@@ -377,4 +377,48 @@ export const getDashboardData = async (
 };
 
 
+export const validateAgentPublicAccess = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const authUser = req.user;
 
+    if (!authUser || authUser.userType !== "Agent") {
+      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: "Only agents can have public access.",
+      });
+    }
+
+    const user = await DB.Models.User.findById(authUser._id).lean();
+    if (!user) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "User account not found.",
+      });
+    }
+
+    const hasPublicAccess =
+      user.publicAccess?.urlEnabled === true && !!user.publicAccess?.url;
+
+    if (!hasPublicAccess) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message:
+          "You do not have public access. Please subscribe to gain access.",
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Agent has valid public access.",
+      data: {
+        url: user.publicAccess?.url,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
