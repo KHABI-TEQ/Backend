@@ -36,7 +36,7 @@ import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "
 import { completeAgentKYC, completeOnboardingAgent, setAgentInspectionFee } from "../controllers/Account/Agent/onBoarding";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
-import { cancelSubscription, createSubscription, fetchUserSubscriptions, getUserSubscriptionDetails, toggleSubscriptionAutoRenewal } from "../controllers/Account/Agent/subscriptions";
+import { cancelSubscription, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionAutoRenewal } from "../controllers/Account/Agent/subscriptions";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 
@@ -75,6 +75,7 @@ AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
 // SUBSCRIPTION ROUTES
 AccountRouter.post("/subscriptions/makeSub", createSubscription);
 AccountRouter.get("/subscriptions/fetchAll", fetchUserSubscriptions);
+AccountRouter.get("/subscriptions/fetchAllPlans", getAllActiveSubscriptionPlans);
 AccountRouter.get("/subscriptions/:subscriptionId", getUserSubscriptionDetails);
 AccountRouter.post("/subscriptions/:subscriptionId/cancel", cancelSubscription);
 AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSubscriptionAutoRenewal);

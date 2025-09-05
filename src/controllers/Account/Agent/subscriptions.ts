@@ -326,3 +326,25 @@ export const toggleSubscriptionAutoRenewal = async (
   }
 };
 
+/**
+ * Fetch ALl Active subscription plans
+ */
+export const getAllActiveSubscriptionPlans = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const plans = await DB.Models.SubscriptionPlan.find({ isActive: true }) // 👈 filter added
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: plans,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
