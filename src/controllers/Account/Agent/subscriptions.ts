@@ -85,10 +85,14 @@ export const fetchUserSubscriptions = async (
   next: NextFunction
 ) => {
   try {
+    const userId = req.user?._id;
+
     const { page = 1, limit = 10, status } = req.query;
 
+    console.log(userId, "jhghj");
+
     const filter: any = {
-      user: req.user._id,
+      user: userId,
     };
 
     if (status) {
@@ -96,7 +100,7 @@ export const fetchUserSubscriptions = async (
     }
 
     const subscriptions = await DB.Models.Subscription.find(filter)
-      .populate("transaction") // so we can see the payment reference, amount, etc.
+      .populate("transaction")
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .sort({ createdAt: -1 })

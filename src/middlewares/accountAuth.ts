@@ -56,10 +56,11 @@ const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) =
           message: "Account not approved. You cannot perform this action.",
         });
       }
-    }
 
+    }
+ 
     req.user = user;
-    return next();
+    next();
   } catch (error) {
     console.error("[AUTH] Error in accountAuth middleware:", error);
     return res.status(500).json({ message: "Internal server error" });
