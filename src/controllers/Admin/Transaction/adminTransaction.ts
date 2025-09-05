@@ -6,7 +6,11 @@ import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
 
 // Get all transactions
-export const getAllTransactions = async (req: AppRequest, res: Response, next: NextFunction) => {
+export const getAllTransactions = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const {
       page = "1",
@@ -26,20 +30,28 @@ export const getAllTransactions = async (req: AppRequest, res: Response, next: N
 
     const filter: Record<string, any> = {};
 
-    // Normalize and validate filters
-    const allowedStatuses = ["pending", "success", "failed"];
+    // Allowed values
+    const allowedStatuses = ["pending", "success", "failed", "cancelled"];
     const allowedTransactionTypes = [
-      "inspection",
+      "payment",
+      "withdrawal",
+      "deposit",
+      "transfer",
+      "refund",
       "subscription",
-      "investment",
-      "advertisement",
-      "custom",
+      "inspection",
+      "document-verification",
     ];
 
+    // Apply status filter
     if (status && allowedStatuses.includes(status)) {
       filter.status = status;
+    } else {
+      // exclude pending by default
+      filter.status = { $ne: "pending" };
     }
 
+    // Apply transactionType filter
     if (transactionType && allowedTransactionTypes.includes(transactionType)) {
       filter.transactionType = transactionType;
     }
@@ -71,6 +83,7 @@ export const getAllTransactions = async (req: AppRequest, res: Response, next: N
     next(err);
   }
 };
+
 
 
 // Get single transaction by ID

@@ -32,6 +32,21 @@ const deleteOldPendingItems = async () => {
     });
     console.log(`[CRON] Deleted ${inspectionResult.deletedCount} old pending inspection bookings`);
 
+    // 2️⃣ Delete document verification with status 'pending' older than 2 days
+    const documentVerficationResult = await DB.Models.DocumentVerification.deleteMany({
+      status: 'pending',
+      createdAt: { $lt: twoDaysAgo },
+    });
+    console.log(`[CRON] Deleted ${documentVerficationResult.deletedCount} old pending inspection bookings`);
+
+    // 2️⃣ Delete Subscription with status 'pending' older than 2 days
+    const subscriptionResult = await DB.Models.DocumentVerification.deleteMany({
+      status: 'pending',
+      createdAt: { $lt: twoDaysAgo },
+    });
+    console.log(`[CRON] Deleted ${subscriptionResult.deletedCount} old pending inspection bookings`);
+
+
   } catch (err) {
     console.error('[CRON] Error deleting old pending items:', err);
   }

@@ -10,12 +10,14 @@ export const fetchUserTransactions = async (
   next: NextFunction
 ) => {
   try {
+    const userId = req.user?._id;
+
     const { page = 1, limit = 10, transactionType } = req.query;
 
     // Filter to only fetch the user's transactions with allowed statuses
     const filter: any = {
       "fromWho.kind": "User",
-      "fromWho.item": req.user._id,
+      "fromWho.item": userId,
       status: { $in: ["failed", "success", "cancelled"] },
     };
 
