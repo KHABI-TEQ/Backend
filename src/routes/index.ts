@@ -23,6 +23,7 @@ import { submitDocumentVerification } from "../controllers/public/submitVerifica
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getPublicAgentProfile } from "../controllers/public/extralActions";
+import { getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 
 const router = express.Router();
 
@@ -153,6 +154,8 @@ router.post("/contact-us/submit", submitContactForm);
 
 // Testimonials route
 router.get("/testimonials", getLatestApprovedTestimonials);
+
+router.get("/subscriptions/plans", getAllActiveSubscriptionPlans);
 
 // All Auth Routes
 router.get("/pv-account/:publicAccessUID", getPublicAgentProfile);
