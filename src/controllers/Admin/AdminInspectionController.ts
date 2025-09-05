@@ -738,13 +738,14 @@ export class AdminInspectionController {
   ): Promise<Response> {
     try {
       // 1. Count total inspections
-      const totalInspections =
-        await DB.Models.InspectionBooking.countDocuments();
+      const totalInspections = await DB.Models.InspectionBooking.countDocuments({
+        status: { $ne: "pending_transaction" },
+      });
 
       // 2. Count pending inspections
-      const totalPendingInspections =
+      const totalApprovedInspections =
         await DB.Models.InspectionBooking.countDocuments({
-          status: "pending_transaction",
+          status: "inspection_approved",
         });
 
       // 3. Count completed inspections
@@ -780,7 +781,7 @@ export class AdminInspectionController {
         success: true,
         data: {
           totalInspections,
-          totalPendingInspections,
+          totalApprovedInspections,
           totalCompletedInspections,
           totalCancelledInspections,
           totalActiveNegotiations,
