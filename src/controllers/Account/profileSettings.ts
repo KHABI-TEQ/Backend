@@ -4,7 +4,7 @@ import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes"; 
 import { RouteError } from "../../common/classes"; 
 import bcrypt from "bcryptjs"; 
-import { Types } from "mongoose";
+import { SystemSettingService } from "../../services/systemSetting.service";
 
 // Fetch Profile
 export const getProfile = async (
@@ -40,6 +40,7 @@ export const getProfile = async (
       accountStatus: user.accountStatus,
       isFlagged: user.isFlagged,
       accountId: user.accountId,
+      referralCode: user.referralCode,
     };
 
     let responseData: any = userResponse;
@@ -257,7 +258,7 @@ export const getDashboardData = async (
   res: Response,
   next: NextFunction,
 ) => {
-  try {
+  try { 
     const userId = req.user?._id;
     if (!userId) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
@@ -268,6 +269,7 @@ export const getDashboardData = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
 
+    
     // FieldAgent: inspection-focused dashboard
     if (user.userType === "FieldAgent") {
       const totalInspections = await DB.Models.InspectionBooking.countDocuments({
@@ -339,6 +341,23 @@ export const getDashboardData = async (
       status: "completed",
     });
 
+    const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
+    let referralData = {
+      totalReferred: 0,
+      totalEarnings: 0
+    };
+
+    if (referralStatusSettings?.value) {
+      // fetch all referral logs
+      const logs = await DB.Models.ReferralLog.find({ referrerId: userId });
+
+      const totalReferred = new Set(logs.map((l) => String(l.referredUserId))).size;
+      const totalEarnings = logs.reduce((sum, l) => sum + (l.rewardAmount || 0), 0);
+
+      referralData.totalReferred = totalReferred;
+      referralData.totalEarnings = totalEarnings;
+    }
+
     const dashboardData: Record<string, any> = {
       totalBriefs,
       totalActiveBriefs,
@@ -347,6 +366,7 @@ export const getDashboardData = async (
       totalViews,
       totalInspectionRequests,
       totalCompletedInspectionRequests,
+      referralData
     };
 
     if (user.userType === "Landowners") {

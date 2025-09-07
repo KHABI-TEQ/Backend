@@ -53,6 +53,7 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     accountStatus: user.accountStatus,
     isFlagged: user.isFlagged,
     accountId: user.accountId,
+    referralCode: user.referralCode,
   };
 
   if (user.userType === 'Agent') {
@@ -116,6 +117,16 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
   try {
     let payload;
 
+    const googleAuthStatus = await SystemSettingService.getSetting("google_auth_enabled");
+    if (googleAuthStatus?.value) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Sorry Google Auth is not enabled",
+      );
+    }
+
+    const googleClientID = (await SystemSettingService.getSetting("google_client_id"))?.value || process.env.GOOGLE_CLIENT_ID;
+
     if (isAuthorizationCode(idToken)) {
       // Handle authorization code flow
       try {
@@ -129,7 +140,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
         // Verify the ID token we just received
         const ticket = await googleClient.verifyIdToken({
           idToken: tokens.id_token,
-          audience: process.env.GOOGLE_CLIENT_ID!,
+          audience: googleClientID!,
         });
         
         payload = ticket.getPayload();
@@ -153,7 +164,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       
       const ticket = await googleClient.verifyIdToken({
         idToken,
-        audience: process.env.GOOGLE_CLIENT_ID!,
+        audience: googleClientID!,
       });
       
       payload = ticket.getPayload();
@@ -228,8 +239,8 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       isAccountVerified: true,
       referralCode,
       referredBy: referreredCode,
-      accountApproved: userType === 'Agent' ? false : true,
-      accountStatus: userType === 'Agent' ? 'inactive' : 'active',
+      accountApproved: true,
+      accountStatus: 'active',
       profile_picture: picture,
       accountId,
       isAccountInRecovery: false,
@@ -275,6 +286,14 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
   const { idToken, userType, referreredCode } = req.body;
 
   try {
+    const facebookAuthStatus = await SystemSettingService.getSetting("facebook_auth_enabled");
+    if (facebookAuthStatus?.value) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Sorry Facebook Auth is not enabled",
+      );
+    }
+
     const fbUrl = `https://graph.facebook.com/me?fields=id,first_name,last_name,email,picture&access_token=${idToken}`;
     const fbRes = await fetch(fbUrl);
     const fbData = await fbRes.json();
@@ -352,8 +371,8 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
       isAccountVerified: true,
       referralCode,
       referredBy: referreredCode,
-      accountApproved: userType === 'Agent' ? false : true,
-      accountStatus: userType === 'Agent' ? 'inactive' : 'active',
+      accountApproved: true,
+      accountStatus: 'active',
       profile_picture: picture?.data?.url || '',
       accountId,
       isAccountInRecovery: false,
