@@ -32,7 +32,7 @@ export interface IUser {
     urlEnabled?: boolean;
   };
 }
-
+ 
 export interface IUserDoc extends IUser, Document {
   createdAt: Date;
   updatedAt: Date;
