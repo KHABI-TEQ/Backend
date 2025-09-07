@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import { DB } from '../controllers';
 import mongoose from 'mongoose';
-import { AccountService } from 'src/services/account.service';
+import { AccountService } from '../services/account.service';
 import { generalEmailLayout } from './emailTemplates/emailLayout';
 import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail, generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } from './emailTemplates/subscriptionMails';
 import sendEmail from './send.email';
