@@ -53,6 +53,7 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     accountStatus: user.accountStatus,
     isFlagged: user.isFlagged,
     accountId: user.accountId,
+    referralCode: user.referralCode,
   };
 
   if (user.userType === 'Agent') {
