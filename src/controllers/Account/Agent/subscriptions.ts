@@ -85,32 +85,48 @@ export const fetchUserSubscriptions = async (
   next: NextFunction
 ) => {
   try {
+    const { page = 1, limit = 10, status } = req.query;
     const userId = req.user?._id;
 
-    const { page = 1, limit = 10, status } = req.query;
+    const filter: any = { user: userId };
+    if (status) filter.status = status;
 
-    console.log(userId, "jhghj");
-
-    const filter: any = {
-      user: userId,
-    };
-
-    if (status) {
-      filter.status = status;
-    }
-
+    // Fetch subscriptions with transaction details
     const subscriptions = await DB.Models.Subscription.find(filter)
-      .populate("transaction")
+      .populate({
+        path: "transaction",
+        model: "newTransaction",
+        select: "reference amount status transactionType paymentMode",
+      })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .sort({ createdAt: -1 })
       .lean();
 
+    // Collect unique plan codes from subscriptions
+    const planCodes = subscriptions.map((sub) => sub.plan);
+    const plans = await DB.Models.SubscriptionPlan.find(
+      { code: { $in: planCodes }, isActive: true },
+      { name: 1, code: 1 }
+    ).lean();
+
+    // Map plans for quick lookup
+    const planMap = plans.reduce((acc, plan) => {
+      acc[plan.code] = plan;
+      return acc;
+    }, {} as Record<string, { name: string; code: string }>);
+
+    // Attach planDetails to each subscription
+    const result = subscriptions.map((sub) => ({
+      ...sub,
+      planDetails: planMap[sub.plan] || null,
+    }));
+
     const total = await DB.Models.Subscription.countDocuments(filter);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: subscriptions,
+      data: result,
       pagination: {
         total,
         page: Number(page),
@@ -122,6 +138,7 @@ export const fetchUserSubscriptions = async (
     next(err);
   }
 };
+
 
 /**
  * Fetch details of a single subscription for the authenticated user

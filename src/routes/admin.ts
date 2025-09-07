@@ -5,7 +5,7 @@ import { adminAuth } from "../middlewares/adminAuth";
 import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
 import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../controllers/Admin/profileSettings";
 import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
-import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
+import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
 import { getPreferenceModeStats, getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
 import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
@@ -29,6 +29,7 @@ import { deleteTransactionDetails, getAllTransactions, getTransactionById, valid
 import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
 import { createSubscriptionPlan, deleteSubscriptionPlan, getAllSubscriptionPlans, getSubscriptionPlan, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
+import { deletePreference } from "../controllers/Admin/preference/deletePreference";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -79,6 +80,7 @@ AdminRouter.patch("/admins/:adminId/status", changeAdminStatus);
  * AGENTS MANAGEMENT ROUTES
  */
 AdminRouter.get("/agents", getAllAgents);
+AdminRouter.get("/agents/fetchAll", getAgents);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
 AdminRouter.post("/agents/approve-agent", approveAgentOnboardingStatus);
@@ -97,7 +99,7 @@ AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount
 AdminRouter.delete("/landowners/:userId/delete", deleteLandlordAction);
 AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
 AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
-
+ 
  
 AdminRouter.get("/field-agents", getAllFieldAgents);
 AdminRouter.get("/field-agents/dashboard", getFieldAgentDashboardStatistics);
@@ -119,6 +121,7 @@ AdminRouter.patch("/preferences/:preferenceId/approve", approvePreference);
 AdminRouter.patch("/preferences/:preferenceId/reject", rejectPreference);
 AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
 AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
+AdminRouter.delete("/preferences/:preferenceId/delete", deletePreference);
 AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties);
  
 
@@ -175,7 +178,7 @@ AdminRouter.get("/verification-docs/stats", fetchVerifyDocStats);
 AdminRouter.get("/verification-doc/:documentId", fetchSingleVerifyDoc);
 AdminRouter.delete("/verification-docs/:documentId", deleteVerifyDoc);
 AdminRouter.post("/send-to-provider/:documentId", sendToVerificationProvider);
-
+// self report verification
 AdminRouter.post("/verification-docs/:documentId/uploadReport", adminDocumentVerification);
 
 

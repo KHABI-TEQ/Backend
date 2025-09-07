@@ -27,24 +27,21 @@ export interface IAgent {
     typeOfId: string;
     idNumber: string;
   };
-  inspectionSettings?: {
-    inspectionPrice: number;
-    inspectionPriceEnabled: boolean;
+  kycData?: {
+    agentLicenseNumber?: string;
+    profileBio?: string;
+    specializations?: string[];
+    languagesSpoken?: string[];
+    servicesOffered?: string[];
+    achievements?: {
+      title: string;
+      description?: string;
+      fileUrl?: string;
+      dateAwarded?: Date;
+    }[];
+    featuredListings?: Types.ObjectId[];
   };
-
-  // NEW FIELDS
-  agentLicenseNumber?: string;
-  profileBio?: string;
-  specializations?: string[]; // e.g., Luxury, Rentals, Shortlet, JV
-  languagesSpoken?: string[]; // e.g., English, Yoruba, Igbo
-  servicesOffered?: string[]; // e.g., Consultation, Market Analysis, Management
-  achievements?: {
-    title: string;
-    description?: string;
-    fileUrl?: string;
-    dateAwarded?: Date;
-  }[];
-  featuredListings?: Types.ObjectId[]; // references to property IDs
+  kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
 }
  
 export interface IAgentDoc extends IAgent, Document {}
@@ -86,29 +83,32 @@ export class Agent {
           typeOfId: { type: String },
           idNumber: { type: String },
         },
-        inspectionSettings: {
-          inspectionPrice: { type: Number, default: 0 },
-          inspectionPriceEnabled: { type: Boolean, default: false },
-        },
-
-        // NEW SCHEMA FIELDS
-        agentLicenseNumber: { type: String },
-        profileBio: { type: String },
-        specializations: { type: [String], default: [] },
-        languagesSpoken: { type: [String], default: [] },
-        servicesOffered: { type: [String], default: [] },
-        achievements: {
-          type: [
-            {
-              title: { type: String, required: true },
-              description: { type: String },
-              fileUrl: { type: String },
-              dateAwarded: { type: Date },
-            },
+        kycData: {
+          agentLicenseNumber: { type: String },
+          profileBio: { type: String },
+          specializations: { type: [String], default: [] },
+          languagesSpoken: { type: [String], default: [] },
+          servicesOffered: { type: [String], default: [] },
+          achievements: {
+            type: [
+              {
+                title: { type: String, required: true },
+                description: { type: String },
+                fileUrl: { type: String },
+                dateAwarded: { type: Date },
+              },
+            ],
+            default: [],
+          },
+          featuredListings: [
+            { type: Schema.Types.ObjectId, ref: 'Property', default: [] },
           ],
-          default: [],
         },
-        featuredListings: [{ type: Schema.Types.ObjectId, ref: 'Property' }],
+        kycStatus: {
+          type: String,
+          enum: ['none', 'pending', 'in_review', 'approved', 'rejected'],
+          default: 'none',
+        },
       },
       {
         timestamps: true,

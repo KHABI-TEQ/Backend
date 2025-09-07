@@ -1,5 +1,6 @@
 import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
+import { FilterQuery, SortOrder } from "mongoose";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
@@ -7,6 +8,173 @@ import sendEmail from "../../../common/send.email";
 
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { DeactivateOrActivateAgent, accountDisaapproved, accountApproved, DeleteAgent, accountUpgradeApprovedTemplate, accountUpgradeDisapprovedTemplate } from "../../../common/emailTemplates/agentMails";
+
+
+
+/**
+ * Fetch agents with filters, search, sorting, and subscription details
+ */
+export const getAgents = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      type = "all",
+      q,
+      page = 1,
+      limit = 20,
+      isFlagged,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query as {
+      type?: "all" | "pending" | "approved" | "subscribed" | "expired";
+      q?: string;
+      page?: string | number;
+      limit?: string | number;
+      isFlagged?: string;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    };
+
+    const pageNum = Number(page) || 1;
+    const limitNum = Number(limit) || 20;
+    const filter: FilterQuery<any> = {};
+
+    // Type filtering
+    if (type === "pending") {
+      filter.accountApproved = false;
+    } else if (type === "approved") {
+      filter.accountApproved = true;
+    }
+
+    // Flagged filter
+    if (typeof isFlagged !== "undefined") {
+      filter.isFlagged = isFlagged === "true";
+    }
+
+    // Search filter
+    if (q) {
+      const regex = new RegExp(q, "i");
+      filter.$or = [
+        { email: regex },
+        { firstName: regex },
+        { lastName: regex },
+        { phoneNumber: regex },
+        { fullName: regex },
+      ];
+    }
+
+    // Base query for agents
+    let query = DB.Models.Agent.find(filter)
+      .populate("userId", "email firstName lastName phoneNumber fullName")
+      .sort({ [sortBy]: sortOrder as SortOrder });
+
+    // Subscription filtering
+    let subscriptions: any[] = [];
+    let planMap: Record<string, any> = {};
+
+    if (type === "subscribed" || type === "expired") {
+      const status = type === "subscribed" ? "active" : "expired";
+
+      subscriptions = await DB.Models.Subscription.find({ status })
+        .select("user plan startDate endDate status")
+        .lean();
+
+      // Collect planIds
+      const planIds = subscriptions.map((s) => s.plan);
+      const plans = await DB.Models.SubscriptionPlan.find({
+        code: { $in: planIds },
+      })
+        .select("name code")
+        .lean();
+
+      // Build lookup table
+      planMap = plans.reduce((acc, p) => {
+        acc[p.code] = p;
+        return acc;
+      }, {} as Record<string, any>);
+
+      const userIds = subscriptions.map((s) => s.user.toString());
+      query = query.where("userId").in(userIds);
+    }
+
+    // Pagination
+    const skip = (pageNum - 1) * limitNum;
+    const [agents, total] = await Promise.all([
+      query.skip(skip).limit(limitNum).lean(),
+      DB.Models.Agent.countDocuments(
+        type === "subscribed" || type === "expired"
+          ? { ...filter, userId: { $in: subscriptions.map((s) => s.user) } }
+          : filter
+      ),
+    ]);
+
+    // Format response
+    const formatted = agents.map((agent: any) => {
+      const sub =
+        subscriptions.find(
+          (s) => s.user.toString() === agent.userId._id.toString()
+        ) || null;
+
+      return {
+        _id: agent._id,
+        user: agent.userId
+          ? {
+              _id: agent.userId._id,
+              email: agent.userId.email,
+              firstName: agent.userId.firstName,
+              lastName: agent.userId.lastName,
+              phoneNumber: agent.userId.phoneNumber,
+              fullName: agent.userId.fullName,
+            }
+          : null,
+        address: {
+          street: agent.address?.street || "",
+          homeNo: agent.address?.homeNo || "",
+          state: agent.address?.state || "",
+          localGovtArea: agent.address?.localGovtArea || "",
+        },
+        agentType: agent.agentType,
+        companyAgent: agent.companyAgent
+          ? {
+              companyName: agent.companyAgent.companyName || "",
+              cacNumber: agent.companyAgent.cacNumber || "",
+            }
+          : null,
+        accountApproved: agent.accountApproved,
+        isInActive: agent.isInActive,
+        isDeleted: agent.isDeleted,
+        accountStatus: agent.accountStatus,
+        isFlagged: agent.isFlagged,
+        kycStatus: agent.kycStatus,
+        subscription: sub
+          ? {
+              planName: planMap[sub.plan.toString()]?.name || null,
+              planCode: planMap[sub.plan.toString()]?.code || null,
+              startDate: sub.startDate,
+              endDate: sub.endDate,
+              status: sub.status,
+            }
+          : null,
+      };
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: formatted,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 
 /**

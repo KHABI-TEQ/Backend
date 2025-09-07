@@ -39,6 +39,7 @@ import { fetchUserTransactions, getUserTransactionDetails } from "../controllers
 import { cancelSubscription, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionAutoRenewal } from "../controllers/Account/Agent/subscriptions";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
+import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
 
 const AccountRouter = express.Router();
 
@@ -83,6 +84,10 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
+
+// REFERRAL ROUTES
+AccountRouter.get("/referrals/stats", fetchReferralStats);
+AccountRouter.get("/referrals/referralRecords", fetchReferralRecords);
 
 
 // FIELD AGENT INSPECTIONS ROUTES

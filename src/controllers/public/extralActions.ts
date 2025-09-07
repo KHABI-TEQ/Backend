@@ -113,12 +113,6 @@ export const getPublicAgentProfile = async (
           regionOfOperation: agent.regionOfOperation,
           agentType: agent.agentType,
           companyAgent: agent.companyAgent,
-          profileBio: agent.profileBio,
-          specializations: agent.specializations,
-          languagesSpoken: agent.languagesSpoken,
-          servicesOffered: agent.servicesOffered,
-          achievements: agent.achievements,
-          featuredListings: agent.featuredListings, // full property docs
         },
         stats: {
           totalProperties,

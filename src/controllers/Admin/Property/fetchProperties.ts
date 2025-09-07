@@ -20,6 +20,8 @@ export const getAllProperties = async (
       matchStage["owner.userType"] = filters.ownerType;
     }
 
+    matchStage.isDeleted = false;
+
     // Boolean filters
     if (filters.isPremium !== undefined)
       matchStage.isPremium = filters.isPremium === "true";
@@ -147,7 +149,7 @@ export const getPropertyStats = async (
     const totalMatches = await MatchedProperty.countDocuments();
 
     const conversion = total ? (totalMatches / total) * 100 : 0;
-    const averageResponseTime = Math.floor(Math.random() * 6) + 1; // Replace with actual logic if needed
+    const averageResponseTime = Math.floor(Math.random() * 6) + 1;
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
