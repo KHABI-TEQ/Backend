@@ -52,7 +52,7 @@ export interface IInspectionBooking {
 
   counterCount: number;
 }
-
+ 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
   createdAt: Date;
   updatedAt: Date;

@@ -138,13 +138,13 @@ export const completeAgentKYC = async (
     agent.govtId = govtId;
     agent.meansOfId = meansOfId;
 
-    if (agentLicenseNumber) agent.agentLicenseNumber = agentLicenseNumber;
-    if (profileBio) agent.profileBio = profileBio;
-    if (specializations) agent.specializations = specializations;
-    if (languagesSpoken) agent.languagesSpoken = languagesSpoken;
-    if (servicesOffered) agent.servicesOffered = servicesOffered;
-    if (achievements) agent.achievements = achievements;
-    if (featuredListings) agent.featuredListings = featuredListings;
+    // if (agentLicenseNumber) agent.agentLicenseNumber = agentLicenseNumber;
+    // if (profileBio) agent.profileBio = profileBio;
+    // if (specializations) agent.specializations = specializations;
+    // if (languagesSpoken) agent.languagesSpoken = languagesSpoken;
+    // if (servicesOffered) agent.servicesOffered = servicesOffered;
+    // if (achievements) agent.achievements = achievements;
+    // if (featuredListings) agent.featuredListings = featuredListings;
 
     // Update core agent info
     if (address) agent.address = address;
@@ -209,17 +209,17 @@ export const setAgentInspectionFee = async (
     }
 
     // Update inspection settings
-    agent.inspectionSettings = agent.inspectionSettings || { inspectionPrice: 0, inspectionPriceEnabled: false };
+    // agent.inspectionSettings = agent.inspectionSettings || { inspectionPrice: 0, inspectionPriceEnabled: false };
 
-    if (inspectionPrice !== undefined) agent.inspectionSettings.inspectionPrice = inspectionPrice;
-    if (inspectionPriceEnabled !== undefined) agent.inspectionSettings.inspectionPriceEnabled = inspectionPriceEnabled;
+    // if (inspectionPrice !== undefined) agent.inspectionSettings.inspectionPrice = inspectionPrice;
+    // if (inspectionPriceEnabled !== undefined) agent.inspectionSettings.inspectionPriceEnabled = inspectionPriceEnabled;
 
     await agent.save();
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Inspection settings updated successfully.",
-      data: { inspectionSettings: agent.inspectionSettings },
+      data: { inspectionSettings: null },
     });
   } catch (error) {
     next(error);

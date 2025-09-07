@@ -90,7 +90,7 @@ export const adminDocumentVerification = async (
         "Status must be either 'registered' or 'unregistered'"
       );
     }
-
+ 
     const id = new mongoose.Types.ObjectId(documentId);
     const doc = await DB.Models.DocumentVerification.findById(id).populate("buyerId");
     if (!doc) {
@@ -122,7 +122,7 @@ export const adminDocumentVerification = async (
     // Email body
     const htmlBody = verificationGeneralTemplate(`
       <p>Dear ${buyerData.fullName},</p>
-      <p>Your submitted document has been reviewed and marked as <strong>${status.toUpperCase()}</strong> by our Admin team.</p>
+      <p>Your submitted document has been reviewed and marked as <strong>${verificationReport.status.toUpperCase()}</strong> by our Admin team.</p>
       ${
         verificationReport?.description
           ? `<p><strong>Verification Report:</strong> ${verificationReport.description}</p>`
@@ -132,7 +132,7 @@ export const adminDocumentVerification = async (
 
     await sendEmail({
       to: buyerData.email,
-      subject: `Document Verification Result - ${status.toUpperCase()}`,
+      subject: `Document Verification Result - ${verificationReport.status.toUpperCase()}`,
       text: htmlBody,
       html: htmlBody,
     });
@@ -140,7 +140,7 @@ export const adminDocumentVerification = async (
     res.json({
       success: true,
       data: {
-        message: `Admin verification completed. Document marked as ${status}`,
+        message: `Admin verification completed. Document marked as ${verificationReport.status}`,
         recordId: doc._id,
       },
     });

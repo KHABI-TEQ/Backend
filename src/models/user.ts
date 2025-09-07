@@ -33,7 +33,10 @@ export interface IUser {
   };
 }
 
-export interface IUserDoc extends IUser, Document {}
+export interface IUserDoc extends IUser, Document {
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export type IUserModel = Model<IUserDoc>;
 

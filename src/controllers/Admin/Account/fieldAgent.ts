@@ -504,7 +504,7 @@ export const removeInspectionFromFieldAgent = async (
     next(err);
   }
 };
-
+ 
 /**
  * Retrieves all field agents with filters, search, and pagination.
  *
@@ -751,17 +751,20 @@ export const getFieldAgentDashboardStatistics = async (
     const [totalActiveFieldAgents, totalInactiveFieldAgents, totalFlaggedFieldAgents, totalFieldAgents] = await Promise.all([
       DB.Models.User.countDocuments({
         isInActive: false,
+        isDeleted: false,
         userType,
       }),
       DB.Models.User.countDocuments({
         isInActive: true,
+        isDeleted: false,
         userType,
       }),
       DB.Models.User.countDocuments({
         isFlagged: true,
+        isDeleted: false,
         userType,
       }),
-      DB.Models.User.countDocuments({ userType }),
+      DB.Models.User.countDocuments({ userType, isDeleted: false, }),
     ]);
 
     return res.status(HttpStatusCodes.OK).json({
