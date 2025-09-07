@@ -87,7 +87,7 @@ AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
 
 // REFERRAL ROUTES
 AccountRouter.get("/referrals/stats", fetchReferralStats);
-AccountRouter.get("/referrals/referralRecords", fetchReferralRecords);
+AccountRouter.get("/referrals/records", fetchReferralRecords);
 
 
 // FIELD AGENT INSPECTIONS ROUTES
