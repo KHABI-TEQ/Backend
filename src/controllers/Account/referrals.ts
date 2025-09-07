@@ -123,6 +123,13 @@ export const fetchReferralStats = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Sorry referral system is turn off.");
     }
 
+    const referralRegisteredPoints = Number(
+      (await SystemSettingService.getSetting("referral_register_price"))?.value || 0
+    );
+    const referralSubscribedPoints = Number(
+      (await SystemSettingService.getSetting("referral_subscribed_agent_point"))?.value || 0
+    );
+
     // fetch all referral logs
     const logs = await DB.Models.ReferralLog.find({ referrerId: userId });
 
