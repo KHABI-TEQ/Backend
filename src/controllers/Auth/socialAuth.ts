@@ -7,10 +7,10 @@ import { generateToken, RouteError } from '../../common/classes';
 import { AppRequest } from '../../types/express';
 import { referralService } from '../../services/referral.service';
 import { Types } from 'mongoose';
-import { SystemSettingService } from 'src/services/systemSetting.service';
-import { verifyEmailTemplate } from 'src/common/email.template';
-import { generalEmailLayout } from 'src/common/emailTemplates/emailLayout';
-import sendEmail from 'src/common/send.email';
+import { SystemSettingService } from '../../services/systemSetting.service';
+import { verifyEmailTemplate } from '../../common/email.template';
+import { generalEmailLayout } from '../../common/emailTemplates/emailLayout';
+import sendEmail from '../../common/send.email';
 import crypto from "crypto";
 
 // Initialize Google OAuth client
