@@ -4,9 +4,10 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import { SystemSettingService } from "../../services/systemSetting.service";
+import mongoose from "mongoose";
 
 /**
- * Fetch paginated referral records for the authenticated user
+ * Fetch referral records, grouped by referredUserId
  */
 export const fetchReferralRecords = async (
   req: AppRequest,
@@ -15,82 +16,80 @@ export const fetchReferralRecords = async (
 ) => {
   try {
     const userId = req.user?._id;
-    const userReferralCode = req.user?.referralCode;
-
     const { page = 1, limit = 10, userType, accountStatus } = req.query;
 
-    // Ensure referral system is enabled
+    // ensure referral is enabled
     const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
     if (!referralStatusSettings?.value) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Sorry referral system is turned off."
-      );
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Sorry referral system is turn off.");
     }
 
-    // Fetch referral points from system settings
     const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
     const referralSubscribedPoints = await SystemSettingService.getSetting("referral_subscribed_agent_point");
 
-    // Build filters
-    const filters: any = {
-      referredBy: userReferralCode,
-      isDeleted: false,
-    };
-    if (userType) filters.userType = userType;
-    if (accountStatus) {
-      if (accountStatus === "pending") {
-        filters.accountApproved = false;
-      } else if (accountStatus === "verified") {
-        filters.isAccountVerified = true;
-      } else if (accountStatus === "subscribed") {
-        // handled separately below with aggregation
-      }
+    // Build base match condition
+    const match: any = { referrerId: new mongoose.Types.ObjectId(userId) };
+
+    // lookup into User (for filtering by userType/accountStatus)
+    if (userType || accountStatus) {
+      const referredUsers = await DB.Models.User.find({
+        ...(userType ? { userType } : {}),
+        ...(accountStatus ? { accountStatus } : {}),
+      }).select("_id");
+
+      const referredIds = referredUsers.map((u) => u._id);
+      match.referredUserId = { $in: referredIds };
     }
 
-    // Query with pagination
+    // aggregate pipeline
+    const pipeline: any[] = [
+      { $match: match },
+      {
+        $group: {
+          _id: "$referredUserId",
+          referredUserId: { $first: "$referredUserId" },
+          logs: { $push: "$$ROOT" },
+          totalRewards: { $sum: "$rewardAmount" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "referredUserId",
+          foreignField: "_id",
+          as: "referredUser",
+        },
+      },
+      { $unwind: "$referredUser" },
+      {
+        $project: {
+          referredUser: {
+            _id: 1,
+            firstName: 1,
+            lastName: 1,
+            fullName: 1,
+            email: 1,
+            userType: 1,
+            accountStatus: 1,
+            isAccountVerified: 1,
+          },
+          logs: 1,
+          totalRewards: 1,
+        },
+      },
+      { $sort: { "referredUser.createdAt": -1 } },
+    ];
+
+    // pagination
     const skip = (Number(page) - 1) * Number(limit);
+    const totalGroups = await DB.Models.ReferralLog.aggregate([...pipeline, { $count: "count" }]);
+    const total = totalGroups[0]?.count || 0;
 
-    const [records, total] = await Promise.all([
-      DB.Models.User.find(filters)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(Number(limit))
-        .lean(),
-
-      DB.Models.User.countDocuments(filters),
+    const data = await DB.Models.ReferralLog.aggregate([
+      ...pipeline,
+      { $skip: skip },
+      { $limit: Number(limit) },
     ]);
-
-    // Attach subscription and earnings info
-    const userIds = records.map((u) => u._id);
-    const subscriptions = await DB.Models.Subscription.find({
-      user: { $in: userIds },
-      status: "active",
-    }).lean();
-
-    const subscriptionUserIds = new Set(
-      subscriptions.map((s) => s.user.toString())
-    );
-
-    const data = records.map((u) => {
-      let points = 0;
-
-      // Earn register points if verified
-      if (u.isAccountVerified) {
-        points += Number(referralRegisteredPoints?.value || 0);
-      }
-
-      // Earn subscribed points if active subscription
-      if (subscriptionUserIds.has(u._id.toString())) {
-        points += Number(referralSubscribedPoints?.value || 0);
-      }
-
-      return {
-        ...u,
-        referralPoints: points,
-        hasActiveSubscription: subscriptionUserIds.has(u._id.toString()),
-      };
-    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -108,7 +107,7 @@ export const fetchReferralRecords = async (
 };
 
 /**
- * Fetch referral stats summary for authenticated user
+ * Fetch referral statistics for current user
  */
 export const fetchReferralStats = async (
   req: AppRequest,
@@ -116,77 +115,40 @@ export const fetchReferralStats = async (
   next: NextFunction
 ) => {
   try {
-    const userReferralCode = req.user?.referralCode;
-
-    // Ensure referral system is enabled
+    const userId = req.user?._id;
+  
+    // ensure referral is enabled
     const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
     if (!referralStatusSettings?.value) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Sorry referral system is turned off."
-      );
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Sorry referral system is turn off.");
     }
 
-    // Fetch referral points from system settings
-    const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
-    const referralSubscribedPoints = await SystemSettingService.getSetting("referral_subscribed_agent_point");
-
-    // Get all referred users
-    const referredUsers = await DB.Models.User.find({
-      referredBy: userReferralCode,
-      isDeleted: false,
-    }).lean();
-
-    const referredUserIds = referredUsers.map((u) => u._id);
-
-    // Get active subscriptions for referred users
-    const activeSubscriptions = await DB.Models.Subscription.find({
-      user: { $in: referredUserIds },
-      status: "active",
-    }).lean();
-
-    const activeSubscriptionUserIds = new Set(
-      activeSubscriptions.map((s) => s.user.toString())
+    const referralRegisteredPoints = Number(
+      (await SystemSettingService.getSetting("referral_register_price"))?.value || 0
+    );
+    const referralSubscribedPoints = Number(
+      (await SystemSettingService.getSetting("referral_subscribed_agent_point"))?.value || 0
     );
 
-    // Counters
-    let totalEarnings = 0;
-    let totalEarningsThisMonth = 0;
+    // fetch all referral logs
+    const logs = await DB.Models.ReferralLog.find({ referrerId: userId });
 
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const totalReferred = new Set(logs.map((l) => String(l.referredUserId))).size;
+    const totalEarnings = logs.reduce((sum, l) => sum + (l.rewardAmount || 0), 0);
 
-    let totalApprovedReferred = 0;
-    let totalPendingReferred = 0;
-    let totalSubscribedReferred = 0;
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const totalEarningsThisMonth = logs
+      .filter((l) => l.createdAt >= startOfMonth)
+      .reduce((sum, l) => sum + (l.rewardAmount || 0), 0);
 
-    for (const u of referredUsers) {
-      let userPoints = 0;
-
-      if (u.isAccountVerified) {
-        userPoints += Number(referralRegisteredPoints?.value || 0);
-        totalApprovedReferred++;
-      } else {
-        totalPendingReferred++;
-      }
-
-      if (activeSubscriptionUserIds.has(u._id.toString())) {
-        userPoints += Number(referralSubscribedPoints?.value || 0);
-        totalSubscribedReferred++;
-      }
-
-      totalEarnings += userPoints;
-
-      // Check if referred in current month
-      if (u?.createdAt && u?.createdAt >= startOfMonth) {
-        totalEarningsThisMonth += userPoints;
-      }
-    }
+    const totalApprovedReferred = logs.filter((l) => l.rewardStatus === "granted").length;
+    const totalPendingReferred = logs.filter((l) => l.rewardStatus === "pending").length;
+    const totalSubscribedReferred = logs.filter((l) => l.rewardType === "subscription").length;
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: {
-        totalReferred: referredUsers.length,
+        totalReferred,
         totalEarnings,
         totalEarningsThisMonth,
         totalApprovedReffered: totalApprovedReferred,
