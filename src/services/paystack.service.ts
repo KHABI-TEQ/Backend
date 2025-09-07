@@ -51,6 +51,8 @@ export class PaystackService {
       currency,
       meta: metadata,
     });
+ 
+    const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
 
     // Initialize Paystack payment
     const response = await axios.post(
@@ -69,7 +71,7 @@ export class PaystackService {
       },
       {
         headers: {
-          Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${paystackSK?.value}`,
           'Content-Type': 'application/json',
         },
       }
@@ -171,11 +173,14 @@ export class PaystackService {
    */
   static async verifyPayment(reference: string) {
     try {
+
+      const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+
       const response = await axios.get(
         `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
         {
           headers: {
-            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+            Authorization: `Bearer ${paystackSK?.value}`,
           },
         }
       );
