@@ -85,7 +85,7 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
   });
 };
 
-
+ 
 const sendVerificationMail = async (newUser: any) => {
   // Generate and send email verification link
   const token = crypto.randomBytes(32).toString("hex");
