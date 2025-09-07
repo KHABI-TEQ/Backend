@@ -7,6 +7,11 @@ import { generateToken, RouteError } from '../../common/classes';
 import { AppRequest } from '../../types/express';
 import { referralService } from '../../services/referral.service';
 import { Types } from 'mongoose';
+import { SystemSettingService } from 'src/services/systemSetting.service';
+import { verifyEmailTemplate } from 'src/common/email.template';
+import { generalEmailLayout } from 'src/common/emailTemplates/emailLayout';
+import sendEmail from 'src/common/send.email';
+import crypto from "crypto";
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(
@@ -80,6 +85,30 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
   });
 };
 
+
+const sendVerificationMail = async (newUser: any) => {
+  // Generate and send email verification link
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+
+  await DB.Models.VerificationToken.create({
+    userId: newUser._id,
+    token,
+    expiresAt,
+  });
+
+  const verificationLink = `${process.env.CLIENT_LINK}/auth/verify-account?token=${token}`;
+  const mailBody = verifyEmailTemplate(newUser.firstName, verificationLink);
+  const html = generalEmailLayout(mailBody);
+
+  await sendEmail({
+    to: newUser.email,
+    subject: "Verify Your Email Address",
+    text: "Verify Your Email Address",
+    html,
+  });
+}
+
 // ✅ UPDATED GOOGLE AUTH HANDLER
 export const googleAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   const { idToken, userType, referreredCode } = req.body;
@@ -89,9 +118,6 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
 
     if (isAuthorizationCode(idToken)) {
       // Handle authorization code flow
-      console.log('Received authorization code, exchanging for tokens...');
-      console.log('Authorization code (first 20 chars):', idToken.substring(0, 20) + '...');
-      
       try {
         const { tokens } = await googleClient.getToken(idToken);
         console.log('Token exchange successful, received tokens:', Object.keys(tokens));
@@ -124,8 +150,6 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
         throw tokenError;
       }
     } else {
-      // Handle ID token directly
-      console.log('Received ID token, verifying...');
       
       const ticket = await googleClient.verifyIdToken({
         idToken,
@@ -151,7 +175,8 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       }
 
       if (!user.isAccountVerified) {
-        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account requires email verification.');
+        await sendVerificationMail(user);
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is not yet verified. Check your email to complete verification.');
       }
 
       if (
@@ -220,16 +245,21 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       });
     }
 
-    // ✅ Log the referral if valid
-    if (referrerUser && newUser) {
-      await referralService.createReferralLog({
-        referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
-        referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
-        rewardStatus: newUser.userType == "Landowners" ? 'granted' : 'pending',
-        rewardType: "registration_bonus",
-        triggerAction: "user_signup",
-        note: "Referral at account registration",
-      });
+    const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
+    if (referralStatusSettings?.value) {
+      const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
+      // ✅ Log the referral if valid
+      if (referrerUser && newUser) {
+        await referralService.createReferralLog({
+          referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+          referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+          rewardType: "registration_bonus",
+          triggerAction: "user_signup",
+          note: "Referral at account registration",
+          rewardStatus: "granted",
+          rewardAmount: referralRegisteredPoints?.value || 0
+        });
+      } 
     }
 
     return await sendLoginSuccessResponse(newUser, res);
@@ -269,7 +299,8 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
       }
 
       if (!user.isAccountVerified) {
-        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account requires email verification.');
+        await sendVerificationMail(user);
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, 'Your account is not yet verified. Check your email to complete verification.');
       }
 
       if (
@@ -336,15 +367,21 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
     }
 
     // ✅ Log the referral if valid
-    if (referrerUser && newUser) {
-      await referralService.createReferralLog({
-        referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
-        referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
-        rewardStatus: newUser.userType == "Landowners" ? 'granted' : 'pending',
-        rewardType: "registration_bonus",
-        triggerAction: "user_signup",
-        note: "Referral at account registration",
-      });
+    const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
+    if (referralStatusSettings?.value) {
+      const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
+      // ✅ Log the referral if valid
+      if (referrerUser && newUser) {
+        await referralService.createReferralLog({
+          referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+          referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+          rewardType: "registration_bonus",
+          triggerAction: "user_signup",
+          note: "Referral at account registration",
+          rewardStatus: "granted",
+          rewardAmount: referralRegisteredPoints?.value || 0
+        });
+      } 
     }
 
     return await sendLoginSuccessResponse(newUser, res);
