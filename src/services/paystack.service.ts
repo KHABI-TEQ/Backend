@@ -10,8 +10,8 @@ import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
 import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
 import { generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } from '../common/emailTemplates/subscriptionMails';
 import { SystemSettingService } from './systemSetting.service';
-import { AccountService } from './account.service';
 import { PaymentMethodService } from './paymentMethod.service';
+import { referralService } from './referral.service';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -444,15 +444,50 @@ export class PaystackService {
           });
         }
         
+        // Check if user has ANY past subscription (active or expired), excluding current pending one
+        const previousSubscription = await DB.Models.Subscription.exists({
+          user: user._id,
+          status: { $in: ["active", "inactive", "expired"] },
+          _id: { $ne: subscription._id },
+        });
+
+
+        const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
+        if (referralStatusSettings?.value && user.referredBy) {
+
+          if (!previousSubscription) {
+            const referralSubscribedPoints = await SystemSettingService.getSetting("referral_subscribed_agent_point");
+
+            const referrerUser = await DB.Models.User.findOne({
+              referralCode: user.referredBy,
+              accountStatus: "active",
+              isAccountVerified: true,
+              isDeleted: false,
+            });
+
+            // ✅ Log the referral if valid
+            if (referrerUser && user) {
+              await referralService.createReferralLog({
+                referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+                referredUserId: new Types.ObjectId(user._id as Types.ObjectId),
+                rewardType: "subscription",
+                triggerAction: "agent_subscribed",
+                note: "Referral at subscription on agent account",
+                rewardStatus: "granted",
+                rewardAmount: referralSubscribedPoints?.value || 0
+              });
+            } 
+          }
+        }
+
         // create public link
-        const userPublicURL = await AccountService.createPublicUrl(user._id);
-        const publicAccessCompleteLink = `${process.env.FRONTEND_URL}/pv-account/${userPublicURL}`;
+        const publicAccessCompleteLink = `${process.env.FRONTEND_URL}/public-access-settings`;
 
         const successMailBody = generalEmailLayout(
           generateSubscriptionSuccessEmail({
             fullName,
             planName: plan.name,
-            amount: transaction.amount / 100, // if Paystack stores in kobo
+            amount: transaction.amount, // if Paystack stores in kobo
             nextBillingDate: endDate.toDateString(),
             transactionRef: transaction.reference,
             publicAccessLink: publicAccessCompleteLink,
@@ -461,7 +496,7 @@ export class PaystackService {
 
         await sendEmail({
           to: user.email,
-          subject: "Subscription Renewed Successfully",
+          subject: "Subscription made Successfully",
           html: successMailBody,
           text: successMailBody,
         });

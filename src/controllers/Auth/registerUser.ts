@@ -9,6 +9,7 @@ import sendEmail from "../../common/send.email";
 import { generateUniqueAccountId, generateUniqueReferralCode } from "../../utils/generateUniqueAccountId";
 import { referralService } from "../../services/referral.service";
 import { Types } from "mongoose";
+import { SystemSettingService } from "../../services/systemSetting.service";
 
 /**
  * Traditional Registration
@@ -27,7 +28,7 @@ export const registerUser = async (
       userType,
       phoneNumber,
       address,
-      referreredCode,
+      referralCode,
     } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -44,9 +45,9 @@ export const registerUser = async (
 
     let referrerUser = null;
 
-    if (referreredCode) {
+    if (referralCode) {
       referrerUser = await DB.Models.User.findOne({
-        referralCode: referreredCode,
+        referralCode: referralCode,
         accountStatus: "active",
         isAccountVerified: true,
         isDeleted: false,
@@ -58,11 +59,11 @@ export const registerUser = async (
           "Invalid or inactive referral code.",
         );
       }
-    }
+    } 
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const accountId = await generateUniqueAccountId();
-    const referralCode = await generateUniqueReferralCode();
+    const generateReferralCode = await generateUniqueReferralCode();
 
     const newUser = await DB.Models.User.create({
       firstName,
@@ -73,8 +74,8 @@ export const registerUser = async (
       phoneNumber,
       address,
       accountId,
-      referralCode,
-      referredBy: referreredCode,
+      referralCode: generateReferralCode,
+      referredBy: referralCode,
       isAccountInRecovery: false,
       profile_picture: "",
       isInActive: false,
@@ -92,15 +93,21 @@ export const registerUser = async (
       });
     }
 
-    // ✅ Log the referral if valid
-    if (referrerUser && newUser) {
-      await referralService.createReferralLog({
-        referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
-        referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
-        rewardType: "registration_bonus",
-        triggerAction: "user_signup",
-        note: "Referral at account registration",
-      });
+    const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
+    if (referralStatusSettings?.value) {
+      const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
+      // ✅ Log the referral if valid
+      if (referrerUser && newUser) {
+        await referralService.createReferralLog({
+          referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+          referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+          rewardType: "registration_bonus",
+          triggerAction: "user_signup",
+          note: "Referral at account registration",
+          rewardStatus: "pending",
+          rewardAmount: referralRegisteredPoints?.value || 0
+        });
+      } 
     }
 
     // Generate and send email verification link

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { DB } from "..";
 import { generateToken, RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
+import { SystemSettingService } from "../../services/systemSetting.service";
 
 const sendLoginSuccessResponse = async (user: any, res: Response) => {
 
@@ -83,8 +84,9 @@ export const verifyAccount = async (req: Request, res: Response, next: NextFunct
       return res.status(HttpStatusCodes.OK).json({ message: "Account already verified. please login" });
     }
 
+    const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
     // 🔄 Referral reward status update if user is a Landowner
-    if (user.userType === "Landowners" && user.referredBy) {
+    if (referralStatusSettings.value && user.referredBy) {
       await DB.Models.ReferralLog.updateOne(
         { referredUserId: user._id, rewardType: "registration_bonus" },
         { $set: { rewardStatus: "granted" } }
