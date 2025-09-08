@@ -24,6 +24,7 @@ import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getPublicAgentProfile } from "../controllers/public/extralActions";
 import { getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
+import DealSiteRouter from "./dealSite";
 
 const router = express.Router();
 
@@ -148,6 +149,9 @@ router.post("/submitVerificationDocs", submitDocumentVerification);
 
 // All Properties Routes
 router.use("/third-party", thirdPartyRouter);
+
+// All Properties Routes
+router.use("/deal-site", DealSiteRouter);
 
 // Contact Form
 router.post("/contact-us/submit", submitContactForm);

@@ -501,7 +501,7 @@ export const flagOrUnflagAgentAccount = async (
 
 
 /**
- * Retrieves the complete profile of a single agent, including related properties, transactions, and inspections.
+ * Retrieves the complete profile of a single agent, including related properties, transactions, inspections, and subscriptions.
  *
  * @param req - The Express request object, containing userId in params.
  * @param res - The Express response object.
@@ -525,6 +525,20 @@ export const getSingleAgentProfile = async (
     const transactions = await DB.Models.Transaction.find({ buyerId: user._id }).lean();
     const inspections = await DB.Models.InspectionBooking.find({ bookedBy: user._id }).lean();
 
+    // Fetch subscriptions
+    const subscriptions = await DB.Models.Subscription.find({ user: user._id })
+      .populate({
+        path: "transaction",
+        model: "NewTransaction",
+        select: "reference amount status transactionType paymentMode",
+      })
+      .lean();
+
+    // Get current active subscription (if any)
+    const currentActiveSubscription = subscriptions.find(
+      (sub: any) => sub.status === "active" && new Date(sub.endDate) > new Date()
+    );
+
     const completedInspections = inspections.filter((i: any) => i.status === "completed");
 
     const profileData = {
@@ -533,12 +547,15 @@ export const getSingleAgentProfile = async (
       properties,
       transactions,
       inspections,
+      subscriptions,
+      currentActiveSubscription,
       stats: {
         totalProperties: properties.length,
         totalTransactions: transactions.length,
-        totalSpent: 0, // Assuming this needs to be calculated from transactions if available
+        totalSpent: 0, // You could sum transactions.amount if relevant
         completedInspections: completedInspections.length,
         ongoingNegotiations: inspections.filter((i: any) => i.stage === "negotiation").length,
+        totalSubscriptions: subscriptions.length,
       },
     };
 
@@ -551,6 +568,7 @@ export const getSingleAgentProfile = async (
     next(err);
   }
 };
+
 
 /**
  * Retrieves only agent dashboard statistics.

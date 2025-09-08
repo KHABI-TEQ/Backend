@@ -40,6 +40,9 @@ import { cancelSubscription, createSubscription, fetchUserSubscriptions, getAllA
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
+import { getDealSiteDetails } from "../controllers/DealSite/verifyPublicAccessID";
+import { createDealSite } from "../controllers/DealSite/setUp";
+import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
 
 const AccountRouter = express.Router();
 
@@ -89,6 +92,13 @@ AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
 AccountRouter.get("/referrals/stats", fetchReferralStats);
 AccountRouter.get("/referrals/records", fetchReferralRecords);
 
+// DEAL SITE ROUTES
+AccountRouter.post("/dealSite/setUp", createDealSite);
+AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetails);
+AccountRouter.put("/dealSite/:publicSlug/update", updateDealSite);
+AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
+AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
+AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);
 
 // FIELD AGENT INSPECTIONS ROUTES
 AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);
