@@ -19,9 +19,7 @@ export const agentKycSchema = Joi.object({
     "any.required": "Means of ID is required.",
   }),
 
-  agentLicenseNumber: Joi.string().trim().optional().messages({
-    "string.empty": "Agent license number cannot be empty.",
-  }),
+  agentLicenseNumber: Joi.string().trim().optional().allow(""),
 
   profileBio: Joi.string().trim().optional(),
 
@@ -36,10 +34,8 @@ export const agentKycSchema = Joi.object({
       title: Joi.string().trim().required().messages({
         "string.empty": "Achievement title is required.",
       }),
-      description: Joi.string().trim().optional(),
-      fileUrl: Joi.string().uri().optional().messages({
-        "string.uri": "Achievement file URL must be a valid URL.",
-      }),
+      description: Joi.string().trim().optional().allow(""),
+      fileUrl: Joi.string().uri().optional().allow(""),
       dateAwarded: Joi.date().optional(),
     })
   ).optional(),

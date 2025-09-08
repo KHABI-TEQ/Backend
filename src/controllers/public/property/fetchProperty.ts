@@ -105,7 +105,7 @@ export const getAllProperties = async (
     next(err);
   }
 };
-
+ 
 
 // Fetch 5 Random Approved Properties (Public)
 export const getRandomProperties = async (

@@ -1,14 +1,20 @@
 import express from "express";
 import { getDealSiteBySlug } from "../controllers/DealSite/verifyPublicAccessID";
-
+import { getDealSiteProperties } from "../controllers/DealSite/properties/fetchProperties";
+import { getSingleDealSiteProperty } from "../controllers/DealSite/properties/getSingleProperty";
 
 const DealSiteRouter = express.Router();
 
 // get and validate deal site
 DealSiteRouter.get("/get-data/:publicSlug", getDealSiteBySlug);
+ 
+// fetch all properties of deal sites
+DealSiteRouter.get("/:publicSlug/properties", getDealSiteProperties);
 
-// DealSiteRouter.get("/getDocumentDetails/:documentId", getDocumentVerificationDetails);
+// fetch single property of deal sites
+DealSiteRouter.get("/:publicSlug/properties/:propertyId", getSingleDealSiteProperty);
 
-// DealSiteRouter.post("/submit-report/:documentId", submitVerificationReport);
+// make inspection request
+DealSiteRouter.post("/:publicSlug/inspections/makeRequest", getDealSiteBySlug);
 
 export default DealSiteRouter;

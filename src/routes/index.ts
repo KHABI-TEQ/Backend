@@ -160,7 +160,7 @@ router.post("/contact-us/submit", submitContactForm);
 router.get("/testimonials", getLatestApprovedTestimonials);
 
 router.get("/subscriptions/plans", getAllActiveSubscriptionPlans);
-
+ 
 // All Auth Routes
 router.get("/pv-account/:publicAccessUID", getPublicAgentProfile);
 
