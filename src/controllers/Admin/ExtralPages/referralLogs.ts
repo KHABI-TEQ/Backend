@@ -122,11 +122,11 @@ export const getReferralStats = async (
     const summary = {
       totalReferrals: totals.totalReferrals,
       totalGranted:
-        counts.find((c) => c._id === "granted")?.count || 0,
+        counts.find((c: any) => c._id === "granted")?.count || 0,
       totalPending:
-        counts.find((c) => c._id === "pending")?.count || 0,
+        counts.find((c: any) => c._id === "pending")?.count || 0,
       totalFailed:
-        counts.find((c) => c._id === "failed")?.count || 0,
+        counts.find((c: any) => c._id === "failed")?.count || 0,
       totalAmount: totals.totalAmount,
       mostReferredUser,
     };
