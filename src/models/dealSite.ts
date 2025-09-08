@@ -142,6 +142,8 @@ export class DealSite {
           ctaLink: { type: String, default: "" },
         },
 
+        status: { type: String, enum: ["pending", "on-hold", "deleted", "running"], default: "pending" },
+
         createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
       },
       { timestamps: true }
