@@ -42,7 +42,7 @@ export interface IAgent {
     featuredListings?: Types.ObjectId[];
   };
   kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
-}
+} 
  
 export interface IAgentDoc extends IAgent, Document {}
 

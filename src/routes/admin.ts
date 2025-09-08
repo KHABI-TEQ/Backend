@@ -30,6 +30,8 @@ import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSe
 import { createSubscriptionPlan, deleteSubscriptionPlan, getAllSubscriptionPlans, getSubscriptionPlan, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 import { deletePreference } from "../controllers/Admin/preference/deletePreference";
+import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteBySlug, adminGetDealSiteStats, adminPauseDealSite } from "../controllers/Admin/DealSite/adminDealSite";
+import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats, updateReferral } from "../controllers/Admin/ExtralPages/referralLogs";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -159,6 +161,13 @@ AdminRouter.get("/transactions/:transactionId", getTransactionById);
 AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
 
+// DEAL SITE MANAGEMENT ROUTES
+AdminRouter.get("/deal-sites/getAll", adminGetAllDealSites);
+AdminRouter.get("/deal-sites/stats", adminGetDealSiteStats);
+AdminRouter.get("/deal-sites/:publicSlug", adminGetDealSiteBySlug);
+AdminRouter.put("/deal-sites/:publicSlug/pause", adminPauseDealSite);
+AdminRouter.put("/deal-sites/:publicSlug/resume", adminActivateDealSite);
+
 // SUBSCRIPTION PLANS MANAGEMENT ROUTES
 AdminRouter.post("/subsription-plans/createNew", createSubscriptionPlan);
 AdminRouter.put("/subsription-plans/:planId/update", updateSubscriptionPlan);
@@ -171,6 +180,13 @@ AdminRouter.get("/subscriptions", fetchUserSubscriptions);
 AdminRouter.get("/subscriptions/:subscriptionId", getSubscriptionDetails);
 AdminRouter.put("/subscriptions/:subscriptionId", updateSubscription);
 AdminRouter.post("/subscriptions/:subscriptionId", cancelSubscription);
+
+// REFERRAL MANAGEMENT ROUTES
+AdminRouter.get("/referrals/getAll", fetchAllReferrals);
+AdminRouter.get("/referrals/stats", getReferralStats);
+AdminRouter.get("/referrals/:referralId", getReferralDetails);
+AdminRouter.put("/referrals/:referralId/update", updateReferral);
+AdminRouter.delete("/referrals/:referralId/delete", deleteReferral);
 
 // =======================DOCUMENT VERIFICATION FUNCTIONALITIES==================================
 AdminRouter.get("/verification-docs", fetchAllVerifyDocs);

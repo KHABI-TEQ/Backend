@@ -1,0 +1,98 @@
+import { Response, NextFunction } from "express";
+import { AppRequest } from "../../types/express";
+import HttpStatusCodes from "../../common/HttpStatusCodes";
+import { DealSiteService } from "../../services/dealSite.service";
+import { DB } from "..";
+import { RouteError } from "../../common/classes";
+
+
+/**
+ * Fetch a single DealSite by its public slug
+ */
+export const getDealSiteDetails = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+
+    if (!publicSlug) {
+      return next(new RouteError(HttpStatusCodes.BAD_REQUEST, "Public slug is required"));
+    }
+
+    const dealSite = await DealSiteService.getBySlug(publicSlug);
+
+    if (!dealSite) {
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found"));
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "DealSite fetched successfully",
+      data: dealSite,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Get DealSite by publicSlug
+ * - Ensures DealSite exists and is running
+ * - If subscription expired/missing → success=false with errorCode
+ */
+export const getDealSiteBySlug = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+
+    const dealSite = await DealSiteService.getBySlug(publicSlug);
+    if (!dealSite) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_FOUND",
+        message: "DealSite not found",
+        data: null,
+      });
+    }
+
+    // Only allow running DealSites
+    if (dealSite.status !== "running") {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_ACTIVE",
+        message: "This DealSite is not currently active.",
+        data: null,
+      });
+    }
+
+    // Check subscription of the owner of this DealSite
+    const activeSubscription = await DB.Models.Subscription.findOne({
+      user: dealSite.createdBy,
+      status: "active",
+      endDate: { $gt: new Date() },
+    });
+
+    if (!activeSubscription) {
+      return res.status(HttpStatusCodes.OK).json({
+        success: false,
+        errorCode: "SUBSCRIPTION_INVALID",
+        message:
+          "The agent’s subscription has expired or is missing. Some features may be unavailable.",
+        data: null,
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: dealSite,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
