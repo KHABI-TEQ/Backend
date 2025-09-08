@@ -6,7 +6,7 @@ import {
 } from "../controllers/public/property/fetchProperty";
 import { getPaginatedMatchedProperties } from "../controllers/public/preference/fetchMatchedProperties";
 
-
+ 
 // Init shared
 const propertyRouter = Router();
 
