@@ -23,3 +23,4 @@ export * from "./subscriptionPlan";
 export * from "./systemSetting";
 export * from "./paymentMethod";
 export * from "./dealSite";
+export * from "./emailSubscription";

@@ -48,7 +48,9 @@ import {
   PaymentMethod,
   IPaymentMethodModel,
   DealSite,
-  IDealSiteModel
+  IDealSiteModel,
+  EmailSubscription,
+  IEmailSubscriptionModel
 } from "../models/index";
 
 
@@ -78,6 +80,7 @@ declare interface IModels {
   SystemSetting: ISystemSettingModel;
   PaymentMethod: IPaymentMethodModel;
   DealSite: IDealSiteModel;
+  EmailSubscription: IEmailSubscriptionModel;
 } 
 
 export class DB {
@@ -122,6 +125,7 @@ export class DB {
       SystemSetting: new SystemSetting().model,
       PaymentMethod: new PaymentMethod().model,
       DealSite: new DealSite().model,
+      EmailSubscription: new EmailSubscription().model,
     };
   }
 
