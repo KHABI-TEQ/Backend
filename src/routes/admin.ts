@@ -25,7 +25,7 @@ import { assignInspectionToFieldAgent, createFieldAgent, deleteFieldAgentAccount
 import { validateJoi } from "../middlewares/validateJoi";
 import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
-import { deleteTransactionDetails, getAllTransactions, getTransactionById, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
+import { deleteTransactionDetails, getAllTransactions, getTransactionById, getTransactionStats, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
 import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
 import { createSubscriptionPlan, deleteSubscriptionPlan, getAllSubscriptionPlans, getSubscriptionPlan, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
@@ -158,6 +158,7 @@ AdminRouter.get("/buyers/:buyerId/allPreferences", getBuyerPreferences);
 
 // TRANSACTION MANAGEMENT ROUTES
 AdminRouter.get("/transactions", getAllTransactions);
+AdminRouter.get("/transactions/stats", getTransactionStats);
 AdminRouter.get("/transactions/:transactionId", getTransactionById);
 AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
