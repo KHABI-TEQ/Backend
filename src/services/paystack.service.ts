@@ -486,7 +486,7 @@ export class PaystackService {
         }
 
         // create public link
-        const publicAccessCompleteLink = `${process.env.FRONTEND_URL}/public-access-settings`;
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
 
         const successMailBody = generalEmailLayout(
           generateSubscriptionSuccessEmail({
@@ -513,7 +513,7 @@ export class PaystackService {
             planName: plan.name,
             amount: transaction.amount / 100,
             transactionRef: transaction.reference,
-            retryLink: `${process.env.FRONTEND_URL}/billing/retry?subId=${subscription._id}`,
+            retryLink: `${process.env.CLIENT_LINK}/billing/retry?subId=${subscription._id}`,
           })
         );
 

@@ -2,6 +2,11 @@ import { Response, NextFunction } from 'express';
 import { AppRequest } from '../../../types/express';
 import { DB } from '../..';
 import HttpStatusCodes from '../../../common/HttpStatusCodes';
+import { generalEmailLayout } from '../../../common/emailTemplates/emailLayout';
+import sendEmail from '../../../common/send.email';
+import { kycSubmissionAcknowledgement } from '../../../common/emailTemplates/agentMails';
+import { SystemSettingService } from '../../../services/systemSetting.service';
+import { kycVerificationAdminNotification } from '../../../common/emailTemplates/adminMails';
 
 export const completeOnboardingAgent = async (
   req: AppRequest,
@@ -101,9 +106,7 @@ export const completeAgentKYC = async (
       });
     }
 
-    // Destructure all possible fields from request body
     const {
-      govtId,
       meansOfId,
       agentLicenseNumber,
       profileBio,
@@ -117,11 +120,11 @@ export const completeAgentKYC = async (
       agentType,
     } = req.body;
 
-    // Additional safeguard (should already be validated by Joi)
-    if (!govtId || !meansOfId || meansOfId.length === 0) {
+    // Safeguard: meansOfId must exist
+    if (!meansOfId || meansOfId.length === 0) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "Missing required KYC documents (govtId or meansOfId)",
+        message: "At least one means of ID is required.",
       });
     }
 
@@ -134,29 +137,49 @@ export const completeAgentKYC = async (
       });
     }
 
-    // Update KYC fields
-    agent.govtId = govtId;
+    // ✅ Update KYC fields
     agent.meansOfId = meansOfId;
-
-    // if (agentLicenseNumber) agent.agentLicenseNumber = agentLicenseNumber;
-    // if (profileBio) agent.profileBio = profileBio;
-    // if (specializations) agent.specializations = specializations;
-    // if (languagesSpoken) agent.languagesSpoken = languagesSpoken;
-    // if (servicesOffered) agent.servicesOffered = servicesOffered;
-    // if (achievements) agent.achievements = achievements;
-    // if (featuredListings) agent.featuredListings = featuredListings;
-
-    // Update core agent info
+    if (agentLicenseNumber) agent.kycData.agentLicenseNumber = agentLicenseNumber;
+    if (profileBio) agent.kycData.profileBio = profileBio;
+    if (specializations) agent.kycData.specializations = specializations;
+    if (languagesSpoken) agent.kycData.languagesSpoken = languagesSpoken;
+    if (servicesOffered) agent.kycData.servicesOffered = servicesOffered;
+    if (achievements && achievements.length > 0) agent.kycData.achievements = achievements;
+    if (featuredListings) agent.kycData.featuredListings = featuredListings;
     if (address) agent.address = address;
     if (regionOfOperation) agent.regionOfOperation = regionOfOperation;
     if (agentType) agent.agentType = agentType;
 
-    // Set account review flags
+    // Reset review flags
+    agent.kycStatus = "pending";
     agent.accountApproved = false;
     agent.isFlagged = false;
 
-    // Save agent
+    // Save updates
     await agent.save();
+
+    // Send acknoledge mail to the agent
+    const emailBody = generalEmailLayout(kycSubmissionAcknowledgement(authUser?.firstName));
+
+    await sendEmail({
+      to: authUser?.email,
+      subject: "KYC Verification Request Received – Khabi-Teq Realty",
+      html: emailBody,
+      text: emailBody,
+    });
+
+  
+    // send mail to the admin
+    const companyEmailData = await SystemSettingService.getSetting("company_email");
+    const reviewLink = `${process.env.ADMIN_CLIENT_LINK}/agents/${authUser?._id}`;
+    const adminEmailBody = generalEmailLayout(kycVerificationAdminNotification(authUser?.firstName, authUser?.email,reviewLink));
+
+    await sendEmail({
+      to: companyEmailData?.value || process.env.ADMIN_EMAIL,
+      subject: "New KYC Verification Request Pending – Khabi-Teq Realty",
+      html: adminEmailBody,
+      text: adminEmailBody,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

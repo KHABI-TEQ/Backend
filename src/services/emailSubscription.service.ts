@@ -47,7 +47,7 @@ export class EmailSubscriptionService {
         email
       )}" style="color:#ff0000;">Unsubscribe here</a>
       `),
-      text: `Thank you for subscribing!\n\nUnsubscribe: ${process.env.FRONTEND_URL}/un-subscribe?email=${encodeURIComponent(
+      text: `Thank you for subscribing!\n\nUnsubscribe: ${process.env.CLIENT_LINK}/un-subscribe?email=${encodeURIComponent(
         email
       )}`,
     });

@@ -60,6 +60,7 @@ AccountRouter.put("/notificationStatus", updateNotificationSettings);
 
 // AGENT UNIQUE ROUTES
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completeAgentKYC);
+
 AccountRouter.put("/updateInspectionFee", setAgentInspectionFee);
 AccountRouter.get("/validatePublicAccess/", validateAgentPublicAccess);
 
