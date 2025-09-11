@@ -25,13 +25,14 @@ import { assignInspectionToFieldAgent, createFieldAgent, deleteFieldAgentAccount
 import { validateJoi } from "../middlewares/validateJoi";
 import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
-import { deleteTransactionDetails, getAllTransactions, getTransactionById, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
+import { deleteTransactionDetails, getAllTransactions, getTransactionById, getTransactionStats, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
 import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
 import { createSubscriptionPlan, deleteSubscriptionPlan, getAllSubscriptionPlans, getSubscriptionPlan, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 import { deletePreference } from "../controllers/Admin/preference/deletePreference";
 import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteBySlug, adminGetDealSiteStats, adminPauseDealSite } from "../controllers/Admin/DealSite/adminDealSite";
 import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats, updateReferral } from "../controllers/Admin/ExtralPages/referralLogs";
+import { adminAddSubscription, adminChangeSubscriptionStatus, adminDeleteSubscription, adminGetAllSubscriptions } from "../controllers/Admin/Settings/emailSubscriptionActionController";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -157,6 +158,7 @@ AdminRouter.get("/buyers/:buyerId/allPreferences", getBuyerPreferences);
 
 // TRANSACTION MANAGEMENT ROUTES
 AdminRouter.get("/transactions", getAllTransactions);
+AdminRouter.get("/transactions/stats", getTransactionStats);
 AdminRouter.get("/transactions/:transactionId", getTransactionById);
 AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
@@ -180,6 +182,12 @@ AdminRouter.get("/subscriptions", fetchUserSubscriptions);
 AdminRouter.get("/subscriptions/:subscriptionId", getSubscriptionDetails);
 AdminRouter.put("/subscriptions/:subscriptionId", updateSubscription);
 AdminRouter.post("/subscriptions/:subscriptionId", cancelSubscription);
+
+// EMAIL SUBSCRIPTION MANAGEMENT ROUTES
+AdminRouter.get("/emailSubscriptions/getAll", adminGetAllSubscriptions);
+AdminRouter.post("/emailSubscriptions/addNew", adminAddSubscription);
+AdminRouter.delete("/emailSubscriptions/:subscriptionId/delete", adminDeleteSubscription);
+AdminRouter.put("/emailSubscriptions/:subscriptionId/changeStatus", adminChangeSubscriptionStatus);
 
 // REFERRAL MANAGEMENT ROUTES
 AdminRouter.get("/referrals/getAll", fetchAllReferrals);

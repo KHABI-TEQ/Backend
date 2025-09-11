@@ -85,6 +85,55 @@ export const getAllTransactions = async (
 };
 
 
+// Get transaction stats
+export const getTransactionStats = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const [stats, totalSuccessAmount] = await Promise.all([
+      DB.Models.NewTransaction.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      DB.Models.NewTransaction.aggregate([
+        { $match: { status: "success" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    // Format stats into an object
+    const statsMap: Record<string, number> = {};
+    stats.forEach((s) => {
+      statsMap[s._id] = s.count;
+    });
+
+    const response = {
+      totalTransactions:
+        Object.values(statsMap).reduce((acc, curr) => acc + curr, 0) || 0,
+      pending: statsMap["pending"] || 0,
+      success: statsMap["success"] || 0,
+      failed: statsMap["failed"] || 0,
+      cancelled: statsMap["cancelled"] || 0,
+      totalSuccessAmount: totalSuccessAmount[0]?.total || 0,
+    };
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Transaction stats fetched successfully",
+      data: response,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 // Get single transaction by ID
 export const getTransactionById = async (req: AppRequest, res: Response, next: NextFunction) => {
@@ -150,7 +199,6 @@ export const validateTransaction = async (req: AppRequest, res: Response, next: 
     next(err);
   }
 };
-
 
 /**
  * Delete transaction details

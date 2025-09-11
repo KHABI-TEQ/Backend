@@ -25,6 +25,7 @@ import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getPublicAgentProfile } from "../controllers/public/extralActions";
 import { getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
+import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
 
 const router = express.Router();
 
@@ -144,6 +145,10 @@ router.get("/getSystemSettings", fetchSystemSettings)
 
 router.get("/verify-payment", paymentVerification)
 
+router.post("/emailSubscription/subscribe", subscribeEmail);
+
+router.post("/emailSubscription/unsubscribe", unsubscribeEmail);
+
 // Contact Form
 router.post("/submitVerificationDocs", submitDocumentVerification);
 
@@ -169,7 +174,7 @@ router.use("/auth", AuthRouter);
 
 // All Properties Routes
 router.use("/properties", propertyRouter);
-
+ 
 // All Preferences Routes
 router.use("/preferences", preferenceRouter);
 
