@@ -123,6 +123,15 @@ export class SubscriptionPlanService {
   }
 
   /**
+   * Get all active plans
+   */
+  static async getAllActivePlans(): Promise<ISubscriptionPlanDoc[]> {
+    return this.PlanModel.find({ isActive: true })
+      .populate("features.feature")
+      .lean();
+  }
+
+  /**
    * Delete a plan by code
    */
   static async deletePlan(code: string): Promise<boolean> {
