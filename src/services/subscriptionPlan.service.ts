@@ -34,13 +34,34 @@ export class SubscriptionPlanService {
     isTrial?: boolean;
     discountedPlans?: {
       name: string;
+      code: string;
       price: number;
       durationInDays: number;
       discountPercentage?: number;
     }[];
   }): Promise<ISubscriptionPlanDoc> {
+    // ✅ Ensure main code is unique
     const existing = await this.PlanModel.findOne({ code });
     if (existing) throw new Error(`Plan with code "${code}" already exists`);
+
+    // ✅ Ensure discounted codes are unique within this payload
+    const codes = discountedPlans.map(dp => dp.code.toUpperCase().trim());
+    const duplicate = codes.find(
+      (c, idx) => codes.indexOf(c) !== idx
+    );
+    if (duplicate) {
+      throw new Error(`Duplicate discounted plan code "${duplicate}" in payload`);
+    }
+
+    // ✅ Ensure discounted codes are globally unique across all plans
+    for (const dp of discountedPlans) {
+      const exists = await this.PlanModel.findOne({
+        "discountedPlans.code": dp.code.toUpperCase().trim()
+      });
+      if (exists) {
+        throw new Error(`Discounted plan code "${dp.code}" already exists in another plan`);
+      }
+    }
 
     const assignedFeatures = await this.validateAndFormatFeatures(features);
 
@@ -53,11 +74,15 @@ export class SubscriptionPlanService {
       features: assignedFeatures,
       isActive,
       isTrial,
-      discountedPlans
+      discountedPlans: discountedPlans.map(dp => ({
+        ...dp,
+        code: dp.code.toUpperCase().trim()
+      }))
     });
 
     return plan.save();
   }
+
 
   /**
    * Update a subscription plan
@@ -78,6 +103,7 @@ export class SubscriptionPlanService {
       isTrial: boolean;
       discountedPlans: {
         name: string;
+        code: string;
         price: number;
         durationInDays: number;
         discountPercentage?: number;
@@ -96,10 +122,36 @@ export class SubscriptionPlanService {
     if (updates.currency !== undefined) plan.currency = updates.currency;
     if (updates.isActive !== undefined) plan.isActive = updates.isActive;
     if (updates.isTrial !== undefined) plan.isTrial = updates.isTrial;
-    if (updates.discountedPlans !== undefined) plan.discountedPlans = updates.discountedPlans;
+
+    if (updates.discountedPlans !== undefined) {
+      const codes = updates.discountedPlans.map(dp => dp.code.toUpperCase().trim());
+
+      // ✅ Ensure no duplicate codes in the update payload
+      const duplicate = codes.find((c, idx) => codes.indexOf(c) !== idx);
+      if (duplicate) {
+        throw new Error(`Duplicate discounted plan code "${duplicate}" in payload`);
+      }
+
+      // ✅ Ensure codes are globally unique (excluding the current plan)
+      for (const dp of updates.discountedPlans) {
+        const exists = await this.PlanModel.findOne({
+          code: { $ne: plan.code }, // exclude current plan
+          "discountedPlans.code": dp.code.toUpperCase().trim(),
+        });
+        if (exists) {
+          throw new Error(`Discounted plan code "${dp.code}" already exists in another plan`);
+        }
+      }
+
+      plan.discountedPlans = updates.discountedPlans.map(dp => ({
+        ...dp,
+        code: dp.code.toUpperCase().trim(),
+      }));
+    }
 
     return plan.save();
   }
+
 
   /**
    * Get a plan by code or _id
