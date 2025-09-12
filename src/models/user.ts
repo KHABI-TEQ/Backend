@@ -116,6 +116,7 @@ export class User {
         },
       },
     );
+    
 
     // Virtual for fullName
     schema.virtual("fullName").get(function (this: IUserDoc) {

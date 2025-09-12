@@ -186,10 +186,16 @@ export class SubscriptionPlanService {
   /**
    * Delete a plan by code
    */
-  static async deletePlan(code: string): Promise<boolean> {
-    const result = await this.PlanModel.deleteOne({ code });
+  static async deletePlan(identifier: string): Promise<boolean> {
+    const filter =
+      /^[0-9a-fA-F]{24}$/.test(identifier)
+        ? { _id: identifier } // if identifier looks like ObjectId
+        : { code: identifier }; // otherwise treat as code
+
+    const result = await this.PlanModel.deleteOne(filter);
     return result.deletedCount > 0;
   }
+
 
   /**
    * Internal helper to validate features

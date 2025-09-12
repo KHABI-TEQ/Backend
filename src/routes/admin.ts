@@ -5,7 +5,7 @@ import { adminAuth } from "../middlewares/adminAuth";
 import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
 import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../controllers/Admin/profileSettings";
 import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
-import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
+import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
 import { getPreferenceModeStats, getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
 import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
@@ -83,7 +83,7 @@ AdminRouter.patch("/admins/:adminId/status", changeAdminStatus);
  * AGENTS MANAGEMENT ROUTES
  */
 AdminRouter.get("/agents", getAllAgents);
-AdminRouter.get("/agents/fetchAll", getAgents);
+AdminRouter.get("/agents/fetchAll/:type", getAgentsByType);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
 
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
