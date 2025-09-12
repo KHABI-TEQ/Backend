@@ -102,11 +102,18 @@ export class SubscriptionPlanService {
   }
 
   /**
-   * Get a plan by code
+   * Get a plan by code or _id
    */
-  static async getPlan(code: string): Promise<ISubscriptionPlanDoc | null> {
-    return this.PlanModel.findOne({ code }).populate("features.feature").lean();
+  static async getPlan(identifier: string): Promise<ISubscriptionPlanDoc | null> {
+    const filter = /^[0-9a-fA-F]{24}$/.test(identifier)
+      ? { _id: identifier } // if identifier looks like ObjectId
+      : { code: identifier }; // otherwise treat as code
+
+    return this.PlanModel.findOne(filter)
+      .populate("features.feature")
+      .lean();
   }
+
 
   /**
    * Get all plans
