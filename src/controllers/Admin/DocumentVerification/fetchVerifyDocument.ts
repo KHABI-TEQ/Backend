@@ -94,7 +94,7 @@ export const fetchVerifyDocStats = async (
     const statusCountsPromise = allowedStatuses.map((status) =>
       DB.Models.DocumentVerification.countDocuments({ status })
     );
-
+ 
     // Run all promises in parallel
     const [
       totalDocuments,
@@ -103,7 +103,9 @@ export const fetchVerifyDocStats = async (
       totalDocsAgg,
       ...statusCounts
     ] = await Promise.all([
-      DB.Models.DocumentVerification.countDocuments(),
+      DB.Models.DocumentVerification.countDocuments({
+        status: { $in: ["registered", "payment-approved", "unregistered", "in-progress"] },
+      }),
       DB.Models.DocumentVerification.countDocuments({
         status: { $in: ["registered"] },
       }),
@@ -112,6 +114,7 @@ export const fetchVerifyDocStats = async (
         { $group: { _id: null, totalAmount: { $sum: "$amountPaid" } } },
       ]),
       DB.Models.DocumentVerification.aggregate([
+        { $match: { status: { $in: ["registered", "payment-approved", "unregistered", "in-progress"] } } },
         { $group: { _id: null, totalAmount: { $sum: "$amountPaid" } } },
       ]),
       ...statusCountsPromise,

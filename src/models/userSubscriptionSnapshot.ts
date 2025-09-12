@@ -2,7 +2,7 @@ import { Schema, model, Document, Model, Types } from "mongoose";
 
 /**
  * Interfaces
- */
+ */ 
 export interface IUserAssignedFeature {
   feature: Types.ObjectId; // PlanFeature ref
   type: "boolean" | "count" | "unlimited";

@@ -40,26 +40,30 @@ export const getAgents = async (
 
     const pageNum = Number(page) || 1;
     const limitNum = Number(limit) || 20;
-    const filter: FilterQuery<any> = {};
+    const skip = (pageNum - 1) * limitNum;
 
-    // Type filtering
+    // --- Filters ---
+    const agentFilters: Record<string, any> = {};
+    const userFilters: Record<string, any> = {
+      userType: "Agent",
+      isDeleted: false,
+    };
+
     if (type === "pending") {
-      filter.accountApproved = false;
+      userFilters.accountApproved = false;
     } else if (type === "approved") {
-      filter.accountApproved = true;
+      userFilters.accountApproved = true;
     } else if (type === "kycRequest") {
-      filter.kycStatus = "pending"; // or whatever status your KYC requests use
+      agentFilters.kycStatus = "pending";
     }
 
-    // Flagged filter
     if (typeof isFlagged !== "undefined") {
-      filter.isFlagged = isFlagged === "true";
+      userFilters.isFlagged = isFlagged === "true";
     }
 
-    // Search filter
     if (q) {
       const regex = new RegExp(q, "i");
-      filter.$or = [
+      userFilters.$or = [
         { email: regex },
         { firstName: regex },
         { lastName: regex },
@@ -68,70 +72,77 @@ export const getAgents = async (
       ];
     }
 
-    // Base query for agents
-    let query = DB.Models.Agent.find(filter)
-      .populate("userId", "email firstName lastName phoneNumber fullName")
-      .sort({ [sortBy]: sortOrder as SortOrder });
-
-    // Subscription filtering
+    // --- Subscriptions ---
     let subscriptions: any[] = [];
     let planMap: Record<string, any> = {};
-
     if (type === "subscribed" || type === "expired") {
       const status = type === "subscribed" ? "active" : "expired";
 
-      subscriptions = await DB.Models.Subscription.find({ status })
-        .select("user plan startDate endDate status")
+      subscriptions = await DB.Models.UserSubscriptionSnapshot.find({ status })
+        .populate({ path: "user", select: "email firstName lastName phoneNumber fullName" })
+        .populate({ path: "plan", select: "name code price durationInDays currency discountedPlans" })
+        .sort({ createdAt: -1 })
         .lean();
 
-      // Collect planIds
-      const planIds = subscriptions.map((s) => s.plan);
-      const plans = await DB.Models.SubscriptionPlan.find({
-        code: { $in: planIds },
-      })
-        .select("name code")
-        .lean();
+      if (type === "subscribed") {
+        // only latest subscription per user
+        const latestSubs: Record<string, any> = {};
+        for (const sub of subscriptions) {
+          const userId = sub.user._id.toString();
+          if (!latestSubs[userId]) latestSubs[userId] = sub;
+        }
+        subscriptions = Object.values(latestSubs);
+      }
 
-      // Build lookup table
-      planMap = plans.reduce((acc, p) => {
-        acc[p.code] = p;
+      const userIds = subscriptions.map((s) => s.user._id);
+      userFilters._id = { $in: userIds };
+
+      planMap = subscriptions.reduce((acc, s) => {
+        if (s.plan) acc[s.plan._id.toString()] = s.plan;
         return acc;
       }, {} as Record<string, any>);
-
-      const userIds = subscriptions.map((s) => s.user.toString());
-      query = query.where("userId").in(userIds);
     }
 
-    // Pagination
-    const skip = (pageNum - 1) * limitNum;
-    const [agents, total] = await Promise.all([
-      query.skip(skip).limit(limitNum).lean(),
-      DB.Models.Agent.countDocuments(
-        type === "subscribed" || type === "expired"
-          ? { ...filter, userId: { $in: subscriptions.map((s) => s.user) } }
-          : filter
-      ),
-    ]);
+    // --- Aggregation Pipeline ---
+    const pipeline: any[] = [
+      { $match: agentFilters },
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      { $match: userFilters },
+      {
+        $sort: {
+          [sortBy]: sortOrder === "asc" ? 1 : -1,
+        },
+      },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limitNum }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ];
 
-    // Format response
+    const result = await DB.Models.Agent.aggregate(pipeline);
+    const agents = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    // --- Format Response ---
     const formatted = agents.map((agent: any) => {
       const sub =
         subscriptions.find(
-          (s) => s.user.toString() === agent.userId._id.toString()
+          (s) => s.user._id.toString() === agent.user._id.toString()
         ) || null;
 
       return {
         _id: agent._id,
-        user: agent.userId
-          ? {
-              _id: agent.userId._id,
-              email: agent.userId.email,
-              firstName: agent.userId.firstName,
-              lastName: agent.userId.lastName,
-              phoneNumber: agent.userId.phoneNumber,
-              fullName: agent.userId.fullName,
-            }
-          : null,
+        user: agent.user || null,
         address: {
           street: agent.address?.street || "",
           homeNo: agent.address?.homeNo || "",
@@ -145,11 +156,6 @@ export const getAgents = async (
               cacNumber: agent.companyAgent.cacNumber || "",
             }
           : null,
-        accountApproved: agent.accountApproved,
-        isInActive: agent.isInActive,
-        isDeleted: agent.isDeleted,
-        accountStatus: agent.accountStatus,
-        isFlagged: agent.isFlagged,
         kycStatus: agent.kycStatus,
         subscription: sub
           ? {
@@ -177,6 +183,164 @@ export const getAgents = async (
     next(err);
   }
 };
+
+
+export const getAgentsByType = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { type } = req.params as {
+      type: "pending" | "subscriber" | "accountVerified" | "kycRequest";
+    };
+
+    const {
+      q,
+      page = 1,
+      limit = 20,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query as {
+      q?: string;
+      page?: any;
+      limit?: any;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    };
+
+    const currentPage = Math.max(1, parseInt(page as any, 10) || 1);
+    const perPage = Math.max(1, parseInt(limit as any, 10) || 20);
+    const skip = (currentPage - 1) * perPage;
+
+    const searchRegex = q ? new RegExp(q, "i") : null;
+
+    let matchStage: any = {};
+    let subscriptionLookup: any[] = [];
+
+    switch (type) {
+      case "pending":
+        matchStage = { "user.isAccountVerified": false };
+        break;
+      case "accountVerified":
+        matchStage = { "user.isAccountVerified": true };
+        break;
+      case "kycRequest":
+        matchStage = { "agent.kycStatus": "pending" };
+        break;
+      case "subscriber":
+        subscriptionLookup = [
+          {
+            $lookup: {
+              from: "usersubscriptionsnapshots",
+              localField: "userId",
+              foreignField: "user",
+              as: "subscriptions",
+            },
+          },
+          { $unwind: "$subscriptions" },
+          { $match: { "subscriptions.status": "active" } },
+        ];
+        break;
+      default:
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid agent type",
+        });
+    }
+
+    const pipeline: any[] = [
+      { $match: {} }, // start with agents
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      { $match: { "user.userType": "Agent", "user.isDeleted": false, ...matchStage } },
+      ...subscriptionLookup,
+    ];
+
+    // Apply search
+    if (searchRegex) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "user.email": searchRegex },
+            { "user.firstName": searchRegex },
+            { "user.lastName": searchRegex },
+            { "user.fullName": searchRegex },
+            { "user.phoneNumber": searchRegex },
+          ],
+        },
+      });
+    }
+
+    pipeline.push({
+      $project: {
+        // Agent fields
+        _id: 1,
+        agentType: 1,
+        userId: 1,
+        regionOfOperation: 1,
+        kycStatus: 1,
+        companyAgent: 1,
+        address: 1,
+
+        // Nested User fields
+        "user._id": 1,
+        "user.email": 1,
+        "user.firstName": 1,
+        "user.lastName": 1,
+        "user.fullName": 1,
+        "user.phoneNumber": 1,
+        "user.accountApproved": 1,
+        "user.accountStatus": 1,
+        "user.profile_picture": 1,
+        "user.isAccountVerified": 1,
+        "user.isInActive": 1,
+        "user.userType": 1,
+        "user.accountId": 1,
+      },
+    });
+
+    // Add facet for pagination + total
+    pipeline.push({
+      $facet: {
+        data: [
+          { $sort: { [sortBy]: sortOrder === "asc" ? 1 : -1 } },
+          { $skip: skip },
+          { $limit: perPage },
+        ],
+        totalCount: [{ $count: "count" }],
+      },
+    });
+
+    const result = await DB.Models.Agent.aggregate(pipeline);
+
+    const agents = result[0]?.data || [];
+    const total = result[0]?.totalCount[0]?.count || 0;
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      type,
+      count: agents.length,
+      data: agents,
+      pagination: {
+        page: currentPage,
+        limit: perPage,
+        total,
+        totalPages: Math.ceil(total / perPage),
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 /**
