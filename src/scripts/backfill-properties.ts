@@ -175,7 +175,6 @@ const run = async () => {
           languagesSpoken: agent.kycData.languagesSpoken ?? [],
           servicesOffered: agent.kycData.servicesOffered ?? [],
           achievements: agent.kycData.achievements ?? [],
-          featuredListings: agent.kycData.featuredListings ?? [],
         };
       }
 
