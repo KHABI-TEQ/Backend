@@ -12,6 +12,7 @@ import { generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } fr
 import { SystemSettingService } from './systemSetting.service';
 import { PaymentMethodService } from './paymentMethod.service';
 import { referralService } from './referral.service';
+import { UserSubscriptionSnapshotService } from './userSubscriptionSnapshot.service';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -403,37 +404,49 @@ export class PaystackService {
  * Handles the side effects of a subscription payment.
  */
   static async handleSubscriptionPayment(transaction: any) {
-    const subscription = await DB.Models.Subscription.findOne({
-      transaction: transaction._id,
-    }).populate("user"); // so we can get user email, name
+    // get user subscription snapshot by transaction id
+    const snapshot = await UserSubscriptionSnapshotService.getSnapshotByTransactionId(transaction._id);
 
-    if (!subscription) return;
+    // return false if subscription not found
+    if (!snapshot) return;
 
-    if (subscription.status === "pending") {
+    // make sure only pending snapshot subscription are action on
+    if (snapshot.status === "pending") {
       const newStatus = transaction.status === "success" ? "active" : "cancelled";
 
-      const plan = await DB.Models.SubscriptionPlan.findOne({ code: subscription.plan });
+      // get the plan from snapshot
+      const plan = snapshot.plan as any;
       if (!plan) return null;
 
+      // calculating subscription snapshot dates
       const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + plan.durationInDays);
 
-      subscription.status = newStatus;
-      subscription.startDate = startDate;
-      subscription.endDate = endDate;
-      await subscription.save();
+      // Map plan features into snapshot
+      const planFeatures = plan.features?.map((f: any) => ({
+        feature: f._id,
+        type: f.type,
+        value: f.type === "boolean" ? 1 : f.type === "count" ? f.limit : undefined,
+        remaining: f.type === "count" ? f.limit : undefined,
+      })) || [];
+
+      snapshot.status = newStatus;
+      snapshot.startedAt = startDate;
+      snapshot.expiresAt = endDate;
+      snapshot.features = planFeatures;
+      await snapshot.save();
 
       // =======================
       // Subscription Mails
       // =======================
-      const user = subscription.user as any; // populated user
+      const user = snapshot.user as any; // populated user
       const fullName = `${user.firstName} ${user.lastName}`;
 
       if (transaction.status === "success") {
 
         // create auto renewal authorization
-        if (subscription.autoRenew) {
+        if (snapshot.autoRenew) {
           await PaymentMethodService.createPaymentMethod({
             userId: user._id,
             type: transaction.paymentMode,
@@ -450,12 +463,11 @@ export class PaystackService {
         }
         
         // Check if user has ANY past subscription (active or expired), excluding current pending one
-        const previousSubscription = await DB.Models.Subscription.exists({
+        const previousSubscription = await DB.Models.UserSubscriptionSnapshot.exists({
           user: user._id,
           status: { $in: ["active", "inactive", "expired"] },
-          _id: { $ne: subscription._id },
+          _id: { $ne: snapshot._id },
         });
-
 
         const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
         if (referralStatusSettings?.value && user.referredBy) {
@@ -513,7 +525,7 @@ export class PaystackService {
             planName: plan.name,
             amount: transaction.amount / 100,
             transactionRef: transaction.reference,
-            retryLink: `${process.env.CLIENT_LINK}/billing/retry?subId=${subscription._id}`,
+            retryLink: `${process.env.CLIENT_LINK}/billing/retry?subId=${snapshot._id}`,
           })
         );
 
@@ -526,9 +538,8 @@ export class PaystackService {
       }
     }
 
-    return subscription;
+    return snapshot;
   }
-
 
 
  /**

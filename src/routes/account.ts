@@ -36,7 +36,7 @@ import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "
 import { completeAgentKYC, completeOnboardingAgent, setAgentInspectionFee } from "../controllers/Account/Agent/onBoarding";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
-import { cancelSubscription, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionAutoRenewal } from "../controllers/Account/Agent/subscriptions";
+import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionSnapshotAutoRenewal } from "../controllers/Account/Agent/subscriptions";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
@@ -51,12 +51,13 @@ AccountRouter.use(accountAuth);
 // PROFILE ROUTES
 AccountRouter.get("/profile", getProfile);
 AccountRouter.get("/dashboard", getDashboardData);
-AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 AccountRouter.patch("/updateAccount", updateProfile);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.put("/changePassword", changePassword);
 AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
+
+AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
 // AGENT UNIQUE ROUTES
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completeAgentKYC);
@@ -71,7 +72,7 @@ AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus
 AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
 AccountRouter.get("/properties/fetchAll", fetchAllProperties);
- 
+  
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
@@ -82,8 +83,8 @@ AccountRouter.post("/subscriptions/makeSub", createSubscription);
 AccountRouter.get("/subscriptions/fetchAll", fetchUserSubscriptions);
 AccountRouter.get("/subscriptions/fetchAllPlans", getAllActiveSubscriptionPlans);
 AccountRouter.get("/subscriptions/:subscriptionId", getUserSubscriptionDetails);
-AccountRouter.post("/subscriptions/:subscriptionId/cancel", cancelSubscription);
-AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSubscriptionAutoRenewal);
+AccountRouter.post("/subscriptions/:subscriptionId/cancel", cancelSubscriptionSnapshot);
+AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSubscriptionSnapshotAutoRenewal);
 
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);

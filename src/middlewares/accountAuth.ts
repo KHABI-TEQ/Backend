@@ -51,7 +51,7 @@ const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) =
         req.url.startsWith(route)
       );
 
-      if (!agent.accountApproved && isProtectedRoute) {
+      if (!user.accountApproved && isProtectedRoute) {
         return res.status(403).json({
           message: "Account not approved. You cannot perform this action.",
         });

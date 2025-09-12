@@ -8,6 +8,7 @@ import { kycSubmissionAcknowledgement } from '../../../common/emailTemplates/age
 import { SystemSettingService } from '../../../services/systemSetting.service';
 import { kycVerificationAdminNotification } from '../../../common/emailTemplates/adminMails';
 
+// to be removed
 export const completeOnboardingAgent = async (
   req: AppRequest,
   res: Response,
@@ -63,11 +64,6 @@ export const completeOnboardingAgent = async (
     agent.govtId = govtId;
     agent.meansOfId = meansOfId;
 
-    agent.isInActive = false;
-    agent.isDeleted = false;
-    agent.accountApproved = false;
-    agent.isFlagged = false;
-    agent.accountStatus = 'active';
 
     if (user.referredBy) {
       await DB.Models.ReferralLog.updateOne(
@@ -114,7 +110,6 @@ export const completeAgentKYC = async (
       languagesSpoken,
       servicesOffered,
       achievements,
-      featuredListings,
       address,
       regionOfOperation,
       agentType,
@@ -145,15 +140,12 @@ export const completeAgentKYC = async (
     if (languagesSpoken) agent.kycData.languagesSpoken = languagesSpoken;
     if (servicesOffered) agent.kycData.servicesOffered = servicesOffered;
     if (achievements && achievements.length > 0) agent.kycData.achievements = achievements;
-    if (featuredListings) agent.kycData.featuredListings = featuredListings;
     if (address) agent.address = address;
     if (regionOfOperation) agent.regionOfOperation = regionOfOperation;
     if (agentType) agent.agentType = agentType;
 
     // Reset review flags
     agent.kycStatus = "pending";
-    agent.accountApproved = false;
-    agent.isFlagged = false;
 
     // Save updates
     await agent.save();

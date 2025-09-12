@@ -27,7 +27,7 @@ import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 import { deleteTransactionDetails, getAllTransactions, getTransactionById, getTransactionStats, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
 import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
-import { createSubscriptionPlan, deleteSubscriptionPlan, getAllSubscriptionPlans, getSubscriptionPlan, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
+import { createPlanFeature, createSubscriptionPlan, deletePlanFeature, deleteSubscriptionPlan, getAllPlanFeatures, getAllSubscriptionPlans, getPlanFeature, getSubscriptionPlan, updatePlanFeature, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 import { deletePreference } from "../controllers/Admin/preference/deletePreference";
 import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteBySlug, adminGetDealSiteStats, adminPauseDealSite } from "../controllers/Admin/DealSite/adminDealSite";
@@ -85,8 +85,10 @@ AdminRouter.patch("/admins/:adminId/status", changeAdminStatus);
 AdminRouter.get("/agents", getAllAgents);
 AdminRouter.get("/agents/fetchAll", getAgents);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
+
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
-AdminRouter.post("/agents/approve-agent", approveAgentOnboardingStatus);
+AdminRouter.post("/agents/approve-agents", approveAgentOnboardingStatus);
+
 AdminRouter.get("/agents/:userId", getSingleAgentProfile);
 AdminRouter.post("/agents/:userId/status", toggleAgentStatus);
 AdminRouter.delete("/agents/:userId/delete", deleteAgentAccount);
@@ -169,6 +171,13 @@ AdminRouter.get("/deal-sites/stats", adminGetDealSiteStats);
 AdminRouter.get("/deal-sites/:publicSlug", adminGetDealSiteBySlug);
 AdminRouter.put("/deal-sites/:publicSlug/pause", adminPauseDealSite);
 AdminRouter.put("/deal-sites/:publicSlug/resume", adminActivateDealSite);
+ 
+// SUBSCRIPTION FEATURES MANAGEMENT ROUTES
+AdminRouter.post("/subscription-features/createNew", createPlanFeature);
+AdminRouter.put("/subscription-features/:featureId/update", updatePlanFeature);
+AdminRouter.delete("/subscription-features/:featureId/deleteOne", deletePlanFeature);
+AdminRouter.get("/subscription-features/getAll", getAllPlanFeatures);
+AdminRouter.get("/subscription-features/:featureId/getOne", getPlanFeature);
 
 // SUBSCRIPTION PLANS MANAGEMENT ROUTES
 AdminRouter.post("/subsription-plans/createNew", createSubscriptionPlan);

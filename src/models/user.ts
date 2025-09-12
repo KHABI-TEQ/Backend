@@ -14,11 +14,13 @@ export interface IUser {
   };
   fullName?: string;
   profile_picture?: string;
+
   isAccountVerified: boolean;
   isInActive: boolean;
   isDeleted: boolean;
   accountApproved: boolean; // For Agents
   accountStatus: "active" | "inactive" | "deleted";
+  
   userType: "Landowners" | "Agent" | "FieldAgent";
   isFlagged: boolean;
   accountId: string;
@@ -37,7 +39,7 @@ export interface IUserDoc extends IUser, Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
+ 
 export type IUserModel = Model<IUserDoc>;
 
 export class User {
@@ -59,15 +61,17 @@ export class User {
         isAccountInRecovery: { type: Boolean, default: false },
         profile_picture: { type: String },
 
-        isAccountVerified: { type: Boolean, default: false },
         isInActive: { type: Boolean, default: false },
+        isAccountVerified: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },
         accountApproved: { type: Boolean, default: false },
-        accountStatus: {
+        accountStatus: { 
           type: String,
           enum: ["active", "inactive", "deleted"],
           default: "active",
         },
+
+
         userType: {
           type: String,
           enum: ["Landowners", "Agent", "FieldAgent"],

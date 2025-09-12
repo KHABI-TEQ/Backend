@@ -41,8 +41,12 @@ import {
   INewTransactionModel,
   Subscription,
   ISubscriptionModel,
+  UserSubscriptionSnapshot,
+  IUserSubscriptionSnapshotModel,
   SubscriptionPlan,
   ISubscriptionPlanModel,
+  PlanFeature,
+  IPlanFeatureModel,
   ISystemSettingModel,
   SystemSetting,
   PaymentMethod,
@@ -76,7 +80,9 @@ declare interface IModels {
   FieldAgent: IFieldAgentModel;
   NewTransaction: INewTransactionModel;
   Subscription: ISubscriptionModel;
+  UserSubscriptionSnapshot: IUserSubscriptionSnapshotModel;
   SubscriptionPlan: ISubscriptionPlanModel;
+  PlanFeature: IPlanFeatureModel;
   SystemSetting: ISystemSettingModel;
   PaymentMethod: IPaymentMethodModel;
   DealSite: IDealSiteModel;
@@ -121,7 +127,9 @@ export class DB {
       FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
       Subscription: new Subscription().model,
+      UserSubscriptionSnapshot: new UserSubscriptionSnapshot().model,
       SubscriptionPlan: new SubscriptionPlan().model,
+      PlanFeature: new PlanFeature().model,
       SystemSetting: new SystemSetting().model,
       PaymentMethod: new PaymentMethod().model,
       DealSite: new DealSite().model,
