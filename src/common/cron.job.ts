@@ -277,7 +277,7 @@ const autoRenewSubscriptions = async () => {
             planName: plan.name,
             amount: plan.price,
             transactionRef: paymentResult.transaction?.reference || 'N/A',
-            retryLink: `${process.env.FRONTEND_URL}/subscription/update-payment`,
+            retryLink: `${process.env.CLIENT_LINK}/subscription/update-payment`,
           })
         );
 

@@ -5,19 +5,17 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes"; 
 import bcrypt from "bcryptjs"; 
 import { SystemSettingService } from "../../services/systemSetting.service";
+import { UserSubscriptionSnapshotService } from "../../services/userSubscriptionSnapshot.service";
 
 // Fetch Profile
 export const getProfile = async (
   req: AppRequest,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const userId = req.user?._id;
-    if (!userId) {
-      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
-    }
-
+   
     const user = await DB.Models.User.findById(userId).lean();
     if (!user) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
@@ -46,22 +44,18 @@ export const getProfile = async (
     let responseData: any = userResponse;
 
     if (user.userType === "Agent") {
-      const agentData = await DB.Models.Agent.findOne({
-        userId: user._id,
-      }).lean();
+      const agentData = await DB.Models.Agent.findOne({ userId: user._id }).lean();
 
-      // Get active subscription for this agent
-      const activeSubscription = await DB.Models.Subscription.findOne({
-        user: user._id,
-        status: "active",
-        endDate: { $gte: new Date() },
-      }).lean();
+      // Get active subscription snapshot using the service
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(
+        user._id.toString()
+      );
 
       responseData = {
         ...userResponse,
         agentData,
         isAccountApproved: user.accountApproved,
-        activeSubscription: activeSubscription || null,
+        activeSubscription: activeSnapshot || null,
       };
     }
 
@@ -76,6 +70,7 @@ export const getProfile = async (
     next(err);
   }
 };
+
 
 // Update Profile (e.g. name, phone, address)
 export const updateProfile = async (

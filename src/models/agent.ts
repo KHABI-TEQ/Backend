@@ -12,16 +12,11 @@ export interface IAgent {
   companyAgent?: {
     companyName?: string;
     cacNumber?: string;
-  };
-  isInActive?: boolean;
-  isDeleted?: boolean;
-  accountApproved?: boolean;
-  accountStatus?: string;
+  };  
   meansOfId?: {
     name: string;
     docImg: string[];
   }[];
-  isFlagged: boolean;
   userId:Types.ObjectId;
   govtId?: {
     typeOfId: string;
@@ -39,7 +34,6 @@ export interface IAgent {
       fileUrl?: string;
       dateAwarded?: Date;
     }[];
-    featuredListings?: Types.ObjectId[];
   };
   kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
 } 
@@ -65,19 +59,12 @@ export class Agent {
         companyAgent: {
           companyName: { type: String },
         },
-        isAccountVerified: { type: Boolean, default: false },
-        isInActive: { type: Boolean, default: false },
-        isDeleted: { type: Boolean, default: false },
-        accountApproved: { type: Boolean, default: false },
-        accountStatus: { type: String, enum: ['active', 'inactive', 'deleted'], default: 'active' },
         meansOfId: [
           {
             name: { type: String },
             docImg: { type: [String] },
           },
         ],
-
-        isFlagged: { type: Boolean, default: false },
         userId: { type:Schema.Types.ObjectId, required: true, ref: 'User' },
         govtId: {
           typeOfId: { type: String },
@@ -100,9 +87,6 @@ export class Agent {
             ],
             default: [],
           },
-          featuredListings: [
-            { type: Schema.Types.ObjectId, ref: 'Property', default: [] },
-          ],
         },
         kycStatus: {
           type: String,

@@ -29,7 +29,7 @@ export const getAgents = async (
       sortBy = "createdAt",
       sortOrder = "desc",
     } = req.query as {
-      type?: "all" | "pending" | "approved" | "subscribed" | "expired";
+      type?: "all" | "pending" | "approved" | "subscribed" | "expired" | "kycRequest";
       q?: string;
       page?: string | number;
       limit?: string | number;
@@ -47,6 +47,8 @@ export const getAgents = async (
       filter.accountApproved = false;
     } else if (type === "approved") {
       filter.accountApproved = true;
+    } else if (type === "kycRequest") {
+      filter.kycStatus = "pending"; // or whatever status your KYC requests use
     }
 
     // Flagged filter
@@ -347,7 +349,7 @@ export const getAllAgentUpgradeRequests = async (
         email: user?.email || null,
         phoneNumber: user?.phoneNumber || null,
         requestDate: {},
-        upgradeStatus: agent.accountApproved ? "Approved" : "Pending",
+        kycStatus: agent.kycStatus,
         accountStatus: user?.accountStatus || "unknown",
         accountVerified: user?.isAccountVerified || false,
         flagged: user?.isFlagged || false,

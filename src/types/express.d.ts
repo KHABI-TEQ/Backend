@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { IUserSubscriptionSnapshotDoc } from "../models";
 
 export interface AppRequest<
   P = Record<string, any>,
@@ -9,4 +10,5 @@ export interface AppRequest<
   user?: any;
   users?: any;
   admin?: any;
+  subscriptionSnapshot?: IUserSubscriptionSnapshotDoc;
 }

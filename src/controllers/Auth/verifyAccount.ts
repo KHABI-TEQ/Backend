@@ -91,7 +91,7 @@ export const verifyAccount = async (req: Request, res: Response, next: NextFunct
         { referredUserId: user._id, rewardType: "registration_bonus" },
         { $set: { rewardStatus: "granted" } }
       );
-    }
+    } 
 
     user.isAccountVerified = true;
     user.accountStatus = "active";

@@ -70,3 +70,15 @@ export function DeactivateOrActivateAgent(
                                                                                                                                 }
                                    `;
 }
+
+
+export const kycSubmissionAcknowledgement = (name: string): string => {
+  return `
+    <p>Dear ${name},</p>
+    <p>Thank you for submitting your KYC verification request with <strong>Khabi-Teq Realty</strong>.</p>
+    <p>We have successfully received your request and our team will process it shortly. 
+    You can expect a wonderful feedback once the review has been completed.</p>
+    <p>We appreciate your patience and cooperation as we ensure compliance and the highest standards for all our agents.</p>
+    <p>Best regards,<br/>The Khabi-Teq Realty Team</p>
+  `;
+};

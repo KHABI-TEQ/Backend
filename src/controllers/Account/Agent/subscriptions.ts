@@ -4,10 +4,11 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { DB } from "../..";
 import { RouteError } from "../../../common/classes";
 import { PaystackService } from "../../../services/paystack.service";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { generateAutoRenewalStoppedEmail, generateSubscriptionCancellationEmail } from "../../../common/emailTemplates/subscriptionMails";
 import sendEmail from "../../../common/send.email";
+import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 
 
 /**
@@ -52,13 +53,12 @@ export const createSubscription = async (
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + plan.durationInDays);
 
-    const subscription = await DB.Models.Subscription.create({
-      user: userId,
-      plan: plan.code,
+    const subscriptionSnapshot = await UserSubscriptionSnapshotService.createSnapshot({
+      user: userId as string,
+      plan: plan._id as string,
+      transaction: paymentResponse.transactionId as string,
       status: "pending",
-      startDate,
-      endDate,
-      transaction: paymentResponse.transactionId,
+      expiresAt: endDate,
       autoRenew: autoRenewal ?? false,
     });
 
@@ -66,7 +66,7 @@ export const createSubscription = async (
       success: true,
       message: "Subscription initiated, redirecting to payment page",
       data: {
-        subscriptionId: subscription._id,
+        subscriptionId: subscriptionSnapshot._id,
         paymentUrl: paymentResponse.authorization_url,
       },
     });
@@ -77,7 +77,7 @@ export const createSubscription = async (
 
 
 /**
- * Fetch paginated subscriptions for the authenticated user
+ * Fetch paginated subscription snapshots for the authenticated user
  */
 export const fetchUserSubscriptions = async (
   req: AppRequest,
@@ -85,53 +85,72 @@ export const fetchUserSubscriptions = async (
   next: NextFunction
 ) => {
   try {
-    const { page = 1, limit = 10, status } = req.query;
+    const { page = 1, limit = 10, status } = req.query as {
+      page?: string;
+      limit?: string;
+      status?: string;
+    };
     const userId = req.user?._id;
 
-    const filter: any = { user: userId };
-    if (status) filter.status = status;
+    if (!userId) {
+      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
 
-    // Fetch subscriptions with transaction details
-    const subscriptions = await DB.Models.Subscription.find(filter)
-      .populate({
-        path: "transaction",
-        model: "newTransaction",
-        select: "reference amount status transactionType paymentMode",
-      })
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit))
-      .sort({ createdAt: -1 })
-      .lean();
+    const filters: any = { user: userId };
+    if (status) filters.status = status;
 
-    // Collect unique plan codes from subscriptions
-    const planCodes = subscriptions.map((sub) => sub.plan);
-    const plans = await DB.Models.SubscriptionPlan.find(
-      { code: { $in: planCodes }, isActive: true },
-      { name: 1, code: 1 }
-    ).lean();
+    // pagination
+    const skip = (Number(page) - 1) * Number(limit);
+    const perPage = Number(limit);
 
-    // Map plans for quick lookup
-    const planMap = plans.reduce((acc, plan) => {
-      acc[plan.code] = plan;
-      return acc;
-    }, {} as Record<string, { name: string; code: string }>);
+    // fetch subscriptions with transactions + plans
+    // const subscriptions = await UserSubscriptionSnapshotService.querySnapshots(filters, {
+    //   sort: { createdAt: -1 },
+    //   skip,
+    //   limit: perPage,
+    // }).populate([
+    //   {
+    //     path: "transaction",
+    //     model: "NewTransaction",
+    //     select: "reference amount status transactionType paymentMode",
+    //   },
+    //   {
+    //     path: "planDetails",
+    //     model: "SubscriptionPlan",
+    //     select: "name code",
+    //   },
+    // ]);
 
-    // Attach planDetails to each subscription
-    const result = subscriptions.map((sub) => ({
-      ...sub,
-      planDetails: planMap[sub.plan] || null,
-    }));
+    const subscriptions = await UserSubscriptionSnapshotService.querySnapshots(filters, {
+      sort: { createdAt: -1 },
+      skip,
+      limit: perPage,
+      populate: [
+        {
+          path: "transaction",
+          select: "reference amount status transactionType paymentMode",
+        },
+        {
+          path: "planDetails",
+          select: "name code",
+        },
+      ],
+    });
 
-    const total = await DB.Models.Subscription.countDocuments(filter);
+
+    const total = await DB.Models.UserSubscriptionSnapshot.countDocuments(filters);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: result,
+      data: subscriptions,
       pagination: {
         total,
         page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit)),
+        limit: perPage,
+        totalPages: Math.ceil(total / perPage),
       },
     });
   } catch (err) {
@@ -141,7 +160,7 @@ export const fetchUserSubscriptions = async (
 
 
 /**
- * Fetch details of a single subscription for the authenticated user
+ * Fetch details of a single subscription snapshot for the authenticated user
  */
 export const getUserSubscriptionDetails = async (
   req: AppRequest,
@@ -150,17 +169,29 @@ export const getUserSubscriptionDetails = async (
 ) => {
   try {
     const { subscriptionId } = req.params;
+    const userId = req.user?._id;
 
-    const subscription = await DB.Models.Subscription.findOne({
+    // Fetch the subscription snapshot directly from the model
+    const subscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       _id: subscriptionId,
-      user: req.user._id,
+      user: userId,
     })
-      .populate("transaction")
+      .populate({
+        path: "transaction",
+        select: "reference amount status transactionType paymentMode",
+      })
+      .populate({
+        path: "plan",
+        select: "name code",
+      })
       .lean();
 
     if (!subscription) {
       return next(
-        new RouteError(HttpStatusCodes.NOT_FOUND, "Subscription not found or not accessible")
+        new RouteError(
+          HttpStatusCodes.NOT_FOUND,
+          "Subscription not found or not accessible"
+        )
       );
     }
 
@@ -175,9 +206,9 @@ export const getUserSubscriptionDetails = async (
 
 
 /**
- * Cancel/Delete subscription (soft delete → mark as cancelled)
+ * Cancel/Delete subscription snapshot (soft delete → mark as cancelled)
  */
-export const cancelSubscription = async (
+export const cancelSubscriptionSnapshot = async (
   req: AppRequest,
   res: Response,
   next: NextFunction
@@ -186,53 +217,35 @@ export const cancelSubscription = async (
     const { subscriptionId } = req.params;
     const userId = req.user?._id;
 
-    const subscription = await DB.Models.Subscription.findOne({
-      _id: subscriptionId,
-      user: userId,
-    })
-    .populate({
-        path: "transaction",
-        model: "newTransaction",
-        select: "reference amount status transactionType paymentMode",
-    })
-    .populate({
-      path: "user",
-      select: "firstName lastName email fullName",
-    });
+    // Fetch the snapshot
+    const snapshot = await UserSubscriptionSnapshotService.getSnapshotById(subscriptionId);
 
-    if (!subscription) {
+    if (!snapshot || snapshot.user.toString() !== userId.toString()) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Subscription not found");
     }
 
-    // Only allow cancellation if subscription is active or pending
-    if (subscription.status !== "active" && subscription.status !== "pending") {
+    // Only allow cancellation if active or pending
+    if (!["active", "pending"].includes(snapshot.status)) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
-        message: `Cannot cancel a subscription with status "${subscription.status}"`,
+        message: `Cannot cancel a subscription with status "${snapshot.status}"`,
       });
     }
 
-    // Ensure plan exists
-    const plan = await DB.Models.SubscriptionPlan.findOne({
-      code: subscription.plan,
-      isActive: true,
-    });
+    // Mark as cancelled
+    snapshot.status = "cancelled";
+    await snapshot.save();
 
-    if (!plan) {
-        throw new RouteError(
-            HttpStatusCodes.NOT_FOUND,
-            "The subscription plan associated with this subscription was not found"
-        );
+    // Fetch related plan & transaction details
+    const plan = await DB.Models.SubscriptionPlan.findById(snapshot.plan);
+    const transaction = await DB.Models.NewTransaction.findById(snapshot.transaction);
+    const user = await DB.Models.User.findById(snapshot.user);
+
+    if (!plan || !transaction || !user) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Related plan, transaction, or user not found");
     }
 
-    // Mark subscription as cancelled
-    subscription.status = "cancelled";
-    await subscription.save();
-
     // Send cancellation email
-    const user = subscription.user as any;
-    const transaction = subscription.transaction as any;
-
     const emailBody = generalEmailLayout(
       generateSubscriptionCancellationEmail({
         fullName: user.fullName || `${user.firstName} ${user.lastName}`,
@@ -263,11 +276,10 @@ export const cancelSubscription = async (
   }
 };
 
-
 /**
- * Toggle auto-renewal for a subscription
+ * Toggle auto-renewal for a subscription snapshot
  */
-export const toggleSubscriptionAutoRenewal = async (
+export const toggleSubscriptionSnapshotAutoRenewal = async (
   req: AppRequest,
   res: Response,
   next: NextFunction
@@ -276,60 +288,46 @@ export const toggleSubscriptionAutoRenewal = async (
     const { subscriptionId } = req.params;
     const { enable } = req.body;
     const userId = req.user?._id;
- 
-    const subscription = await DB.Models.Subscription.findOne({
-      _id: subscriptionId,
-      user: userId,
-    }).populate({
-      path: "user",
-      select: "firstName lastName fullName email",
-    });
 
-    if (!subscription) {
+    // Fetch snapshot
+    const snapshot = await UserSubscriptionSnapshotService.getSnapshotById(subscriptionId);
+
+    if (!snapshot || snapshot.user.toString() !== userId.toString()) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Subscription not found");
     }
 
-    // Ensure plan exists
-    const plan = await DB.Models.SubscriptionPlan.findOne({
-      code: subscription.plan,
-      isActive: true,
-    });
-
-    if (!plan) {
-        throw new RouteError(
-            HttpStatusCodes.NOT_FOUND,
-            "The subscription plan associated with this subscription was not found"
-        );
-    }
-
-    // If trying to disable auto-renewal but it's already disabled
-    if (!enable && !subscription.autoRenew) {
+    // If trying to disable auto-renewal but already disabled
+    if (!enable && !snapshot.autoRenew) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
         message: "Auto-renewal is already disabled for this subscription",
       });
     }
 
-    subscription.autoRenew = !!enable;
-    await subscription.save();
+    snapshot.autoRenew = !!enable;
+    await snapshot.save();
 
-    // Send email if auto-renewal was disabled
+    // Send email if auto-renewal disabled
     if (!enable) {
-      const user = subscription.user as any;
-      const emailBody = generalEmailLayout(
-        generateAutoRenewalStoppedEmail({
-          fullName: user.fullName || `${user.firstName} ${user.lastName}`,
-          planName: plan.name,
-          lastBillingDate: subscription.startDate.toDateString(),
-        })
-      );
+      const plan = await DB.Models.SubscriptionPlan.findById(snapshot.plan);
+      const user = await DB.Models.User.findById(snapshot.user);
 
-      await sendEmail({
-        to: user.email,
-        subject: "Auto-Renewal Stopped for Your Subscription",
-        html: emailBody,
-        text: emailBody,
-      });
+      if (plan && user) {
+        const emailBody = generalEmailLayout(
+          generateAutoRenewalStoppedEmail({
+            fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+            planName: plan.name,
+            lastBillingDate: snapshot.startedAt.toDateString(),
+          })
+        );
+
+        await sendEmail({
+          to: user.email,
+          subject: "Auto-Renewal Stopped for Your Subscription",
+          html: emailBody,
+          text: emailBody,
+        });
+      }
     }
 
     return res.status(HttpStatusCodes.OK).json({
@@ -338,14 +336,15 @@ export const toggleSubscriptionAutoRenewal = async (
         ? "Auto-renewal enabled for this subscription"
         : "Auto-renewal disabled for this subscription and email sent",
       data: {
-        subscriptionId: subscription._id,
-        autoRenew: subscription.autoRenew,
+        subscriptionId: snapshot._id,
+        autoRenew: snapshot.autoRenew,
       },
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 /**
  * Fetch ALl Active subscription plans
