@@ -92,7 +92,7 @@ export const getAllSubscriptionPlans = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
+  try { 
     const plans = await SubscriptionPlanService.getAllPlans();
 
     return res.status(HttpStatusCodes.OK).json({

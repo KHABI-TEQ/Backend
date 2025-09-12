@@ -9,6 +9,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { generateAutoRenewalStoppedEmail, generateSubscriptionCancellationEmail } from "../../../common/emailTemplates/subscriptionMails";
 import sendEmail from "../../../common/send.email";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
+import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
 
 
 /**
@@ -354,10 +355,9 @@ export const getAllActiveSubscriptionPlans = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
-    const plans = await DB.Models.SubscriptionPlan.find({ isActive: true }) // 👈 filter added
-      .sort({ createdAt: -1 })
-      .lean();
+  try {  
+
+    const plans = await SubscriptionPlanService.getAllActivePlans();
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

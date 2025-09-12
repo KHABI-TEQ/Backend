@@ -163,7 +163,7 @@ router.post("/contact-us/submit", submitContactForm);
 
 // Testimonials route
 router.get("/testimonials", getLatestApprovedTestimonials);
-
+ 
 router.get("/subscriptions/plans", getAllActiveSubscriptionPlans);
  
 // All Auth Routes
