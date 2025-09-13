@@ -1,8 +1,8 @@
 import { Schema, model, models, Document, Model, Types } from 'mongoose';
 
 export interface IGuarantor {
-  fullName: string;
-  phoneNumber: string;
+  fullName?: string;
+  phoneNumber?: string;
   relationship?: string;
   address?: string;
 }
@@ -27,12 +27,11 @@ export interface IFieldAgent {
   regionOfOperation: string[];
   guarantors?: IGuarantor[];
   isFlagged: boolean;
-  isDeleted: boolean;
   accountApproved?: boolean;
   assignedInspections?: string[];
   userId: Types.ObjectId;
 }
-
+ 
 export interface IFieldAgentDoc extends IFieldAgent, Document {}
 export type IFieldAgentModel = Model<IFieldAgentDoc>;
 
@@ -71,7 +70,6 @@ export class FieldAgent {
           },
         ],
         isFlagged: { type: Boolean, default: false },
-        isDeleted: { type: Boolean, default: false },
         accountApproved: { type: Boolean, default: false },
         assignedInspections: { type: [String] },
         userId: { type: Schema.Types.ObjectId, required: true, ref: 'User' },

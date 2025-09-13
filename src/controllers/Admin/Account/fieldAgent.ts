@@ -68,7 +68,7 @@ export const createFieldAgent = async (
       accountStatus: 'active',
       accountApproved: true,
       isAccountVerified: true,
-    });
+    }); 
 
     const newFieldAgent = await DB.Models.FieldAgent.create({
       userId: newUser._id,
@@ -287,7 +287,7 @@ export const deleteFieldAgentAccount = async (
     }
 
     // ✅ Check if already deleted
-    if (user.isDeleted || fieldAgent.isDeleted) {
+    if (user.isDeleted) {
       return next(new RouteError(HttpStatusCodes.BAD_REQUEST, "Field Agent account has already been deleted"));
     }
 
@@ -559,7 +559,7 @@ export const getAllFieldAgents = async (
 
     const basePipeline = [
       { $match: userMatch },
-      {
+      { 
         $lookup: {
           from: "fieldagents",
           localField: "_id",
@@ -569,9 +569,7 @@ export const getAllFieldAgents = async (
       },
       { $unwind: { path: "$fieldAgentProfile", preserveNullAndEmptyArrays: true } },
       {
-        $match: {
-          "fieldAgentProfile.isDeleted": false, // exclude deleted field agent profile
-          ...(isInActive !== undefined && { "fieldAgentProfile.isInActive": isInActive === "true" }),
+        $match: { // exclude deleted field agent profile
           ...(isFlagged !== undefined && { "fieldAgentProfile.isFlagged": isFlagged === "true" }),
           ...(regionOfOperation && { "fieldAgentProfile.regionOfOperation": regionOfOperation }),
           ...(whatsappNumber && { "fieldAgentProfile.whatsappNumber": new RegExp(whatsappNumber.toString(), "i") }),
@@ -846,9 +844,11 @@ export const validateActiveFieldAgent = async (fieldAgentId: string) => {
   }
 
   // Check account status
-  if (fieldAgent.isDeleted) {
-    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has been deleted");
-  }
+  // if (fieldAgent.isDeleted) {
+  //   throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has been deleted");
+  // }
+
+
   if (!fieldAgent.accountApproved) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has not been approved");
   }

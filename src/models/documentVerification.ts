@@ -50,7 +50,7 @@ export class DocumentVerification {
         documents: {
           documentType: { type: String, required: true },
           documentNumber: { type: String },
-          documentUrl: { type: String, required: true },
+          documentUrl: { type: String },
         },
 
         accessCode: {
