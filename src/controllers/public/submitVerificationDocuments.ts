@@ -26,7 +26,7 @@ export const submitDocumentVerification = async (
   try {
     const { contactInfo, paymentInfo, documentsMetadata } = req.body;
 
-    // ✅ Validate required fields
+    // Validate required fields
     if (
       !contactInfo?.email ||
       !paymentInfo?.amountPaid ||
@@ -36,7 +36,7 @@ export const submitDocumentVerification = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing required fields.");
     }
 
-    // ✅ Validate number of documents
+    // Validate number of documents
     if (documentsMetadata.length > 2) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
@@ -54,25 +54,26 @@ export const submitDocumentVerification = async (
       }
     }
 
-    // ✅ Calculate expected total amount from document types
+    // Calculate expected total amount from document types
     let expectedAmount = 0;
     const docPrices: Record<string, number> = {};
 
     for (const doc of documentsMetadata) {
       const priceKey = listDocNames[doc.documentType];
       if (!priceKey) {
-        docPrices[doc.documentType] = 0;
+        docPrices[doc.documentType] = 0; // default to 0 if not found
         continue;
       }
 
       const setting = await SystemSettingService.getSetting(priceKey);
+      // ✅ Extract numeric value properly
       const price = setting ? Number(setting.value) : 0;
 
       docPrices[doc.documentType] = price;
       expectedAmount += price;
     }
 
-    // ✅ Validate payment amount
+    // Validate payment amount
     if (paymentInfo.amountPaid !== expectedAmount) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
@@ -80,17 +81,17 @@ export const submitDocumentVerification = async (
       );
     }
 
-    // ✅ Create or retrieve the buyer by email
+    // Create or retrieve the buyer by email
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
       { email: contactInfo.email },
       { $setOnInsert: contactInfo },
       { upsert: true, new: true }
     );
 
-    // ✅ Generate a shared docCode for this submission batch
+    // Generate a shared docCode for this submission batch
     const docCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // ✅ Generate payment link
+    // Generate payment link
     const paymentResponse = await PaystackService.initializePayment({
       email: contactInfo.email,
       amount: paymentInfo.amountPaid,
@@ -141,5 +142,4 @@ export const submitDocumentVerification = async (
     next(error);
   }
 };
-
 
