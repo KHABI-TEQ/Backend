@@ -66,6 +66,7 @@ export const submitDocumentVerification = async (
       }
 
       const setting = await SystemSettingService.getSetting(priceKey);
+
       // ✅ Extract numeric value properly
       const price = setting ? Number(setting.value) : 0;
 
