@@ -40,12 +40,7 @@ export const updateSubscriptionPlan = async (
 ) => {
   try {
     const { planId } = req.params;
-    const { code } = req.body;
-
-    if (code) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Plan code cannot be updated");
-    }
-
+ 
     const plan = await SubscriptionPlanService.updatePlan(planId, req.body);
 
     return res.status(HttpStatusCodes.OK).json({

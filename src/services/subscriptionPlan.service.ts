@@ -88,7 +88,7 @@ export class SubscriptionPlanService {
    * Update a subscription plan
    */
   static async updatePlan(
-    code: string,
+    planId: string,
     updates: Partial<{
       name: string;
       price: number;
@@ -110,12 +110,15 @@ export class SubscriptionPlanService {
       }[];
     }>
   ): Promise<ISubscriptionPlanDoc> {
-    const plan = await this.PlanModel.findOne({ code });
-    if (!plan) throw new Error(`Plan with code "${code}" not found`);
+
+    const plan = await this.PlanModel.findOne({ _id: planId });
+
+    if (!plan) throw new Error(`Plan with code "${planId}" not found`);
 
     if (updates.features) {
       plan.features = await this.validateAndFormatFeatures(updates.features);
     }
+
     if (updates.name !== undefined) plan.name = updates.name;
     if (updates.price !== undefined) plan.price = updates.price;
     if (updates.durationInDays !== undefined) plan.durationInDays = updates.durationInDays;

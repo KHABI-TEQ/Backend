@@ -41,8 +41,15 @@ export interface IInspectionBooking {
   inspectionReport?: {
     buyerPresent?: boolean;
     sellerPresent?: boolean;
-    buyerInterest?: "very-interested" | "interested" |  "neutral" | "not-interested";
-    status: "pending" | "in-progress" | "awaiting-report" | "postponed" | "completed" | "cancelled" | "absent";
+    buyerInterest?: "very-interested" | "interested" | "neutral" | "not-interested";
+    status:
+      | "pending"
+      | "in-progress"
+      | "awaiting-report"
+      | "postponed"
+      | "completed"
+      | "cancelled"
+      | "absent";
     notes?: string;
     wasSuccessful?: boolean;
     inspectionStartedAt?: Date;
@@ -51,13 +58,19 @@ export interface IInspectionBooking {
   };
 
   counterCount: number;
+
+  propertyType: "jv" | "shortlet" | "buy" | "rent";
+  receiverMode: {
+    type: "general" | "dealSite";
+    dealSiteSlug?: string;
+  };
 }
- 
+
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
   createdAt: Date;
   updatedAt: Date;
 }
- 
+
 export type IInspectionBookingModel = Model<IInspectionBookingDoc>;
 
 export class InspectionBooking {
@@ -71,6 +84,7 @@ export class InspectionBooking {
         bookedByModel: { type: String, required: true },
         inspectionDate: { type: Date, required: true },
         inspectionTime: { type: String, required: true },
+
         status: {
           type: String,
           enum: [
@@ -87,13 +101,11 @@ export class InspectionBooking {
             "cancelled",
           ],
           default: "pending_transaction",
-        },  
-        requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
-        transaction: {
-          type: Schema.Types.ObjectId,
-          ref: 'newTransaction',
-          required: true,
         },
+
+        requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
+        transaction: { type: Schema.Types.ObjectId, ref: "newTransaction", required: true },
+
         isNegotiating: { type: Boolean, default: false },
         isLOI: { type: Boolean, default: false },
         inspectionType: {
@@ -111,6 +123,7 @@ export class InspectionBooking {
           enum: ["accepted", "rejected", "countered", "new"],
           default: "new",
         },
+
         negotiationPrice: { type: Number, default: 0 },
         letterOfIntention: { type: String },
         reason: { type: String },
@@ -128,6 +141,7 @@ export class InspectionBooking {
           default: "negotiation",
         },
         counterCount: { type: Number, default: 0 },
+
         inspectionReport: {
           buyerPresent: { type: Boolean, default: false },
           sellerPresent: { type: Boolean, default: false },
@@ -139,13 +153,41 @@ export class InspectionBooking {
           notes: { type: String, default: null },
           status: {
             type: String,
-            enum: ["pending", "in-progress", "awaiting-report", "postponed", "completed", "cancelled", "absent"],
+            enum: [
+              "pending",
+              "in-progress",
+              "awaiting-report",
+              "postponed",
+              "completed",
+              "cancelled",
+              "absent",
+            ],
             default: "pending",
           },
           wasSuccessful: { type: Boolean, default: false },
           inspectionStartedAt: { type: Date },
           inspectionCompletedAt: { type: Date },
           submittedAt: { type: Date },
+        },
+
+        propertyType: {
+          type: String,
+          enum: ["jv", "shortlet", "buy", "rent"],
+          default: "buy",
+        },
+        receiverMode: {
+          type: new Schema(
+            {
+              type: {
+                type: String,
+                enum: ["general", "dealSite"],
+                default: "general"
+              },
+              dealSiteSlug: { type: String, default: null },
+            },
+            { _id: false } // prevents creating extra _id for subdocument
+          ),
+          required: true,
         },
       },
       {
