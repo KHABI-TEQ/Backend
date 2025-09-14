@@ -16,6 +16,7 @@ export class UserSubscriptionSnapshotService {
     features = [],
     transaction,
     autoRenew = false,
+    meta = {},
     }: {
     user: string | mongoose.Types.ObjectId;
     plan: string | mongoose.Types.ObjectId;
@@ -29,6 +30,7 @@ export class UserSubscriptionSnapshotService {
     }[];
     transaction: string | mongoose.Types.ObjectId;
     autoRenew?: boolean;
+    meta?: Record<string, any>;
     }): Promise<IUserSubscriptionSnapshotDoc> {
     const snapshot = new this.SnapshotModel({
         user: typeof user === "string" ? new mongoose.Types.ObjectId(user) : user,
@@ -48,6 +50,7 @@ export class UserSubscriptionSnapshotService {
             ? new mongoose.Types.ObjectId(transaction)
             : transaction,
         autoRenew,
+        meta,
     });
 
     return snapshot.save();
@@ -170,7 +173,7 @@ export class UserSubscriptionSnapshotService {
     return this.SnapshotModel.findOne({ transaction: txId })
         .populate('user').populate('plan');
     }
-
+ 
 
   /**
    * General-purpose query

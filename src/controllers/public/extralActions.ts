@@ -89,10 +89,10 @@ export const getPublicAgentProfile = async (
 
 
     // 4️⃣ You could also fetch subscription if relevant
-    const activeSubscription = await DB.Models.Subscription.findOne({
+    const activeSubscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       user: user._id,
       status: "active",
-      endDate: { $gte: new Date() },
+      expiresAt: { $gte: new Date() },
     }).lean();
 
     // 5️⃣ Build response

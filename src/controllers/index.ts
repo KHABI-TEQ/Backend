@@ -39,8 +39,6 @@ import {
   FieldAgent,
   NewTransaction,
   INewTransactionModel,
-  Subscription,
-  ISubscriptionModel,
   UserSubscriptionSnapshot,
   IUserSubscriptionSnapshotModel,
   SubscriptionPlan,
@@ -79,7 +77,6 @@ declare interface IModels {
   Testimonial: ITestimonialModel;
   FieldAgent: IFieldAgentModel;
   NewTransaction: INewTransactionModel;
-  Subscription: ISubscriptionModel;
   UserSubscriptionSnapshot: IUserSubscriptionSnapshotModel;
   SubscriptionPlan: ISubscriptionPlanModel;
   PlanFeature: IPlanFeatureModel;
@@ -126,7 +123,6 @@ export class DB {
       InspectionActivityLog: InspectionActivityLogModel,
       FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
-      Subscription: new Subscription().model,
       UserSubscriptionSnapshot: new UserSubscriptionSnapshot().model,
       SubscriptionPlan: new SubscriptionPlan().model,
       PlanFeature: new PlanFeature().model,

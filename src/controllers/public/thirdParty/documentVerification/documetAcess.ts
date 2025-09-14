@@ -5,7 +5,7 @@ import HttpStatusCodes from "../../../../common/HttpStatusCodes";
 import { RouteError } from "../../../../common/classes";
 import sendEmail from "../../../../common/send.email";
 import { generalEmailLayout } from "../../../../common/emailTemplates/emailLayout";
-import { generateAdminVerificationReportEmail } from "../../../../common/emailTemplates/documentVerificationMails";
+import { generateAdminVerificationReportEmail, generateBuyerVerificationReportForBuyer } from "../../../../common/emailTemplates/documentVerificationMails";
 
 /**
  * Verify a document verification access code
@@ -131,13 +131,33 @@ export const submitVerificationReport = async (
 
     const buyerData = docVerification.buyerId as any;
 
+    // Send mail to the buyer
+    const buyerEmailHTML = generalEmailLayout(
+      generateBuyerVerificationReportForBuyer({
+        buyerName: buyerData.fullName,
+        documentCustomId: docVerification.docCode,
+        reports: Array.isArray(docVerification.verificationReports)
+          ? docVerification.verificationReports
+          : [docVerification.verificationReports],
+      })
+    );
+
+    await sendEmail({
+      to: buyerData?.email,
+      subject: `Your Verification Report has been ${formattedReport.status.toUpperCase()}`,
+      html: buyerEmailHTML,
+      text: buyerEmailHTML
+    });
+
+
+    // Send mail to admin
     const adminEmailHTML = generalEmailLayout(
       generateAdminVerificationReportEmail({
         adminName: "Admin",
         requesterName: buyerData.fullName,
         documentCustomId: buyerData._id,
         report: formattedReport,
-        verificationPageLink: `https://kb-admin-fe.vercel.app/verify_document/${docVerification.status}/${documentId}`
+        verificationPageLink: `${process.env.ADMIN_CLIENT_LINK}/verify_document/${docVerification.status}/${documentId}`
       })
     );
 

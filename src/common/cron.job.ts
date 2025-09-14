@@ -1,11 +1,11 @@
 import cron from 'node-cron';
 import { DB } from '../controllers';
 import mongoose from 'mongoose';
-import { AccountService } from '../services/account.service';
 import { generalEmailLayout } from './emailTemplates/emailLayout';
-import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail, generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } from './emailTemplates/subscriptionMails';
+import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail, generateSubscriptionFailureEmail, generateAutoRenewReceiptEmail } from './emailTemplates/subscriptionMails';
 import sendEmail from './send.email';
 import { PaystackService } from '../services/paystack.service';
+import { kebabToTitleCase } from 'src/utils/helper';
 
 // Example DB connect (adjust for your project setup)
 mongoose.connect(process.env.MONGO_URI as string);
@@ -52,13 +52,13 @@ const deleteOldPendingItems = async () => {
   }
 };
 
-// 2. Expire subscriptions that passed endDate
+// 2. Expire subscriptions that passed expiresAt
 const expireSubscriptions = async () => {
   try {
-    // 1️⃣ Find active subscriptions that have passed endDate
-    const expiredSubs = await DB.Models.Subscription.find({
+    // 1️⃣ Find active subscriptions that have passed expiresAt
+    const expiredSubs = await DB.Models.UserSubscriptionSnapshot.find({
       status: 'active',
-      endDate: { $lt: new Date() },
+      expiresAt: { $lt: new Date() },
     }).populate('user');
 
     console.log(`[CRON] Found ${expiredSubs.length} subscriptions to expire`);
@@ -81,14 +81,24 @@ const expireSubscriptions = async () => {
       }
 
       // Check if the user has any other active subscriptions
-      const activeCount = await DB.Models.Subscription.countDocuments({
+      const activeCount = await DB.Models.UserSubscriptionSnapshot.countDocuments({
         user: user._id,
         status: 'active',
       });
 
       if (activeCount === 0) {
-        // Disable public URL
-        await AccountService.disablePublicUrl(user._id.toString());
+
+        const dealSite = await DB.Models.DealSite.findOne({
+          createdBy: user._id,
+        });
+
+        if (!dealSite) {
+          console.log(`[CRON] DealSite not found`);
+          continue;
+        }
+
+        dealSite.status = "on-hold";
+        await dealSite.save();
 
         // Send email notification
         const emailBody = generalEmailLayout(
@@ -129,15 +139,15 @@ const notifyExpiringSubscriptions = async () => {
     const now = new Date();
     const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
-    const expiringSoon = await DB.Models.Subscription.find({
+    const expiringSoon = await DB.Models.UserSubscriptionSnapshot.find({
       status: 'active',
-      endDate: { $lte: threeDaysLater, $gte: now },
+      expiresAt: { $lte: threeDaysLater, $gte: now },
     }).populate('user');
 
     for (const sub of expiringSoon) {
       const user = sub.user as any;
       const daysLeft = Math.ceil(
-        (sub.endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        (sub.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
       );
 
       const plan = await DB.Models.SubscriptionPlan.findOne({
@@ -153,12 +163,12 @@ const notifyExpiringSubscriptions = async () => {
       console.log(
         `[CRON] Notifying user ${user.email} about expiring subscription in ${daysLeft} day(s)`
       );
-
+ 
       const emailHtml = generalEmailLayout(
         generateSubscriptionExpiringSoonEmail({
           fullName: user.fullName || `${user.firstName} ${user.lastName}`,
           planName: plan.name,
-          expiryDate: sub.endDate.toLocaleDateString('en-US', {
+          expiryDate: sub.expiresAt.toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
             year: 'numeric',
@@ -181,17 +191,17 @@ const notifyExpiringSubscriptions = async () => {
   }
 };
 
-// 4. Auto-renew subscriptions
-const autoRenewSubscriptions = async () => {
+// 4. Auto-renew subscriptions cron job
+const autoRenewSubscriptionsCronJob = async () => {
   try {
     const today = new Date();
 
     // Fetch active subscriptions with autoRenew enabled that are expiring today or earlier
-    const toRenew = await DB.Models.Subscription.find({
-      status: 'active',
+    const toRenew = await DB.Models.UserSubscriptionSnapshot.find({
+      status: "active",
       autoRenew: true,
-      endDate: { $lte: today },
-    }).populate('user');
+      expiresAt: { $lte: today }, // ✅ should match your schema field
+    }).populate("user");
 
     console.log(`[CRON] Found ${toRenew.length} subscriptions to auto-renew`);
 
@@ -205,92 +215,150 @@ const autoRenewSubscriptions = async () => {
       });
 
       if (!paymentMethod) {
-        console.log(`[CRON] No default payment method for user ${user.email}, cannot auto-renew`);
+        console.log(
+          `[CRON] No default payment method for user ${user.email}, cannot auto-renew`
+        );
         // Optionally, send email to update payment method
         continue;
       }
 
-      const plan = await DB.Models.SubscriptionPlan.findOne({
-        code: sub.plan,
-        isActive: true,
-      });
+      let appliedPlanName: string;
+      let price: number;
+      let durationInDays: number;
+      let planType: "standard" | "discounted" = "standard";
+      let plan: any;
 
-      if (!plan) {
-        console.log(`[CRON] Subscription plan not found for code ${sub.plan}`);
-        continue;
+      if (sub.meta.planType === "standard") {
+        // 1. Standard plan lookup
+        plan = await DB.Models.SubscriptionPlan.findOne({
+          code: sub.meta.planCode,
+          isActive: true,
+        });
+
+        if (!plan) {
+          console.log(
+            `[CRON] Standard plan not found for code ${sub.meta.planCode}`
+          );
+          continue;
+        }
+
+        appliedPlanName = plan.name;
+        price = plan.price;
+        durationInDays = plan.durationInDays;
+      } else {
+        // 2. Discounted plan lookup
+        plan = await DB.Models.SubscriptionPlan.findOne({
+          "discountedPlans.code": sub.meta.planCode,
+          isActive: true,
+        });
+
+        if (!plan) {
+          console.log(
+            `[CRON] Discounted plan not found for code ${sub.meta.planCode}`
+          );
+          continue;
+        }
+
+        const discounted = plan.discountedPlans.find(
+          (dp: any) => dp.code === sub.meta.planCode
+        );
+
+        if (!discounted) {
+          console.log(
+            `[CRON] Discounted plan entry missing for code ${sub.meta.planCode}`
+          );
+          continue;
+        }
+
+        appliedPlanName = discounted.name;
+        price = discounted.price;
+        durationInDays = discounted.durationInDays;
+        planType = "discounted";
       }
 
-      // === Use autoCharge instead of manual charge ===
+      // === Auto-charge user ===
       const paymentResult = await PaystackService.autoCharge({
         userId: user._id,
         subscriptionId: sub._id.toString(),
-        amount: plan.price,
+        amount: price, // ✅ use correct price (not always plan.price)
         email: user.email,
         authorizationCode: paymentMethod.authorizationCode,
-        transactionType: 'subscription',
+        transactionType: "subscription",
       });
 
       if (paymentResult.success) {
-        // Update subscription dates
-        const newStartDate = sub.endDate;
-        const newEndDate = new Date(newStartDate);
-        newEndDate.setDate(newEndDate.getDate() + plan.durationInDays);
 
-        sub.startDate = newStartDate;
-        sub.endDate = newEndDate;
+        // ✅ Extend subscription dates
+        const newStartDate = sub.expiresAt;
+        const newEndDate = new Date(newStartDate);
+        newEndDate.setDate(newEndDate.getDate() + durationInDays);
+
+        // Map plan features into snapshot
+        const planFeatures = plan.features?.map((f: any) => ({
+          feature: f._id,
+          type: f.type,
+          value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
+          remaining: f.type === "count" ? f.value : undefined,
+        })) || [];
+
+        sub.startedAt = newStartDate;
+        sub.expiresAt = newEndDate;
+        sub.features = planFeatures;
         await sub.save();
 
-        console.log(`[CRON] Subscription ${sub._id} auto-renewed successfully`);
-
-        // Send success email
-        const emailBody = generalEmailLayout(
-          generateSubscriptionSuccessEmail({
-            fullName: user.fullName || `${user.firstName} ${user.lastName}`,
-            planName: plan.name,
-            amount: paymentResult.transaction.amount,
-            transactionRef: paymentResult.transaction.reference,
-            nextBillingDate: newEndDate.toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            }),
-            publicAccessLink: user.publicAccess?.url || '',
-          })
+        console.log(
+          `[CRON] Subscription ${sub._id} auto-renewed successfully for ${appliedPlanName}`
         );
+
+        // create public link
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
+
+        const { html, text } = generateAutoRenewReceiptEmail({
+          fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+          planName: `${appliedPlanName} - [${kebabToTitleCase(planType)}]`,
+          amount: paymentResult.transaction.amount,
+          transactionRef: paymentResult.transaction.reference,
+          nextBillingDate: newEndDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          publicAccessSettingsLink: publicAccessCompleteLink,
+        });
+
+        // ✅ Send success email
+        const emailBody = generalEmailLayout(html);
 
         await sendEmail({
           to: user.email,
-          subject: 'Your subscription has been renewed automatically',
+          subject: "Your subscription has been renewed automatically",
           html: emailBody,
-          text: emailBody,
+          text: text,
         });
       } else {
         console.log(`[CRON] Subscription ${sub._id} auto-renewal failed`);
 
-        // Optionally, disable public URL
-        await AccountService.disablePublicUrl(user._id.toString());
-
-        // Send failure email
+        // ✅ Send failure email
         const emailBody = generalEmailLayout(
           generateSubscriptionFailureEmail({
             fullName: user.fullName || `${user.firstName} ${user.lastName}`,
-            planName: plan.name,
-            amount: plan.price,
-            transactionRef: paymentResult.transaction?.reference || 'N/A',
-            retryLink: `${process.env.CLIENT_LINK}/subscription/update-payment`,
+            planName: appliedPlanName,
+            amount: price,
+            transactionRef: paymentResult.transaction?.reference || "N/A",
+            subscriptionPlansLink: `${process.env.CLIENT_LINK}/agent-subscriptions`,
           })
         );
 
         await sendEmail({
           to: user.email,
-          subject: 'Auto-renewal failed for your subscription',
+          subject: "Auto-renewal failed for your subscription",
           html: emailBody,
           text: emailBody,
         });
       }
     }
   } catch (err) {
-    console.error('[CRON] Error processing auto-renew subscriptions:', err);
+    console.error("[CRON] Error processing auto-renew subscriptions:", err);
   }
 };
 
@@ -315,7 +383,7 @@ cron.schedule('0 1 * * *', () => {
 // Run every day at 00:30 AM
 cron.schedule('30 0 * * *', () => {
   console.log('[CRON] Auto-renew subscriptions job running...');
-  autoRenewSubscriptions();
+  autoRenewSubscriptionsCronJob();
 });
 
 export default {};

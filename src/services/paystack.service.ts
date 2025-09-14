@@ -8,7 +8,7 @@ import { generalTemplate, InspectionRequestWithNegotiation, InspectionRequestWit
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
 import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
-import { generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } from '../common/emailTemplates/subscriptionMails';
+import { generateSubscriptionFailureEmail, generateSubscriptionReceiptEmail } from '../common/emailTemplates/subscriptionMails';
 import { SystemSettingService } from './systemSetting.service';
 import { PaymentMethodService } from './paymentMethod.service';
 import { referralService } from './referral.service';
@@ -427,8 +427,8 @@ export class PaystackService {
       const planFeatures = plan.features?.map((f: any) => ({
         feature: f._id,
         type: f.type,
-        value: f.type === "boolean" ? 1 : f.type === "count" ? f.limit : undefined,
-        remaining: f.type === "count" ? f.limit : undefined,
+        value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
+        remaining: f.type === "count" ? f.value : undefined,
       })) || [];
 
       snapshot.status = newStatus;
@@ -499,15 +499,15 @@ export class PaystackService {
 
         // create public link
         const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
-
+ 
         const successMailBody = generalEmailLayout(
-          generateSubscriptionSuccessEmail({
+          generateSubscriptionReceiptEmail({
             fullName,
             planName: plan.name,
             amount: transaction.amount, // if Paystack stores in kobo
             nextBillingDate: endDate.toDateString(),
             transactionRef: transaction.reference,
-            publicAccessLink: publicAccessCompleteLink,
+            publicAccessSettingsLink: publicAccessCompleteLink,
           })
         );
 
@@ -518,14 +518,14 @@ export class PaystackService {
           text: successMailBody,
         });
 
-      } else {
+      } else { 
         const failureMailBody = generalEmailLayout(
           generateSubscriptionFailureEmail({
             fullName,
             planName: plan.name,
-            amount: transaction.amount / 100,
+            amount: transaction.amount,
             transactionRef: transaction.reference,
-            retryLink: `${process.env.CLIENT_LINK}/billing/retry?subId=${snapshot._id}`,
+            subscriptionPlansLink: `${process.env.CLIENT_LINK}/agent-subscriptions`,
           })
         );
 

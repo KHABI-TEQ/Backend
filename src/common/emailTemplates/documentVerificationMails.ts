@@ -1,3 +1,5 @@
+import { kebabToTitleCase } from "../../utils/helper";
+
 export interface GenerateVerificationEmailParams {
   fullName: string;
   phoneNumber: string;
@@ -117,7 +119,7 @@ export const generateAdminVerificationReportEmail = ({
 }: GenerateAdminVerificationReportEmailParams): string => {
   const reportsHtml = `
     <li style="margin-bottom: 12px;">
-      <strong>Document Type:</strong> ${report.originalDocumentType} <br />
+      <strong>Document Type:</strong> ${kebabToTitleCase(report.originalDocumentType)} <br />
       <strong>Status:</strong> ${report.status} <br />
       <strong>Description:</strong> ${report.description ?? "N/A"} <br />
       ${report.newDocumentUrl ? `<strong>New Document:</strong> <a href="${report.newDocumentUrl}" style="color: #0066cc; text-decoration: none;" target="_blank">View Document</a>` : ""}
@@ -144,3 +146,65 @@ export const generateAdminVerificationReportEmail = ({
     </div>
   `;
 };
+
+
+export const generateBuyerVerificationReportForBuyer = ({
+  buyerName,
+  documentCustomId,
+  reports,
+}: {
+  buyerName: string;
+  documentCustomId: string;
+  reports: {
+    originalDocumentType?: string;
+    newDocumentUrl?: string;
+    description?: string;
+    status?: "registered" | "unregistered" | "pending";
+    verifiedAt?: Date;
+    selfVerification?: boolean;
+  }[];
+}): string => {
+  const reportsHtml = reports
+    .map(
+      (report) => `
+      <li style="margin-bottom: 12px;">
+        <strong>Document Type:</strong> ${kebabToTitleCase(report.originalDocumentType) ?? "N/A"} <br />
+        <strong>Status:</strong> ${report.status} <br />
+        <strong>Description:</strong> ${report.description ?? "N/A"} <br />
+        ${
+          report.newDocumentUrl
+            ? `<strong>New Document:</strong> <a href="${report.newDocumentUrl}" style="color: #0066cc; text-decoration: none;" target="_blank">View Document</a>`
+            : ""
+        }
+        ${
+          report.verifiedAt
+            ? `<br /><strong>Verified At:</strong> ${new Date(
+                report.verifiedAt
+              ).toLocaleString()}`
+            : ""
+        }
+      </li>
+    `
+    )
+    .join("");
+
+  return `
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+      <p>Dear ${buyerName},</p>
+
+      <p>The verification reports for your document request <strong>${documentCustomId}</strong> are now available.</p>
+
+      <p><strong>Verification Report(s):</strong></p>
+      <ul style="padding-left: 20px;">
+        ${reportsHtml}
+      </ul>
+
+      <p>If you have any questions, kindly contact support.</p>
+
+      <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;" />
+
+      <p style="font-size: 13px; color: #999;">This is an automated message. Please do not reply directly to this email.</p>
+    </div>
+  `;
+};
+

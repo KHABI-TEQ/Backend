@@ -72,10 +72,10 @@ export const getDealSiteBySlug = async (
     }
 
     // Check subscription of the owner of this DealSite
-    const activeSubscription = await DB.Models.Subscription.findOne({
+    const activeSubscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       user: dealSite.createdBy,
       status: "active",
-      endDate: { $gt: new Date() },
+      expiresAt: { $gt: new Date() },
     });
 
     if (!activeSubscription) {

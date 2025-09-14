@@ -18,7 +18,6 @@ export * from "./testimonial";
 export * from "./referralLog";
 export * from "./fieldAgent";
 export * from "./newTransaction";
-export * from "./subscription";
 export * from "./userSubscriptionSnapshot";
 export * from "./subscriptionPlan";
 export * from "./planFeatures";
