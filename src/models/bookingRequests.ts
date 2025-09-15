@@ -55,7 +55,7 @@ export class Booking {
  
         transaction: {
           type: Schema.Types.ObjectId,
-          ref: 'NewTransaction',
+          ref: 'newTransaction',
           default: null,
         },
 
