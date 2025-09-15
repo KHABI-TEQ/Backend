@@ -97,7 +97,7 @@ const expireSubscriptions = async () => {
           continue;
         }
 
-        dealSite.status = "on-hold";
+        dealSite.status = "paused";
         await dealSite.save();
 
         // Send email notification

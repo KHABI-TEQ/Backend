@@ -23,7 +23,7 @@ class InspectionActionsController {
     res: Response,
     next: NextFunction,
   ) {
-    try {
+    try { 
       const { inspectionId, userId } = req.params;
 
       if (!userId) {
@@ -37,6 +37,7 @@ class InspectionActionsController {
       const validation = InspectionValidator.validateInspectionActionData(
         req.body,
       );
+      
       if (!validation.success) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, validation.error!);
       }
@@ -407,7 +408,7 @@ class InspectionActionsController {
 
       if (!validation.success) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, validation.error!);
-      }
+      } 
 
       const {
         requestedBy,

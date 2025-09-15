@@ -21,6 +21,8 @@ import {
   DocumentVerification,
   IInspectionActivityLogModel,
   InspectionActivityLogModel,
+  IBookingActivityLogModel,
+  BookingActivityLogModel,
   INotificationModel,
   Notification,
   ContactUs,
@@ -52,13 +54,16 @@ import {
   DealSite,
   IDealSiteModel,
   EmailSubscription,
-  IEmailSubscriptionModel
+  IEmailSubscriptionModel,
+  Booking,
+  IBookingModel
 } from "../models/index";
 
 
 declare interface IModels {
   Agent: IAgentModel;
   InspectionActivityLog: IInspectionActivityLogModel;
+  BookingActivityLog: IBookingActivityLogModel;
   InspectionBooking: IInspectionBookingModel;
   Admin: IAdminModel;
   User: IUserModel;
@@ -84,6 +89,7 @@ declare interface IModels {
   PaymentMethod: IPaymentMethodModel;
   DealSite: IDealSiteModel;
   EmailSubscription: IEmailSubscriptionModel;
+  Booking: IBookingModel;
 } 
 
 export class DB {
@@ -121,6 +127,7 @@ export class DB {
       PropertyView: PropertyView,
       ReferralLog: ReferralLogModel,
       InspectionActivityLog: InspectionActivityLogModel,
+      BookingActivityLog: BookingActivityLogModel,
       FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
       UserSubscriptionSnapshot: new UserSubscriptionSnapshot().model,
@@ -130,6 +137,7 @@ export class DB {
       PaymentMethod: new PaymentMethod().model,
       DealSite: new DealSite().model,
       EmailSubscription: new EmailSubscription().model,
+      Booking: new Booking().model,
     };
   }
 

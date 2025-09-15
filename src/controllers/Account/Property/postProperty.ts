@@ -10,6 +10,7 @@ import {
   generalTemplate,
 } from "../../../common/email.template";
 import sendEmail from "../../../common/send.email";
+import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 
 export const postProperty = async (
   req: AppRequest,
@@ -25,17 +26,22 @@ export const postProperty = async (
     const payload = req.body; // skip Joi validation
 
     // Determine the creator role
-    const createdByRole = req.user?.role || "user";
+    const createdByRole = "user";
+    const ownerModel = "User";
 
-    // Prepare final data for insertion
     const propertyData = {
       ...payload,
-      owner: req.user._id,
-      createdByRole,
       status: payload.status || "pending",
     };
 
-    const createdProperty = await DB.Models.Property.create(propertyData);
+    const formatted = formatPropertyPayload(
+      propertyData,
+      req.user._id,
+      createdByRole,
+      ownerModel
+    );
+
+    const createdProperty = await DB.Models.Property.create(formatted);
 
     // Send Email to Property Owner
     const ownerMailBody = generatePropertyBriefEmail(

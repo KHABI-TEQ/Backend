@@ -52,6 +52,7 @@ export const getDealSiteBySlug = async (
     const { publicSlug } = req.params;
 
     const dealSite = await DealSiteService.getBySlug(publicSlug);
+    
     if (!dealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,

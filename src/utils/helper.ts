@@ -10,3 +10,23 @@ export const kebabToTitleCase = (str: string): string => {
     )
     .join(" ");
 };
+
+
+export const getPropertyTitleFromLocation = (location?: {
+  state?: string;
+  localGovernment?: string;
+  area?: string;
+  streetAddress?: string;
+}): string => {
+  if (!location) return "Untitled Property";
+
+  const parts = [
+    location.streetAddress,
+    location.area,
+    location.localGovernment,
+    location.state,
+  ].filter(Boolean);
+
+  return parts.join(", ") || "Untitled Property";
+};
+

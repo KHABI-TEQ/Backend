@@ -81,7 +81,7 @@ export const formatAgent = (
  * Fetch active/expired subscription for a given user
  */
 export const getAgentSubscription = async (userId: Types.ObjectId) => {
-  const sub = await DB.Models.Subscription
+  const sub = await DB.Models.UserSubscriptionSnapshot
     .findOne({
       user: userId,
       status: { $in: ["active", "expired"] },

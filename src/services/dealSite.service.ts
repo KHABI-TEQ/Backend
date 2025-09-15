@@ -129,7 +129,7 @@ export class DealSiteService {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
     }
 
-    dealSite.status = "on-hold";
+    dealSite.status = "paused";
     await dealSite.save();
 
     return dealSite;
