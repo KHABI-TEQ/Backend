@@ -22,17 +22,15 @@ export const fetchUserBookings = async (
       limit = 10,
       status,
       propertyId,
-      bookedBy,
     } = req.query;
 
     const filter: any = {
-      bookedBy: req.user._id, // Only fetch user's bookings
+      ownerId: req.user._id, // Only fetch user's bookings
     };
 
     if (status) filter.status = status;
     if (propertyId) filter.propertyId = propertyId;
-    if (bookedBy) filter.bookedBy = bookedBy;
-
+ 
     const bookings = await DB.Models.Booking.find(filter)
       .populate("propertyId")
       .populate("transaction")
@@ -67,7 +65,7 @@ export const getOneUserBooking = async (
 
     const booking = await DB.Models.Booking.findOne({
       _id: bookingId,
-      bookedBy: req.user._id,
+      ownerId: req.user._id,
     })
       .populate("propertyId")
       .populate("transaction");
@@ -93,7 +91,7 @@ export const getBookingStats = async (
   try {
     const userId = req.user._id;
 
-    const baseFilter = { bookedBy: userId };
+    const baseFilter = { ownerId: userId };
 
     const [
       totalBookings,
@@ -150,6 +148,9 @@ export const respondToBookingRequest = async (
   next: NextFunction
 ) => {
   try {
+
+    const userId = req.user._id;
+
     const { bookingId } = req.params;
     const { response, note } = req.body; // response: 'available' | 'unavailable'
 
@@ -162,6 +163,7 @@ export const respondToBookingRequest = async (
 
     // Find booking that is currently requested
     const booking = await DB.Models.Booking.findOne({
+      ownerId: userId,
       _id: bookingId,
       status: "requested",
     })
@@ -170,7 +172,7 @@ export const respondToBookingRequest = async (
         path: "propertyId",       // populate property
         populate: {
         path: "owner",          // populate owner inside property
-        select: "fullName email phoneNumber", // fields you need
+        select: "firstName lastName email phoneNumber", // fields you need
         },
     })
     .lean(); 

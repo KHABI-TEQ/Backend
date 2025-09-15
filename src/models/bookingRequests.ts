@@ -22,6 +22,8 @@ export interface IBooking {
   status: "pending" | "confirmed" | "cancelled" | "completed" | "failed" | "requested" | "unavailable";
   transaction?: Types.ObjectId;              // Ref -> NewTransaction
   ownerResponse?: IOwnerResponse;           // Owner’s decision about booking
+  ownerId: Types.ObjectId;
+  ownerModel: "User" | "Admin";
   report?: string;                          // Notes/report after booking
   meta?: Record<string, any>;               // Flexible JSON metadata
 }
@@ -67,6 +69,17 @@ export class Booking {
           },
           respondedAt: { type: Date },
           note: { type: String, default: null },
+        },
+
+        ownerId: { 
+          type: Schema.Types.ObjectId, 
+          required: true, 
+          refPath: "ownerModel" // dynamic reference
+        },
+        ownerModel: {
+          type: String,
+          required: true,
+          enum: ["User", "Admin"], // tells Mongoose which collection to use
         },
 
         report: { type: String, default: null },

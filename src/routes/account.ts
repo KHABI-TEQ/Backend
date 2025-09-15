@@ -73,12 +73,12 @@ AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus
 AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
 AccountRouter.get("/properties/fetchAll", fetchAllProperties);
-  
+   
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
-
+ 
 // BOOKING REQUEST ROUTES
 AccountRouter.get("/my-bookings/fetchAll", fetchUserBookings);
 AccountRouter.get("/my-bookings/stats", getBookingStats);

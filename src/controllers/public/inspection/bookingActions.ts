@@ -134,7 +134,7 @@ export class BookingController {
             const property = await DB.Models.Property.findById(propertyId)
                 .populate({
                     path: "owner",             // The field to populate
-                    select: "fullName email phoneNumber", // Fields you want from the owner
+                    select: "firstName lastName email phoneNumber", // Fields you want from the owner
                 })
                 .lean();
 
@@ -208,6 +208,8 @@ export class BookingController {
                 bookingDetails: bookingDetails,
                 transaction: bookingMode === "instant" ? paymentResponse.transactionId : null,
                 status: bookingMode === "instant" ? "pending" : "requested",
+                ownerId: property.owner._id,
+                ownerModel: property.createdByRole === "user" ? "User" : "Admin",
                 meta: {
                     duration,
                     nights,
@@ -248,7 +250,7 @@ export class BookingController {
                 });
 
                 const sellerEmail = generateBookingRequestReceivedForSeller({
-                    sellerName: ownerData.fullName,
+                    sellerName: ownerData.firstName,
                     bookingCode: bookingCode,
                     propertyTitle: propertyTitle,
                     checkInDateTime: checkIn,
