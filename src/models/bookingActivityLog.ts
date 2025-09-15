@@ -10,7 +10,7 @@ export interface IBookingActivityLog {
   status?: 'requested' | 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'completed';  
   stage?: 'booking' | 'payment' | 'checkin' | 'checkout' | 'completed' | 'cancelled';
   meta?: Record<string, any>;                    // Extra metadata (e.g., amount, dates, IP)
-}
+} 
 
 export interface IBookingActivityLogDoc extends IBookingActivityLog, Document {}
 
