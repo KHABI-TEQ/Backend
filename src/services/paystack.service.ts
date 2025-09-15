@@ -8,11 +8,14 @@ import { generalTemplate, InspectionRequestWithNegotiation, InspectionRequestWit
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
 import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
-import { generateSubscriptionFailureEmail, generateSubscriptionSuccessEmail } from '../common/emailTemplates/subscriptionMails';
+import { generateSubscriptionFailureEmail, generateSubscriptionReceiptEmail } from '../common/emailTemplates/subscriptionMails';
 import { SystemSettingService } from './systemSetting.service';
 import { PaymentMethodService } from './paymentMethod.service';
 import { referralService } from './referral.service';
 import { UserSubscriptionSnapshotService } from './userSubscriptionSnapshot.service';
+import { getPropertyTitleFromLocation } from '../utils/helper';
+import { BookingLogService } from './bookingLog.service';
+import { generateSuccessfulBookingReceiptForBuyer, generateSuccessfulBookingReceiptForSeller } from '../common/emailTemplates/bookingMails';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -232,6 +235,9 @@ export class PaystackService {
       case 'inspection':
         return await PaystackService.handleInspectionPaymentEffect(tx);
 
+      case 'shortlet-booking':
+        return await PaystackService.handleShortletBookingPaymentEffect(tx);
+
       case 'document-verification':
         return await PaystackService.handleDocumentVerificationPayment(tx);
 
@@ -243,6 +249,131 @@ export class PaystackService {
         console.warn(`Unhandled transaction type: ${transactionType}`);
         return null;
     }
+  }
+
+  /**
+   * Handles the shortlet booking
+   */
+  static async handleShortletBookingPaymentEffect(transaction: INewTransactionDoc) {
+      const bookingRequest = await DB.Models.Booking.findOne({
+        transaction: transaction._id,
+      })
+        .populate("bookedBy") // populate buyer
+        .populate({
+          path: "propertyId",       // populate property
+          populate: {
+            path: "owner",          // populate owner inside property
+            select: "fullName email phoneNumber", // fields you need
+          },
+        })
+        .lean();
+ 
+      if (!bookingRequest) return;
+
+      if (bookingRequest.status === "pending") {
+
+          const buyer = bookingRequest.bookedBy as any;
+          const property = bookingRequest.propertyId as any;
+          const ownerData = property.owner as any;
+          const propertyTitle: any = getPropertyTitleFromLocation(property.location); 
+
+          const formattedPrice = property.price?.toLocaleString("en-US") ?? "N/A";
+          const bookedPrice = bookingRequest.meta.totalPrice?.toLocaleString("en-US") ?? "N/A";
+
+          if (transaction.status === "success") {
+            // mark the property as unavailable
+            const propertyId = bookingRequest.propertyId._id;
+
+            // ✅ Mark property as unavailable and optionally update status
+            const updatedProperty = await DB.Models.Property.findOneAndUpdate(
+                { _id: propertyId, isAvailable: true },
+                { isAvailable: false, status: "booked" }, 
+                { new: true }
+            );
+
+            if (!updatedProperty) {
+                // Optional: handle rare case where property was already booked
+                console.warn(`Property ${propertyId} was already unavailable`);
+            }
+
+            // ✅ Log booking activity
+            await BookingLogService.logActivity({
+                bookingId: bookingRequest._id.toString(),
+                propertyId: bookingRequest.propertyId.toString(),
+                senderId: buyer?._id.toString(),
+                senderRole: "buyer",     // "buyer" | "owner" | "admin"
+                senderModel: "Buyer",   // "User" | "Buyer" | "Admin"
+                message: "Instant Booking request made",
+                status: "completed",
+                stage: "completed",
+                meta: { propertyTitle, bookedPrice },
+            });
+
+            const buyerEmail = generateSuccessfulBookingReceiptForBuyer({
+                buyerName: buyer.fullName,
+                bookingCode: bookingRequest.bookingCode,
+                propertyTitle: propertyTitle,
+                checkInDateTime: bookingRequest.bookingDetails.checkInDateTime,
+                checkOutDateTime: bookingRequest.bookingDetails.checkOutDateTime,
+                duration: bookingRequest.meta.night,
+                totalAmount: bookedPrice
+            });
+
+            const sellerEmail = generateSuccessfulBookingReceiptForSeller({
+                sellerName: ownerData.fullName,
+                bookingCode: bookingRequest.bookingCode,
+                propertyTitle: propertyTitle,
+                checkInDateTime: bookingRequest.bookingDetails.checkInDateTime,
+                checkOutDateTime: bookingRequest.bookingDetails.checkOutDateTime,
+                duration: bookingRequest.meta.night,
+                totalAmount: bookedPrice,
+                buyerName: buyer.fullName
+            });
+
+            await sendEmail({
+                to: buyer.email,
+                subject: `Booking Confirmed – ${propertyTitle}`,
+                html: generalEmailLayout(buyerEmail),
+                text: generalEmailLayout(buyerEmail),
+            });
+
+            await sendEmail({
+                to: ownerData.email,
+                subject: `Booking Confirmed for Your Property – ${propertyTitle}`,
+                html: generalEmailLayout(sellerEmail),
+                text: generalEmailLayout(sellerEmail),
+            });
+
+            await notificationService.createNotification({
+                user: ownerData._id,
+                title: `Booking Confirmed for Your Property – ${propertyTitle}`,
+                message: `${buyer.fullName} has successfully booked your property located at ${propertyTitle}. Please review the booking details.`,
+                meta: {
+                    propertyId: property._id,
+                    bookingId: bookingRequest._id,
+                    status: "completed",
+                },
+            });
+
+          }else{
+
+            // ✅ Log booking activity
+            await BookingLogService.logActivity({
+                bookingId: bookingRequest._id.toString(),
+                propertyId: bookingRequest.propertyId.toString(),
+                senderId: buyer?._id.toString(),
+                senderRole: "buyer",     // "buyer" | "owner" | "admin"
+                senderModel: "Buyer",   // "User" | "Buyer" | "Admin"
+                message: "Booking failed due to unsuccessful payment transaction",
+                status: "cancelled",
+                stage: "payment",
+                meta: { propertyTitle, bookedPrice },
+            });
+
+
+          }
+
+      }
   }
 
   /**
@@ -427,8 +558,8 @@ export class PaystackService {
       const planFeatures = plan.features?.map((f: any) => ({
         feature: f._id,
         type: f.type,
-        value: f.type === "boolean" ? 1 : f.type === "count" ? f.limit : undefined,
-        remaining: f.type === "count" ? f.limit : undefined,
+        value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
+        remaining: f.type === "count" ? f.value : undefined,
       })) || [];
 
       snapshot.status = newStatus;
@@ -499,15 +630,15 @@ export class PaystackService {
 
         // create public link
         const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
-
+ 
         const successMailBody = generalEmailLayout(
-          generateSubscriptionSuccessEmail({
+          generateSubscriptionReceiptEmail({
             fullName,
             planName: plan.name,
             amount: transaction.amount, // if Paystack stores in kobo
             nextBillingDate: endDate.toDateString(),
             transactionRef: transaction.reference,
-            publicAccessLink: publicAccessCompleteLink,
+            publicAccessSettingsLink: publicAccessCompleteLink,
           })
         );
 
@@ -518,14 +649,14 @@ export class PaystackService {
           text: successMailBody,
         });
 
-      } else {
+      } else { 
         const failureMailBody = generalEmailLayout(
           generateSubscriptionFailureEmail({
             fullName,
             planName: plan.name,
-            amount: transaction.amount / 100,
+            amount: transaction.amount,
             transactionRef: transaction.reference,
-            retryLink: `${process.env.CLIENT_LINK}/billing/retry?subId=${snapshot._id}`,
+            subscriptionPlansLink: `${process.env.CLIENT_LINK}/agent-subscriptions`,
           })
         );
 

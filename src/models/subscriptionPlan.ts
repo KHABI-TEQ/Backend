@@ -26,7 +26,7 @@ export interface ISubscriptionPlan {
   isActive?: boolean; 
   isTrial?: boolean;
   discountedPlans?: IDiscountedPlan[];
-}
+} 
 
 export interface ISubscriptionPlanDoc extends ISubscriptionPlan, Document {}
 export type ISubscriptionPlanModel = Model<ISubscriptionPlanDoc>;

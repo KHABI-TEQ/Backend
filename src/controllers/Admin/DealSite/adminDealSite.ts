@@ -137,7 +137,7 @@ export const adminPauseDealSite = async (
 
     const dealSite = await DB.Models.DealSite.findOneAndUpdate(
       { publicSlug },
-      { status: "on-hold" },
+      { status: "paused" },
       { new: true }
     );
 
@@ -148,6 +148,38 @@ export const adminPauseDealSite = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "DealSite paused successfully",
+      data: dealSite,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Admin - Pause DealSite
+ */
+export const adminPutOnHoldDealSite = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+
+    const dealSite = await DB.Models.DealSite.findOneAndUpdate(
+      { publicSlug },
+      { status: "on-hold" },
+      { new: true }
+    );
+
+    if (!dealSite) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "DealSite Put on Hold successfully",
       data: dealSite,
     });
   } catch (err) {

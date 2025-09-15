@@ -13,7 +13,7 @@ import { SubscriptionPlanService } from "../../../services/subscriptionPlan.serv
 
 
 /**
- * Create a new subscription (usually after payment success)
+ * Create a new subscription (initiated before payment success)
  */
 export const createSubscription = async (
   req: AppRequest,
@@ -24,23 +24,60 @@ export const createSubscription = async (
     const { planCode, autoRenewal } = req.body;
     const userId = req.user?._id;
 
-    // Ensure plan exists
-    const plan = await DB.Models.SubscriptionPlan.findOne({
+    if (!planCode) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Plan code is required");
+    }
+
+    // 1. Try to find a standard plan by code
+    let plan = await DB.Models.SubscriptionPlan.findOne({
       code: planCode,
       isActive: true,
     });
 
-    if (!plan) {
-      throw new RouteError(
-        HttpStatusCodes.NOT_FOUND,
-        "Subscription plan not found"
-      );
+    let appliedPlanName: string;
+    let price: number;
+    let durationInDays: number;
+    let planType: "standard" | "discounted" = "standard";
+
+    if (plan) {
+      // ✅ Found a normal plan
+      appliedPlanName = plan.name;
+      price = plan.price;
+      durationInDays = plan.durationInDays;
+    } else {
+      // 2. Try to find inside discountedPlans
+      plan = await DB.Models.SubscriptionPlan.findOne({
+        "discountedPlans.code": planCode,
+        isActive: true,
+      });
+
+      if (!plan) {
+        throw new RouteError(
+          HttpStatusCodes.NOT_FOUND,
+          "Subscription plan not found"
+        );
+      }
+
+      const discounted = plan.discountedPlans.find((dp) => dp.code === planCode);
+
+      if (!discounted) {
+        throw new RouteError(
+          HttpStatusCodes.NOT_FOUND,
+          "Discounted plan not found in this subscription"
+        );
+      }
+
+      // ✅ Use discounted values
+      appliedPlanName = discounted.name;
+      price = discounted.price;
+      durationInDays = discounted.durationInDays;
+      planType = "discounted";
     }
 
-    // Generate payment link
+    // 3. Generate payment link
     const paymentResponse = await PaystackService.initializePayment({
       email: req.user?.email,
-      amount: plan.price,
+      amount: price,
       fromWho: {
         kind: "User",
         item: new Types.ObjectId(userId as Types.ObjectId),
@@ -48,20 +85,25 @@ export const createSubscription = async (
       transactionType: "subscription",
     });
 
-    // Subscription shouldn't actually "start" until payment is successful
-    // So we don't set startDate/endDate yet — OR we mark them but keep status pending.
-    const startDate = new Date(); // this will be adjusted when payment is confirmed
+    // 4. Create subscription snapshot (pending until payment success)
+    const startDate = new Date();
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + plan.durationInDays);
+    endDate.setDate(endDate.getDate() + durationInDays);
 
-    const subscriptionSnapshot = await UserSubscriptionSnapshotService.createSnapshot({
-      user: userId as string,
-      plan: plan._id as string,
-      transaction: paymentResponse.transactionId as string,
-      status: "pending",
-      expiresAt: endDate,
-      autoRenew: autoRenewal ?? false,
-    });
+    const subscriptionSnapshot =
+      await UserSubscriptionSnapshotService.createSnapshot({
+        user: userId as string,
+        plan: plan._id as string,
+        transaction: paymentResponse.transactionId as string,
+        status: "pending",
+        expiresAt: endDate,
+        autoRenew: autoRenewal ?? false,
+        meta: {
+          planType,
+          planCode,
+          appliedPlanName,
+        },
+      });
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
@@ -69,12 +111,16 @@ export const createSubscription = async (
       data: {
         subscriptionId: subscriptionSnapshot._id,
         paymentUrl: paymentResponse.authorization_url,
+        planName: appliedPlanName,
+        amount: price,
+        planType,
       },
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 
 /**

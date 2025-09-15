@@ -21,7 +21,8 @@ export interface IUserSubscriptionSnapshot {
   features?: IUserAssignedFeature[];    // features cloned from plan
   transaction: Types.ObjectId;
   autoRenew?: boolean;
-}
+  meta?: Record<string, any>;
+} 
 
 export interface IUserSubscriptionSnapshotDoc
   extends IUserSubscriptionSnapshot,
@@ -84,6 +85,10 @@ export class UserSubscriptionSnapshot {
         autoRenew: {
           type: Boolean,
           default: false,
+        },
+        meta: {
+          type: Schema.Types.Mixed,
+          default: {},
         },
       },
       { timestamps: true }

@@ -1,3 +1,4 @@
+import BookingController from "../controllers/public/inspection/bookingActions";
 import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
 import { Router } from "express";
 
@@ -7,6 +8,15 @@ const inspectRouter = Router();
 inspectRouter.post(
   "/request-inspection",
   InspectionActionsController.submitInspectionRequest,
+);
+
+
+// Submit a new booking request/instant
+inspectRouter.post(
+  "/book-request",
+  BookingController.submitBookingRequest.bind(
+    BookingController,
+  ),
 );
 
 // Process inspection actions - accept, reject, counter

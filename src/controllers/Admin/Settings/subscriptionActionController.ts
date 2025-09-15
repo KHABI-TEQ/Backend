@@ -19,14 +19,14 @@ export const fetchUserSubscriptions = async (
     const filter: any = {};
     if (status) filter.status = status;
 
-    const subscriptions = await DB.Models.Subscription.find(filter)
+    const subscriptions = await DB.Models.UserSubscriptionSnapshot.find(filter)
       .populate("transaction")
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
       .sort({ createdAt: -1 })
       .lean();
 
-    const total = await DB.Models.Subscription.countDocuments(filter);
+    const total = await DB.Models.UserSubscriptionSnapshot.countDocuments(filter);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -54,7 +54,7 @@ export const getSubscriptionDetails = async (
   try {
     const { subscriptionId } = req.params;
   
-    const subscription = await DB.Models.Subscription.findOne({
+    const subscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       _id: subscriptionId,
     })
       .populate("transaction")
@@ -85,7 +85,7 @@ export const updateSubscription = async (
     const { subscriptionId } = req.params;
     const { status, autoRenew, endDate } = req.body;
 
-    const subscription = await DB.Models.Subscription.findOne({
+    const subscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       _id: subscriptionId,
     });
     if (!subscription) {
@@ -94,7 +94,7 @@ export const updateSubscription = async (
 
     if (status) subscription.status = status;
     if (autoRenew !== undefined) subscription.autoRenew = autoRenew;
-    if (endDate) subscription.endDate = new Date(endDate);
+    if (endDate) subscription.expiresAt = new Date(endDate);
 
     await subscription.save();
 
@@ -119,7 +119,7 @@ export const cancelSubscription = async (
   try {
     const { subscriptionId } = req.params;
 
-    const subscription = await DB.Models.Subscription.findOne({
+    const subscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       _id: subscriptionId,
     });
     

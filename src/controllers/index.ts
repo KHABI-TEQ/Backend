@@ -21,6 +21,8 @@ import {
   DocumentVerification,
   IInspectionActivityLogModel,
   InspectionActivityLogModel,
+  IBookingActivityLogModel,
+  BookingActivityLogModel,
   INotificationModel,
   Notification,
   ContactUs,
@@ -39,8 +41,6 @@ import {
   FieldAgent,
   NewTransaction,
   INewTransactionModel,
-  Subscription,
-  ISubscriptionModel,
   UserSubscriptionSnapshot,
   IUserSubscriptionSnapshotModel,
   SubscriptionPlan,
@@ -54,13 +54,16 @@ import {
   DealSite,
   IDealSiteModel,
   EmailSubscription,
-  IEmailSubscriptionModel
+  IEmailSubscriptionModel,
+  Booking,
+  IBookingModel
 } from "../models/index";
 
 
 declare interface IModels {
   Agent: IAgentModel;
   InspectionActivityLog: IInspectionActivityLogModel;
+  BookingActivityLog: IBookingActivityLogModel;
   InspectionBooking: IInspectionBookingModel;
   Admin: IAdminModel;
   User: IUserModel;
@@ -79,7 +82,6 @@ declare interface IModels {
   Testimonial: ITestimonialModel;
   FieldAgent: IFieldAgentModel;
   NewTransaction: INewTransactionModel;
-  Subscription: ISubscriptionModel;
   UserSubscriptionSnapshot: IUserSubscriptionSnapshotModel;
   SubscriptionPlan: ISubscriptionPlanModel;
   PlanFeature: IPlanFeatureModel;
@@ -87,6 +89,7 @@ declare interface IModels {
   PaymentMethod: IPaymentMethodModel;
   DealSite: IDealSiteModel;
   EmailSubscription: IEmailSubscriptionModel;
+  Booking: IBookingModel;
 } 
 
 export class DB {
@@ -124,9 +127,9 @@ export class DB {
       PropertyView: PropertyView,
       ReferralLog: ReferralLogModel,
       InspectionActivityLog: InspectionActivityLogModel,
+      BookingActivityLog: BookingActivityLogModel,
       FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
-      Subscription: new Subscription().model,
       UserSubscriptionSnapshot: new UserSubscriptionSnapshot().model,
       SubscriptionPlan: new SubscriptionPlan().model,
       PlanFeature: new PlanFeature().model,
@@ -134,6 +137,7 @@ export class DB {
       PaymentMethod: new PaymentMethod().model,
       DealSite: new DealSite().model,
       EmailSubscription: new EmailSubscription().model,
+      Booking: new Booking().model,
     };
   }
 

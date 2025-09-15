@@ -15,6 +15,7 @@ export type TransactionType =
   | 'refund'
   | 'subscription'
   | 'inspection'
+  | 'shortlet-booking'
   | 'document-verification';
 
 export interface INewTransaction {
@@ -83,6 +84,7 @@ export class NewTransaction {
             'refund',
             'subscription',
             'inspection',
+            'shortlet-booking',
             'document-verification',
           ],
           required: true,

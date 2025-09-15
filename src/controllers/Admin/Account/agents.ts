@@ -161,8 +161,8 @@ export const getAgents = async (
           ? {
               planName: planMap[sub.plan.toString()]?.name || null,
               planCode: planMap[sub.plan.toString()]?.code || null,
-              startDate: sub.startDate,
-              endDate: sub.endDate,
+              startDate: sub.startedAt,
+              endDate: sub.expiresAt,
               status: sub.status,
             }
           : null,
@@ -692,7 +692,7 @@ export const getSingleAgentProfile = async (
     const inspections = await DB.Models.InspectionBooking.find({ bookedBy: user._id }).lean();
 
     // Fetch subscriptions
-    const subscriptions = await DB.Models.Subscription.find({ user: user._id })
+    const subscriptions = await DB.Models.UserSubscriptionSnapshot.find({ user: user._id })
       .populate({
         path: "transaction",
         model: "NewTransaction",
@@ -702,7 +702,7 @@ export const getSingleAgentProfile = async (
 
     // Get current active subscription (if any)
     const currentActiveSubscription = subscriptions.find(
-      (sub: any) => sub.status === "active" && new Date(sub.endDate) > new Date()
+      (sub: any) => sub.status === "active" && new Date(sub.expiresAt) > new Date()
     );
 
     const completedInspections = inspections.filter((i: any) => i.status === "completed");

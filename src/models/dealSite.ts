@@ -1,6 +1,6 @@
 import { Schema, model, Document, Model, Types } from "mongoose";
 
-export type DealSiteStatus = "pending" | "on-hold" | "deleted" | "running";
+export type DealSiteStatus = "pending" | "on-hold" | "deleted" | "running" | "paused";
 export type InspectionStatus = "required" | "optional" | "disabled";
 export type FeatureSelectionMode = "auto" | "manual";
 export type DefaultTab = "buy" | "rent" | "shortlet" | "jv";
@@ -142,7 +142,7 @@ export class DealSite {
           ctaLink: { type: String, default: "" },
         },
 
-        status: { type: String, enum: ["pending", "on-hold", "deleted", "running"], default: "pending" },
+        status: { type: String, enum: ["pending", "on-hold", "deleted", "running", "paused"], default: "pending" },
 
         createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
       },

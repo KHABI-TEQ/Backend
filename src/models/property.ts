@@ -1,5 +1,5 @@
-import { Document, model, Model, ObjectId, Schema } from "mongoose";
-
+import { Document, model, Model, Types, Schema } from "mongoose";
+ 
 export interface IProperty { 
   propertyType: string;
   propertyCategory: string;
@@ -10,9 +10,10 @@ export interface IProperty {
   holdDuration?: string;
   price?: number;
   location?: {
-    state: string;
-    localGovernment: string;
-    area: string;
+    state?: string;
+    localGovernment?: string;
+    area?: string;
+    streetAddress?: string;
   }; 
   landSize?: {
     measurementType?: string;
@@ -22,23 +23,46 @@ export interface IProperty {
     docName?: string;
     isProvided?: boolean;
   }[];
-  owner: ObjectId; // Can be user or admin
+  owner: Types.ObjectId;                // ID of the owner
+  ownerModel: "User" | "Admin";         // tells Mongoose which collection
+  createdByRole: "user" | "admin"; 
   areYouTheOwner: boolean;
+  leaseHold?: string;
   features?: string[];
   tenantCriteria?: string[];
+  rentalConditions?: {
+    conditions?: string[];
+    tenantGenderPreference?: string;
+  };
   additionalFeatures?: {
-    noOfBedroom: number;
-    noOfBathroom: number;
-    noOfToilet: number;
-    noOfCarPark: number;
+    noOfBedroom?: number;
+    noOfBathroom?: number;
+    noOfToilet?: number;
+    noOfCarPark?: number;
   };
   jvConditions?: string[];
   shortletDetails?: {
     streetAddress?: string;
     maxGuests?: number;
-    availability?: { minStay: number };
-    pricing: { nightly: number; weeklyDiscount?: number };
-    houseRules: { checkIn: string; checkOut: string };
+    availability?: { 
+      minStay: number 
+    };
+    pricing?: { 
+      nightly: number; 
+      weeklyDiscount?: number; 
+      monthlyDiscount?: number; 
+      cleaningFee?: number; 
+      securityDeposit: number; 
+    };
+    houseRules?: { 
+      checkIn: string; 
+      checkOut: string, 
+      smoking?: boolean; 
+      pets?: boolean; 
+      parties?: boolean; 
+      otherRules?: string 
+    };
+    cancellationPolicy?: string;
   };
   pictures?: string[];
   videos?: string[];
@@ -66,14 +90,14 @@ export interface IProperty {
     | "temporarily_off_market"
     | "hold"
     | "failed"
-    | "never_listed";
+    | "never_listed"
+    | "booked";
   reason?: string;
   briefType: string;
   isPremium: boolean;
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
-  createdByRole: "user" | "admin"; // Track who created it
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -100,6 +124,7 @@ export class Property {
           state: { type: String },
           localGovernment: { type: String },
           area: { type: String },
+          streetAddress: { type: String },
         },
         landSize: {
           measurementType: { type: String },
@@ -111,10 +136,24 @@ export class Property {
             isProvided: { type: Boolean },
           },
         ],
-        owner: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        owner: { 
+          type: Schema.Types.ObjectId, 
+          required: true, 
+          refPath: "ownerModel"
+        },
+        ownerModel: {
+          type: String,
+          required: true,
+          enum: ["User", "Admin"],
+        },
         areYouTheOwner: { type: Boolean, required: true },
         features: [{ type: String }],
+        leaseHold: { type: String },
         tenantCriteria: [{ type: String }],
+        rentalConditions: {
+          conditions: [{ type: String }],
+          tenantGenderPreference: { type: String },
+        },
         additionalFeatures: {
           noOfBedroom: { type: Number, default: 0 },
           noOfBathroom: { type: Number, default: 0 },
@@ -129,13 +168,21 @@ export class Property {
             minStay: { type: Number },
           },
           pricing: {
-            nightly: { type: Number },
+            nightly: { type: Number, default: 0 },
             weeklyDiscount: { type: Number, default: 0 },
+            monthlyDiscount: { type: Number, default: 0 },
+            cleaningFee: { type: Number, default: 0 },
+            securityDeposit: { type: Number, default: 0 },
           },
           houseRules: {
             checkIn: { type: String },
             checkOut: { type: String },
+            smoking: { type: Boolean, default: false },
+            pets: { type: Boolean, default: false },
+            parties: { type: Boolean, default: false },
+            otherRules: { type: String },
           },
+          cancellationPolicy: { type: String },
         },
         pictures: [{ type: String }],
         videos: [{ type: String }],
@@ -164,6 +211,7 @@ export class Property {
             "hold",
             "failed",
             "never_listed",
+            "booked"
           ],
           default: "pending",
           required: true,

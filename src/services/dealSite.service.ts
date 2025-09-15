@@ -9,10 +9,10 @@ export class DealSiteService {
    * Ensure the user has an active subscription
    */
   private static async ensureActiveSubscription(userId: string) {
-    const activeSubscription = await DB.Models.Subscription.findOne({
+    const activeSubscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       user: userId,
       status: "active",
-      endDate: { $gt: new Date() },
+      expiresAt: { $gt: new Date() },
     });
 
     if (!activeSubscription) {
@@ -129,7 +129,7 @@ export class DealSiteService {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
     }
 
-    dealSite.status = "on-hold";
+    dealSite.status = "paused";
     await dealSite.save();
 
     return dealSite;
