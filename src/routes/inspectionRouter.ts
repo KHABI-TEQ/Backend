@@ -1,3 +1,4 @@
+import { authenticateBookingCode } from "../controllers/Account/fetchBookings";
 import BookingController from "../controllers/public/inspection/bookingActions";
 import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
 import { Router } from "express";
@@ -56,5 +57,11 @@ inspectRouter.get(
   "/:inspectionId/reOpen",
   InspectionActionsController.reopenInspection,
 );
+
+
+/**
+ * BOOKINGS 
+ */
+inspectRouter.post("/bookings/verify-code", authenticateBookingCode);
 
 export default inspectRouter;

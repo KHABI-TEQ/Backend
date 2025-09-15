@@ -52,8 +52,12 @@ export class Booking {
           enum: ["pending", "confirmed", "cancelled", "completed", "failed", "requested", "unavailable"],
           default: "pending",
         },
-
-        transaction: { type: Schema.Types.ObjectId, ref: "NewTransaction", default: null },
+ 
+        transaction: {
+          type: Schema.Types.ObjectId,
+          ref: 'NewTransaction',
+          default: null,
+        },
 
         ownerResponse: {
           response: {

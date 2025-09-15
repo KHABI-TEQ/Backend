@@ -1,6 +1,6 @@
 import { Document, model, Model, Types, Schema } from "mongoose";
  
-export interface IProperty { 
+export interface IProperty {  
   propertyType: string;
   propertyCategory: string;
   propertyCondition?: string;
