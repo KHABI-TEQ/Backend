@@ -173,7 +173,7 @@ export const respondToBookingRequest = async (
         select: "fullName email phoneNumber", // fields you need
         },
     })
-    .lean();
+    .lean(); 
 
     if (!booking) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Booking not found or not in requested status");
