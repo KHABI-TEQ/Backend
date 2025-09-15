@@ -1,0 +1,268 @@
+import { Response, NextFunction } from "express";
+import { AppRequest } from "../../types/express";
+import { DB } from "..";
+import HttpStatusCodes from "../../common/HttpStatusCodes";
+import { RouteError } from "../../common/classes";
+import { PaystackService } from "../../services/paystack.service";
+import { Types } from "mongoose";
+import { BookingLogService } from "../../services/bookingLog.service";
+import { generateBookingRequestReviewedForBuyer } from "../../common/emailTemplates/bookingMails";
+import { getPropertyTitleFromLocation } from "../../utils/helper";
+import sendEmail from "../../common/send.email";
+import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
+
+export const fetchUserBookings = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      propertyId,
+      bookedBy,
+    } = req.query;
+
+    const filter: any = {
+      bookedBy: req.user._id, // Only fetch user's bookings
+    };
+
+    if (status) filter.status = status;
+    if (propertyId) filter.propertyId = propertyId;
+    if (bookedBy) filter.bookedBy = bookedBy;
+
+    const bookings = await DB.Models.Booking.find(filter)
+      .populate("propertyId")
+      .populate("transaction")
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await DB.Models.Booking.countDocuments(filter);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: bookings,
+      pagination: {
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getOneUserBooking = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await DB.Models.Booking.findOne({
+      _id: bookingId,
+      bookedBy: req.user._id,
+    })
+      .populate("propertyId")
+      .populate("transaction");
+
+    if (!booking) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Booking not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: booking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getBookingStats = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user._id;
+
+    const baseFilter = { bookedBy: userId };
+
+    const [
+      totalBookings,
+      requestedBookings,
+      confirmedBookings,
+      cancelledBookings,
+      completedBookings,
+    ] = await Promise.all([
+      DB.Models.Booking.countDocuments(baseFilter),
+
+      DB.Models.Booking.countDocuments({
+        ...baseFilter,
+        status: "requested",
+      }),
+
+      DB.Models.Booking.countDocuments({
+        ...baseFilter,
+        status: "confirmed",
+      }),
+
+      DB.Models.Booking.countDocuments({
+        ...baseFilter,
+        status: "cancelled",
+      }),
+
+      DB.Models.Booking.countDocuments({
+        ...baseFilter,
+        status: "completed",
+      }),
+    ]);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: {
+        totalBookings,
+        requestedBookings,
+        confirmedBookings,
+        cancelledBookings,
+        completedBookings,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Owner responds to a booking request.
+ * Marks it as accepted or declined, optionally adding a note.
+ */
+export const respondToBookingRequest = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { bookingId } = req.params;
+    const { response, note } = req.body; // response: 'available' | 'unavailable'
+
+    if (!["available", "unavailable"].includes(response)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Response must be either 'available' or 'unavailable'"
+      );
+    }
+
+    // Find booking that is currently requested
+    const booking = await DB.Models.Booking.findOne({
+      _id: bookingId,
+      status: "requested",
+    })
+    .populate("bookedBy") // populate buyer
+    .populate({
+        path: "propertyId",       // populate property
+        populate: {
+        path: "owner",          // populate owner inside property
+        select: "fullName email phoneNumber", // fields you need
+        },
+    })
+    .lean();
+
+    if (!booking) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Booking not found or not in requested status");
+    }
+
+    // Update owner response
+    booking.ownerResponse = {
+      response,
+      respondedAt: new Date(),
+      note: note || null,
+    };
+
+    // Update booking status accordingly
+    booking.status = response === "available" ? "pending" : "unavailable";
+
+    const buyer = booking.bookedBy as any;
+    const property = booking.propertyId as any;
+    const onwerData = property.owner as any;
+    const expectedAmount = booking.meta.totalPrice;
+    const propertyTitle: any = getPropertyTitleFromLocation(property.location);
+   
+    let paymentResponse: any;
+
+    if (response === "available") {
+        // generate payment link
+        paymentResponse = await PaystackService.initializePayment({
+            email: buyer.email,
+            amount: expectedAmount,
+            fromWho: {
+                kind: "Buyer",
+                item: new Types.ObjectId(buyer._id as Types.ObjectId),
+            },
+            transactionType: "shortlet-booking",
+        });
+
+        booking.transaction = paymentResponse.transactionId;
+        booking.meta = {
+            ...booking.meta,
+            paymentLink: paymentResponse.authorization_url,
+        };
+    }
+
+    await booking.save();
+
+    // ✅ Log booking activity
+    await BookingLogService.logActivity({
+        bookingId: booking._id.toString(),
+        propertyId: property._id.toString(),
+        senderId: buyer?._id.toString(),
+        senderRole: "owner",     // "buyer" | "owner" | "admin"
+        senderModel: "User",   // "User" | "Buyer" | "Admin"
+        message: response === "available" ? "Booking request marked as available by the owner" : "Booking request marked as unavailable by the owner",
+        status: response === "available" ? "accepted" : "rejected",
+        stage: response === "available" ? "payment" : "cancelled",
+        meta: { 
+            cleaningFee: booking.meta.extralFees.cleaningFee, 
+            securityDeposit: booking.meta.extralFees.securityDeposit, 
+            bookingDetails: booking.bookingDetails,
+        },
+    });
+
+    const buyerEmail = generateBookingRequestReviewedForBuyer({
+        buyerName: buyer.fullName,
+        bookingCode: booking.bookingCode,
+        propertyTitle: propertyTitle,
+        checkInDateTime: booking.bookingDetails.checkInDateTime,
+        checkOutDateTime: booking.bookingDetails.checkOutDateTime,
+        status: response,
+        paymentLink: `${process.env.CLIENT_LINK}/check-booking-details`,
+    });
+
+    const subject =
+        response === "available"
+            ? `Your booking request on ${propertyTitle} is available`
+            : `Your booking request on ${propertyTitle} is not available`;
+
+    await sendEmail({
+        to: buyer.email,
+        subject: subject,
+        html: generalEmailLayout(buyerEmail),
+        text: generalEmailLayout(buyerEmail),
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: `Booking has been ${response}`,
+      data: booking,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

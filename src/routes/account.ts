@@ -43,6 +43,7 @@ import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account
 import { getDealSiteDetails } from "../controllers/DealSite/verifyPublicAccessID";
 import { createDealSite } from "../controllers/DealSite/setUp";
 import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
+import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 
 const AccountRouter = express.Router();
 
@@ -77,6 +78,12 @@ AccountRouter.get("/properties/fetchAll", fetchAllProperties);
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
+
+// BOOKING REQUEST ROUTES
+AccountRouter.get("/my-bookings/fetchAll", fetchUserBookings);
+AccountRouter.get("/my-bookings/stats", getBookingStats);
+AccountRouter.get("/my-bookings/:bookingId", getOneUserBooking);
+AccountRouter.post("/my-bookings/:bookingId/repondToRequest", respondToBookingRequest);
 
 // SUBSCRIPTION ROUTES
 AccountRouter.post("/subscriptions/makeSub", createSubscription);

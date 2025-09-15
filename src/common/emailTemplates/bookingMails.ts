@@ -134,6 +134,7 @@ export const generateBookingRequestReceivedForSeller = ({
   `;
 };
 
+
 /**
  * 5️⃣ Booking Request Reviewed — Buyer
  */
@@ -146,26 +147,27 @@ export const generateBookingRequestReviewedForBuyer = ({
   status,
   paymentLink,
 }: BookingDetails): string => {
-  const statusMessage =
+  // Payment message only if property is available
+  const paymentMessage =
     status === "available"
-      ? `The property is available! You can now proceed to make the payment.${
-          paymentLink
-            ? ` <br /><a href="${paymentLink}" style="color:#0066cc;text-decoration:none;">Click here to pay</a>`
-            : ""
-        }`
-      : "Unfortunately, the property is not available for the requested dates.";
+      ? `<p>The property is available! You can find the payment link on the booking details page.</p>`
+      : "";
 
   return `
   <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333;">
     <p>Dear ${buyerName},</p>
-    <p>Your booking request has been reviewed:</p>
+    <p>Your booking request has been reviewed for the property <strong>${propertyTitle}</strong>:</p>
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
-      <li><strong>Property:</strong> ${propertyTitle}</li>
       <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
       <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
-      <li><strong>Status:</strong> ${statusMessage}</li>
     </ul>
+
+    ${paymentMessage}
+
+    <p>To view your booking status and payment details, please visit the following page and enter your booking code:</p>
+    <p><a href="${paymentLink} style="color:#0066cc;text-decoration:none;">Check Booking Details</a></p>
+
     <hr />
     <p style="font-size: 13px; color: #999;">This is an automated message. Please do not reply.</p>
   </div>

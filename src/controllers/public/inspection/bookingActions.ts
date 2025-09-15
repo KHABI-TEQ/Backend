@@ -184,7 +184,7 @@ export class BookingController {
             // ✅ Generate booking + pass codes
             const bookingCode = this.generateBookingCode();
             const passCode = this.generatePassCode();
-
+ 
             let paymentResponse: any;
 
             if (bookingMode === "instant") {

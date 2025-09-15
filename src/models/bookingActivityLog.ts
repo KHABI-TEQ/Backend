@@ -1,5 +1,5 @@
 import { Schema, model, Document, Model, Types, models } from 'mongoose';
-
+ 
 export interface IBookingActivityLog {
   bookingId: Types.ObjectId;                     // Reference to booking
   propertyId: Types.ObjectId;                    // Reference to property
