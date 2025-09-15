@@ -277,7 +277,6 @@ export class PaystackService {
           const ownerData = property.owner as any;
           const propertyTitle: any = getPropertyTitleFromLocation(property.location); 
 
-          const formattedPrice = property.price?.toLocaleString("en-US") ?? "N/A";
           const bookedPrice = bookingRequest.meta.totalPrice?.toLocaleString("en-US") ?? "N/A";
 
           if (transaction.status === "success") {
@@ -299,7 +298,7 @@ export class PaystackService {
             // ✅ Log booking activity
             await BookingLogService.logActivity({
                 bookingId: bookingRequest._id.toString(),
-                propertyId: bookingRequest.propertyId.toString(),
+                propertyId: property._id.toString(),
                 senderId: buyer?._id.toString(),
                 senderRole: "buyer",     // "buyer" | "owner" | "admin"
                 senderModel: "Buyer",   // "User" | "Buyer" | "Admin"
@@ -374,6 +373,8 @@ export class PaystackService {
           }
 
       }
+
+      return bookingRequest;
   }
 
   /**
