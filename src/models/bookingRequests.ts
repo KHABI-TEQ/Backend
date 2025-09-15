@@ -46,7 +46,7 @@ export class Booking {
           guestNumber: { type: Number, required: true },
           note: { type: String, default: null },
         },
-
+ 
         status: {
           type: String,
           enum: ["pending", "confirmed", "cancelled", "completed", "failed", "requested", "unavailable"],
