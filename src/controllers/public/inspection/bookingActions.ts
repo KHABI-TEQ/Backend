@@ -236,7 +236,7 @@ export class BookingController {
             });
 
             // send mail to owner and the buyer
-            if (bookingMode === "requested") {
+            if (bookingMode === "request") {
                 const propertyTitle: any = getPropertyTitleFromLocation(property.location);
 
                 const ownerData = property.owner as any;
