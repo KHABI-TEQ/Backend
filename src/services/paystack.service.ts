@@ -303,7 +303,7 @@ export class PaystackService {
               note: null,
             };
 
-            await bookingRequest.save();
+            // await bookingRequest.save();
 
             // ✅ Log booking activity
             await BookingLogService.logActivity({
