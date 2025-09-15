@@ -305,7 +305,6 @@ export const authenticateBookingCode = async (
       bookingDetails: booking.bookingDetails,
       property: {
         _id: property._id,
-        title: property.title,
         pictures: property.pictures,
         videos: property.videos,
         briefType: property.briefType,
