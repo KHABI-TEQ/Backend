@@ -263,7 +263,7 @@ export class PaystackService {
           path: "propertyId",       // populate property
           populate: {
             path: "owner",          // populate owner inside property
-            select: "fullName email phoneNumber", // fields you need
+            select: "firstName lastName email phoneNumber", // fields you need
           },
         })
         .lean();
@@ -295,6 +295,16 @@ export class PaystackService {
                 console.warn(`Property ${propertyId} was already unavailable`);
             }
 
+            bookingRequest.status = "confirmed";
+
+            bookingRequest.ownerResponse = {
+              response: "accepted",
+              respondedAt: new Date(),
+              note: null,
+            };
+
+            await bookingRequest.save();
+
             // ✅ Log booking activity
             await BookingLogService.logActivity({
                 bookingId: bookingRequest._id.toString(),
@@ -314,17 +324,17 @@ export class PaystackService {
                 propertyTitle: propertyTitle,
                 checkInDateTime: bookingRequest.bookingDetails.checkInDateTime,
                 checkOutDateTime: bookingRequest.bookingDetails.checkOutDateTime,
-                duration: bookingRequest.meta.night,
+                duration: bookingRequest.meta.nights,
                 totalAmount: bookedPrice
             });
 
             const sellerEmail = generateSuccessfulBookingReceiptForSeller({
-                sellerName: ownerData.fullName,
+                sellerName: ownerData.firstName,
                 bookingCode: bookingRequest.bookingCode,
                 propertyTitle: propertyTitle,
                 checkInDateTime: bookingRequest.bookingDetails.checkInDateTime,
                 checkOutDateTime: bookingRequest.bookingDetails.checkOutDateTime,
-                duration: bookingRequest.meta.night,
+                duration: bookingRequest.meta.nights,
                 totalAmount: bookedPrice,
                 buyerName: buyer.fullName
             });
