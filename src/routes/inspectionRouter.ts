@@ -1,4 +1,4 @@
-import { authenticateBookingCode } from "../controllers/Account/fetchBookings";
+import { authenticateBookingCode, getBookingByBookingCode } from "../controllers/Account/fetchBookings";
 import BookingController from "../controllers/public/inspection/bookingActions";
 import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
 import { Router } from "express";
@@ -63,5 +63,6 @@ inspectRouter.get(
  * BOOKINGS 
  */
 inspectRouter.post("/bookings/verify-code", authenticateBookingCode);
+inspectRouter.post("/bookings/:bookingCode", getBookingByBookingCode);
 
 export default inspectRouter;

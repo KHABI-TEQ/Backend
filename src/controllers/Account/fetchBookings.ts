@@ -337,3 +337,73 @@ export const authenticateBookingCode = async (
     next(err);
   }
 };
+
+
+export const getBookingByBookingCode = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { bookingCode } = req.params;
+
+    if (!bookingCode || typeof bookingCode !== "string") {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Booking code is required");
+    }
+
+    // Find booking by code
+    const booking = await DB.Models.Booking.findOne({ bookingCode })
+      .populate("propertyId")
+      .populate("bookedBy")
+      .populate("transaction")
+      .lean();
+
+    if (!booking) {
+      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid booking code");
+    }
+
+    // Extract necessary details
+    const property = booking.propertyId as any;
+    const buyer = booking.bookedBy as any;
+
+    const bookingData = {
+      bookingCode: booking.bookingCode,
+      status: booking.status,
+      ownerResponse: booking.ownerResponse || null,
+      meta: booking.meta || {},
+      bookingDetails: booking.bookingDetails,
+      property: {
+        _id: property._id,
+        pictures: property.pictures,
+        videos: property.videos,
+        briefType: property.briefType,
+        propertyType: property.propertyType,
+        propertyCategory: property.propertyCategory,
+        propertyCondition: property.propertyCondition,
+        typeOfBuilding: property.typeOfBuilding,
+        shortletDuration: property.shortletDuration,
+        location: property.location,
+        features: property.features,
+        additionalFeatures: property.additionalFeatures,
+        shortletDetails: property.shortletDetails,
+        price: property.price,
+      },
+      buyer: {
+        _id: buyer._id,
+        fullName: buyer.fullName,
+        email: buyer.email,
+        phoneNumber: buyer.phoneNumber,
+      },
+      transaction: booking.transaction || null,
+    };
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Booking code authenticated successfully",
+      data: bookingData,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
