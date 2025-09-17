@@ -29,7 +29,7 @@ export const registerUserSchema = Joi.object({
   ).messages({
     "any.required": "Address is required.",
   }),
-  referreredCode: Joi.string().optional(),
+  referreredCode: Joi.string().allow("").optional(),
 });
 
 export const oauthRegisterSchema = Joi.object({
