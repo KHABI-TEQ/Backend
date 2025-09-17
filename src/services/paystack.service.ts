@@ -295,15 +295,17 @@ export class PaystackService {
                 console.warn(`Property ${propertyId} was already unavailable`);
             }
 
-            bookingRequest.status = "confirmed";
-
-            bookingRequest.ownerResponse = {
-              response: "accepted",
-              respondedAt: new Date(),
-              note: null,
-            };
-
-            // await bookingRequest.save();
+            await DB.Models.Booking.updateOne(
+              { _id: bookingRequest._id },
+              {
+                status: "confirmed",
+                ownerResponse: {
+                  response: "accepted",
+                  respondedAt: new Date(),
+                  note: null,
+                },
+              }
+            );
 
             // ✅ Log booking activity
             await BookingLogService.logActivity({

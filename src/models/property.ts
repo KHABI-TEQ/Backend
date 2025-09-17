@@ -188,7 +188,7 @@ export class Property {
         videos: [{ type: String }],
         description: { type: String },
         addtionalInfo: { type: String },
-        isTenanted: { type: String, enum: ["yes", "no", "i-live-in-it"], required: true },
+        isTenanted: { type: String, enum: ["yes", "no", "i-live-in-it"], default: "no" },
         isAvailable: { type: Boolean, default: false },
         status: {
           type: String,

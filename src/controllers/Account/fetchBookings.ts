@@ -10,7 +10,7 @@ import { generateBookingRequestReviewedForBuyer } from "../../common/emailTempla
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
-
+ 
 export const fetchUserBookings = async (
   req: AppRequest,
   res: Response,
