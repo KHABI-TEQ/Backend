@@ -78,7 +78,7 @@ AccountRouter.get("/properties/fetchAll", fetchAllProperties);
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
- 
+  
 // BOOKING REQUEST ROUTES
 AccountRouter.get("/my-bookings/fetchAll", fetchUserBookings);
 AccountRouter.get("/my-bookings/stats", getBookingStats);

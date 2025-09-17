@@ -22,7 +22,7 @@ export const formatShortletProperty = (
   owner: new Types.ObjectId(ownerId),
   areYouTheOwner: Boolean(payload.areYouTheOwner),
   features: payload.features || [],
-  additionalFeatures: {
+  additionalFeatures: { 
     noOfBedroom: Number(payload.additionalFeatures?.noOfBedroom) || 0,
     noOfBathroom: Number(payload.additionalFeatures?.noOfBathroom) || 0,
     noOfToilet: Number(payload.additionalFeatures?.noOfToilet) || 0,
