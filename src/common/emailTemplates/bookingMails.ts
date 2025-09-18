@@ -12,6 +12,7 @@ export interface BookingDetails {
   sellerName?: string;
   status?: "available" | "not-available";
   paymentLink?: string; // Only if booking is available
+  pageLink?: string;
 }
 
 /**
@@ -115,6 +116,7 @@ export const generateBookingRequestReceivedForSeller = ({
   checkInDateTime,
   checkOutDateTime,
   buyerName,
+  pageLink,
 }: BookingDetails): string => {
   return `
   <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333;">
@@ -127,12 +129,19 @@ export const generateBookingRequestReceivedForSeller = ({
       <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
       <li><strong>Requested By:</strong> ${buyerName}</li>
     </ul>
+    <p>
+      <a href="${pageLink}" target="_blank" 
+         style="display:inline-block;padding:10px 18px;background-color:#007BFF;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">
+        Review Booking Request
+      </a>
+    </p>
     <p>Kindly review and update the status so the buyer can proceed.</p>
     <hr />
     <p style="font-size: 13px; color: #999;">This is an automated message. Please do not reply.</p>
   </div>
   `;
 };
+
 
 
 /**

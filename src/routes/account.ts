@@ -83,7 +83,7 @@ AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
 AccountRouter.get("/my-bookings/fetchAll", fetchUserBookings);
 AccountRouter.get("/my-bookings/stats", getBookingStats);
 AccountRouter.get("/my-bookings/:bookingId", getOneUserBooking);
-AccountRouter.post("/my-bookings/:bookingId/repondToRequest", respondToBookingRequest);
+AccountRouter.post("/my-bookings/:bookingId/respondToRequest", respondToBookingRequest);
 
 // SUBSCRIPTION ROUTES
 AccountRouter.post("/subscriptions/makeSub", createSubscription);
