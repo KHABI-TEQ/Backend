@@ -29,7 +29,7 @@ export const registerUserSchema = Joi.object({
   ).messages({
     "any.required": "Address is required.",
   }),
-  referreredCode: Joi.string().allow("").optional(),
+  referralCode: Joi.string().allow("").optional(),
 });
 
 export const oauthRegisterSchema = Joi.object({
@@ -40,6 +40,6 @@ export const oauthRegisterSchema = Joi.object({
   userType: Joi.string().trim().valid("Landowners", "Agent", "FieldAgent").optional().messages({
     "any.only": "User type must be one of: Landowners, Agent, FieldAgent.",
   }),
-  referreredCode: Joi.string().optional(),
+  referralCode: Joi.string().allow("").optional(),
 });
  
