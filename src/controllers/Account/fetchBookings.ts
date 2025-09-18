@@ -159,7 +159,7 @@ export const respondToBookingRequest = async (
         HttpStatusCodes.BAD_REQUEST,
         "Response must be either 'available' or 'unavailable'"
       );
-    }
+    } 
 
     // Find booking that is currently requested
     const booking = await DB.Models.Booking.findOne({
@@ -171,8 +171,8 @@ export const respondToBookingRequest = async (
     .populate({
         path: "propertyId",       // populate property
         populate: {
-        path: "owner",          // populate owner inside property
-        select: "firstName lastName email phoneNumber", // fields you need
+          path: "owner",          // populate owner inside property
+          select: "firstName lastName email phoneNumber", // fields you need
         },
     }); 
 
@@ -182,7 +182,7 @@ export const respondToBookingRequest = async (
 
     // Update owner response
     booking.ownerResponse = {
-      response,
+      response: response === "available" ? "pending" : "declined",
       respondedAt: new Date(),
       note: note || null,
     };
