@@ -79,7 +79,7 @@ export class UserSubscriptionSnapshot {
         features: { type: [userAssignedFeatureSchema], required: false, default: undefined },
         transaction: {
           type: Schema.Types.ObjectId,
-          ref: 'NewTransaction',
+          ref: 'newTransaction',
           required: true,
         },
         autoRenew: {

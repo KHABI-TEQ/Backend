@@ -140,13 +140,6 @@ export const fetchUserSubscriptions = async (
     };
     const userId = req.user?._id;
 
-    if (!userId) {
-      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
-        success: false,
-        message: "Unauthorized",
-      });
-    }
-
     const filters: any = { user: userId };
     if (status) filters.status = status;
 
@@ -182,7 +175,7 @@ export const fetchUserSubscriptions = async (
           select: "reference amount status transactionType paymentMode",
         },
         {
-          path: "planDetails",
+          path: "plan",
           select: "name code",
         },
       ],
