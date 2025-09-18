@@ -241,6 +241,8 @@ export class BookingController {
 
                 const ownerData = property.owner as any;
 
+                const sellerPagelink = `${process.env.CLIENT_LINK}/my-inspection-requests?tab=booking`;
+
                 const buyerEmail = generateBookingRequestAcknowledgementForBuyer({
                     buyerName: bookedBy.fullName,
                     bookingCode: bookingCode,
@@ -255,7 +257,8 @@ export class BookingController {
                     propertyTitle: propertyTitle,
                     checkInDateTime: checkIn,
                     checkOutDateTime: checkOut,
-                    buyerName: bookedBy.fullName
+                    buyerName: bookedBy.fullName,
+                    pageLink: sellerPagelink
                 });
 
                 await sendEmail({

@@ -174,8 +174,7 @@ export const respondToBookingRequest = async (
         path: "owner",          // populate owner inside property
         select: "firstName lastName email phoneNumber", // fields you need
         },
-    })
-    .lean(); 
+    }); 
 
     if (!booking) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Booking not found or not in requested status");
