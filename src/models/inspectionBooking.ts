@@ -61,8 +61,8 @@ export interface IInspectionBooking {
 
   propertyType: "jv" | "shortlet" | "buy" | "rent";
   receiverMode: {
-    type: "general" | "dealSite";
-    dealSiteSlug?: string;
+    type?: "general" | "dealSite";
+    dealSiteSlug?: Types.ObjectId;
   };
 }
 
@@ -176,18 +176,12 @@ export class InspectionBooking {
           default: "buy",
         },
         receiverMode: {
-          type: new Schema(
-            {
-              type: {
-                type: String,
-                enum: ["general", "dealSite"],
-                default: "general"
-              },
-              dealSiteSlug: { type: String, default: null },
-            },
-            { _id: false } // prevents creating extra _id for subdocument
-          ),
-          required: true,
+          type: {
+            type: String,
+            enum: ["general", "dealSite"],
+            default: "general",
+          },
+          dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
       },
       {

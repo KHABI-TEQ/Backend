@@ -54,13 +54,15 @@ export class PlanFeatureService {
     return this.FeatureModel.findOne(filter).lean();
   }
 
-
   /**
    * Get all features
+   * @param onlyActive - if true, fetch only active features
    */
-  static async getAllFeatures(): Promise<IPlanFeatureDoc[]> {
-    return this.FeatureModel.find().lean();
+  static async getAllFeatures(onlyActive: boolean = false): Promise<IPlanFeatureDoc[]> {
+    const query = onlyActive ? { isActive: true } : {};
+    return this.FeatureModel.find(query).lean();
   }
+
 
   /**
    * Delete feature

@@ -96,7 +96,7 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
-
+ 
 // REFERRAL ROUTES
 AccountRouter.get("/referrals/stats", fetchReferralStats);
 AccountRouter.get("/referrals/records", fetchReferralRecords);

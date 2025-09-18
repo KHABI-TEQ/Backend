@@ -10,6 +10,7 @@ import { generateAutoRenewalStoppedEmail, generateSubscriptionCancellationEmail 
 import sendEmail from "../../../common/send.email";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
+import { PlanFeatureService } from "../../../services/planFeatures.service";
 
 
 /**
@@ -89,7 +90,7 @@ export const createSubscription = async (
     const startDate = new Date();
     const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + durationInDays);
-
+ 
     const subscriptionSnapshot =
       await UserSubscriptionSnapshotService.createSnapshot({
         user: userId as string,
@@ -408,6 +409,28 @@ export const getAllActiveSubscriptionPlans = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: plans,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Fetch ALl Active features
+ */
+export const getAllActiveFeatures = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {  
+
+    const features = await PlanFeatureService.getAllFeatures(true);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: features,
     });
   } catch (err) {
     next(err);

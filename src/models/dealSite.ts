@@ -68,6 +68,14 @@ export interface IDealSite {
     heroImage: string;
   };
 
+  paymentDetails?: {
+    accountNumber: string;
+    accountName: string;
+    accountBankName: string;
+    sortCode: string;
+    heroImage: string;
+  };
+
   status: DealSiteStatus;
   createdBy: Types.ObjectId;
 }
