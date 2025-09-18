@@ -41,7 +41,7 @@ import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
 import { getDealSiteDetails } from "../controllers/DealSite/verifyPublicAccessID";
-import { createDealSite } from "../controllers/DealSite/setUp";
+import { checkSlugAvailability, createDealSite } from "../controllers/DealSite/setUp";
 import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 
@@ -103,6 +103,7 @@ AccountRouter.get("/referrals/records", fetchReferralRecords);
 
 // DEAL SITE ROUTES
 AccountRouter.post("/dealSite/setUp", createDealSite);
+AccountRouter.post("/dealSite/slugAvailability", checkSlugAvailability);
 AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetails);
 AccountRouter.put("/dealSite/:publicSlug/update", updateDealSite);
 AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);

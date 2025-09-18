@@ -55,11 +55,17 @@ export interface IDealSite {
     enablePriceNegotiationButton: boolean;
   };
 
+  footerSection?: {
+    shortDesc: string;
+    copyRight: string;
+  };
+
   publicPage?: {
     heroTitle: string;
     heroSubtitle: string;
     ctaText: string;
     ctaLink: string;
+    heroImage: string;
   };
 
   status: DealSiteStatus;
@@ -134,12 +140,18 @@ export class DealSite {
           showVerifiedOnly: { type: Boolean, default: false },
           enablePriceNegotiationButton: { type: Boolean, default: true },
         },
-
+ 
         publicPage: {
           heroTitle: { type: String, default: "" },
           heroSubtitle: { type: String, default: "" },
           ctaText: { type: String, default: "" },
           ctaLink: { type: String, default: "" },
+          heroImage: { type: String, default: "" },
+        },
+
+        footerSection: {
+          shortDesc: { type: String, default: "" },
+          copyRight: { type: String, default: "" },
         },
 
         status: { type: String, enum: ["pending", "on-hold", "deleted", "running", "paused"], default: "pending" },
