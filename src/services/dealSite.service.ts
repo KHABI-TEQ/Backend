@@ -195,4 +195,24 @@ export class DealSiteService {
       message: "DealSite deleted successfully",
     };
   }
+
+  /**
+   * Check if a publicSlug is available
+   */
+  static async isSlugAvailable(publicSlug: string): Promise<{ available: boolean; message: string }> {
+    const existingSlug = await DB.Models.DealSite.findOne({ publicSlug }).lean();
+
+    if (existingSlug) {
+      return {
+        available: false,
+        message: "This slug is already taken. Please choose another.",
+      };
+    }
+
+    return {
+      available: true,
+      message: "This slug is available.",
+    };
+  }
+
 }

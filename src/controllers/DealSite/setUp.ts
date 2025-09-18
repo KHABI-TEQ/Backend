@@ -25,3 +25,27 @@ export const createDealSite = async (
   }
 };
 
+
+/**
+ * Check availability of a DealSite slug
+ */
+export const checkSlugAvailability = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.body; // or req.query.slug
+
+    const result = await DealSiteService.isSlugAvailable(publicSlug);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
