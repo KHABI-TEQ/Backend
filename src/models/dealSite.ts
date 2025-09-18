@@ -56,8 +56,8 @@ export interface IDealSite {
   };
 
   footerSection?: {
-    shortDesc: string;
-    copyRight: string;
+    shortDescription: string;
+    copyrightText: string;
   };
 
   publicPage?: {
@@ -65,7 +65,7 @@ export interface IDealSite {
     heroSubtitle: string;
     ctaText: string;
     ctaLink: string;
-    heroImage: string;
+    heroImageUrl: string;
   };
 
   paymentDetails?: {
