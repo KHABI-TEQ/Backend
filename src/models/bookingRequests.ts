@@ -12,7 +12,7 @@ export interface IOwnerResponse {
   respondedAt?: Date;
   note?: string;
 }
-
+ 
 export interface IBooking {
   propertyId: Types.ObjectId;               // Ref -> Property
   bookedBy: Types.ObjectId;                 // Ref -> Buyer
@@ -25,7 +25,11 @@ export interface IBooking {
   ownerId: Types.ObjectId;
   ownerModel: "User" | "Admin";
   report?: string;                          // Notes/report after booking
-  meta?: Record<string, any>;               // Flexible JSON metadata
+  meta?: Record<string, any>; 
+  receiverMode: {
+    type?: "general" | "dealSite";
+    dealSiteSlug?: Types.ObjectId;
+  };
 }
  
 export interface IBookingDoc extends IBooking, Document {}
@@ -84,6 +88,15 @@ export class Booking {
 
         report: { type: String, default: null },
         meta: { type: Schema.Types.Mixed },
+
+        receiverMode: {
+          type: {
+            type: String,
+            enum: ["general", "dealSite"],
+            default: "general",
+          },
+          dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
+        },
       },
       { timestamps: true }
     );

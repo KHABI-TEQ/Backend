@@ -88,6 +88,75 @@ export class PaystackService {
       access_code: response.data.data.access_code,
     };
   }
+  
+
+  /**
+   * Initialize a Paystack split transaction and store it as pending in DB.
+   */
+  static async initializeSplitPayment({
+    email,
+    amount,
+    fromWho,
+    transactionType,
+    paymentMode = 'card',
+    currency = 'NGN',
+    metadata = {},
+  }: {
+    email: string;
+    amount: number;
+    fromWho: { kind: 'User' | 'Buyer'; item: Types.ObjectId };
+    transactionType: string;
+    paymentMode?: string;
+    currency?: string;
+    metadata?: Record<string, any>;
+  }) {
+
+    const reference = 'KT' + Math.floor(Math.random() * 9e14 + 1e14).toString();
+
+    // Create transaction record (status: pending)
+    const transactionData = await DB.Models.NewTransaction.create({
+      reference,
+      fromWho,
+      amount,
+      transactionType,
+      paymentMode,
+      status: 'pending',
+      currency,
+      meta: metadata,
+    });
+ 
+    const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+
+    // Initialize Paystack payment
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/transaction/initialize`,
+      {
+        email,
+        amount: amount * 100, // convert to kobo
+        callback_url: `${process.env.CLIENT_LINK}/payment-verification`,
+        reference,
+        currency,
+        metadata: {
+          ...metadata,
+          transactionType,
+          fromWho,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${paystackSK?.value}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    return {
+      reference,
+      transactionId: transactionData._id,
+      authorization_url: response.data.data.authorization_url,
+      access_code: response.data.data.access_code,
+    };
+  }
 
 
   /**
@@ -546,14 +615,14 @@ export class PaystackService {
 
   /**
  * Handles the side effects of a subscription payment.
- */
+ */ 
   static async handleSubscriptionPayment(transaction: any) {
     // get user subscription snapshot by transaction id
     const snapshot = await UserSubscriptionSnapshotService.getSnapshotByTransactionId(transaction._id);
-
+ 
     // return false if subscription not found
     if (!snapshot) return;
-
+ 
     // make sure only pending snapshot subscription are action on
     if (snapshot.status === "pending") {
       const newStatus = transaction.status === "success" ? "active" : "cancelled";
@@ -562,14 +631,32 @@ export class PaystackService {
       const plan = snapshot.plan as any;
       if (!plan) return null;
 
-      // calculating subscription snapshot dates
+      let planDuration: number;
+
+      // calculating subscription snapshot dates also confirm if the plan is a discounted plan
       const startDate = new Date();
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + plan.durationInDays);
+      
+      if (snapshot.meta.planType === "discounted" && snapshot.meta.planCode) {
+        // find exact discounted plan under this plan
+        const discountedPlan = plan.discountedPlans?.find(
+          (p: any) => p.planCode === snapshot.meta.planCode
+        );
 
+        if (!discountedPlan) {
+          throw new Error(`Discounted plan with code name ${snapshot.meta.appliedPlanName} not found`);
+        }
+
+        planDuration = discountedPlan.durationInDays;
+      } else {
+        planDuration = plan.durationInDays;
+      }
+
+      endDate.setDate(endDate.getDate() + plan.durationInDays);
+ 
       // Map plan features into snapshot
       const planFeatures = plan.features?.map((f: any) => ({
-        feature: f._id,
+        feature: f.feature?._id || f.feature,
         type: f.type,
         value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
         remaining: f.type === "count" ? f.value : undefined,
@@ -578,7 +665,7 @@ export class PaystackService {
       snapshot.status = newStatus;
       snapshot.startedAt = startDate;
       snapshot.expiresAt = endDate;
-      snapshot.features = planFeatures;
+      snapshot.features = Array.isArray(planFeatures) ? planFeatures : [];
       await snapshot.save();
 
       // =======================

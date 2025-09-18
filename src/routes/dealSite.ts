@@ -17,6 +17,9 @@ DealSiteRouter.get("/:publicSlug/properties/:propertyId", getSingleDealSitePrope
 // make inspection request
 DealSiteRouter.post("/:publicSlug/inspections/makeRequest", getDealSiteBySlug);
 
+// make booking request
+DealSiteRouter.post("/:publicSlug/bookings/makeRequest", getDealSiteBySlug);
+
 // contact us request
 DealSiteRouter.post("/:publicSlug/contactUs", getDealSiteBySlug);
 

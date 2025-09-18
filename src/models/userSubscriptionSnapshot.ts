@@ -8,8 +8,8 @@ export interface IUserAssignedFeature {
   type: "boolean" | "count" | "unlimited";
   value?: number;          // initial value (limit)
   remaining?: number;      // usage left
-}
-
+} 
+ 
 export type SubscriptionSnapshotStatus = 'pending' | 'active' | 'inactive' | 'cancelled' | 'expired';
 
 export interface IUserSubscriptionSnapshot {
