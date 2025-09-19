@@ -81,7 +81,7 @@ AdminRouter.patch("/admins/:adminId/status", changeAdminStatus);
 
 /**
  * AGENTS MANAGEMENT ROUTES
- */
+ */ 
 AdminRouter.get("/agents", getAllAgents);
 AdminRouter.get("/agents/fetchAll/:type", getAgentsByType);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);

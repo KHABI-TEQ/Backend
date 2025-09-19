@@ -183,7 +183,7 @@ export const getAgents = async (
     next(err);
   }
 };
-
+ 
 
 export const getAgentsByType = async (
   req: AppRequest,
@@ -239,7 +239,25 @@ export const getAgentsByType = async (
             },
           },
           { $unwind: "$subscriptions" },
-          { $match: { "subscriptions.status": "active" } },
+          {
+            $match: {
+              "subscriptions.status": "active",
+            },
+          },
+          {
+            $lookup: {
+              from: "subscriptionplans",
+              localField: "subscriptions.plan",
+              foreignField: "_id",
+              as: "plan",
+            },
+          },
+          {
+            $unwind: {
+              path: "$plan",
+              preserveNullAndEmptyArrays: true,
+            },
+          },
         ];
         break;
       default:
@@ -290,7 +308,7 @@ export const getAgentsByType = async (
         companyAgent: 1,
         address: 1,
 
-        // Nested User fields
+        // User fields
         "user._id": 1,
         "user.email": 1,
         "user.firstName": 1,
@@ -304,6 +322,17 @@ export const getAgentsByType = async (
         "user.isInActive": 1,
         "user.userType": 1,
         "user.accountId": 1,
+
+        // Add subscription info only for subscriber type
+        ...(type === "subscriber"
+          ? {
+              "subscriptions.startedAt": 1,
+              "subscriptions.expiresAt": 1,
+              "plan._id": 1,
+              "plan.name": 1,
+              "plan.code": 1,
+            }
+          : {}),
       },
     });
 
