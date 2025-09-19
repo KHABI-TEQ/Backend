@@ -66,11 +66,11 @@ export const getDealSiteProperties = async (
 
     // 4. Base query: properties by owner
     const query: any = {
-      createdBy: dealSite.createdBy,
+      owner: dealSite.createdBy,
       isApproved: true,
       isDeleted: false,
       isAvailable: true
-    };
+    }; 
 
     if (briefType) query.briefType = briefType;
     if (filters.location) query["location.state"] = filters.location;
