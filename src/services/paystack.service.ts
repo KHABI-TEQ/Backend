@@ -741,7 +741,7 @@ export class PaystackService {
         }
 
         // create public link
-        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/deal-site`;
  
         const successMailBody = generalEmailLayout(
           generateSubscriptionReceiptEmail({

@@ -103,7 +103,7 @@ export const getDealSiteProperties = async (
     // 5. Fetch properties
     const properties = await DB.Models.Property.find(query)
       .select(
-        "propertyType propertyCategory propertyCondition price location additionalFeatures pictures isAvailable status briefType isPremium isApproved",
+        "propertyType propertyCategory propertyCondition price location additionalFeatures pictures isAvailable shortletDetails bookedPeriods status briefType isPremium isApproved",
       )
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))

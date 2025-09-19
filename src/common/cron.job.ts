@@ -311,7 +311,7 @@ const autoRenewSubscriptionsCronJob = async () => {
         );
 
         // create public link
-        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/deal-site`;
 
         const { html, text } = generateAutoRenewReceiptEmail({
           fullName: user.fullName || `${user.firstName} ${user.lastName}`,

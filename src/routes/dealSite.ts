@@ -8,7 +8,7 @@ import { reportDealSite } from "../controllers/DealSite/reportDealSite";
 
 const DealSiteRouter = express.Router();
 
-// get and validate deal site
+// get and validate deal site 
 DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);
 
 // get and validate deal site
