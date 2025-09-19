@@ -1,4 +1,4 @@
-import { IPlanFeatureDoc } from "src/models";
+import { IPlanFeatureDoc } from "../models";
 import { DB } from "../controllers";
 
 export class PlanFeatureService {

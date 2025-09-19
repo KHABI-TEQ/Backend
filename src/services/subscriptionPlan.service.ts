@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { DB } from "../controllers";
-import { ISubscriptionPlanDoc } from "src/models";
+import { ISubscriptionPlanDoc } from "../models";
 
 export class SubscriptionPlanService {
   private static PlanModel = DB.Models.SubscriptionPlan;

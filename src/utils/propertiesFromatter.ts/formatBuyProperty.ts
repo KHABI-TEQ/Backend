@@ -1,4 +1,4 @@
-import { IProperty } from "src/models";
+import { IProperty } from "../../models";
 import { Types } from "mongoose";
 
 export const formatBuyProperty = (

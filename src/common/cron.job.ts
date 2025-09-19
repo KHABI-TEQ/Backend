@@ -5,7 +5,7 @@ import { generalEmailLayout } from './emailTemplates/emailLayout';
 import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail, generateSubscriptionFailureEmail, generateAutoRenewReceiptEmail } from './emailTemplates/subscriptionMails';
 import sendEmail from './send.email';
 import { PaystackService } from '../services/paystack.service';
-import { kebabToTitleCase } from 'src/utils/helper';
+import { kebabToTitleCase } from '../utils/helper';
 
 // Example DB connect (adjust for your project setup)
 mongoose.connect(process.env.MONGO_URI as string);
