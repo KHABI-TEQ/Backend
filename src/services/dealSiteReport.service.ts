@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import { DB } from "../controllers";
-import { IDealSiteReport } from "src/models";
+import { IDealSiteReport } from "../models";
 
 export type DealSiteReportStatus = "pending" | "reviewed" | "resolved" | "dismissed";
 export type ReportedByModel = "Buyer" | "User" | "Admin";

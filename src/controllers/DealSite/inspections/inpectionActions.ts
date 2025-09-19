@@ -4,8 +4,8 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { PaystackService } from "../../../services/paystack.service";
 import { Types } from "mongoose";
-import { InspectionValidator } from "src/validators/inspection.validator";
-import { InspectionLogService } from "src/services/inspectionLog.service";
+import { InspectionValidator } from "../../../validators/inspection.validator";
+import { InspectionLogService } from "../../../services/inspectionLog.service";
 
 export const submitInspectionRequest = async (
   req: AppRequest,
