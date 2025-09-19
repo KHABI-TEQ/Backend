@@ -9,7 +9,7 @@ import { reportDealSite } from "../controllers/DealSite/reportDealSite";
 const DealSiteRouter = express.Router();
 
 // get and validate deal site
-DealSiteRouter.get("/get-data/:publicSlug", getDealSiteBySlug);
+DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);
 
 // get and validate deal site
 DealSiteRouter.get("/:publicSlug/getSettings/:section", getDealSiteSection);
