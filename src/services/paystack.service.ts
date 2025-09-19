@@ -354,10 +354,22 @@ export class PaystackService {
 
             // ✅ Mark property as unavailable and optionally update status
             const updatedProperty = await DB.Models.Property.findOneAndUpdate(
-                { _id: propertyId, isAvailable: true },
-                { isAvailable: false, status: "booked" }, 
-                { new: true }
+              { _id: propertyId, isAvailable: true },
+              {
+                $push: {
+                  bookedPeriods: {
+                    bookingId: bookingRequest._id,
+                    checkInDateTime: bookingRequest.bookingDetails.checkInDateTime,
+                    checkOutDateTime: bookingRequest.bookingDetails.checkOutDateTime,
+                  },
+                },
+                $set: {
+                  status: "booked", 
+                },
+              },
+              { new: true }
             );
+
 
             if (!updatedProperty) {
                 // Optional: handle rare case where property was already booked

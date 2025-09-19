@@ -53,6 +53,8 @@ import {
   IPaymentMethodModel,
   DealSite,
   IDealSiteModel,
+  DealSiteReport,
+  IDealSiteReportModel,
   EmailSubscription,
   IEmailSubscriptionModel,
   Booking,
@@ -88,6 +90,7 @@ declare interface IModels {
   SystemSetting: ISystemSettingModel;
   PaymentMethod: IPaymentMethodModel;
   DealSite: IDealSiteModel;
+  DealSiteReport: IDealSiteReportModel;
   EmailSubscription: IEmailSubscriptionModel;
   Booking: IBookingModel;
 } 
@@ -136,6 +139,7 @@ export class DB {
       SystemSetting: new SystemSetting().model,
       PaymentMethod: new PaymentMethod().model,
       DealSite: new DealSite().model,
+      DealSiteReport: new DealSiteReport().model,
       EmailSubscription: new EmailSubscription().model,
       Booking: new Booking().model,
     };

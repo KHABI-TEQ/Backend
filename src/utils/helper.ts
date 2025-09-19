@@ -30,3 +30,24 @@ export const getPropertyTitleFromLocation = (location?: {
   return parts.join(", ") || "Untitled Property";
 };
 
+
+/**
+   * Generate a booking code
+   */
+  export const generateBookingCode = (prefix: string = "BK") => {
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const timestamp = Date.now().toString().slice(-6); // last 6 digits
+    return `${prefix}-${timestamp}-${random}`;
+  }
+
+  /**
+   * Generate numeric passcode (e.g., for check-in)
+   */
+  export const generatePassCode = (length: number = 6) => {
+    const digits = "0123456789";
+    let code = "";
+    for (let i = 0; i < length; i++) {
+      code += digits.charAt(Math.floor(Math.random() * digits.length));
+    }
+    return code;
+  }

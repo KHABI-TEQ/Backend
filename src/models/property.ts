@@ -1,5 +1,11 @@
 import { Document, model, Model, Types, Schema } from "mongoose";
   
+export interface IBookedPeriod {
+  bookingId: Types.ObjectId;
+  checkInDateTime: Date;
+  checkOutDateTime: Date;
+}
+
 export interface IProperty {  
   propertyType: string;
   propertyCategory: string;
@@ -98,6 +104,7 @@ export interface IProperty {
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
+  bookedPeriods?: IBookedPeriod[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -110,6 +117,7 @@ export class Property {
   private propertyModel: Model<IPropertyDoc>;
 
   constructor() {
+
     const schema = new Schema<IPropertyDoc>(
       {
         propertyType: { type: String, required: true },
@@ -228,6 +236,16 @@ export class Property {
           type: String,
           enum: ["user", "admin"],
           required: true,
+        },
+        bookedPeriods: {
+          type: [
+            {
+              bookingId: { type: Schema.Types.ObjectId, ref: "Booking" },
+              checkInDateTime: { type: Date, default: null },
+              checkOutDateTime: { type: Date, default: null },
+            },
+          ],
+          default: [],
         },
       },
       { timestamps: true },
