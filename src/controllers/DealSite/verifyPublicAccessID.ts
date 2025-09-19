@@ -6,6 +6,22 @@ import { DB } from "..";
 import { RouteError } from "../../common/classes";
 
 
+// Allowed keys from DealSite
+const allowedSections = [
+  "theme",
+  "inspectionSettings",
+  "socialLinks",
+  "contactVisibility",
+  "featureSelection",
+  "marketplaceDefaults",
+  "footerSection",
+  "publicPage",
+  "paymentDetails",
+] as const;
+
+type DealSiteSection = (typeof allowedSections)[number];
+
+
 /**
  * Fetch a single DealSite by its public slug
  */
@@ -92,6 +108,69 @@ export const getDealSiteBySlug = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: dealSite,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+/**
+ * Fetch specific DealSite settings by section
+ * Example: GET /deal-sites/:publicSlug/settings/:section
+ */
+export const getDealSiteSection = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug, section } = req.params;
+
+    if (!publicSlug || !section) {
+      return next(
+        new RouteError(HttpStatusCodes.BAD_REQUEST, "Public slug and section are required")
+      );
+    }
+
+    const dealSite = await DealSiteService.getBySlug(publicSlug);
+
+    if (!dealSite) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_FOUND",
+        message: "DealSite not found",
+        data: null,
+      });
+    }
+
+    if (dealSite.status !== "running") {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_ACTIVE",
+        message: "This DealSite is not currently active.",
+        data: null,
+      });
+    }
+
+    // ensure requested section is in whitelist
+    if (!allowedSections.includes(section as DealSiteSection)) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: `Section '${section}' not found in DealSite`,
+        data: null,
+      });
+    }
+
+    // Type-safe access
+    const sectionKey = section as DealSiteSection;
+    const sectionData = dealSite[sectionKey];
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: `DealSite section '${section}' fetched successfully`,
+      data: sectionData,
     });
   } catch (err) {
     next(err);
