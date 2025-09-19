@@ -2,6 +2,7 @@ import { DB } from "../controllers";
 import HttpStatusCodes from "../common/HttpStatusCodes";
 import { RouteError } from "../common/classes";
 import { IDealSite, IDealSiteDoc } from "../models";
+import { Types } from "mongoose";
 
 export class DealSiteService {
 
@@ -213,6 +214,43 @@ export class DealSiteService {
       available: true,
       message: "This slug is available.",
     };
+  }
+
+
+
+  /**
+   * Fetch featured properties for a given DealSite
+   * - If manual mode → uses propertyIds
+   * - If auto mode → selects latest active properties up to listingsLimit
+   */
+  static async getFeaturedProperties(dealSite: IDealSiteDoc) {
+    const Property = DB.Models.Property;
+
+    if (!dealSite.featureSelection) {
+      return [];
+    }
+
+    // Manual mode → specific IDs
+    if (dealSite.featureSelection.mode === "manual" && dealSite.featureSelection.propertyIds) {
+      const ids = dealSite.featureSelection.propertyIds
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => Types.ObjectId.isValid(id));
+
+      return Property.find({ _id: { $in: ids }, isAvailable: true })
+        .limit(dealSite.listingsLimit || 6)
+        .lean();
+    }
+
+    // Auto mode → pick latest running properties by this agent
+    return Property.find({
+      createdBy: dealSite.createdBy,
+      isAvailable: true,
+      status: "running",
+    })
+      .sort({ createdAt: -1 })
+      .limit(dealSite.listingsLimit || 6)
+      .lean();
   }
 
 }

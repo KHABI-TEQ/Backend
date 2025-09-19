@@ -176,3 +176,48 @@ export const getDealSiteSection = async (
     next(err);
   }
 };
+
+
+/**
+ * GET /deal-sites/:publicSlug/featured
+ * Fetch all featured properties for a DealSite
+ */
+export const getFeaturedProperties = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+
+    const dealSite = await DealSiteService.getBySlug(publicSlug);
+    if (!dealSite) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_FOUND",
+        message: "DealSite not found",
+        data: null,
+      });
+    }
+
+    if (dealSite.status !== "running") {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_ACTIVE",
+        message: "This DealSite is not currently active.",
+        data: null,
+      });
+    }
+
+    const featured = await DealSiteService.getFeaturedProperties(dealSite);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Featured properties fetched successfully",
+      data: featured,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
