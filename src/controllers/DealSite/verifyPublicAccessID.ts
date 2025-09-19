@@ -87,7 +87,7 @@ export const getDealSiteBySlug = async (
         data: null,
       });
     }
-
+ 
     // Check subscription of the owner of this DealSite
     const activeSubscription = await DB.Models.UserSubscriptionSnapshot.findOne({
       user: dealSite.createdBy,

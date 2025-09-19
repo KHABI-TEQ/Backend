@@ -6,6 +6,7 @@ import { RouteError } from "../../common/classes";
 import bcrypt from "bcryptjs"; 
 import { SystemSettingService } from "../../services/systemSetting.service";
 import { UserSubscriptionSnapshotService } from "../../services/userSubscriptionSnapshot.service";
+import { DealSiteService } from "src/services/dealSite.service";
 
 // Fetch Profile
 export const getProfile = async (
@@ -51,11 +52,15 @@ export const getProfile = async (
         user._id.toString()
       );
 
+      // get the agent deal site page if found
+      const dealSite = await DealSiteService.getByAgent(user._id.toString());
+
       responseData = {
         ...userResponse,
         agentData,
         isAccountApproved: user.accountApproved,
         activeSubscription: activeSnapshot || null,
+        dealSite: dealSite || null
       };
     }
 
