@@ -612,7 +612,7 @@ export const approveAgentKYCData = async (
     }
 
     // ✅ Prevent approving twice
-    if (approved && (userAcct.accountApproved || agent.kycStatus === "approved")) {
+    if (approved && agent.kycStatus === "approved") {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
         message: "Agent KYC has already been approved.",
