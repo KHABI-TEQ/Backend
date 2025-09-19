@@ -6,7 +6,7 @@ import { RouteError } from "../../common/classes";
 import bcrypt from "bcryptjs"; 
 import { SystemSettingService } from "../../services/systemSetting.service";
 import { UserSubscriptionSnapshotService } from "../../services/userSubscriptionSnapshot.service";
-import { DealSiteService } from "src/services/dealSite.service";
+import { DealSiteService } from "../../services/dealSite.service";
 
 // Fetch Profile
 export const getProfile = async (
