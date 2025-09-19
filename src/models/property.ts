@@ -5,7 +5,7 @@ export interface IBookedPeriod {
   checkInDateTime: Date;
   checkOutDateTime: Date;
 }
-
+ 
 export interface IProperty {  
   propertyType: string;
   propertyCategory: string;
