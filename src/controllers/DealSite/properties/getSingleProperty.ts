@@ -47,9 +47,9 @@ export const getSingleDealSiteProperty = async (
     const property = await DB.Models.Property.findOne({
       _id: propertyId,
       createdBy: dealSite.createdBy,
+      isAvailable: true,
       isApproved: true,
       isDeleted: false,
-      status: "approved",
     }).lean();
 
     if (!property) {
