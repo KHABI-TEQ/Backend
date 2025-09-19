@@ -628,7 +628,7 @@ export class PaystackService {
   /**
  * Handles the side effects of a subscription payment.
  */ 
-  static async handleSubscriptionPayment(transaction: any) {
+  static async handleSubscriptionPayment(transaction: any) { 
     // get user subscription snapshot by transaction id
     const snapshot = await UserSubscriptionSnapshotService.getSnapshotByTransactionId(transaction._id);
  
@@ -711,7 +711,7 @@ export class PaystackService {
           status: { $in: ["active", "inactive", "expired"] },
           _id: { $ne: snapshot._id },
         });
-
+  
         const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
         if (referralStatusSettings?.value && user.referredBy) {
 

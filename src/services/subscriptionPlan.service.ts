@@ -231,4 +231,19 @@ export class SubscriptionPlanService {
       value: f.value
     }));
   }
+
+
+  /**
+   * Get the active free trial plan (price = 0 and isTrial = true)
+   */
+  static async getActiveTrialPlan(): Promise<ISubscriptionPlanDoc | null> {
+    return this.PlanModel.findOne({
+      isActive: true,
+      price: 0,
+      isTrial: true,
+    })
+      .populate("features.feature")
+      .lean();
+  }
+
 }
