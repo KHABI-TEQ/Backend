@@ -52,8 +52,8 @@ export const getAllProperties = async (
     const query: any = {
       briefType,
       isApproved: true,
+      isAvailable: true,
       isDeleted: false,
-      status: "approved",
     };
 
     if (filters.location) query.location = filters.location;
