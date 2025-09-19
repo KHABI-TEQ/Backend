@@ -119,7 +119,7 @@ export const getRandomProperties = async (
         $match: {
           isApproved: true,
           isDeleted: false,
-          status: "approved",
+          isAvailable: true,
         },
       },
       { $sample: { size: 5 } }, // Randomly select 5
@@ -155,7 +155,7 @@ export const getSingleProperty = async (
       _id: propertyId,
       isApproved: true,
       isDeleted: false,
-      status: "approved",
+      isAvailable: true,
     }).lean();
 
     if (!property) {
