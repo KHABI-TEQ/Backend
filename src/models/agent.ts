@@ -37,7 +37,7 @@ export interface IAgent {
   };
   kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
 } 
- 
+  
 export interface IAgentDoc extends IAgent, Document {}
 
 export type IAgentModel = Model<IAgentDoc>;

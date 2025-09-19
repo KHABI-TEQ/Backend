@@ -7,7 +7,7 @@ export interface IAssignedFeature {
   type: FeatureLimitType;   // boolean, count, unlimited
   value?: number;           // used if type = "count"
 }
-
+ 
 export interface IDiscountedPlan {
   name: string;
   code: string;

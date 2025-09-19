@@ -27,7 +27,7 @@ export const createSubscription = async (
 
     if (!planCode) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Plan code is required");
-    }
+    } 
 
     // 1. Try to find a standard plan by code
     let plan = await DB.Models.SubscriptionPlan.findOne({

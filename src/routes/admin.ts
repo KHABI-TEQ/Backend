@@ -5,7 +5,7 @@ import { adminAuth } from "../middlewares/adminAuth";
 import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
 import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../controllers/Admin/profileSettings";
 import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
-import { approveAgentOnboardingStatus, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
+import { approveAgentKYCData, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
 import { getPreferenceModeStats, getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
 import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
@@ -85,15 +85,19 @@ AdminRouter.patch("/admins/:adminId/status", changeAdminStatus);
 AdminRouter.get("/agents", getAllAgents);
 AdminRouter.get("/agents/fetchAll/:type", getAgentsByType);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
+AdminRouter.post("/agents/:userId/reviewKycRequest", approveAgentKYCData);
+
+
 
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
-AdminRouter.post("/agents/approve-agents", approveAgentOnboardingStatus);
+
+
 
 AdminRouter.get("/agents/:userId", getSingleAgentProfile);
 AdminRouter.post("/agents/:userId/status", toggleAgentStatus);
 AdminRouter.delete("/agents/:userId/delete", deleteAgentAccount);
 AdminRouter.put("/agents/:userId/flag-account", flagOrUnflagAgentAccount);
-AdminRouter.put("/agents/:userId/allProperties", getAllAgentProperties);
+AdminRouter.get("/agents/:userId/allProperties", getAllAgentProperties);
 
 
 // LANDOWNERS MANAGEMENT ROUTES

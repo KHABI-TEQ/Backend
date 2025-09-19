@@ -7,7 +7,11 @@ import { RouteError } from "../../../common/classes";
 import sendEmail from "../../../common/send.email";
 
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
-import { DeactivateOrActivateAgent, accountDisaapproved, accountApproved, DeleteAgent, accountUpgradeApprovedTemplate, accountUpgradeDisapprovedTemplate } from "../../../common/emailTemplates/agentMails";
+import { DeactivateOrActivateAgent, accountDisapproved, accountApproved, DeleteAgent, accountUpgradeApprovedTemplate, accountUpgradeDisapprovedTemplate } from "../../../common/emailTemplates/agentMails";
+import { SystemSettingService } from "../../../services/systemSetting.service";
+import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
+import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
+import { generateSubscriptionReceiptEmail } from "../../../common/emailTemplates/subscriptionMails";
 
 
 
@@ -226,7 +230,7 @@ export const getAgentsByType = async (
         matchStage = { "user.isAccountVerified": true };
         break;
       case "kycRequest":
-        matchStage = { "agent.kycStatus": "pending" };
+        matchStage = { kycStatus: "pending" };
         break;
       case "subscriber":
         subscriptionLookup = [
@@ -307,6 +311,9 @@ export const getAgentsByType = async (
         kycStatus: 1,
         companyAgent: 1,
         address: 1,
+
+        // ✅ include kycData when type = kycRequest
+        ...(type === "kycRequest" ? { kycData: 1 } : {}),
 
         // User fields
         "user._id": 1,
@@ -574,46 +581,150 @@ export const getAllAgentUpgradeRequests = async (
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
-export const approveAgentOnboardingStatus = async (
+export const approveAgentKYCData = async (
   req: AppRequest,
   res: Response,
   next: NextFunction,
 ) => {
   try {
-    const { userId, approved } = req.body; // boolean
+    const { userId } = req.params;
+    const { response, note } = req.body; // response: "approve" | "reject"
 
-    if (typeof approved !== 'boolean') {
+    if (!["approve", "reject"].includes(response)) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
-        message: "Approval status (boolean) is required.",
+        message: "Response must be either 'approve' or 'reject'.",
       });
     }
 
-    const userAcct = await DB.Models.User.findByIdAndUpdate(
-      userId,
-      { accountApproved: approved },
-      { new: true }
-    ).exec();
+    const approved = response === "approve";
+
+    // Fetch User record
+    const userAcct = await DB.Models.User.findById(userId).exec();
 
     if (!userAcct) {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Agent (User) not found"));
     }
+  
 
-    // Update the Agent-specific record as well
+    if (approved) {
+      userAcct.accountStatus = "active";
+      userAcct.isDeleted = false;
+      userAcct.accountApproved = true;
+
+      // Update and save User record
+      await userAcct.save();
+    }
+
+    // Update Agent record
     await DB.Models.Agent.findOneAndUpdate(
       { userId: userAcct._id },
-      { accountApproved: approved },
+      { 
+        kycStatus: approved ? "approved" : "rejected"
+      },
       { new: true }
     ).exec();
 
+  
+    if (approved) {
+
+      // triger the free plan access if available
+      const freePlanAccess = await SystemSettingService.getSetting("free_trial_status");
+      if (freePlanAccess && freePlanAccess?.value) {
+        const getActiveFreePlan = await SubscriptionPlanService.getActiveTrialPlan();
+
+        const price = getActiveFreePlan.price;
+        const durationInDays = getActiveFreePlan.durationInDays;
+
+        // 4. Create subscription snapshot (pending until payment success)
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + durationInDays);
+
+        // Map plan features into snapshot
+        const planFeatures = getActiveFreePlan.features?.map((f: any) => ({
+          feature: f.feature?._id || f.feature,
+          type: f.type,
+          value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
+          remaining: f.type === "count" ? f.value : undefined,
+        })) || [];
+
+        const reference = 'KT' + Math.floor(Math.random() * 9e14 + 1e14).toString();
+        
+        const fromWho = {
+          kind: 'User', 
+          item: userId
+        }
+        // Create transaction record (status: pending)
+        const transactionData = await DB.Models.NewTransaction.create({
+          reference,
+          fromWho,
+          amount: price,
+          transactionType: "subscription",
+          paymentMode: "kyc approval",
+          status: "success",
+          currency: "NGN",
+          meta: {
+            planType: "Free Plan",
+            planCode: getActiveFreePlan.code,
+            appliedPlanName: getActiveFreePlan.name,
+          },
+        });
+
+        const subscriptionSnapshot = await UserSubscriptionSnapshotService.createSnapshot({
+          user: userId as string,
+          plan: getActiveFreePlan._id as string,
+          transaction: transactionData._id as string,
+          status: "active",
+          expiresAt: endDate,
+          autoRenew: false,
+          features: Array.isArray(planFeatures) ? planFeatures : [],
+          meta: {
+            planType: "Free Plan",
+            planCode: getActiveFreePlan.code,
+            appliedPlanName: getActiveFreePlan.name,
+          },
+        });
+
+        // create public link
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
+
+        const successMailBody = generalEmailLayout(
+          generateSubscriptionReceiptEmail({
+            fullName: userAcct.firstName,
+            planName: getActiveFreePlan.name,
+            amount: price,
+            nextBillingDate: endDate.toDateString(),
+            transactionRef: reference,
+            publicAccessSettingsLink: publicAccessCompleteLink,
+          })
+        );
+
+        await sendEmail({
+          to: userAcct.email,
+          subject: "Welcome Gift - Free Subscription made Successfully",
+          html: successMailBody,
+          text: successMailBody,
+        });
+        
+      }
+      
+    }
+    
+
+    // Email subject & body
     const subject = approved
       ? "Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!"
-      : "Update on Your KhabiTeqRealty Application";
+      : "Update on Your KhabiTeqRealty KYC Application";
 
     const emailBody = generalEmailLayout(
-      approved ? accountApproved(userAcct.firstName) : accountDisaapproved(userAcct.firstName)
+      approved
+        ? accountApproved(userAcct.firstName)
+        : accountDisapproved(userAcct.firstName)
     );
 
+
+    // Send email notification
     await sendEmail({
       to: userAcct.email,
       subject,
@@ -624,13 +735,14 @@ export const approveAgentOnboardingStatus = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: approved
-        ? "Agent onboarding approved successfully"
-        : "Agent onboarding rejected successfully",
+        ? "Agent KYC approved successfully"
+        : "Agent KYC rejected successfully",
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 
 /**
@@ -724,7 +836,7 @@ export const getSingleAgentProfile = async (
     const subscriptions = await DB.Models.UserSubscriptionSnapshot.find({ user: user._id })
       .populate({
         path: "transaction",
-        model: "NewTransaction",
+        model: "newTransaction",
         select: "reference amount status transactionType paymentMode",
       })
       .lean();
@@ -739,7 +851,6 @@ export const getSingleAgentProfile = async (
     const profileData = {
       user,
       agentData,
-      properties,
       transactions,
       inspections,
       subscriptions,
