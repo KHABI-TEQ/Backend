@@ -601,116 +601,109 @@ export const approveAgentKYCData = async (
 
     // Fetch User record
     const userAcct = await DB.Models.User.findById(userId).exec();
-
     if (!userAcct) {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Agent (User) not found"));
     }
-  
+
+    // Fetch Agent record
+    const agent = await DB.Models.Agent.findOne({ userId: userAcct._id }).exec();
+    if (!agent) {
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Agent record not found"));
+    }
+
+    // ✅ Prevent approving twice
+    if (approved && (userAcct.accountApproved || agent.kycStatus === "approved")) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Agent KYC has already been approved.",
+      });
+    }
 
     if (approved) {
       userAcct.accountStatus = "active";
       userAcct.isDeleted = false;
       userAcct.accountApproved = true;
-
-      // Update and save User record
       await userAcct.save();
     }
 
     // Update Agent record
-    await DB.Models.Agent.findOneAndUpdate(
-      { userId: userAcct._id },
-      { 
-        kycStatus: approved ? "approved" : "rejected"
-      },
-      { new: true }
-    ).exec();
+    agent.kycStatus = approved ? "approved" : "rejected";
+    await agent.save();
 
-  
     if (approved) {
-
-      // triger the free plan access if available
+      // ✅ trigger free plan only once
       const freePlanAccess = await SystemSettingService.getSetting("free_trial_status");
       if (freePlanAccess && freePlanAccess?.value) {
         const getActiveFreePlan = await SubscriptionPlanService.getActiveTrialPlan();
+        if (getActiveFreePlan) {
+          const price = getActiveFreePlan.price;
+          const durationInDays = getActiveFreePlan.durationInDays;
 
-        const price = getActiveFreePlan.price;
-        const durationInDays = getActiveFreePlan.durationInDays;
+          const startDate = new Date();
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + durationInDays);
 
-        // 4. Create subscription snapshot (pending until payment success)
-        const startDate = new Date();
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + durationInDays);
+          const planFeatures = getActiveFreePlan.features?.map((f: any) => ({
+            feature: f.feature?._id || f.feature,
+            type: f.type,
+            value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
+            remaining: f.type === "count" ? f.value : undefined,
+          })) || [];
 
-        // Map plan features into snapshot
-        const planFeatures = getActiveFreePlan.features?.map((f: any) => ({
-          feature: f.feature?._id || f.feature,
-          type: f.type,
-          value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
-          remaining: f.type === "count" ? f.value : undefined,
-        })) || [];
+          const reference = "KT" + Math.floor(Math.random() * 9e14 + 1e14).toString();
+          const fromWho = { kind: "User", item: userId };
 
-        const reference = 'KT' + Math.floor(Math.random() * 9e14 + 1e14).toString();
-        
-        const fromWho = {
-          kind: 'User', 
-          item: userId
-        }
-        // Create transaction record (status: pending)
-        const transactionData = await DB.Models.NewTransaction.create({
-          reference,
-          fromWho,
-          amount: price,
-          transactionType: "subscription",
-          paymentMode: "kyc approval",
-          status: "success",
-          currency: "NGN",
-          meta: {
-            planType: "Free Plan",
-            planCode: getActiveFreePlan.code,
-            appliedPlanName: getActiveFreePlan.name,
-          },
-        });
-
-        const subscriptionSnapshot = await UserSubscriptionSnapshotService.createSnapshot({
-          user: userId as string,
-          plan: getActiveFreePlan._id as string,
-          transaction: transactionData._id as string,
-          status: "active",
-          expiresAt: endDate,
-          autoRenew: false,
-          features: Array.isArray(planFeatures) ? planFeatures : [],
-          meta: {
-            planType: "Free Plan",
-            planCode: getActiveFreePlan.code,
-            appliedPlanName: getActiveFreePlan.name,
-          },
-        });
-
-        // create public link
-        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
-
-        const successMailBody = generalEmailLayout(
-          generateSubscriptionReceiptEmail({
-            fullName: userAcct.firstName,
-            planName: getActiveFreePlan.name,
+          const transactionData = await DB.Models.NewTransaction.create({
+            reference,
+            fromWho,
             amount: price,
-            nextBillingDate: endDate.toDateString(),
-            transactionRef: reference,
-            publicAccessSettingsLink: publicAccessCompleteLink,
-          })
-        );
+            transactionType: "subscription",
+            paymentMode: "kyc approval",
+            status: "success",
+            currency: "NGN",
+            meta: {
+              planType: "Free Plan",
+              planCode: getActiveFreePlan.code,
+              appliedPlanName: getActiveFreePlan.name,
+            },
+          });
 
-        await sendEmail({
-          to: userAcct.email,
-          subject: "Welcome Gift - Free Subscription made Successfully",
-          html: successMailBody,
-          text: successMailBody,
-        });
-        
+          await UserSubscriptionSnapshotService.createSnapshot({
+            user: userId as string,
+            plan: getActiveFreePlan._id as string,
+            transaction: transactionData._id as string,
+            status: "active",
+            expiresAt: endDate,
+            autoRenew: false,
+            features: planFeatures,
+            meta: {
+              planType: "Free Plan",
+              planCode: getActiveFreePlan.code,
+              appliedPlanName: getActiveFreePlan.name,
+            },
+          });
+
+          // Send subscription receipt email
+          const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-settings`;
+          const successMailBody = generalEmailLayout(
+            generateSubscriptionReceiptEmail({
+              fullName: userAcct.firstName,
+              planName: getActiveFreePlan.name,
+              amount: price,
+              nextBillingDate: endDate.toDateString(),
+              transactionRef: reference,
+              publicAccessSettingsLink: publicAccessCompleteLink,
+            })
+          );
+          await sendEmail({
+            to: userAcct.email,
+            subject: "Welcome Gift - Free Subscription made Successfully",
+            html: successMailBody,
+            text: successMailBody,
+          });
+        }
       }
-      
     }
-    
 
     // Email subject & body
     const subject = approved
@@ -718,13 +711,9 @@ export const approveAgentKYCData = async (
       : "Update on Your KhabiTeqRealty KYC Application";
 
     const emailBody = generalEmailLayout(
-      approved
-        ? accountApproved(userAcct.firstName)
-        : accountDisapproved(userAcct.firstName)
+      approved ? accountApproved(userAcct.firstName) : accountDisapproved(userAcct.firstName)
     );
 
-
-    // Send email notification
     await sendEmail({
       to: userAcct.email,
       subject,
@@ -742,6 +731,7 @@ export const approveAgentKYCData = async (
     next(err);
   }
 };
+
 
 
 
