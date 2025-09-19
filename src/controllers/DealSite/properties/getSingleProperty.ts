@@ -46,7 +46,7 @@ export const getSingleDealSiteProperty = async (
     // ✅ Find property (all fields)
     const property = await DB.Models.Property.findOne({
       _id: propertyId,
-      createdBy: dealSite.createdBy,
+      owner: dealSite.createdBy,
       isAvailable: true,
       isApproved: true,
       isDeleted: false,
