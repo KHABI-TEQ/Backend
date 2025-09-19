@@ -8,32 +8,11 @@ import { PaystackService } from "../../../services/paystack.service";
 import { Types } from "mongoose";
 import { BookingLogService } from "../../../services/bookingLog.service";
 import { generateBookingRequestAcknowledgementForBuyer, generateBookingRequestReceivedForSeller } from "../../../common/emailTemplates/bookingMails";
-import { getPropertyTitleFromLocation } from "../../../utils/helper";
+import { generateBookingCode, generatePassCode, getPropertyTitleFromLocation } from "../../../utils/helper";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import sendEmail from "../../../common/send.email";
 
 export class BookingController {
-  /**
-   * Generate a booking code
-   */
-  private generateBookingCode(prefix: string = "BK"): string {
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const timestamp = Date.now().toString().slice(-6); // last 6 digits
-    return `${prefix}-${timestamp}-${random}`;
-  }
-
-  /**
-   * Generate numeric passcode (e.g., for check-in)
-   */
-  private generatePassCode(length: number = 6): string {
-    const digits = "0123456789";
-    let code = "";
-    for (let i = 0; i < length; i++) {
-      code += digits.charAt(Math.floor(Math.random() * digits.length));
-    }
-    return code;
-  }
-
 
  // ✅ Helper for duration and pricing (fixed calculation)
     private calculateShortletAmount(
@@ -97,7 +76,6 @@ export class BookingController {
         securityDeposit: pricing.securityDeposit,
     };
     }
-
 
 
   /**
@@ -182,8 +160,8 @@ export class BookingController {
             );
 
             // ✅ Generate booking + pass codes
-            const bookingCode = this.generateBookingCode();
-            const passCode = this.generatePassCode();
+            const bookingCode = generateBookingCode();
+            const passCode = generatePassCode();
  
             let paymentResponse: any;
 

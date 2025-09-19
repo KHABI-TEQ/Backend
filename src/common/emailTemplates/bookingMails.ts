@@ -92,14 +92,14 @@ export const generateBookingRequestAcknowledgementForBuyer = ({
   return `
   <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333;">
     <p>Dear ${buyerName},</p>
-    <p>Your booking request has been submitted successfully. The seller will review the availability of the property.</p>
+    <p>Your booking request has been submitted successfully. The host will review the availability of the property.</p>
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
       <li><strong>Property:</strong> ${propertyTitle}</li>
       <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
       <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
     </ul>
-    <p>You will be notified once the seller reviews the property.</p>
+    <p>You will be notified once the host reviews the property.</p>
     <hr />
     <p style="font-size: 13px; color: #999;">This is an automated message. Please do not reply.</p>
   </div>

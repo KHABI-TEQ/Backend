@@ -165,7 +165,7 @@ export const submitVerificationReport = async (
       to: process.env.DOCUMENT_ADMIN_MAIL,
       subject: `New Verification Report Submitted for Document ${docVerification._id}`,
       html: adminEmailHTML,
-      text: `New verification reports submitted for document ${docVerification._id}. Please check the admin panel at https://kb-admin-fe.vercel.app/verify_document/${docVerification.status}/${documentId}`
+      text: `New verification reports submitted for document ${docVerification._id}. Please check the admin panel at ${process.env.ADMIN_CLIENT_LINK}/verify_document/${docVerification.status}/${documentId}`
     });
 
     return res.status(HttpStatusCodes.OK).json({

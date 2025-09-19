@@ -26,4 +26,5 @@ export * from "./planFeatures";
 export * from "./systemSetting";
 export * from "./paymentMethod";
 export * from "./dealSite";
+export * from "./dealSiteReport";
 export * from "./emailSubscription";

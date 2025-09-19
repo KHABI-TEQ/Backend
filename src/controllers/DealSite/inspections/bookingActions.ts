@@ -7,31 +7,10 @@ import { bookingRequestSchema } from "../../../validators/booking.validator";
 import { PaystackService } from "../../../services/paystack.service";
 import { Types } from "mongoose";
 import { BookingLogService } from "../../../services/bookingLog.service";
-import { getPropertyTitleFromLocation } from "../../../utils/helper";
+import { generateBookingCode, generatePassCode, getPropertyTitleFromLocation } from "../../../utils/helper";
 import { generateBookingRequestAcknowledgementForBuyer, generateBookingRequestReceivedForSeller } from "../../../common/emailTemplates/bookingMails";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
-
-/**
-   * Generate a booking code
-   */
-  export const generateBookingCode = (prefix: string = "BK") => {
-    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const timestamp = Date.now().toString().slice(-6); // last 6 digits
-    return `${prefix}-${timestamp}-${random}`;
-  }
-
-  /**
-   * Generate numeric passcode (e.g., for check-in)
-   */
-  export const generatePassCode = (length: number = 6) => {
-    const digits = "0123456789";
-    let code = "";
-    for (let i = 0; i < length; i++) {
-      code += digits.charAt(Math.floor(Math.random() * digits.length));
-    }
-    return code;
-  }
 
 
 
@@ -112,10 +91,11 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
             const { publicSlug } = req.params;
 
             const { error, value } = bookingRequestSchema.validate(req.body, { abortEarly: false });
-
+ 
             if (error) {
                 res.status(400).json({
                     success: false,
+                    errorCode: "VALIDATION_ERROR",
                     message: "Validation failed",
                     errors: error.details.map((err) => err.message),
                 });
@@ -164,27 +144,70 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 .lean();
 
             if (!property) {
-                throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
+                res.status(HttpStatusCodes.NOT_FOUND).json({
+                    success: false,
+                    errorCode: "PROPERTY_NOT_FOUND",
+                    message: "Property not found",
+                    data: null,
+                });
+                return;
             }
+
+
+            // if (!property) {
+            //     throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
+            // }
 
             if (!property.isAvailable) {
-                throw new RouteError(
-                    HttpStatusCodes.BAD_REQUEST, // or 409 Conflict depending on your convention
-                    "Property is not available for booking"
-                );
+                res.status(HttpStatusCodes.BAD_REQUEST).json({
+                    success: false,
+                    errorCode: "PROPERTY_NOT_AVAILABLE",
+                    message: "This property is not available for booking",
+                    data: null,
+                });
+                return;
             }
 
+
+            // if (!property.isAvailable) {
+            //     throw new RouteError(
+            //         HttpStatusCodes.BAD_REQUEST, // or 409 Conflict depending on your convention
+            //         "Property is not available for booking"
+            //     );
+            // }
+
             if (property.propertyType !== "shortlet") {
-                throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Only shortlet properties can be booked");
+                res.status(HttpStatusCodes.BAD_REQUEST).json({
+                    success: false,
+                    errorCode: "INVALID_PROPERTY_TYPE",
+                    message: "Only shortlet properties can be booked",
+                    data: null,
+                });
+                return;
             }
+
+            // if (property.propertyType !== "shortlet") {
+            //     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Only shortlet properties can be booked");
+            // }
 
             // ✅ Parse booking dates
             const checkIn = new Date(bookingDetails.checkInDateTime);
             const checkOut = new Date(bookingDetails.checkOutDateTime);
 
             if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime()) || checkOut <= checkIn) {
-                throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid check-in or check-out date");
+                res.status(HttpStatusCodes.BAD_REQUEST).json({
+                    success: false,
+                    errorCode: "INVALID_BOOKING_DATES",
+                    message: "Invalid check-in or check-out date",
+                    data: null,
+                });
+                return;
             }
+
+
+            // if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime()) || checkOut <= checkIn) {
+            //     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid check-in or check-out date");
+            // }
 
             const { duration, expectedAmount, nights, cleaningFee, securityDeposit } = calculateShortletAmount(property, checkIn, checkOut);
 
@@ -192,6 +215,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
             if (expectedAmount !== paymentDetails.amountToBePaid) {
                 res.status(HttpStatusCodes.BAD_REQUEST).json({
                     success: false,
+                    errorCode: "PAYMENT_AMOUNT_MISMATCH",
                     message: `Payment amount mismatch. Expected ₦${expectedAmount}, but received ₦${paymentDetails.amountToBePaid}. Please check and try again.`,
                     expectedAmount,
                     receivedAmount: paymentDetails.amountToBePaid,

@@ -373,7 +373,7 @@ class InspectionActionsController {
       next(error);
     }
   }
-
+ 
   public async getInspectionHistory(
     req: AppRequest,
     res: Response,
