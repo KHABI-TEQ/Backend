@@ -271,7 +271,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 },
                 receiverMode: {
                     type: "dealSite",
-                    dealSite: dealSite._id
+                    dealSiteSlug: dealSite._id
                 }
             });
 

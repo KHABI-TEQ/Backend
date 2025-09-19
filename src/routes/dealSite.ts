@@ -1,5 +1,5 @@
 import express from "express";
-import { getDealSiteBySlug } from "../controllers/DealSite/verifyPublicAccessID";
+import { getDealSiteBySlug, getDealSiteSection } from "../controllers/DealSite/verifyPublicAccessID";
 import { getDealSiteProperties } from "../controllers/DealSite/properties/fetchProperties";
 import { getSingleDealSiteProperty } from "../controllers/DealSite/properties/getSingleProperty";
 import { submitBookingRequest } from "../controllers/DealSite/inspections/bookingActions";
@@ -9,7 +9,10 @@ import { reportDealSite } from "../controllers/DealSite/reportDealSite";
 const DealSiteRouter = express.Router();
 
 // get and validate deal site
-DealSiteRouter.get("/get-data/:publicSlug", getDealSiteBySlug);
+DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);
+
+// get and validate deal site
+DealSiteRouter.get("/:publicSlug/getSettings/:section", getDealSiteSection);
  
 // fetch all properties of deal sites
 DealSiteRouter.get("/:publicSlug/properties", getDealSiteProperties);
