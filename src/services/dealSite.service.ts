@@ -237,7 +237,7 @@ export class DealSiteService {
         .map((id) => id.trim())
         .filter((id) => Types.ObjectId.isValid(id));
 
-      return Property.find({ _id: { $in: ids }, isAvailable: true })
+      return Property.find({ _id: { $in: ids }, isAvailable: true, isApproved: true, isDeleted: false })
         .limit(dealSite.listingsLimit || 6)
         .lean();
     }
@@ -246,7 +246,8 @@ export class DealSiteService {
     return Property.find({
       createdBy: dealSite.createdBy,
       isAvailable: true,
-      status: "running",
+      isApproved: true,
+      isDeleted: false
     })
       .sort({ createdAt: -1 })
       .limit(dealSite.listingsLimit || 6)

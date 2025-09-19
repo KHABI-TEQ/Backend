@@ -69,7 +69,7 @@ export const getDealSiteProperties = async (
       createdBy: dealSite.createdBy,
       isApproved: true,
       isDeleted: false,
-      status: "approved",
+      isAvailable: true
     };
 
     if (briefType) query.briefType = briefType;
