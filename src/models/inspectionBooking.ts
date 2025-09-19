@@ -58,7 +58,7 @@ export interface IInspectionBooking {
   };
 
   counterCount: number;
-
+ 
   propertyType: "jv" | "shortlet" | "buy" | "rent";
   receiverMode: {
     type?: "general" | "dealSite";

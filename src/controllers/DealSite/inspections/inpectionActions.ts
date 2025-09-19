@@ -109,6 +109,9 @@ export const submitInspectionRequest = async (
       const inspectionMode = inspectionDetails.inspectionMode || "in_person";
       const inspectionType = prop.inspectionType;
       const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
+ 
+
+      
 
       // ✅ Save inspection
       const inspection = await DB.Models.InspectionBooking.create({
@@ -130,6 +133,10 @@ export const submitInspectionRequest = async (
         owner: property.owner,
         pendingResponseFrom: "admin",
         stage,
+        receiverMode: {
+            type: "dealSite",
+            dealSiteSlug: dealSite._id
+        }
       });
 
       savedInspections.push(inspection);
