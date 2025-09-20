@@ -16,6 +16,7 @@ import { UserSubscriptionSnapshotService } from './userSubscriptionSnapshot.serv
 import { getPropertyTitleFromLocation } from '../utils/helper';
 import { BookingLogService } from './bookingLog.service';
 import { generateSuccessfulBookingReceiptForBuyer, generateSuccessfulBookingReceiptForSeller } from '../common/emailTemplates/bookingMails';
+import { Url } from 'url';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -94,6 +95,9 @@ export class PaystackService {
    * Initialize a Paystack split transaction and store it as pending in DB.
    */
   static async initializeSplitPayment({
+    subAccount,
+    publicPageUrl,
+    amountCharge,
     email,
     amount,
     fromWho,
@@ -102,6 +106,9 @@ export class PaystackService {
     currency = 'NGN',
     metadata = {},
   }: {
+    subAccount: string;
+    publicPageUrl: string;
+    amountCharge: number;
     email: string;
     amount: number;
     fromWho: { kind: 'User' | 'Buyer'; item: Types.ObjectId };
@@ -133,9 +140,11 @@ export class PaystackService {
       {
         email,
         amount: amount * 100, // convert to kobo
-        callback_url: `${process.env.CLIENT_LINK}/payment-verification`,
+        callback_url: `${publicPageUrl}/payment-verification`,
         reference,
         currency,
+        subaccount: subAccount,
+        transaction_charge: amountCharge * 100,
         metadata: {
           ...metadata,
           transactionType,
@@ -870,6 +879,99 @@ export class PaystackService {
 
     return docVerifications;
   }
+
+
+  /**
+ * Fetch the list of banks supported by Paystack for Nigeria (or other countries)
+ */
+  static async getBankList(country = 'Nigeria') {
+    try {
+      const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+
+      const response = await axios.get(
+        `https://api.paystack.co/bank?country=${country}`,
+        {
+          headers: {
+            Authorization: `Bearer ${paystackSK?.value}`,
+          },
+        }
+      );
+
+      // response.data.data is the array of banks
+      return response.data.data.map((bank: any) => ({
+        name: bank.name,
+        code: bank.code,
+        country: bank.country,
+        currency: bank.currency,
+        type: bank.type,
+      }));
+    } catch (err: any) {
+      console.error("Error fetching bank list from Paystack:", err?.response?.data || err.message);
+      return [];
+    }
+  }
+
+  /**
+ * Create a Paystack subaccount
+ */
+  static async createSubaccount({
+    businessName,
+    settlementBank,
+    accountNumber,
+    percentageCharge,
+    primaryContactEmail,
+    primaryContactName,
+    primaryContactPhone,
+  }: {
+    businessName: string;
+    settlementBank: string; // e.g., '058' for GTBank
+    accountNumber: string;   // recipient account number
+    percentageCharge: number; // e.g., 10 for 10%
+    primaryContactEmail?: string;
+    primaryContactName?: string;
+    primaryContactPhone?: string;
+  }) {
+    try {
+      const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+
+      const response = await axios.post(
+        'https://api.paystack.co/subaccount',
+        {
+          business_name: businessName,
+          settlement_bank: settlementBank,
+          account_number: accountNumber,
+          percentage_charge: percentageCharge,
+          primary_contact_email: primaryContactEmail,
+          primary_contact_name: primaryContactName,
+          primary_contact_phone: primaryContactPhone,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${paystackSK?.value}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      // returns created subaccount details
+      return {
+        subAccountCode: response.data.data.subaccount_code,
+        accountNumber: response.data.data.account_number,
+        accountName: response.data.data.account_name,
+        accountBankName: response.data.data.settlement_bank,
+        sortCode: settlementBank,
+        percentageCharge: response.data.data.percentage_charge,
+        isVerified: response.data.data.is_verified,
+        active: response.data.data.active,
+      };
+
+    } catch (err: any) {
+      console.error('Error creating Paystack subaccount:', err?.response?.data || err.message);
+      throw new Error(err?.response?.data?.message || 'Failed to create subaccount');
+    }
+  }
+
+
 
 
 }

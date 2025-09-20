@@ -3,6 +3,7 @@ import HttpStatusCodes from "../common/HttpStatusCodes";
 import { RouteError } from "../common/classes";
 import { IDealSite, IDealSiteDoc } from "../models";
 import { Types } from "mongoose";
+import { PaystackService } from "./paystack.service";
 
 export class DealSiteService {
 
@@ -23,17 +24,23 @@ export class DealSiteService {
       );
     }
   }
+
   /**
    * Sets up a DealSite for an agent
    * - Ensures uniqueness of publicSlug
    * - Ensures an agent cannot create multiple DealSites
    * - Persists the DealSite with defaults and relations
    */
+  /**
+ * Sets up a DealSite for an agent
+ * - Ensures uniqueness of publicSlug
+ * - Ensures an agent cannot create multiple DealSites
+ * - Persists the DealSite with defaults and relations
+ */
   static async setUpPublicAccess(
     userId: string,
     payload: Partial<IDealSite>
   ): Promise<IDealSiteDoc> {
-
     await this.ensureActiveSubscription(userId);
 
     // Ensure publicSlug is unique
@@ -60,15 +67,58 @@ export class DealSiteService {
       );
     }
 
-    // Construct DealSite record
+    if (!payload.paymentDetails) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Bank details are required to set up a DealSite"
+      );
+    }
+
+    const {
+      businessName,
+      sortCode,
+      accountNumber,
+      primaryContactEmail,
+      primaryContactName,
+      primaryContactPhone,
+    } = payload.paymentDetails;
+
+    // Call Paystack Subaccount API
+    const subAccountResponse = await PaystackService.createSubaccount({
+      businessName: businessName,
+      settlementBank: sortCode,
+      accountNumber: accountNumber,
+      percentageCharge: 15, // or fetch from config if needed
+      primaryContactEmail: primaryContactEmail,
+      primaryContactName: primaryContactName,
+      primaryContactPhone: primaryContactPhone,
+    });
+
+    // Replace bankDetails with Paystack response
+    payload.paymentDetails = {
+      subAccountCode: subAccountResponse.subAccountCode,
+      accountNumber: subAccountResponse.accountNumber,
+      accountName: subAccountResponse.accountName,
+      accountBankName: subAccountResponse.accountBankName,
+      sortCode: sortCode,
+      percentageCharge: subAccountResponse.percentageCharge,
+      isVerified: subAccountResponse.isVerified,
+      active: subAccountResponse.active,
+      primaryContactEmail: primaryContactEmail || null,
+      primaryContactName: primaryContactName || null,
+      primaryContactPhone: primaryContactPhone || null,
+    };
+
+    // Save the DealSite
     const dealSite = await DB.Models.DealSite.create({
       ...payload,
       createdBy: userId,
-      status: "pending", // default status on creation
+      status: "pending",
     });
 
     return dealSite;
   }
+
 
   /**
    * Fetch a single DealSite by slug
@@ -253,5 +303,6 @@ export class DealSiteService {
       .limit(dealSite.listingsLimit || 6)
       .lean();
   }
+
 
 }

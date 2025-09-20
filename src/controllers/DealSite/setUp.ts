@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../types/express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DealSiteService } from "../../services/dealSite.service";
+import { PaystackService } from "../../services/paystack.service";
 /**
  * Create a new DealSite for an agent
  */
@@ -42,6 +43,28 @@ export const checkSlugAvailability = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       ...result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+/**
+ * Check availability of a DealSite slug
+ */
+export const bankList = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await PaystackService.getBankList();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: result
     });
   } catch (err) {
     next(err);

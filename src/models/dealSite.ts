@@ -69,11 +69,18 @@ export interface IDealSite {
   };
 
   paymentDetails?: {
-    accountNumber: string;
-    accountName: string;
-    accountBankName: string;
-    sortCode: string;
-    heroImage: string;
+    subAccountCode?: string;
+    businessName?: string;
+    accountNumber?: string;
+    accountName?: string;
+    accountBankName?: string;
+    primaryContactEmail?: string;
+    primaryContactName?: string;
+    primaryContactPhone?: string;
+    sortCode?: string;
+    percentageCharge?: number;
+    isVerified?: boolean;
+    active?: boolean;
   };
 
   status: DealSiteStatus;
@@ -148,21 +155,40 @@ export class DealSite {
           showVerifiedOnly: { type: Boolean, default: false },
           enablePriceNegotiationButton: { type: Boolean, default: true },
         },
- 
+
         publicPage: {
           heroTitle: { type: String, default: "" },
           heroSubtitle: { type: String, default: "" },
           ctaText: { type: String, default: "" },
           ctaLink: { type: String, default: "" },
-          heroImage: { type: String, default: "" },
+          heroImageUrl: { type: String, default: "" },
         },
 
         footerSection: {
-          shortDesc: { type: String, default: "" },
-          copyRight: { type: String, default: "" },
+          shortDescription: { type: String, default: "" },
+          copyrightText: { type: String, default: "" },
         },
 
-        status: { type: String, enum: ["pending", "on-hold", "deleted", "running", "paused"], default: "pending" },
+        paymentDetails: {
+          subAccountCode: { type: String },
+          accountNumber: { type: String },
+          businessName: { type: String },
+          accountName: { type: String },
+          accountBankName: { type: String },
+          primaryContactEmail: { type: String },
+          primaryContactPhone: { type: String },
+          primaryContactName: { type: String },
+          sortCode: { type: String },
+          percentageCharge: { type: Number, default: 0 },
+          isVerified: { type: Boolean, default: false },
+          active: { type: Boolean, default: false },
+        },
+
+        status: {
+          type: String,
+          enum: ["pending", "on-hold", "deleted", "running", "paused"],
+          default: "pending",
+        },
 
         createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
       },
