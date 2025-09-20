@@ -153,11 +153,6 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 return;
             }
 
-
-            // if (!property) {
-            //     throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
-            // }
-
             if (!property.isAvailable) {
                 res.status(HttpStatusCodes.BAD_REQUEST).json({
                     success: false,
@@ -168,14 +163,6 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 return;
             }
 
-
-            // if (!property.isAvailable) {
-            //     throw new RouteError(
-            //         HttpStatusCodes.BAD_REQUEST, // or 409 Conflict depending on your convention
-            //         "Property is not available for booking"
-            //     );
-            // }
-
             if (property.propertyType !== "shortlet") {
                 res.status(HttpStatusCodes.BAD_REQUEST).json({
                     success: false,
@@ -185,10 +172,6 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 });
                 return;
             }
-
-            // if (property.propertyType !== "shortlet") {
-            //     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Only shortlet properties can be booked");
-            // }
 
             // ✅ Parse booking dates
             const checkIn = new Date(bookingDetails.checkInDateTime);
@@ -203,11 +186,6 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 });
                 return;
             }
-
-
-            // if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime()) || checkOut <= checkIn) {
-            //     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid check-in or check-out date");
-            // }
 
             const { duration, expectedAmount, nights, cleaningFee, securityDeposit } = calculateShortletAmount(property, checkIn, checkOut);
 
@@ -237,8 +215,16 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
             let paymentResponse: any;
 
             if (bookingMode === "instant") {
+                const paymentDetails = dealSite.paymentDetails;
+                const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
+
+                // Calculate 15%
+                const fifteenPercent = (expectedAmount * 15) / 100;
                 // generate payment link
                 paymentResponse = await PaystackService.initializeSplitPayment({
+                    subAccount: paymentDetails.subAccountCode,
+                    publicPageUrl: publicPageUrl,
+                    amountCharge: fifteenPercent,
                     email: buyer.email,
                     amount: expectedAmount,
                     fromWho: {

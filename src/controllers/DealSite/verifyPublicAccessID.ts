@@ -25,7 +25,7 @@ type DealSiteSection = (typeof allowedSections)[number];
 /**
  * Fetch a single DealSite by its public slug
  */
-export const getDealSiteDetails = async (
+export const getDealSiteDetailsBySlug = async (
   req: AppRequest,
   res: Response,
   next: NextFunction
@@ -38,6 +38,33 @@ export const getDealSiteDetails = async (
     }
 
     const dealSite = await DealSiteService.getBySlug(publicSlug);
+
+    if (!dealSite) {
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found"));
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "DealSite fetched successfully",
+      data: dealSite,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+
+export const getDealSiteDetailsByUser = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+
+    const userId = req.user?._id;
+  
+    const dealSite = await DealSiteService.getByAgent(userId);
 
     if (!dealSite) {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found"));
