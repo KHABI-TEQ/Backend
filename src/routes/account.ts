@@ -44,6 +44,7 @@ import { getDealSiteDetailsBySlug, getDealSiteDetailsByUser } from "../controlle
 import { bankList, checkSlugAvailability, createDealSite } from "../controllers/DealSite/setUp";
 import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
+import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
 
 const AccountRouter = express.Router();
 
@@ -68,6 +69,29 @@ AccountRouter.get("/validatePublicAccess/", validateAgentPublicAccess);
 
 // PROPERTY ROUTES
 AccountRouter.post("/properties/create", postProperty);
+
+// Property page → requires "POST_PROPERTY"
+AccountRouter.post(
+  "/properties/create",
+  agentSubscriptionFeatureChecker({
+    requireActiveSubscription: true,
+    requiredFeatureKey: "LISTINGS",
+    allowedUserTypes: ["Agent", "Landowners"]
+  }),
+  postProperty
+);
+
+// Preference page → requires "POST_PREFERENCE_PROPERTY"
+AccountRouter.post(
+  "/preferences/:preferenceId/properties",
+  agentSubscriptionFeatureChecker({
+    requireActiveSubscription: true,
+    requiredFeatureKey: "AGENT_MARKETPLACE",
+    allowedUserTypes: ["Agent"]
+  }),
+  postProperty
+);
+
 AccountRouter.patch("/properties/:propertyId/edit", editProperty);
 AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus);
 AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
