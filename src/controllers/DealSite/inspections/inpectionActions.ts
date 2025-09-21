@@ -66,7 +66,7 @@ export const submitInspectionRequest = async (
     const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
 
     // Calculate 15%
-    const fifteenPercent = (inspectionAmount * 15) / 100;
+    const fifteenPercent = (inspectionAmount * 10) / 100;
 
     // ✅ Generate payment link
     const paymentResponse = await PaystackService.initializeSplitPayment({

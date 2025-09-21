@@ -160,7 +160,7 @@ export const respondToBookingRequest = async (
         "Response must be either 'available' or 'unavailable'"
       );
     } 
-
+ 
     // Find booking that is currently requested
     const booking = await DB.Models.Booking.findOne({
       ownerId: userId,
@@ -178,6 +178,33 @@ export const respondToBookingRequest = async (
 
     if (!booking) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Booking not found or not in requested status");
+    }
+
+    let dealSite: any;
+    if (booking.receiverMode.type === "dealSite") {
+      // ✅ Find DealSite
+      dealSite = await DB.Models.DealSite.findOne({ _id: booking.receiverMode.dealSiteSlug }).lean();
+      if (!dealSite) {
+          res.status(HttpStatusCodes.NOT_FOUND).json({
+              success: false,
+              errorCode: "DEALSITE_NOT_FOUND",
+              message: "DealSite not found",
+              data: null,
+          });
+          return;
+      }
+  
+      // ✅ Ensure it's running
+      if (dealSite.status !== "running") {
+          res.status(HttpStatusCodes.BAD_REQUEST).json({
+              success: false,
+              errorCode: "DEALSITE_NOT_ACTIVE",
+              message: "This DealSite is not currently active.",
+              data: null,
+          });
+          return;
+      }
+
     }
 
     // Update owner response
@@ -199,6 +226,7 @@ export const respondToBookingRequest = async (
     let paymentResponse: any;
 
     if (response === "available") {
+      if (booking.receiverMode.type === "general") {
         // generate payment link
         paymentResponse = await PaystackService.initializePayment({
             email: buyer.email,
@@ -209,6 +237,31 @@ export const respondToBookingRequest = async (
             },
             transactionType: "shortlet-booking",
         });
+      }
+
+      if (booking.receiverMode.type === "dealSite") {
+
+        const paymentDetails = dealSite.paymentDetails;
+        const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
+
+        // Calculate 15%
+        const fifteenPercent = (expectedAmount * 10) / 100;
+
+        // generate payment link
+        paymentResponse = await PaystackService.initializeSplitPayment({
+            subAccount: paymentDetails.subAccountCode,
+            publicPageUrl: publicPageUrl,
+            amountCharge: fifteenPercent,
+            email: buyer.email,
+            amount: expectedAmount,
+            fromWho: {
+                kind: "Buyer",
+                item: new Types.ObjectId(buyer._id as Types.ObjectId),
+            },
+            transactionType: "shortlet-booking",
+        });
+      }
+        
 
         booking.transaction = paymentResponse.transactionId;
         booking.meta = {

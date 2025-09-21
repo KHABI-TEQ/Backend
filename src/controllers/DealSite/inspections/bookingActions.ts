@@ -11,69 +11,108 @@ import { generateBookingCode, generatePassCode, getPropertyTitleFromLocation } f
 import { generateBookingRequestAcknowledgementForBuyer, generateBookingRequestReceivedForSeller } from "../../../common/emailTemplates/bookingMails";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
-
+ 
 
 
     // ✅ Helper for duration and pricing (fixed calculation)
-    export const calculateShortletAmount = (
+    // export const calculateShortletAmount = (
+    //     property: any,
+    //     checkIn: Date,
+    //     checkOut: Date
+    // ) => {
+    //     const msInDay = 1000 * 60 * 60 * 24;
+    //     const diffMs = checkOut.getTime() - checkIn.getTime();
+
+    //     if (diffMs <= 0) {
+    //         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Check-out must be after check-in");
+    //     }
+
+    //     // Nights = any fraction of a day counts as a full day
+    //     const nights = Math.max(1, Math.ceil(diffMs / msInDay));
+
+    //     const pricing = property.shortletDetails?.pricing || {};
+    //     let duration = 0;
+    //     let expectedAmount = 0;
+
+    //     switch (property.shortletDuration) {
+    //         case "Daily": {
+    //         const perNight = pricing.nightly ?? property.price;
+    //         duration = nights;
+    //         expectedAmount = perNight * nights;
+    //         break;
+    //         }
+
+    //         case "Weekly": {
+    //         const weeklyRate = pricing.weekly ?? property.price;
+    //         const perNight = weeklyRate / 7; // ✅ spread weekly rate across 7 nights
+    //         duration = nights;
+    //         expectedAmount = perNight * nights;
+    //         break;
+    //         }
+
+    //         case "Monthly": {
+    //         const monthlyRate = pricing.monthly ?? property.price;
+    //         const perNight = monthlyRate / 30; // ✅ spread monthly rate across 30 nights
+    //         duration = nights;
+    //         expectedAmount = perNight * nights;
+    //         break;
+    //         }
+
+    //         default:
+    //         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid shortlet duration type");
+    //     }
+
+    //     // Add fixed fees (once per booking)
+    //     expectedAmount += (pricing.cleaningFee || 0) + (pricing.securityDeposit || 0);
+
+    //     // Round to nearest integer (avoid floating mismatch)
+    //     expectedAmount = Math.round(expectedAmount);
+
+    //     return {
+    //         duration,
+    //         expectedAmount,
+    //         nights,
+    //         cleaningFee: pricing.cleaningFee,
+    //         securityDeposit: pricing.securityDeposit,
+    //     };
+    // }
+
+    export const  calculateShortletAmount = (
         property: any,
         checkIn: Date,
         checkOut: Date
     ) => {
         const msInDay = 1000 * 60 * 60 * 24;
-        const diffMs = checkOut.getTime() - checkIn.getTime();
-
-        if (diffMs <= 0) {
-            throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Check-out must be after check-in");
-        }
-
-        // Nights = any fraction of a day counts as a full day
-        const nights = Math.max(1, Math.ceil(diffMs / msInDay));
+        const diffMs = Math.max(0, checkOut.getTime() - checkIn.getTime());
+        const nights = diffMs > 0 ? Math.ceil(diffMs / msInDay) : 0;
 
         const pricing = property.shortletDetails?.pricing || {};
-        let duration = 0;
-        let expectedAmount = 0;
+        const nightlyRate = typeof pricing.nightly === "number" ? pricing.nightly : property.price;
 
-        switch (property.shortletDuration) {
-            case "Daily": {
-            const perNight = pricing.nightly ?? property.price;
-            duration = nights;
-            expectedAmount = perNight * nights;
-            break;
-            }
+        const base = nights * nightlyRate;
+        const cleaningFee = typeof pricing.cleaningFee === "number" ? pricing.cleaningFee : 0;
+        const weeklyDiscount = typeof pricing.weeklyDiscount === "number" ? pricing.weeklyDiscount : 0;
+        const monthlyDiscount = typeof pricing.monthlyDiscount === "number" ? pricing.monthlyDiscount : 0;
+        const securityDeposit = typeof pricing.securityDeposit === "number" ? pricing.securityDeposit : 0;
 
-            case "Weekly": {
-            const weeklyRate = pricing.weekly ?? property.price;
-            const perNight = weeklyRate / 7; // ✅ spread weekly rate across 7 nights
-            duration = nights;
-            expectedAmount = perNight * nights;
-            break;
-            }
+        // ✅ Decide which discount applies
+        const discountPct = nights >= 30 ? monthlyDiscount : nights >= 7 ? weeklyDiscount : 0;
+        const discountAmount = Math.round((base * discountPct) / 100);
 
-            case "Monthly": {
-            const monthlyRate = pricing.monthly ?? property.price;
-            const perNight = monthlyRate / 30; // ✅ spread monthly rate across 30 nights
-            duration = nights;
-            expectedAmount = perNight * nights;
-            break;
-            }
-
-            default:
-            throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid shortlet duration type");
-        }
-
-        // Add fixed fees (once per booking)
-        expectedAmount += (pricing.cleaningFee || 0) + (pricing.securityDeposit || 0);
-
-        // Round to nearest integer (avoid floating mismatch)
-        expectedAmount = Math.round(expectedAmount);
+        const subtotal = Math.max(0, base - discountAmount);
+        const expectedAmount = subtotal + cleaningFee + securityDeposit;
 
         return {
-            duration,
-            expectedAmount,
             nights,
-            cleaningFee: pricing.cleaningFee,
-            securityDeposit: pricing.securityDeposit,
+            duration: nights,
+            rate: nightlyRate,
+            base,
+            discountPct,
+            discountAmount,
+            subtotal,
+            cleaningFee,
+            securityDeposit,
+            expectedAmount,
         };
     }
 
@@ -217,9 +256,9 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
             if (bookingMode === "instant") {
                 const paymentDetails = dealSite.paymentDetails;
                 const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
-
+ 
                 // Calculate 15%
-                const fifteenPercent = (expectedAmount * 15) / 100;
+                const fifteenPercent = (expectedAmount * 10) / 100;
                 // generate payment link
                 paymentResponse = await PaystackService.initializeSplitPayment({
                     subAccount: paymentDetails.subAccountCode,
