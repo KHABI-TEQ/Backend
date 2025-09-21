@@ -4,8 +4,9 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { PaystackService } from "../../../services/paystack.service";
 import { Types } from "mongoose";
-import { InspectionValidator } from "../../../validators/inspection.validator";
 import { InspectionLogService } from "../../../services/inspectionLog.service";
+import { JoiValidator } from "../../../validators/JoiValidator";
+import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
 
 export const submitInspectionRequest = async (
   req: AppRequest,
@@ -15,24 +16,21 @@ export const submitInspectionRequest = async (
   try {
     const { publicSlug } = req.params;
 
-    // ✅ Validate request body
-    const validation = InspectionValidator.validateSubmitInspectionPayload(req.body);
+    // Validate request body using pure validation
+    const validation = JoiValidator.validate(submitInspectionSchema, req.body);
+
     if (!validation.success) {
+      const errorMessage = validation.errors.map(e => `${e.field}: ${e.message}`).join(", ");
       res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
         errorCode: "VALIDATION_FAILED",
-        message: validation.error!,
+        message: errorMessage,
         data: null,
       });
       return;
     }
 
-    const {
-      requestedBy,
-      inspectionDetails,
-      inspectionAmount,
-      properties,
-    } = validation.data!;
+    const { requestedBy, inspectionAmount, inspectionDetails, properties } = validation.data!;
 
     // ✅ Find DealSite
     const dealSite = await DB.Models.DealSite.findOne({ publicSlug }).lean();
@@ -62,10 +60,19 @@ export const submitInspectionRequest = async (
       { email: requestedBy.email },
       { $setOnInsert: requestedBy },
       { upsert: true, new: true },
-    );
+    ); 
+
+    const paymentDetails = dealSite.paymentDetails;
+    const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
+
+    // Calculate 15%
+    const fifteenPercent = (inspectionAmount * 15) / 100;
 
     // ✅ Generate payment link
-    const paymentResponse = await PaystackService.initializePayment({
+    const paymentResponse = await PaystackService.initializeSplitPayment({
+      subAccount: paymentDetails.subAccountCode,
+      publicPageUrl: publicPageUrl,
+      amountCharge: fifteenPercent,
       email: buyer.email,
       amount: inspectionAmount,
       fromWho: {
@@ -109,9 +116,6 @@ export const submitInspectionRequest = async (
       const inspectionMode = inspectionDetails.inspectionMode || "in_person";
       const inspectionType = prop.inspectionType;
       const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
- 
-
-      
 
       // ✅ Save inspection
       const inspection = await DB.Models.InspectionBooking.create({

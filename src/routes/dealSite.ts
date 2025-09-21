@@ -3,10 +3,25 @@ import { getDealSiteBySlug, getDealSiteSection, getFeaturedProperties } from "..
 import { getDealSiteProperties } from "../controllers/DealSite/properties/fetchProperties";
 import { getSingleDealSiteProperty } from "../controllers/DealSite/properties/getSingleProperty";
 import { submitBookingRequest } from "../controllers/DealSite/inspections/bookingActions";
+import multer from "multer";
 import { submitInspectionRequest } from "../controllers/DealSite/inspections/inpectionActions";
 import { reportDealSite } from "../controllers/DealSite/reportDealSite";
+import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
+
+// Configure Multer (Store file in memory before uploading)
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 const DealSiteRouter = express.Router();
+
+// upload file
+DealSiteRouter.get(
+    "/:publicSlug/upload-single-file",
+    upload.single("file"),
+    uploadFileToCloudinary,
+);
+
+DealSiteRouter.delete("/delete-single-file", deleteFileFromCloudinary);
 
 // get and validate deal site 
 DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);

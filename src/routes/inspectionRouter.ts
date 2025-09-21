@@ -1,3 +1,4 @@
+import { submitInspectionRequest } from "../controllers/public/inspection/inspectionRequest";
 import { authenticateBookingCode, getBookingByBookingCode } from "../controllers/Account/fetchBookings";
 import BookingController from "../controllers/public/inspection/bookingActions";
 import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
@@ -6,11 +7,7 @@ import { Router } from "express";
 const inspectRouter = Router();
 
 // Submit a new inspection request
-inspectRouter.post(
-  "/request-inspection",
-  InspectionActionsController.submitInspectionRequest,
-);
-
+inspectRouter.post("/request-inspection", submitInspectionRequest);
 
 // Submit a new booking request/instant
 inspectRouter.post(

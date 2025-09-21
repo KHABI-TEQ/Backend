@@ -64,6 +64,8 @@ export interface IInspectionBooking {
     type?: "general" | "dealSite";
     dealSiteSlug?: Types.ObjectId;
   };
+
+  meta?: Record<string, any>;
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
@@ -183,6 +185,7 @@ export class InspectionBooking {
           },
           dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
+        meta: { type: Schema.Types.Mixed, default: {} },
       },
       {
         timestamps: true,
