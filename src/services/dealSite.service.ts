@@ -132,7 +132,7 @@ export class DealSiteService {
     const query = DB.Models.DealSite.findOne({ publicSlug: slug });
 
     if (excludeConfidential) {
-      query.select("-paymentDetails -createdBy -__v");
+      query.select("-paymentDetails -__v");
     }
 
     return query.lean();
@@ -151,7 +151,7 @@ export class DealSiteService {
     });
 
     if (excludeConfidential) {
-      query.select("-paymentDetails -createdBy -__v");
+      query.select("-paymentDetails -__v");
     }
 
     return query.lean();
