@@ -15,7 +15,7 @@ const upload = multer({ storage });
 const DealSiteRouter = express.Router();
 
 // upload file
-DealSiteRouter.get(
+DealSiteRouter.post(
     "/:publicSlug/upload-single-file",
     upload.single("file"),
     uploadFileToCloudinary,
