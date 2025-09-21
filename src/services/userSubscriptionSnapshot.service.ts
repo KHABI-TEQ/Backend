@@ -56,7 +56,7 @@ export class UserSubscriptionSnapshotService {
     return snapshot.save();
     }
 
-
+ 
   /**
    * Update snapshot dynamically
    */
@@ -120,6 +120,55 @@ export class UserSubscriptionSnapshotService {
     await snapshot.save();
     return snapshot;
   }
+
+
+  /**
+   * Adjust usage by feature key instead of ObjectId
+   * @param snapshotId 
+   * @param featureKey string (e.g. "property_posting")
+   * @param amount positive = deduct, negative = add back
+   */
+  static async adjustFeatureUsageByKey(
+    snapshotId: string,
+    featureKey: string,
+    amount: number = 1
+  ): Promise<IUserSubscriptionSnapshotDoc> {
+    const snapshot = await this.SnapshotModel.findById(snapshotId).populate(
+      "features.feature",
+      "key label"
+    );
+    if (!snapshot) throw new Error("Subscription snapshot not found");
+
+    const feature = snapshot.features?.find(
+      (f: any) => f.feature && f.feature.key === featureKey
+    );
+
+    if (!feature) throw new Error(`Feature '${featureKey}' not found in subscription snapshot`);
+
+    switch (feature.type) {
+      case "count":
+        if ((feature.remaining ?? 0) < amount && amount > 0) {
+          throw new Error(`Insufficient quota for feature '${featureKey}'`);
+        }
+        feature.remaining = (feature.remaining ?? 0) - amount;
+        break;
+
+      case "boolean":
+        if (amount > 0 && feature.value !== 1) {
+          throw new Error(`Feature '${featureKey}' is not enabled`);
+        }
+        break;
+
+      case "unlimited":
+        // no changes needed
+        break;
+    }
+
+    await snapshot.save();
+    return snapshot;
+  }
+
+
 
   /**
    * Get all snapshots for a user with filters
