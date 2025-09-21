@@ -22,7 +22,7 @@ export const postProperty = async (
     // const payload = await propertyValidationSchema.validateAsync(req.body, {
     //   abortEarly: false,
     // });
-
+ 
     const payload = req.body; // skip Joi validation
 
     // Determine the creator role

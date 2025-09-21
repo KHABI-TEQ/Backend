@@ -94,7 +94,7 @@ export const getDealSiteBySlug = async (
   try {
     const { publicSlug } = req.params;
 
-    const dealSite = await DealSiteService.getBySlug(publicSlug);
+    const dealSite = await DealSiteService.getBySlug(publicSlug, true);
     
     if (!dealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
@@ -151,7 +151,7 @@ export const getDealSiteSection = async (
   req: AppRequest,
   res: Response,
   next: NextFunction
-) => {
+) => { 
   try {
     const { publicSlug, section } = req.params;
 
@@ -161,7 +161,7 @@ export const getDealSiteSection = async (
       );
     }
 
-    const dealSite = await DealSiteService.getBySlug(publicSlug);
+    const dealSite = await DealSiteService.getBySlug(publicSlug, true);
 
     if (!dealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
@@ -218,6 +218,7 @@ export const getFeaturedProperties = async (
     const { publicSlug } = req.params;
 
     const dealSite = await DealSiteService.getBySlug(publicSlug);
+    
     if (!dealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,

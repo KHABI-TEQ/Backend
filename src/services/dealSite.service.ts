@@ -5,6 +5,8 @@ import { IDealSite, IDealSiteDoc } from "../models";
 import { Types } from "mongoose";
 import { PaystackService } from "./paystack.service";
 
+const confidentialFields = "-paymentDetails -createdBy -__v";
+
 export class DealSiteService {
 
   /**
@@ -123,18 +125,38 @@ export class DealSiteService {
   /**
    * Fetch a single DealSite by slug
    */
-  static async getBySlug(slug: string): Promise<IDealSiteDoc | null> {
-    return DB.Models.DealSite.findOne({ publicSlug: slug }).lean();
+  static async getBySlug(
+    slug: string,
+    excludeConfidential: boolean = false
+  ): Promise<IDealSiteDoc | null> {
+    const query = DB.Models.DealSite.findOne({ publicSlug: slug });
+
+    if (excludeConfidential) {
+      query.select("-paymentDetails -createdBy -__v");
+    }
+
+    return query.lean();
   }
+
 
   /**
    * Fetch DealSites for a specific agent
    */
-  static async getByAgent(userId: string): Promise<IDealSiteDoc[]> {
-    return DB.Models.DealSite.find({ createdBy: userId }).sort({
+  static async getByAgent(
+    userId: string,
+    excludeConfidential: boolean = false
+  ): Promise<IDealSiteDoc[]> {
+    const query = DB.Models.DealSite.find({ createdBy: userId }).sort({
       createdAt: -1,
     });
+
+    if (excludeConfidential) {
+      query.select("-paymentDetails -createdBy -__v");
+    }
+
+    return query.lean();
   }
+
 
   /**
    * Enable a DealSite (set status to "running")
