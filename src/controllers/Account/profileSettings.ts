@@ -48,7 +48,7 @@ export const getProfile = async (
       const agentData = await DB.Models.Agent.findOne({ userId: user._id }).lean();
 
       // Get active subscription snapshot using the service
-      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
         user._id.toString()
       );
 

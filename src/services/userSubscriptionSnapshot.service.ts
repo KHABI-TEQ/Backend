@@ -148,6 +148,18 @@ export class UserSubscriptionSnapshotService {
     }).sort({ createdAt: -1 });
   }
 
+  static async getActiveSnapshotWithFeatures(
+    userId: string
+  ): Promise<IUserSubscriptionSnapshotDoc | null> {
+    return this.SnapshotModel.findOne({
+      user: userId,
+      status: "active",
+      expiresAt: { $gte: new Date() },
+    })
+      .sort({ createdAt: -1 })
+      .populate("features.feature", "key label isActive"); // 👈 bring in PlanFeature fields
+  }
+
   /**
    * Expire snapshots that passed expiry date
    */
