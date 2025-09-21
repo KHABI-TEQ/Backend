@@ -31,7 +31,7 @@ export interface IBooking {
     dealSiteSlug?: Types.ObjectId;
   };
 } 
- 
+  
 export interface IBookingDoc extends IBooking, Document {}
 export type IBookingModel = Model<IBookingDoc>;
 
