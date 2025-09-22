@@ -59,10 +59,7 @@ export const getAllApprovedPreferences = async (
     // custom sort: closed first, then approved, both by recent createdAt
     const preferences = await DB.Models.Preference.find(filters)
       .populate("buyer")
-      .sort({
-        status: { $meta: "textScore" }, // fallback if using $meta
-        createdAt: -1,
-      })
+      .sort({createdAt: -1})
       .skip(skip)
       .limit(Number(limit))
       .lean();
