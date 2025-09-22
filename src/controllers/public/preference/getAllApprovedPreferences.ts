@@ -69,7 +69,9 @@ export const getAllApprovedPreferences = async (
 
     // manual ordering (MongoDB doesn’t directly support custom enum sort order)
     const orderedPreferences = preferences.sort((a, b) => {
-      if (a.status === b.status) return b.createdAt - a.createdAt;
+      if (a.status === b.status) {
+        return b.createdAt.getTime() - a.createdAt.getTime(); // convert Date → number
+      }
       return a.status === "closed" ? -1 : 1;
     });
 
