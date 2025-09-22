@@ -7,6 +7,7 @@ import multer from "multer";
 import { submitInspectionRequest } from "../controllers/DealSite/inspections/inpectionActions";
 import { reportDealSite } from "../controllers/DealSite/reportDealSite";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
+import { paymentVerification } from "../controllers/public/paymentVerification";
 
 // Configure Multer (Store file in memory before uploading)
 const storage = multer.memoryStorage();
@@ -43,6 +44,9 @@ DealSiteRouter.post("/:publicSlug/inspections/makeRequest", submitInspectionRequ
 
 // make booking request
 DealSiteRouter.post("/:publicSlug/bookings/makeRequest", submitBookingRequest);
+
+// verify payment
+DealSiteRouter.get("/:publicSlug/verify-payment", paymentVerification);
 
 // report dealsite
 DealSiteRouter.post("/:publicSlug/reportDealPage", reportDealSite);
