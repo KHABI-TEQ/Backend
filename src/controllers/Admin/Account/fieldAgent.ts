@@ -338,7 +338,7 @@ export const assignInspectionToFieldAgent = async (
   req: AppRequest,
   res: Response,
   next: NextFunction,
-) => {
+) => { 
   try {
     const { fieldAgentId, inspectionId } = req.body;
 

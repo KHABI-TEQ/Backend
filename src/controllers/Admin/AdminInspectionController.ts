@@ -391,15 +391,17 @@ export class AdminInspectionController {
       .populate({
         path: 'userId',
         model: DB.Models.User.modelName,
-        select: 'firstName lastName email phoneNumber',
+        select: 'firstName lastName email phoneNumber accountApproved isDeleted isAccountVerified accountStatus',
       });
 
     if (!fieldAgent) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Field Agent not found");
     }
 
+    const userData = fieldAgent.userId as any;
+
     // Ensure field agent is approved
-    if (!fieldAgent.accountApproved) {
+    if (!userData.accountApproved) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         "Only approved field agents can be assigned to inspections"
