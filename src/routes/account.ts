@@ -34,7 +34,7 @@ import {
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { completeAgentKYC, completeOnboardingAgent, setAgentInspectionFee } from "../controllers/Account/Agent/onBoarding";
-import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
+import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, sendInspectionParticipantDetails, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionSnapshotAutoRenewal } from "../controllers/Account/Agent/subscriptions";
 import { validateJoi } from "../middlewares/validateJoi";
@@ -141,6 +141,7 @@ AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);
 AccountRouter.get("/inspectionsFieldAgent/fetchRecent", fetchRecentAssignedInspections);
 AccountRouter.get("/inspectionsFieldAgent/stats", getAssignedInspectionStats);
 AccountRouter.get("/inspectionsFieldAgent/:inspectionId", getOneAssignedInspection);
+AccountRouter.post("/inspectionsFieldAgent/:inspectionId/sendDetails", sendInspectionParticipantDetails);
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/submitReport", submitInspectionReport);
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/startInspection", startInspection);
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/stopInspection", completeInspection);

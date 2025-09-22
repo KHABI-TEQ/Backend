@@ -4,6 +4,9 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { formatInspectionForTable } from "../../../utils/formatInspectionForTable";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { BuyerDetailsToSellerTemplate, SellerDetailsToBuyerTemplate } from "../../../common/emailTemplates/inspectionMails";
+import sendEmail from "../../../common/send.email";
 
 // Fetch all inspections assigned to field agent
 export const fetchAssignedInspections = async (
@@ -106,6 +109,7 @@ export const getOneAssignedInspection = async (
       assignedFieldAgent: req.user._id,
     })
       .populate("propertyId")
+      .populate("owner")
       .populate("requestedBy")
 
     if (!inspection) {
@@ -120,6 +124,78 @@ export const getOneAssignedInspection = async (
     next(err);
   }
 };
+
+
+// Send inspection participant details
+export const sendInspectionParticipantDetails = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { inspectionId } = req.params;
+    const { send } = req.body;
+
+    if (!["buyer-to-seller", "seller-to-buyer"].includes(send)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid send direction");
+    }
+
+    // 🔍 Find inspection and populate participants
+    const inspection = await DB.Models.InspectionBooking.findOne({
+      _id: inspectionId,
+    })
+      .populate("propertyId")
+      .populate("owner")
+      .populate("requestedBy");
+
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+    }
+
+    const property = inspection.propertyId as any;
+    const buyer = inspection.requestedBy as any;
+    const seller = inspection.owner as any;
+
+    if (!buyer || !seller) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing buyer or seller info");
+    }
+
+    // ✅ Prepare email details
+    let toEmail: string;
+    let subject: string;
+    let message: string;
+
+    if (send === "buyer-to-seller") {
+      toEmail = buyer.email;
+      subject = "Buyer details for your property inspection";
+      message = generalEmailLayout(
+        SellerDetailsToBuyerTemplate(buyer, seller, inspection, property)
+      );
+    } else {
+      // send mail to buyer
+      toEmail = seller.email;
+      subject = "Seller details for your property inspection"
+      message = generalEmailLayout(
+        BuyerDetailsToSellerTemplate(seller, buyer, inspection, property)
+      );
+    }
+
+    await sendEmail({
+      to: toEmail,
+      subject: subject,
+      html: message,
+      text: message,
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: `Details sent successfully from ${send.replace("-", " ")}`,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+ 
 
 
 // Get stats for field agent

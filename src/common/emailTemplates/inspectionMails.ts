@@ -112,3 +112,93 @@ export function FieldAgentRemovalTemplate(
 }
 
 
+/**
+ * Send Buyer Details to Seller
+ */
+export function BuyerDetailsToSellerTemplate(
+  seller: any,
+  buyer: any,
+  inspection: any,
+  property: any
+): string {
+  return `
+    <p>Dear ${seller.firstName || seller.fullName},</p>
+
+    <p style="margin-top: 10px;">
+      Below are the details of the <strong>buyer</strong> interested in inspecting your property.
+    </p>
+
+    <ul style="background-color: #E6F7FF; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Buyer Information:</strong></p>
+      <li><strong>Name:</strong> ${buyer.fullName}</li>
+      <li><strong>Email:</strong> ${buyer.email}</li>
+      <li><strong>Phone:</strong> ${buyer.phone || "Not provided"}</li>
+    </ul>
+
+    <ul style="background-color: #FAFAFA; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Type:</strong> ${property.propertyType}</li>
+      <li><strong>Location:</strong> ${property.location.area}, ${property.location.localGovernment}, ${property.location.state}</li>
+    </ul>
+
+    <ul style="background-color: #FFF4F4; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Schedule:</strong></p>
+      <li><strong>Date:</strong> ${inspection.inspectionDate}</li>
+      <li><strong>Time:</strong> ${inspection.inspectionTime}</li>
+      <li><strong>Mode:</strong> ${inspection.inspectionMode}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Kindly reach out to the buyer to confirm any further details regarding this inspection.
+    </p>
+
+    <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
+  `;
+}
+
+
+/**
+ * Send Seller Details to Buyer
+ */
+export function SellerDetailsToBuyerTemplate(
+  buyer: any,
+  seller: any,
+  inspection: any,
+  property: any
+): string {
+  return `
+    <p>Dear ${buyer.firstName || buyer.fullName},</p>
+
+    <p style="margin-top: 10px;">
+      Below are the details of the <strong>seller</strong> for the property you are scheduled to inspect.
+    </p>
+
+    <ul style="background-color: #E6F7FF; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Seller Information:</strong></p>
+      <li><strong>Name:</strong> ${seller.fullName}</li>
+      <li><strong>Email:</strong> ${seller.email}</li>
+      <li><strong>Phone:</strong> ${seller.phone || "Not provided"}</li>
+    </ul>
+
+    <ul style="background-color: #FAFAFA; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Property Details:</strong></p>
+      <li><strong>Type:</strong> ${property.propertyType}</li>
+      <li><strong>Location:</strong> ${property.location.area}, ${property.location.localGovernment}, ${property.location.state}</li>
+    </ul>
+
+    <ul style="background-color: #FFF4F4; padding: 20px; border-radius: 10px; margin-top: 15px;">
+      <p><strong>Inspection Schedule:</strong></p>
+      <li><strong>Date:</strong> ${inspection.inspectionDate}</li>
+      <li><strong>Time:</strong> ${inspection.inspectionTime}</li>
+      <li><strong>Mode:</strong> ${inspection.inspectionMode}</li>
+    </ul>
+
+    <p style="margin-top: 15px;">
+      Please review these details and prepare for your scheduled inspection.
+    </p>
+
+    <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
+  `;
+}
+
+
