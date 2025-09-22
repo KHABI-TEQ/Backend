@@ -21,7 +21,7 @@ export const getAllApprovedPreferences = async (
     } = req.query;
 
     const filters: any = {
-      status: "approved",
+      status: { $in: ["approved", "closed"] }, // fetch both
     };
 
     if (preferenceMode) filters.preferenceMode = preferenceMode;
@@ -56,22 +56,32 @@ export const getAllApprovedPreferences = async (
 
     const skip = (Number(page) - 1) * Number(limit);
 
+    // custom sort: closed first, then approved, both by recent createdAt
     const preferences = await DB.Models.Preference.find(filters)
       .populate("buyer")
-      .sort({ createdAt: -1 })
+      .sort({
+        status: { $meta: "textScore" }, // fallback if using $meta
+        createdAt: -1,
+      })
       .skip(skip)
-      .limit(Number(limit));
+      .limit(Number(limit))
+      .lean();
+
+    // manual ordering (MongoDB doesn’t directly support custom enum sort order)
+    const orderedPreferences = preferences.sort((a, b) => {
+      if (a.status === b.status) return b.createdAt - a.createdAt;
+      return a.status === "closed" ? -1 : 1;
+    });
 
     const total = await DB.Models.Preference.countDocuments(filters);
 
-    const formattedPreferences = preferences.map((pref) => {
-      const plainObj = pref.toObject({ getters: true, virtuals: true });
-      return formatPreferenceForFrontend(plainObj as unknown as PreferencePayload);
-    });
+    const formattedPreferences = orderedPreferences.map((pref) =>
+      formatPreferenceForFrontend(pref as unknown as PreferencePayload)
+    );
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Approved preferences fetched successfully",
+      message: "Approved and closed preferences fetched successfully",
       data: formattedPreferences,
       pagination: {
         total,
