@@ -161,32 +161,32 @@ import mongoose, { Document, Types } from "mongoose";
 // run();
 
 
-const run = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URL!);
-    console.log("✅ Connected to MongoDB");
+// const run = async () => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URL!);
+//     console.log("✅ Connected to MongoDB");
 
-    const Agent = mongoose.model(
-      "Agent",
-      new mongoose.Schema({}, { strict: false }),
-      "agents"
-    );
+//     const Agent = mongoose.model(
+//       "Agent",
+//       new mongoose.Schema({}, { strict: false }),
+//       "agents"
+//     );
 
-    // Remove the isInUpgrade field from all agents
-    const result = await Agent.updateMany(
-      { isFlagged: { $exists: true } },
-      { $unset: { isFlagged: "" } }
-    );
+//     // Remove the isInUpgrade field from all agents
+//     const result = await Agent.updateMany(
+//       { isFlagged: { $exists: true } },
+//       { $unset: { isFlagged: "" } }
+//     );
 
-    console.log(`✅ Successfully removed upgradeData from ${result.modifiedCount} Agent documents.`);
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Script failed:", err);
-    process.exit(1);
-  }
-};
+//     console.log(`✅ Successfully removed upgradeData from ${result.modifiedCount} Agent documents.`);
+//     process.exit(0);
+//   } catch (err) {
+//     console.error("❌ Script failed:", err);
+//     process.exit(1);
+//   }
+// };
 
-run();
+// run();
 
 // const run = async () => {
 //   try {

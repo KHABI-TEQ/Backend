@@ -140,62 +140,62 @@
 
 
 
-import "dotenv/config";
-import mongoose from "mongoose";
-import { DB } from "../controllers"; // adjust path if needed
+// import "dotenv/config";
+// import mongoose from "mongoose";
+// import { DB } from "../controllers"; // adjust path if needed
 
-const run = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URL!);
-    console.log("✅ Connected to MongoDB");
+// const run = async () => {
+//   try {
+//     await mongoose.connect(process.env.MONGO_URL!);
+//     console.log("✅ Connected to MongoDB");
 
-    const Agent = DB.Models.Agent;
-    const agents = await Agent.find({});
-    let updatedCount = 0;
+//     const Agent = DB.Models.Agent;
+//     const agents = await Agent.find({});
+//     let updatedCount = 0;
 
-    for (const agent of agents) {
-      const update: any = {};
+//     for (const agent of agents) {
+//       const update: any = {};
 
-      // Backfill kycData
-      if (!agent.kycData || typeof agent.kycData !== "object") {
-        update.kycData = {
-          agentLicenseNumber: null,
-          profileBio: null,
-          specializations: [],
-          languagesSpoken: [],
-          servicesOffered: [],
-          achievements: [],
-          featuredListings: [],
-        };
-      } else {
-        update.kycData = {
-          agentLicenseNumber: agent.kycData.agentLicenseNumber ?? null,
-          profileBio: agent.kycData.profileBio ?? null,
-          specializations: agent.kycData.specializations ?? [],
-          languagesSpoken: agent.kycData.languagesSpoken ?? [],
-          servicesOffered: agent.kycData.servicesOffered ?? [],
-          achievements: agent.kycData.achievements ?? [],
-        };
-      }
+//       // Backfill kycData
+//       if (!agent.kycData || typeof agent.kycData !== "object") {
+//         update.kycData = {
+//           agentLicenseNumber: null,
+//           profileBio: null,
+//           specializations: [],
+//           languagesSpoken: [],
+//           servicesOffered: [],
+//           achievements: [],
+//           featuredListings: [],
+//         };
+//       } else {
+//         update.kycData = {
+//           agentLicenseNumber: agent.kycData.agentLicenseNumber ?? null,
+//           profileBio: agent.kycData.profileBio ?? null,
+//           specializations: agent.kycData.specializations ?? [],
+//           languagesSpoken: agent.kycData.languagesSpoken ?? [],
+//           servicesOffered: agent.kycData.servicesOffered ?? [],
+//           achievements: agent.kycData.achievements ?? [],
+//         };
+//       }
 
-      // Backfill kycStatus
-      if (!agent.kycStatus) {
-        update.kycStatus = "none";
-      }
+//       // Backfill kycStatus
+//       if (!agent.kycStatus) {
+//         update.kycStatus = "none";
+//       }
 
-      // Perform update only if something to patch
-      if (Object.keys(update).length > 0) {
-        await Agent.updateOne({ _id: agent._id }, { $set: update });
-        updatedCount++;
-      }
-    }
+//       // Perform update only if something to patch
+//       if (Object.keys(update).length > 0) {
+//         await Agent.updateOne({ _id: agent._id }, { $set: update });
+//         updatedCount++;
+//       }
+//     }
 
-    console.log(`✅ Backfill complete. ${updatedCount} agents updated.`);
-    process.exit(0);
-  } catch (err) {
-    console.error("❌ Backfill failed:", err);
-    process.exit(1);
-  }
-};
+//     console.log(`✅ Backfill complete. ${updatedCount} agents updated.`);
+//     process.exit(0);
+//   } catch (err) {
+//     console.error("❌ Backfill failed:", err);
+//     process.exit(1);
+//   }
+// };
 
-run();
+// run();
