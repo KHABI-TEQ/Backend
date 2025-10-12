@@ -32,6 +32,7 @@ export interface INewTransaction {
   paymentDetails?: Record<string, any>;
   platform?: string;
   meta?: Record<string, any>;
+  transactionFlow?: 'internal' | 'external';
 } 
 
 export interface INewTransactionDoc extends INewTransaction, Document {}
@@ -101,6 +102,11 @@ export class NewTransaction {
         meta: {
           type: Schema.Types.Mixed,
           default: {},
+        },
+        transactionFlow: {
+          type: String,
+          enum: ['internal', 'external'],
+          default: 'internal',
         },
       },
       {

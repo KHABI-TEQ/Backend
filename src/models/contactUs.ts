@@ -1,16 +1,21 @@
-import { Schema, model, models, Document, Model } from "mongoose";
+import { Schema, model, models, Document, Model, Types } from "mongoose";
 
 // 1. Interface
 export interface IContactUs {
   name: string;
   phoneNumber?: string; // Optional, as some users might prefer email
   email: string;
+  whatsAppNumber?: string;
   subject: string;
   message: string;
   status: "pending" | "replied" | "archived" | "spam"; // Status to manage inquiries
+  receiverMode: {
+    type?: "general" | "dealSite";
+    dealSiteSlug?: Types.ObjectId;
+  };
   createdAt: Date;
   updatedAt: Date;
-}
+} 
 
 // 2. Mongoose Document Type
 export interface IContactUsDoc extends IContactUs, Document {}
@@ -33,6 +38,13 @@ export class ContactUs {
           maxlength: [100, "Name cannot exceed 100 characters"],
         },
         phoneNumber: {
+          type: String,
+          // Optional: Add a regex for phone number validation if needed
+          // match: /^\+?\d{1,3}?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/,
+          trim: true,
+          maxlength: [20, "Phone number cannot exceed 20 characters"],
+        },
+        whatsAppNumber: {
           type: String,
           // Optional: Add a regex for phone number validation if needed
           // match: /^\+?\d{1,3}?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/,
@@ -66,6 +78,14 @@ export class ContactUs {
           enum: ["pending", "replied", "archived", "spam"],
           default: "pending",
           required: true,
+        },
+        receiverMode: {
+          type: {
+            type: String,
+            enum: ["general", "dealSite"],
+            default: "general",
+          },
+          dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
       },
       {

@@ -28,3 +28,5 @@ export * from "./paymentMethod";
 export * from "./dealSite";
 export * from "./dealSiteReport";
 export * from "./emailSubscription";
+export * from "./promotion";
+export * from "./promotionActivity";

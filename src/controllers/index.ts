@@ -58,7 +58,11 @@ import {
   EmailSubscription,
   IEmailSubscriptionModel,
   Booking,
-  IBookingModel
+  IBookingModel,
+  Promotion,
+  IPromotionModel,
+  PromotionActivity,
+  IPromotionActivityModel,
 } from "../models/index";
 
 
@@ -93,6 +97,8 @@ declare interface IModels {
   DealSiteReport: IDealSiteReportModel;
   EmailSubscription: IEmailSubscriptionModel;
   Booking: IBookingModel;
+  Promotion: IPromotionModel;
+  PromotionActivity: IPromotionActivityModel;
 } 
 
 export class DB {
@@ -142,6 +148,8 @@ export class DB {
       DealSiteReport: new DealSiteReport().model,
       EmailSubscription: new EmailSubscription().model,
       Booking: new Booking().model,
+      Promotion: new Promotion().model,
+      PromotionActivity: new PromotionActivity().model,
     };
   }
 

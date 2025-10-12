@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AppRequest } from "../../types/express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
+import { DB } from "..";
 import { DealSiteService } from "../../services/dealSite.service";
 
 /**
@@ -29,7 +30,7 @@ export const updateDealSite = async (
   } catch (err) {
     next(err);
   }
-};
+}; 
 
 /**
  * Disable (pause) a DealSite
@@ -96,6 +97,55 @@ export const deleteDealSite = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: result.message,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Create Contact Us message for DealSite
+ */
+export const createDealSiteContactUs = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+
+    // ✅ Ensure dealSite exists
+    const dealSite = await DealSiteService.getBySlug(publicSlug);
+    if (!dealSite) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "DealSite not found",
+      });
+    }
+
+    const { name, email, phoneNumber, whatsAppNumber, subject, message } =
+      req.body;
+
+    // ✅ Create Contact Us record
+    const contact = await DB.Models.ContactUs.create({
+      name,
+      email,
+      phoneNumber,
+      whatsAppNumber,
+      subject,
+      message,
+      status: "pending",
+      receiverMode: {
+        type: "dealSite",
+        dealSiteSlug: dealSite._id,
+      },
+    });
+
+    return res.status(HttpStatusCodes.CREATED).json({
+      success: true,
+      message: "Your inquiry has been submitted successfully",
+      data: contact,
     });
   } catch (err) {
     next(err);

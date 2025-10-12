@@ -12,6 +12,9 @@ export const getAllProperties = async (
   next: NextFunction,
 ) => {
   try {
+
+    console.log("Incoming query params:\n", JSON.stringify(req.query, null, 2));
+
     const {
       page = "1",
       limit = "10",
@@ -39,7 +42,7 @@ export const getAllProperties = async (
       location: location || undefined,
       homeCondition: homeCondition || undefined,
       landSizeType: landSizeType || undefined,
-      type: type || undefined,
+      propertyCategory: type || undefined,
       bedroom: bedroom ? Number(bedroom) : undefined,
       bathroom: bathroom ? Number(bathroom) : undefined,
       landSize: landSize ? Number(landSize) : undefined,
@@ -48,6 +51,9 @@ export const getAllProperties = async (
       desireFeature: desireFeature ? desireFeature.split(",") : undefined,
       tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
     };
+
+    // ✅ Pretty-print processed filters
+    console.log("Processed filters:\n", JSON.stringify(filters, null, 2));
 
     const query: any = {
       briefType,
@@ -59,7 +65,7 @@ export const getAllProperties = async (
     if (filters.location) query.location = filters.location;
     if (filters.homeCondition) query.homeCondition = filters.homeCondition;
     if (filters.landSizeType) query.landSizeType = filters.landSizeType;
-    if (filters.type) query.type = filters.type;
+    if (filters.propertyCategory) query.propertyCategory = filters.propertyCategory;
     if (filters.bedroom) query.bedroom = filters.bedroom;
     if (filters.bathroom) query.bathroom = filters.bathroom;
     if (filters.landSize) query.landSize = { $gte: filters.landSize };
@@ -82,6 +88,9 @@ export const getAllProperties = async (
     if (filters.tenantCriteria) {
       query.tenantCriteria = { $all: filters.tenantCriteria };
     }
+
+    // ✅ Pretty-print final MongoDB query
+    console.log("Final MongoDB query:\n", JSON.stringify(query, null, 2));
 
     const properties = await DB.Models.Property.find(query)
       .sort({ createdAt: -1 })

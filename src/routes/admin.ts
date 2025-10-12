@@ -33,11 +33,15 @@ import { deletePreference } from "../controllers/Admin/preference/deletePreferen
 import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteBySlug, adminGetDealSiteStats, adminPauseDealSite } from "../controllers/Admin/DealSite/adminDealSite";
 import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats, updateReferral } from "../controllers/Admin/ExtralPages/referralLogs";
 import { adminAddSubscription, adminChangeSubscriptionStatus, adminDeleteSubscription, adminGetAllSubscriptions } from "../controllers/Admin/Settings/emailSubscriptionActionController";
+import { adminCreatePromotion, adminDeletePromotion, adminGetPromotionAnalytics, adminGetPromotionById, adminListPromotions, adminUpdatePromotion, adminUpdatePromotionStatus } from "../controllers/Admin/Campaign/adminPromotionController";
+import { DashboardStatsController } from "../controllers/Admin/Dashboard/DashboardStatsController";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 const AdminRouter = express.Router();
+
+const dashboardController = new DashboardStatsController();
 
  
 // Allow login and create-admin without auth
@@ -61,6 +65,77 @@ AdminRouter.delete("/delete-single-file", deleteFileFromCloudinary);
  * **************************************************************************
  */
 AdminRouter.use(adminAuth);
+
+
+AdminRouter.get("/stats", dashboardController.getStats);
+
+AdminRouter.get("/getStatsBy/:statsType", dashboardController.getStatsByType);
+
+/**
+ * @route   GET /api/dashboard/stats/overview
+ * @desc    Get overview statistics only
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ */
+AdminRouter.get("/stats/overview", dashboardController.getOverview);
+
+/**
+ * @route   GET /api/dashboard/analytics
+ * @desc    Get analytics data for charts and graphs
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ */
+AdminRouter.get("/analytics", dashboardController.getAnalytics);
+
+/**
+ * @route   GET /api/dashboard/stats/properties
+ * @desc    Get property statistics
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ */
+AdminRouter.get("/stats/properties", dashboardController.getPropertyStats);
+
+/**
+ * @route   GET /api/dashboard/stats/transactions
+ * @desc    Get transaction statistics
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ */
+AdminRouter.get("/stats/transactions", dashboardController.getTransactionStats);
+
+/**
+ * @route   GET /api/dashboard/stats/users
+ * @desc    Get user statistics
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ */
+AdminRouter.get("/stats/users", dashboardController.getUserStats);
+
+/**
+ * @route   GET /api/dashboard/stats/preferences
+ * @desc    Get preference statistics
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ */
+AdminRouter.get("/stats/preferences", dashboardController.getPreferenceStats);
+
+/**
+ * @route   GET /api/dashboard/stats/comparison
+ * @desc    Get comparison between two time periods
+ * @access  Protected (Admin)
+ * @query   currentFilter: 7days | 30days | 365days
+ * @query   previousFilter: 7days | 30days | 365days
+ */
+AdminRouter.get("/stats/comparison", dashboardController.getComparison);
+
+/**
+ * @route   GET /api/dashboard/stats/export
+ * @desc    Export dashboard statistics
+ * @access  Protected (Admin)
+ * @query   filter: 7days | 30days | 365days | range
+ * @query   format: json | csv
+ */
+AdminRouter.get("/stats/export", dashboardController.exportData);
 
 /**
  * ADMIN PROFILE ROUTES
@@ -195,6 +270,15 @@ AdminRouter.get("/subscriptions", fetchUserSubscriptions);
 AdminRouter.get("/subscriptions/:subscriptionId", getSubscriptionDetails);
 AdminRouter.put("/subscriptions/:subscriptionId", updateSubscription);
 AdminRouter.post("/subscriptions/:subscriptionId", cancelSubscription);
+
+// PROMOTION MANAGEMENT ROUTES
+AdminRouter.post("/promotions/create", adminCreatePromotion);
+AdminRouter.get("/promotions/getAll", adminListPromotions);
+AdminRouter.get("/promotions/:id/getOne", adminGetPromotionById);
+AdminRouter.get("/promotions/:id/analytics", adminGetPromotionAnalytics);
+AdminRouter.patch("/promotions/:id/edit", adminUpdatePromotion);
+AdminRouter.patch("/promotions/:id/status", adminUpdatePromotionStatus);
+AdminRouter.delete("/promotions/:id/delete", adminDeletePromotion);
 
 // EMAIL SUBSCRIPTION MANAGEMENT ROUTES
 AdminRouter.get("/emailSubscriptions/getAll", adminGetAllSubscriptions);

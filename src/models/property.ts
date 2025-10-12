@@ -112,7 +112,7 @@ export interface IProperty {
 export interface IPropertyDoc extends IProperty, Document {}
 
 export type IPropertyModel = Model<IPropertyDoc>;
- 
+  
 export class Property {
   private propertyModel: Model<IPropertyDoc>;
 
