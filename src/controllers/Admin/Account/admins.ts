@@ -4,6 +4,9 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import bcrypt from "bcryptjs";
+import sendEmail from "../../../common/send.email";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { adminAccountCreated } from "../../../common/emailTemplates/adminMails";
 
 // Get Admins with Filters & Pagination
 export const getAdmins = async (
@@ -68,6 +71,15 @@ export const getAdmins = async (
   }
 };
 
+function generateRandomPassword(length = 10): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
 // Get Single Admin by ID
 export const getSingleAdmin = async (
   req: AppRequest,
@@ -104,12 +116,12 @@ export const getSingleAdmin = async (
 export const createAdmin = async (
   req: AppRequest,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
-    const { email, firstName, lastName, phoneNumber, address, password } =
-      req.body;
+    const { email, firstName, lastName, phoneNumber, address, password } = req.body;
 
+    // ✅ Validate required fields
     if (!email || !firstName || !lastName || !phoneNumber || !address) {
       return res.status(HttpStatusCodes.BAD_REQUEST).json({
         success: false,
@@ -119,33 +131,58 @@ export const createAdmin = async (
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const exists = await DB.Models.Admin.findOne({
-      email: normalizedEmail,
-    }).exec();
+    // ✅ Check if admin already exists
+    const exists = await DB.Models.Admin.findOne({ email: normalizedEmail }).exec();
     if (exists) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Admin with this email already exists",
+        "Admin with this email already exists"
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password || "12345678", 10);
+    // ✅ Generate a random password if not provided
+    const generatedPassword = password || generateRandomPassword(10);
 
+    // ✅ Hash password
+    const hashedPassword = await bcrypt.hash(generatedPassword, 10);
+
+    // ✅ Create admin record
     const newAdmin = await DB.Models.Admin.create({
       email: normalizedEmail,
       firstName,
       lastName,
       phoneNumber,
       address,
+      isAccountVerified: true,
+      isVerifed: true,
+      isAccountInRecovery: false,
       password: hashedPassword,
     });
 
-    return res.status(HttpStatusCodes.OK).json({
+    // ✅ Prepare email
+    const fullName = `${firstName} ${lastName}`;
+    const loginUrl = process.env.ADMIN_LOGIN_URL || "https://admin.khabiteqrealty.com/login";
+
+    const subject = "Welcome to Khabi-Teq Realty – Your Admin Account Has Been Created";
+    const emailBody = generalEmailLayout(
+      adminAccountCreated(fullName, normalizedEmail, generatedPassword, loginUrl)
+    );
+
+    // ✅ Send email notification
+    await sendEmail({
+      to: newAdmin.email,
+      subject,
+      html: emailBody,
+      text: emailBody
+    });
+
+    return res.status(HttpStatusCodes.CREATED).json({
       success: true,
       message: "Admin created successfully",
       data: newAdmin,
     });
   } catch (err) {
+    console.error("Error creating admin:", err);
     next(err);
   }
 };

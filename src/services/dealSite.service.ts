@@ -38,7 +38,7 @@ export class DealSiteService {
  * - Ensures uniqueness of publicSlug
  * - Ensures an agent cannot create multiple DealSites
  * - Persists the DealSite with defaults and relations
- */
+ */ 
   static async setUpPublicAccess(
     userId: string,
     payload: Partial<IDealSite>
@@ -65,14 +65,14 @@ export class DealSiteService {
     if (existingUserSite) {
       throw new RouteError(
         HttpStatusCodes.CONFLICT,
-        "You already have a DealSite created."
+        "You already have a Public access page created."
       );
     }
 
     if (!payload.paymentDetails) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Bank details are required to set up a DealSite"
+        "Bank details are required to set up a Public access page"
       );
     }
 
@@ -174,7 +174,15 @@ export class DealSiteService {
     });
 
     if (!dealSite) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
+    }
+
+    // 🔹 Disallow enabling if on-hold
+    if (dealSite.status === "on-hold") {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "You cannot enable this public access page while it is under review (on hold)."
+      );
     }
 
     dealSite.status = "running";
@@ -199,7 +207,15 @@ export class DealSiteService {
     });
 
     if (!dealSite) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
+    }
+
+    // 🔹 Disallow disabling if on-hold
+    if (dealSite.status === "on-hold") {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "You cannot disable this public access page while it is under review (on hold)."
+      );
     }
 
     dealSite.status = "paused";
@@ -225,7 +241,7 @@ export class DealSiteService {
     });
 
     if (!dealSite) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
     }
 
     // Prevent slug update
@@ -233,6 +249,14 @@ export class DealSiteService {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         "Public slug cannot be changed once created."
+      );
+    }
+
+    // 🔹 Disallow disabling if on-hold
+    if (dealSite.status === "on-hold") {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "You cannot disable this public access page while it is under review (on hold)."
       );
     }
 
@@ -258,14 +282,14 @@ export class DealSiteService {
     });
 
     if (!dealSite) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found");
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
     }
 
     await DB.Models.DealSite.deleteOne({ _id: dealSite._id });
 
     return {
       success: true,
-      message: "DealSite deleted successfully",
+      message: "Public access page deleted successfully",
     };
   }
 

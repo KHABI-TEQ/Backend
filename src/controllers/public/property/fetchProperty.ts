@@ -65,9 +65,20 @@ export const getAllProperties = async (
     if (filters.location) query.location = filters.location;
     if (filters.homeCondition) query.homeCondition = filters.homeCondition;
     if (filters.landSizeType) query.landSizeType = filters.landSizeType;
-    if (filters.propertyCategory) query.propertyCategory = filters.propertyCategory;
-    if (filters.bedroom) query.bedroom = filters.bedroom;
-    if (filters.bathroom) query.bathroom = filters.bathroom;
+
+    if (filters.propertyCategory) {
+      const types = filters.propertyCategory
+        .split(",")
+        .map((t: string) => t.trim())
+        .filter(Boolean);
+
+      if (types.length > 0) {
+        query.propertyCategory = { $in: types };
+      }
+    }
+
+    if (filters.bedroom) query["additionalFeatures.noOfBedroom"] = filters.bedroom;
+    if (filters.bathroom) query["additionalFeatures.noOfBathroom"] = filters.bathroom;
     if (filters.landSize) query.landSize = { $gte: filters.landSize };
 
     if (filters.priceRange) {
@@ -77,20 +88,38 @@ export const getAllProperties = async (
       };
     }
 
-    if (filters.documentType) {
-      query.documentType = { $in: filters.documentType };
+    if (filters.documentType && filters.documentType.length > 0) {
+      const docs = filters.documentType.map((d: string) => {
+        const normalized = d
+          .trim()
+          .replace(/[-_()]/g, " ")
+          .replace(/\s+/g, "[-_\\s]*");
+
+        return new RegExp(normalized, "i");
+      });
+
+      query["docOnProperty.docName"] = { $in: docs };
     }
 
-    if (filters.desireFeature) {
-      query.desireFeatures = { $all: filters.desireFeature };
+
+    if (filters.desireFeature?.length) {
+      const regexes = filters.desireFeature.flatMap((phrase: string) => {
+        return phrase
+          .split(/\s+/)
+          .map((word) => new RegExp(word, "i"));
+      });
+
+      query.features = { $in: regexes };
     }
+
+    // console.dir(query, { depth: null });
 
     if (filters.tenantCriteria) {
       query.tenantCriteria = { $all: filters.tenantCriteria };
     }
 
     // ✅ Pretty-print final MongoDB query
-    console.log("Final MongoDB query:\n", JSON.stringify(query, null, 2));
+    // console.log("Final MongoDB query:\n", JSON.stringify(query, null, 2));
 
     const properties = await DB.Models.Property.find(query)
       .sort({ createdAt: -1 })

@@ -23,6 +23,8 @@ export const submitInspectionSchema = Joi.object({
         inspectionType: Joi.string().valid("price", "LOI").required(),
         negotiationPrice: Joi.number().positive().optional().allow(null, ""),
         letterOfIntention: Joi.any().optional().allow(null, ""),
+        inspectionDate: Joi.any().optional().allow(null, ""),
+        inspectionTime: Joi.any().optional().allow(null, ""),
 
         // 🔹 requestSource is optional
         requestSource: Joi.object({

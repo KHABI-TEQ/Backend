@@ -40,12 +40,12 @@ export const getDealSiteDetailsBySlug = async (
     const dealSite = await DealSiteService.getBySlug(publicSlug);
 
     if (!dealSite) {
-      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found"));
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found"));
     }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "DealSite fetched successfully",
+      message: "Public access page fetched successfully",
       data: dealSite,
     });
   } catch (err) {
@@ -67,12 +67,12 @@ export const getDealSiteDetailsByUser = async (
     const dealSite = await DealSiteService.getByAgent(userId);
 
     if (!dealSite) {
-      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite not found"));
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found"));
     }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "DealSite fetched successfully",
+      message: "Public access page fetched successfully",
       data: dealSite,
     });
   } catch (err) {
@@ -100,7 +100,7 @@ export const getDealSiteBySlug = async (
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         errorCode: "DEALSITE_NOT_FOUND",
-        message: "DealSite not found",
+        message: "Public access page not found",
         data: null,
       });
     }
@@ -110,7 +110,7 @@ export const getDealSiteBySlug = async (
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This DealSite is not currently active.",
+        message: "This Public access page is not currently active.",
         data: null,
       });
     }
@@ -167,7 +167,7 @@ export const getDealSiteSection = async (
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         errorCode: "DEALSITE_NOT_FOUND",
-        message: "DealSite not found",
+        message: "Public access page not found",
         data: null,
       });
     }
@@ -176,7 +176,7 @@ export const getDealSiteSection = async (
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This DealSite is not currently active.",
+        message: "This Public access page is not currently active.",
         data: null,
       });
     }
@@ -185,7 +185,7 @@ export const getDealSiteSection = async (
     if (!allowedSections.includes(section as DealSiteSection)) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
-        message: `Section '${section}' not found in DealSite`,
+        message: `Section '${section}' not found in Public access page`,
         data: null,
       });
     }
@@ -196,7 +196,7 @@ export const getDealSiteSection = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: `DealSite section '${section}' fetched successfully`,
+      message: `Public access page section '${section}' fetched successfully`,
       data: sectionData,
     });
   } catch (err) {
@@ -223,7 +223,7 @@ export const getFeaturedProperties = async (
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         errorCode: "DEALSITE_NOT_FOUND",
-        message: "DealSite not found",
+        message: "Public access page not found",
         data: null,
       });
     }
@@ -232,7 +232,7 @@ export const getFeaturedProperties = async (
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This DealSite is not currently active.",
+        message: "This Public access page is not currently active.",
         data: null,
       });
     }

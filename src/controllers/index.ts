@@ -55,6 +55,8 @@ import {
   IDealSiteModel,
   DealSiteReport,
   IDealSiteReportModel,
+  DealSiteActivity,
+  IDealSiteActivityModel,
   EmailSubscription,
   IEmailSubscriptionModel,
   Booking,
@@ -95,6 +97,7 @@ declare interface IModels {
   PaymentMethod: IPaymentMethodModel;
   DealSite: IDealSiteModel;
   DealSiteReport: IDealSiteReportModel;
+  DealSiteActivity: IDealSiteActivityModel;
   EmailSubscription: IEmailSubscriptionModel;
   Booking: IBookingModel;
   Promotion: IPromotionModel;
@@ -146,6 +149,7 @@ export class DB {
       PaymentMethod: new PaymentMethod().model,
       DealSite: new DealSite().model,
       DealSiteReport: new DealSiteReport().model,
+      DealSiteActivity: new DealSiteActivity().model,
       EmailSubscription: new EmailSubscription().model,
       Booking: new Booking().model,
       Promotion: new Promotion().model,

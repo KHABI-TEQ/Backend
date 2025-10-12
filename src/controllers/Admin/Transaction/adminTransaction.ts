@@ -17,11 +17,13 @@ export const getAllTransactions = async (
       limit = "20",
       status,
       transactionType,
+      transactionFlow,
     } = req.query as {
       page?: string;
       limit?: string;
       status?: string;
       transactionType?: string;
+      transactionFlow?: string;
     };
 
     const pageNum = Math.max(parseInt(page, 10), 1);
@@ -39,9 +41,11 @@ export const getAllTransactions = async (
       "transfer",
       "refund",
       "subscription",
+      "shortlet-booking",
       "inspection",
       "document-verification",
     ];
+    const allowedTransactionFlows = ["internal", "external"];
 
     // Apply status filter
     if (status && allowedStatuses.includes(status)) {
@@ -55,6 +59,12 @@ export const getAllTransactions = async (
     if (transactionType && allowedTransactionTypes.includes(transactionType)) {
       filter.transactionType = transactionType;
     }
+
+    // Apply transactionFlow filter
+    if (transactionFlow && allowedTransactionFlows.includes(transactionFlow)) {
+      filter.transactionFlow = transactionFlow;
+    }
+
 
     const [transactions, total] = await Promise.all([
       DB.Models.NewTransaction.find(filter)

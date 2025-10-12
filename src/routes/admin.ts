@@ -30,7 +30,7 @@ import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSe
 import { createPlanFeature, createSubscriptionPlan, deletePlanFeature, deleteSubscriptionPlan, getAllPlanFeatures, getAllSubscriptionPlans, getPlanFeature, getSubscriptionPlan, updatePlanFeature, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 import { deletePreference } from "../controllers/Admin/preference/deletePreference";
-import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteBySlug, adminGetDealSiteStats, adminPauseDealSite } from "../controllers/Admin/DealSite/adminDealSite";
+import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteActivities, adminGetDealSiteBySlug, adminGetDealSiteReports, adminGetDealSiteStats, adminPauseDealSite, adminPutOnHoldDealSite } from "../controllers/Admin/DealSite/adminDealSite";
 import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats, updateReferral } from "../controllers/Admin/ExtralPages/referralLogs";
 import { adminAddSubscription, adminChangeSubscriptionStatus, adminDeleteSubscription, adminGetAllSubscriptions } from "../controllers/Admin/Settings/emailSubscriptionActionController";
 import { adminCreatePromotion, adminDeletePromotion, adminGetPromotionAnalytics, adminGetPromotionById, adminListPromotions, adminUpdatePromotion, adminUpdatePromotionStatus } from "../controllers/Admin/Campaign/adminPromotionController";
@@ -79,54 +79,6 @@ AdminRouter.get("/getStatsBy/:statsType", dashboardController.getStatsByType);
  */
 AdminRouter.get("/stats/overview", dashboardController.getOverview);
 
-/**
- * @route   GET /api/dashboard/analytics
- * @desc    Get analytics data for charts and graphs
- * @access  Protected (Admin)
- * @query   filter: 7days | 30days | 365days | range
- */
-AdminRouter.get("/analytics", dashboardController.getAnalytics);
-
-/**
- * @route   GET /api/dashboard/stats/properties
- * @desc    Get property statistics
- * @access  Protected (Admin)
- * @query   filter: 7days | 30days | 365days | range
- */
-AdminRouter.get("/stats/properties", dashboardController.getPropertyStats);
-
-/**
- * @route   GET /api/dashboard/stats/transactions
- * @desc    Get transaction statistics
- * @access  Protected (Admin)
- * @query   filter: 7days | 30days | 365days | range
- */
-AdminRouter.get("/stats/transactions", dashboardController.getTransactionStats);
-
-/**
- * @route   GET /api/dashboard/stats/users
- * @desc    Get user statistics
- * @access  Protected (Admin)
- * @query   filter: 7days | 30days | 365days | range
- */
-AdminRouter.get("/stats/users", dashboardController.getUserStats);
-
-/**
- * @route   GET /api/dashboard/stats/preferences
- * @desc    Get preference statistics
- * @access  Protected (Admin)
- * @query   filter: 7days | 30days | 365days | range
- */
-AdminRouter.get("/stats/preferences", dashboardController.getPreferenceStats);
-
-/**
- * @route   GET /api/dashboard/stats/comparison
- * @desc    Get comparison between two time periods
- * @access  Protected (Admin)
- * @query   currentFilter: 7days | 30days | 365days
- * @query   previousFilter: 7days | 30days | 365days
- */
-AdminRouter.get("/stats/comparison", dashboardController.getComparison);
 
 /**
  * @route   GET /api/dashboard/stats/export
@@ -248,7 +200,10 @@ AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTra
 AdminRouter.get("/deal-sites/getAll", adminGetAllDealSites);
 AdminRouter.get("/deal-sites/stats", adminGetDealSiteStats);
 AdminRouter.get("/deal-sites/:publicSlug", adminGetDealSiteBySlug);
+AdminRouter.get("/deal-sites/:publicSlug/reports", adminGetDealSiteReports);
+AdminRouter.get("/deal-sites/:publicSlug/logs", adminGetDealSiteActivities);
 AdminRouter.put("/deal-sites/:publicSlug/pause", adminPauseDealSite);
+AdminRouter.put("/deal-sites/:publicSlug/putOnHold", adminPutOnHoldDealSite);
 AdminRouter.put("/deal-sites/:publicSlug/resume", adminActivateDealSite);
  
 // SUBSCRIPTION FEATURES MANAGEMENT ROUTES

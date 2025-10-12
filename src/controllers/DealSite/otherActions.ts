@@ -3,6 +3,7 @@ import { AppRequest } from "../../types/express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DB } from "..";
 import { DealSiteService } from "../../services/dealSite.service";
+import { dealSiteActivityService } from "../../services/dealSiteActivity.service";
 
 /**
  * Update a DealSite
@@ -22,15 +23,26 @@ export const updateDealSite = async (
       req.body
     );
 
+    await dealSiteActivityService.logActivity({
+      dealSiteId: updated._id.toString(),
+      actorId: req.user._id,
+      actorModel: "User",
+      category: "settings-updated",
+      action: "Updated public access page settings",
+      description: "User modified general settings such as contact details, display preferences, or page configuration.",
+      req,
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "DealSite updated successfully",
+      message: "Public access page updated successfully",
       data: updated,
     });
   } catch (err) {
     next(err);
   }
 }; 
+
 
 /**
  * Disable (pause) a DealSite
@@ -44,11 +56,23 @@ export const disableDealSite = async (
     const { publicSlug } = req.params;
     const userId = req.user?._id;
 
+    // 🔹 Proceed to disable
     const result = await DealSiteService.disableDealSite(userId, publicSlug);
+
+    await dealSiteActivityService.logActivity({
+      dealSiteId: result._id.toString(),
+      actorId: req.user._id,
+      actorModel: "User",
+      category: "deal-paused",
+      action: "Paused public access page",
+      description:
+        "User temporarily paused their public access page, making it unavailable to the public.",
+      req,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "DealSite disabled successfully",
+      message: "Public access page disabled successfully",
       data: result,
     });
   } catch (err) {
@@ -56,8 +80,9 @@ export const disableDealSite = async (
   }
 };
 
+
 /**
- * Enable a DealSite
+ * Enable (resume) a DealSite
  */
 export const enableDealSite = async (
   req: AppRequest,
@@ -68,17 +93,30 @@ export const enableDealSite = async (
     const { publicSlug } = req.params;
     const userId = req.user?._id;
 
+    // 🔹 Proceed to enable
     const result = await DealSiteService.enableDealSite(userId, publicSlug);
+
+    await dealSiteActivityService.logActivity({
+      dealSiteId: result._id.toString(),
+      actorId: req.user._id,
+      actorModel: "User",
+      category: "deal-resumed",
+      action: "Resumed public access page",
+      description:
+        "User reactivated their public access page, making it visible and accessible to the public again.",
+      req,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "DealSite enabled successfully",
+      message: "Public access page enabled successfully",
       data: result,
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 /**
  * Delete a DealSite
@@ -120,7 +158,7 @@ export const createDealSiteContactUs = async (
     if (!dealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
-        message: "DealSite not found",
+        message: "Public access page not found",
       });
     }
 

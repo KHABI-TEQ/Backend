@@ -14,7 +14,7 @@ export interface IAdmin {
   };
   fullName?: string;
   profile_picture: string;
-  role: string;
+  role?: string;
   isVerifed: boolean;
   isAccountVerified: boolean;
 }
