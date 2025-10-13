@@ -17,7 +17,7 @@ export const adminCreatePromotion = async (
   try {
     const payload = {
       ...req.body,
-      createdBy: req.user?._id,
+      createdBy: req.admin?._id,
     };
 
     const promo = await promotionService.createPromotion(payload);

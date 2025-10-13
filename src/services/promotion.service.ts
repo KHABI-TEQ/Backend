@@ -12,23 +12,24 @@ export class PromotionService {
   async updatePromotion(id: string, updates: any) {
     const promo = await DB.Models.Promotion.findByIdAndUpdate(id, updates, {
       new: true,
+      runValidators: true,
     });
-    if (!promo) throw new Error("Promotion not found");
-    return promo;
+    return promo; // Return null if not found (handled in controller)
   }
 
   // ✅ Delete promotion
   async deletePromotion(id: string) {
     const promo = await DB.Models.Promotion.findByIdAndDelete(id);
-    if (!promo) throw new Error("Promotion not found");
-    return promo;
+    return promo; // Return null if not found (handled in controller)
   }
 
   // ✅ Get single promotion
   async getPromotionById(id: string) {
-    const promo = await DB.Models.Promotion.findById(id).populate("createdBy", "name email");
-    if (!promo) throw new Error("Promotion not found");
-    return promo;
+    const promo = await DB.Models.Promotion.findById(id).populate(
+      "createdBy",
+      "name email"
+    );
+    return promo; // Return null if not found (handled in controller)
   }
 
   // ✅ List promotions with advanced filters
@@ -37,16 +38,25 @@ export class PromotionService {
     const { page = 1, limit = 20 } = pagination;
 
     const query: any = {};
+    
     if (status) query.status = status;
     if (type) query.type = type;
-    if (isFeatured !== undefined) query.isFeatured = isFeatured;
-    if (search)
-      query.title = { $regex: search, $options: "i" };
-    if (startDate || endDate)
+    if (isFeatured !== undefined) {
+      query.isFeatured = isFeatured === "true" || isFeatured === true;
+    }
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { tags: { $in: [new RegExp(search, "i")] } },
+      ];
+    }
+    if (startDate || endDate) {
       query.createdAt = {
         ...(startDate && { $gte: new Date(startDate) }),
         ...(endDate && { $lte: new Date(endDate) }),
       };
+    }
 
     const data = await DB.Models.Promotion.find(query)
       .sort({ createdAt: -1 })
@@ -56,7 +66,13 @@ export class PromotionService {
 
     const total = await DB.Models.Promotion.countDocuments(query);
 
-    return { data, total, page, pages: Math.ceil(total / limit) };
+    return {
+      data,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
   }
 
   // ✅ Log promotion activity (view/click)
@@ -74,98 +90,214 @@ export class PromotionService {
     type: "view" | "click";
   }) {
     try {
+      // FIXED: Check for recent activity to prevent spam (within last 1 hour)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      
+      const recentActivity = await DB.Models.PromotionActivity.findOne({
+        promotionId: new Types.ObjectId(promotionId),
+        type,
+        createdAt: { $gte: oneHourAgo },
+        ...(userId && { userId: new Types.ObjectId(userId) }),
+        ...(!userId && ipAddress && { ipAddress, userId: { $exists: false } }),
+      });
+
+      if (recentActivity) {
+        // Skip logging if already logged recently
+        return;
+      }
+
+      // Log the activity
       await DB.Models.PromotionActivity.create({
-        promotionId,
-        userId,
+        promotionId: new Types.ObjectId(promotionId),
+        userId: userId ? new Types.ObjectId(userId) : undefined,
         ipAddress,
         userAgent,
         type,
       });
 
-      // increment metric
-      const updateField = type === "view" ? { $inc: { views: 1 } } : { $inc: { clicks: 1 } };
+      // Increment metric on promotion
+      const updateField =
+        type === "view" ? { $inc: { views: 1 } } : { $inc: { clicks: 1 } };
+      
       await DB.Models.Promotion.findByIdAndUpdate(promotionId, updateField);
     } catch (err: any) {
-      if (err.code === 11000) {
-        // duplicate (ignore if same user/ip/type already logged)
-        return;
-      }
-      throw err;
+      console.error("Error logging promotion activity:", err);
+      // Don't throw - activity logging shouldn't break the main flow
     }
   }
 
   // ✅ Analytics: get summary
   async getPromotionAnalytics(id: string) {
     const promotion = await DB.Models.Promotion.findById(id);
-    if (!promotion) throw new Error("Promotion not found");
+    if (!promotion) return null;
 
-    const totalActivities = await DB.Models.PromotionActivity.countDocuments({
-      promotionId: new Types.ObjectId(id),
-    });
+    const promotionObjectId = new Types.ObjectId(id);
 
-    const clickCount = await DB.Models.PromotionActivity.countDocuments({
-      promotionId: new Types.ObjectId(id),
-      type: "click",
-    });
+    const [clickCount, viewCount, uniqueUsers, topSources] = await Promise.all([
+      DB.Models.PromotionActivity.countDocuments({
+        promotionId: promotionObjectId,
+        type: "click",
+      }),
+      DB.Models.PromotionActivity.countDocuments({
+        promotionId: promotionObjectId,
+        type: "view",
+      }),
+      DB.Models.PromotionActivity.distinct("userId", {
+        promotionId: promotionObjectId,
+        userId: { $exists: true },
+      }).then((users) => users.length),
+      // Get top 5 IP addresses (for anonymous tracking)
+      DB.Models.PromotionActivity.aggregate([
+        { $match: { promotionId: promotionObjectId } },
+        { $group: { _id: "$ipAddress", count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+      ]),
+    ]);
 
-    const viewCount = await DB.Models.PromotionActivity.countDocuments({
-      promotionId: new Types.ObjectId(id),
-      type: "view",
-    });
+    const totalActivities = clickCount + viewCount;
+    const ctr = viewCount > 0 ? ((clickCount / viewCount) * 100).toFixed(2) : "0.00";
 
     return {
       promotionId: id,
       title: promotion.title,
+      type: promotion.type,
+      status: promotion.status,
       totalActivities,
       clicks: clickCount,
       views: viewCount,
-      clickThroughRate:
-        viewCount > 0 ? ((clickCount / viewCount) * 100).toFixed(2) + "%" : "0%",
+      clickThroughRate: `${ctr}%`,
+      uniqueUsers,
+      topSources: topSources.map((s) => ({
+        ipAddress: s._id || "Unknown",
+        activities: s.count,
+      })),
+      createdAt: promotion.createdAt,
+      startDate: promotion.startDate,
+      endDate: promotion.endDate,
     };
   }
 
-  // promotion.service.ts (add below existing methods)
-    async displayPromotions({
+  // ✅ Display promotions (for frontend)
+  async displayPromotions({
     type,
     limit = 3,
     userId,
     ipAddress,
-    }: {
+    excludeIds = [],
+  }: {
     type?: string;
     limit?: number;
     userId?: string;
     ipAddress?: string;
-    }) {
+    excludeIds?: string[];
+  }) {
+    const now = new Date();
     const query: any = { status: "active" };
 
-    // Optionally filter expired ones
-    query.$or = [
-        { endDate: { $exists: false } },
-        { endDate: { $gte: new Date() } },
+    // Filter by date range
+    query.$and = [
+      {
+        $or: [
+          { startDate: { $exists: false } },
+          { startDate: { $lte: now } },
+        ],
+      },
+      {
+        $or: [
+          { endDate: { $exists: false } },
+          { endDate: { $gte: now } },
+        ],
+      },
     ];
 
     if (type) query.type = type;
+    
+    // Exclude certain promotions (e.g., already shown)
+    if (excludeIds.length > 0) {
+      query._id = { $nin: excludeIds.map((id) => new Types.ObjectId(id)) };
+    }
 
-    // Sort: prioritize featured, then random
+    // Get promotions with weighted randomization
     const data = await DB.Models.Promotion.aggregate([
-        { $match: query },
-        { $addFields: { sortWeight: { $cond: ["$isFeatured", 10, 1] } } },
-        { $sample: { size: limit * 2 } }, // pick random set
-        { $sort: { sortWeight: -1 } },
-        { $limit: limit },
+      { $match: query },
+      {
+        $addFields: {
+          sortWeight: {
+            $add: [
+              { $cond: ["$isFeatured", 100, 0] },
+              { $multiply: [{ $rand: {} }, 10] },
+            ],
+          },
+        },
+      },
+      { $sort: { sortWeight: -1 } },
+      { $limit: limit },
+      {
+        $project: {
+          sortWeight: 0,
+        },
+      },
     ]);
 
-    // Log views for all displayed promotions
-    for (const promo of data) {
-        await this.logActivity({
-        promotionId: promo._id,
-        userId,
-        ipAddress,
-        type: "view",
-        });
-    }
+    // Log views for displayed promotions (async, don't await)
+    Promise.all(
+      data.map((promo) =>
+        this.logActivity({
+          promotionId: promo._id.toString(),
+          userId,
+          ipAddress,
+          type: "view",
+        })
+      )
+    ).catch((err) => console.error("Error logging bulk views:", err));
 
     return data;
-    }
+  }
 
+  // ✅ Get active promotions by type (for specific placements)
+  async getActivePromotionsByType(type: string, limit = 5) {
+    const now = new Date();
+    
+    const promotions = await DB.Models.Promotion.find({
+      status: "active",
+      type,
+      $and: [
+        {
+          $or: [
+            { startDate: { $exists: false } },
+            { startDate: { $lte: now } },
+          ],
+        },
+        {
+          $or: [
+            { endDate: { $exists: false } },
+            { endDate: { $gte: now } },
+          ],
+        },
+      ],
+    })
+      .sort({ isFeatured: -1, createdAt: -1 })
+      .limit(limit)
+      .select("-createdBy -__v");
+
+    return promotions;
+  }
+
+  // ✅ Bulk update expired promotions (cron job helper)
+  async expireOldPromotions() {
+    const now = new Date();
+    
+    const result = await DB.Models.Promotion.updateMany(
+      {
+        status: "active",
+        endDate: { $exists: true, $lt: now },
+      },
+      {
+        $set: { status: "expired" },
+      }
+    );
+
+    return result.modifiedCount;
+  }
 }

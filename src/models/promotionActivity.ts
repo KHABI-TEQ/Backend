@@ -1,17 +1,20 @@
 import { Schema, model, Document, Model, Types } from "mongoose";
 
+// ===== PROMOTION ACTIVITY MODEL =====
 export type ActivityType = "view" | "click";
 
 export interface IPromotionActivity {
-  promotionId: Types.ObjectId; // Reference to the promotion
-  userId?: Types.ObjectId; // Optional (for logged-in users)
-  ipAddress?: string; // Used to track anonymous uniqueness
-  userAgent?: string; // Optional (can help detect bots or duplicates)
+  promotionId: Types.ObjectId;
+  userId?: Types.ObjectId;
+  ipAddress?: string;
+  userAgent?: string;
   type: ActivityType;
   createdAt?: Date;
 }
-
-export interface IPromotionActivityDoc extends IPromotionActivity, Document {}
+ 
+export interface IPromotionActivityDoc extends IPromotionActivity, Document {
+  createdAt: Date;
+}
 export type IPromotionActivityModel = Model<IPromotionActivityDoc>;
 
 export class PromotionActivity {
@@ -24,6 +27,7 @@ export class PromotionActivity {
           type: Schema.Types.ObjectId,
           ref: "Promotion",
           required: true,
+          index: true,
         },
         userId: {
           type: Schema.Types.ObjectId,
@@ -41,8 +45,13 @@ export class PromotionActivity {
       { timestamps: { createdAt: true, updatedAt: false } }
     );
 
-    // Prevent multiple logs for the same promotion + user/ip + type in a short time window
-    schema.index({ promotionId: 1, userId: 1, ipAddress: 1, type: 1 }, { unique: true });
+    // FIXED: Compound index for efficient queries, but NOT unique
+    // This allows multiple views/clicks over time
+    schema.index({ promotionId: 1, type: 1, createdAt: -1 });
+    schema.index({ userId: 1, promotionId: 1, type: 1 });
+    
+    // Optional: Add TTL index to auto-delete old activity logs after 90 days
+    schema.index({ createdAt: 1 }, { expireAfterSeconds: 7776000 }); // 90 days
 
     this.promotionActivityModel = model<IPromotionActivityDoc>(
       "PromotionActivity",

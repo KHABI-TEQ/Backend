@@ -7,6 +7,7 @@ import multer from "multer";
 import AdminRouter from "./admin";
 import propertyRouter from "./property";
 import inspectRouter from "./inspectionRouter";
+import PromotionRouter from "./promotions";
 
 import {
   deleteFileFromCloudinary,
@@ -142,6 +143,8 @@ router.post(
  
 router.get("/getSystemSettings", fetchSystemSettings)
 
+// Promotions Routes
+router.use("/promotions", PromotionRouter);
 
 router.get("/verify-payment", paymentVerification)
 
