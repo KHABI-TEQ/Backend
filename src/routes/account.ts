@@ -40,7 +40,7 @@ import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions,
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
-import { getDealSiteDetailsBySlug, getDealSiteDetailsByUser } from "../controllers/DealSite/verifyPublicAccessID";
+import { getDealSiteDetailsBySlug, getDealSiteDetailsByUser, getDealSiteLogsBySlug } from "../controllers/DealSite/verifyPublicAccessID";
 import { bankList, checkSlugAvailability, createDealSite } from "../controllers/DealSite/setUp";
 import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
@@ -131,6 +131,7 @@ AccountRouter.post("/dealSite/slugAvailability", checkSlugAvailability);
 AccountRouter.get("/dealSite/bankList", bankList);
 AccountRouter.get("/dealSite/details", getDealSiteDetailsByUser);
 AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
+AccountRouter.get("/dealSite/:publicSlug/logs", getDealSiteLogsBySlug);
 AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);
 AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
 AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);

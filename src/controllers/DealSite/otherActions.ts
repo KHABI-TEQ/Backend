@@ -14,12 +14,13 @@ export const updateDealSite = async (
   next: NextFunction
 ) => {
   try {
-    const { publicSlug } = req.params;
+    const { publicSlug, sectionName } = req.params;
     const userId = req.user?._id;
 
-    const updated = await DealSiteService.updateDealSiteDetails(
+    const updated = await DealSiteService.updateDealSiteSection(
       userId,
       publicSlug,
+      sectionName,
       req.body
     );
 
@@ -28,20 +29,21 @@ export const updateDealSite = async (
       actorId: req.user._id,
       actorModel: "User",
       category: "settings-updated",
-      action: "Updated public access page settings",
-      description: "User modified general settings such as contact details, display preferences, or page configuration.",
+      action: `Updated ${sectionName} section`,
+      description: `User modified the ${sectionName} settings on their deal site.`,
       req,
     });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Public access page updated successfully",
+      message: `${sectionName} section updated successfully`,
       data: updated,
     });
   } catch (err) {
     next(err);
   }
-}; 
+};
+
 
 
 /**

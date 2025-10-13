@@ -32,8 +32,8 @@ DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);
 DealSiteRouter.get("/:publicSlug/featuredProperties", getFeaturedProperties);
 
 // get and validate deal site
-DealSiteRouter.get("/:publicSlug/getSettings/:section", getDealSiteSection);
- 
+DealSiteRouter.get("/:publicSlug/getSettings/:sectionName", getDealSiteSection);
+
 // fetch all properties of deal sites
 DealSiteRouter.get("/:publicSlug/properties", getDealSiteProperties);
 

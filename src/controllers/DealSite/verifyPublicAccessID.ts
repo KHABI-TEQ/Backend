@@ -54,6 +54,65 @@ export const getDealSiteDetailsBySlug = async (
 };
 
 
+export const getDealSiteLogsBySlug = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+    
+    const { page = "1", limit = "20", category } = req.query as {
+      page?: string;
+      limit?: string;
+      category?: string;
+    };
+
+    const pageNum = Math.max(parseInt(page, 10), 1);
+    const limitNum = Math.max(parseInt(limit, 10), 1);
+    const skip = (pageNum - 1) * limitNum;
+
+    // 🔹 Ensure the DealSite exists
+    const dealSite = await DB.Models.DealSite.findOne({ publicSlug })
+      .select("_id title publicSlug")
+      .lean();
+
+    if (!dealSite) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
+    }
+
+    // 🔹 Build filter
+    const filter: Record<string, any> = { dealSite: dealSite._id };
+    if (category) filter.category = category;
+
+    // 🔹 Fetch activities with pagination
+    const [activities, total] = await Promise.all([
+      DB.Models.DealSiteActivity.find(filter)
+        .populate("actor", "firstName lastName email")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+
+      DB.Models.DealSiteActivity.countDocuments(filter),
+    ]);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Public access page activities fetched successfully",
+      data: activities,
+      pagination: {
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+        limit: limitNum,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 export const getDealSiteDetailsByUser = async (
   req: AppRequest,
@@ -153,9 +212,9 @@ export const getDealSiteSection = async (
   next: NextFunction
 ) => { 
   try {
-    const { publicSlug, section } = req.params;
+    const { publicSlug, sectionName } = req.params;
 
-    if (!publicSlug || !section) {
+    if (!publicSlug || !sectionName) {
       return next(
         new RouteError(HttpStatusCodes.BAD_REQUEST, "Public slug and section are required")
       );
@@ -181,22 +240,53 @@ export const getDealSiteSection = async (
       });
     }
 
-    // ensure requested section is in whitelist
-    if (!allowedSections.includes(section as DealSiteSection)) {
-      return res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        message: `Section '${section}' not found in Public access page`,
-        data: null,
-      });
+    // Supported sections
+    const myAllowedSections = [
+      "theme",
+      "inspectionSettings",
+      "socialLinks",
+      "contactVisibility",
+      "featureSelection",
+      "marketplaceDefaults",
+      "publicPage",
+      "footerSection",
+      "paymentDetails",
+      "about",
+      "contactUs",
+      "brandingSeo",
+    ];
+
+    if (!myAllowedSections.includes(sectionName)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        `Invalid section name. Allowed: ${myAllowedSections.join(", ")}`
+      );
+    }
+
+    // ✅ Handle grouped flat fields
+    if (sectionName === "brandingSeo") {
+      return {
+        title: dealSite.title,
+        keywords: dealSite.keywords,
+        description: dealSite.description,
+        logoUrl: dealSite.logoUrl,
+        listingsLimit: dealSite.listingsLimit,
+      };
     }
 
     // Type-safe access
-    const sectionKey = section as DealSiteSection;
-    const sectionData = dealSite[sectionKey];
+    const sectionData = (dealSite as any)[sectionName];
+
+    if (!sectionData) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        `No data found for section: ${sectionName}`
+      );
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: `Public access page section '${section}' fetched successfully`,
+      message: `Public access page section '${sectionName}' fetched successfully`,
       data: sectionData,
     });
   } catch (err) {

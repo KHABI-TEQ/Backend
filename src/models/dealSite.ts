@@ -5,7 +5,7 @@ export type InspectionStatus = "required" | "optional" | "disabled";
 export type FeatureSelectionMode = "auto" | "manual";
 export type DefaultTab = "buy" | "rent" | "shortlet" | "jv";
 export type DefaultSort = "newest" | "price-asc" | "price-desc";
- 
+
 export interface IDealSite {
   publicSlug: string;
   title: string;
@@ -67,7 +67,33 @@ export interface IDealSite {
     ctaLink: string;
     heroImageUrl: string;
   };
- 
+
+  about?: {
+    title: string;
+    subTitle: string;
+    heroImageUrl?: string;
+    ctaButtons: {
+      text: string;
+      url: string;
+      color?: string;
+    }[];
+    mission?: string;
+    vision?: string;
+    howItWorks?: string;
+    ourValues?: {
+      title: string;
+      subTitle: string;
+    }[];
+  };
+
+  contactUs?: {
+    officeHours?: string;
+    faqs?: {
+      question: string;
+      answer: string;
+    }[];
+  };
+
   paymentDetails?: {
     subAccountCode?: string;
     businessName?: string;
@@ -162,6 +188,40 @@ export class DealSite {
           ctaText: { type: String, default: "" },
           ctaLink: { type: String, default: "" },
           heroImageUrl: { type: String, default: "" },
+        },
+
+        // 🟢 About Section
+        about: {
+          title: { type: String, default: "" },
+          subTitle: { type: String, default: "" },
+          heroImageUrl: { type: String, default: "" },
+          ctaButtons: [
+            {
+              text: { type: String },
+              url: { type: String },
+              color: { type: String, default: "#008000" },
+            },
+          ],
+          mission: { type: String, default: "" },
+          vision: { type: String, default: "" },
+          howItWorks: { type: String, default: "" },
+          ourValues: [
+            {
+              title: { type: String },
+              subTitle: { type: String },
+            },
+          ],
+        },
+
+        // 🟣 Contact Us Section
+        contactUs: {
+          officeHours: { type: String, default: "" },
+          faqs: [
+            {
+              question: { type: String },
+              answer: { type: String },
+            },
+          ],
         },
 
         footerSection: {

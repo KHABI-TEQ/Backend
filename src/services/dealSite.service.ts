@@ -266,6 +266,98 @@ export class DealSiteService {
     return dealSite;
   }
 
+
+  static async updateDealSiteSection(
+    userId: string,
+    publicSlug: string,
+    sectionName: string,
+    updates: Record<string, any>
+  ): Promise<IDealSiteDoc> {
+    await this.ensureActiveSubscription(userId);
+
+    const dealSite = await DB.Models.DealSite.findOne({
+      publicSlug,
+      createdBy: userId,
+    });
+
+    if (!dealSite) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
+    }
+
+    // Prevent slug changes
+    if (updates.publicSlug && updates.publicSlug !== dealSite.publicSlug) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Public slug cannot be changed once created."
+      );
+    }
+
+    // Disallow modifications if under review
+    if (dealSite.status === "on-hold") {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "You cannot modify this public access page while it is under review (on hold)."
+      );
+    }
+
+    // ✅ Supported sections list
+    const allowedSections = [
+      "brandingSeo",
+      "theme",
+      "inspectionSettings",
+      "socialLinks",
+      "contactVisibility",
+      "featureSelection",
+      "marketplaceDefaults",
+      "publicPage",
+      "footerSection",
+      "paymentDetails",
+      "about",
+      "contactUs",
+    ];
+
+    if (!allowedSections.includes(sectionName)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        `Invalid section name. Allowed sections: ${allowedSections.join(", ")}`
+      );
+    }
+
+    // ✅ Handle grouped flat fields (branding-seo)
+  if (sectionName === "brandingSeo") {
+    const brandingFields = [
+      "title",
+      "keywords",
+      "description",
+      "logoUrl",
+      "listingsLimit",
+    ];
+
+    for (const key of Object.keys(updates)) {
+      if (!brandingFields.includes(key)) {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          `Invalid field '${key}' for branding seo section. Allowed: ${brandingFields.join(", ")}`
+        );
+      }
+
+      // directly update flat field
+      (dealSite as any)[key] = updates[key];
+    }
+  } else {
+    // ✅ For nested/grouped sections, merge the updates
+    (dealSite as any)[sectionName] = {
+      ...(dealSite as any)[sectionName],
+      ...updates,
+    };
+  }
+
+    await dealSite.save();
+    return dealSite;
+  }
+
+
+
   /**
    * Delete a DealSite permanently
    */
