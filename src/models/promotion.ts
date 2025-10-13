@@ -51,7 +51,7 @@ export class Promotion {
           enum: ["active", "inactive", "expired", "draft"],
           default: "draft",
         },
-        createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
+        createdBy: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
       },
       { timestamps: true }
     );

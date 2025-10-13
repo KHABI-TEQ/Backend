@@ -27,7 +27,7 @@ export class PromotionService {
   async getPromotionById(id: string) {
     const promo = await DB.Models.Promotion.findById(id).populate(
       "createdBy",
-      "name email"
+      "firstName lastName email"
     );
     return promo; // Return null if not found (handled in controller)
   }
@@ -62,7 +62,7 @@ export class PromotionService {
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("createdBy", "name email");
+      .populate("createdBy", "firstName lastName email");
 
     const total = await DB.Models.Promotion.countDocuments(query);
 
