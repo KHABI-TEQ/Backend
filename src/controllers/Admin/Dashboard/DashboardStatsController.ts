@@ -99,7 +99,7 @@ export class DashboardStatsController {
         const { filter = "365days", startDate, endDate } = req.query;
 
         // ✅ Validate filter
-        const validFilters: TimeFilter[] = ["7days", "30days", "365days", "range"];
+        const validFilters: TimeFilter[] = ["7days", "30days", "90days", "365days", "range"];
         if (!validFilters.includes(filter as TimeFilter)) {
         res.status(400).json({
             success: false,

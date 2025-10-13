@@ -5,7 +5,6 @@ import { AppRequest } from "../../../types/express";
 import { formatPropertyDataForTable } from "../../../utils/propertyFormatters";
 import type { PipelineStage } from "mongoose";
 
-
 export const getAllProperties = async (
   req: AppRequest,
   res: Response,
@@ -96,7 +95,17 @@ export const getAllProperties = async (
       },
       { $unwind: "$owner" },
       { $match: matchStage },
-      { $sort: { createdAt: -1 } },
+
+      // ✅ Sort so that approved properties come first, then by creation date (desc)
+      {
+        $addFields: {
+          sortPriority: {
+            $cond: [{ $eq: ["$status", "approved"] }, 1, 0],
+          },
+        },
+      },
+      { $sort: { sortPriority: -1, createdAt: -1 } },
+
       {
         $facet: {
           data: [{ $skip: skip }, { $limit: limit }],
@@ -124,6 +133,7 @@ export const getAllProperties = async (
     next(err);
   }
 };
+
 
 export const getPropertyStats = async (
   req: AppRequest,

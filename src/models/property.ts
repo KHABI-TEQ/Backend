@@ -108,7 +108,7 @@ export interface IProperty {
   createdAt?: Date;
   updatedAt?: Date;
 }
-
+ 
 export interface IPropertyDoc extends IProperty, Document {}
 
 export type IPropertyModel = Model<IPropertyDoc>;

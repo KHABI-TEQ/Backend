@@ -27,7 +27,7 @@ DealSiteRouter.delete("/delete-single-file", deleteFileFromCloudinary);
 
 // get and validate deal site 
 DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);
-
+ 
 // get and validate deal site
 DealSiteRouter.get("/:publicSlug/featuredProperties", getFeaturedProperties);
 

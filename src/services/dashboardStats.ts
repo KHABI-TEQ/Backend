@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import { DB } from "../controllers";
 import { AnalyticsStats, BookingStats, InspectionStats, OverviewStats, PreferenceStats, PropertyStats, ReferralStats, SubscriptionStats, TransactionStats, UserStats } from "../types/dashboardStats";
 
-export type TimeFilter = "7days" | "30days" | "365days" | "range";
+export type TimeFilter = "7days" | "30days" | "90days" | "365days" | "range";
 
 export interface DateRange {
   startDate: Date;
@@ -176,6 +176,9 @@ export class DashboardStatsService {
         break;
       case "30days":
         startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case "90days":
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
         break;
       case "365days":
         startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);

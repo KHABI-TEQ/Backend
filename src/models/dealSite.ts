@@ -5,7 +5,7 @@ export type InspectionStatus = "required" | "optional" | "disabled";
 export type FeatureSelectionMode = "auto" | "manual";
 export type DefaultTab = "buy" | "rent" | "shortlet" | "jv";
 export type DefaultSort = "newest" | "price-asc" | "price-desc";
-
+ 
 export interface IDealSite {
   publicSlug: string;
   title: string;
@@ -67,7 +67,7 @@ export interface IDealSite {
     ctaLink: string;
     heroImageUrl: string;
   };
-
+ 
   paymentDetails?: {
     subAccountCode?: string;
     businessName?: string;

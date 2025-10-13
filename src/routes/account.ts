@@ -131,7 +131,7 @@ AccountRouter.post("/dealSite/slugAvailability", checkSlugAvailability);
 AccountRouter.get("/dealSite/bankList", bankList);
 AccountRouter.get("/dealSite/details", getDealSiteDetailsByUser);
 AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
-AccountRouter.put("/dealSite/:publicSlug/update", updateDealSite);
+AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);
 AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
 AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
 AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);

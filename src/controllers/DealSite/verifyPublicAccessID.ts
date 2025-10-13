@@ -4,7 +4,7 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DealSiteService } from "../../services/dealSite.service";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
-
+ 
 
 // Allowed keys from DealSite
 const allowedSections = [

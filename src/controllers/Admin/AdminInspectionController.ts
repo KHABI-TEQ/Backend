@@ -84,7 +84,7 @@ export class AdminInspectionController {
           path: "transaction",
           model: "newTransaction",
           select: "-__v -paymentDetails",
-          match: { status: { $ne: "pending" } }, // exclude pending
+          match: { status: { $nin: ["pending", "failed"] } }, // exclude pending and failed
         })
         .populate({
           path: "assignedFieldAgent",
