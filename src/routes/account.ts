@@ -71,15 +71,15 @@ AccountRouter.get("/validatePublicAccess/", validateAgentPublicAccess);
 AccountRouter.post("/properties/create", postProperty);
 
 // Property page → requires "POST_PROPERTY"
-AccountRouter.post(
-  "/properties/create",
-  agentSubscriptionFeatureChecker({
-    requireActiveSubscription: true,
-    requiredFeatureKey: "LISTINGS",
-    allowedUserTypes: ["Agent", "Landowners"]
-  }),
-  postProperty
-);
+// AccountRouter.post(
+//   "/properties/create",
+//   agentSubscriptionFeatureChecker({
+//     requireActiveSubscription: true,
+//     requiredFeatureKey: "LISTINGS",
+//     allowedUserTypes: ["Agent", "Landowners"]
+//   }),
+//   postProperty
+// );
 
 // Preference page → requires "POST_PREFERENCE_PROPERTY"
 AccountRouter.post(
