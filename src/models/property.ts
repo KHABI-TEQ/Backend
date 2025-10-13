@@ -84,6 +84,8 @@ export interface IProperty {
     | "pending"
     | "deleted"
     | "flagged"
+    | "available"
+    | "unavailable"
     | "sold"
     | "active"
     | "contingent"
@@ -205,6 +207,8 @@ export class Property {
             "approved",
             "pending",
             "deleted",
+            "available",
+            "unavailable",
             "flagged",
             "sold",
             "active",

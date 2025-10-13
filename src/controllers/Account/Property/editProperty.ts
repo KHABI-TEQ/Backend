@@ -75,18 +75,17 @@ export const updatePropertyStatus = async (
     }
 
     // Only admin can update status
-    if (req.user.role !== "admin") {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Only admin can update status",
-      );
-    }
+    // if (req.user.role !== "admin") {
+    //   throw new RouteError(
+    //     HttpStatusCodes.FORBIDDEN,
+    //     "Only admin can update status",
+    //   );
+    // }
 
-    property.status = status;
-    property.reason = reason || property.reason;
-
+    
     const inactiveStatuses = [
       "withdrawn",
+      "unavailable",
       "expired",
       "coming_soon",
       "under_contract",
@@ -101,13 +100,17 @@ export const updatePropertyStatus = async (
       "deleted",
     ];
 
-    const activeStatuses = ["approved", "active", "back_on_market", "pending"];
+    const activeStatuses = ["approved", "available", "active", "back_on_market", "pending"];
 
     if (inactiveStatuses.includes(status)) {
       property.isAvailable = false;
     } else if (activeStatuses.includes(status)) {
       property.isAvailable = true;
     }
+
+    property.status = status;
+    property.reason = reason || property.reason;
+
 
     await property.save();
 

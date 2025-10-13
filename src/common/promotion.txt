@@ -195,3 +195,97 @@ interface DeletePromotionResponse {
     status: string;
   };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+// ==========================================
+// FRONTEND/PUBLIC API PAYLOADS
+// ==========================================
+
+// 8. GET ACTIVE PROMOTIONS
+// GET /promotions/active?type=banner&limit=3
+interface GetActivePromotionsQuery {
+  type?: "banner" | "sidebar" | "popup" | "carousel" | "inline";
+  limit?: string; // default: "3", max: "10"
+}
+
+interface GetActivePromotionsResponse {
+  success: true;
+  message: "Active promotions fetched successfully";
+  data: Array<{
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    isFeatured: boolean;
+    tags: string[];
+    views: number;
+    clicks: number;
+  }>;
+}
+
+
+// 10. GET FEATURED PROMOTIONS
+// GET /promotions/featured?limit=5
+interface GetFeaturedPromotionsResponse {
+  success: true;
+  message: "Featured promotions fetched successfully";
+  data: Array<{
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    isFeatured: true;
+    tags: string[];
+    views: number;
+    clicks: number;
+  }>;
+}
+
+
+// 13. LOG PROMOTION CLICK
+// POST /promotions/click
+interface LogPromotionClickRequest {
+  promotionId: string;
+}
+
+const logClickPayload: LogPromotionClickRequest = {
+  promotionId: "60f7b3b3b3b3b3b3b3b3b3b3"
+};
+
+interface LogPromotionClickResponse {
+  success: true;
+  message: "Click logged successfully";
+}
+
+// 14. LOG PROMOTION VIEWS (BATCH)
+// POST /promotions/views
+interface LogPromotionViewsRequest {
+  promotionIds: string[];
+}
+
+const logViewsPayload: LogPromotionViewsRequest = {
+  promotionIds: [
+    "60f7b3b3b3b3b3b3b3b3b3b3",
+    "60f7b3b3b3b3b3b3b3b3b3b4",
+    "60f7b3b3b3b3b3b3b3b3b3b5"
+  ]
+};
+
+interface LogPromotionViewsResponse {
+  success: true;
+  message: "Views logged successfully";
+}
