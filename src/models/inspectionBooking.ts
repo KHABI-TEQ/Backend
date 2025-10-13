@@ -6,7 +6,7 @@ export interface IInspectionBooking {
   bookedByModel: string;
   inspectionDate: Date;
   inspectionTime: string;
-
+ 
   status:
     | "pending_transaction"
     | "transaction_failed"

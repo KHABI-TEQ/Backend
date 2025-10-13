@@ -140,30 +140,15 @@ export const fetchUserSubscriptions = async (
     };
     const userId = req.user?._id;
 
-    const filters: any = { user: userId };
+    const filters: any = { 
+      user: userId,
+      status: { $nin: ["pending"] },
+    };
     if (status) filters.status = status;
 
     // pagination
     const skip = (Number(page) - 1) * Number(limit);
     const perPage = Number(limit);
-
-    // fetch subscriptions with transactions + plans
-    // const subscriptions = await UserSubscriptionSnapshotService.querySnapshots(filters, {
-    //   sort: { createdAt: -1 },
-    //   skip,
-    //   limit: perPage,
-    // }).populate([
-    //   {
-    //     path: "transaction",
-    //     model: "NewTransaction",
-    //     select: "reference amount status transactionType paymentMode",
-    //   },
-    //   {
-    //     path: "planDetails",
-    //     model: "SubscriptionPlan",
-    //     select: "name code",
-    //   },
-    // ]);
 
     const subscriptions = await UserSubscriptionSnapshotService.querySnapshots(filters, {
       sort: { createdAt: -1 },

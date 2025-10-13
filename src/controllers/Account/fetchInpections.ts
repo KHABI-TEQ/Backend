@@ -24,6 +24,7 @@ export const fetchUserInspections = async (
 
     const filter: any = {
       owner: req.user._id,
+      status: { $nin: ["pending_transaction", "transaction_failed"] },
     };
 
     if (status) filter.status = status;
@@ -32,7 +33,7 @@ export const fetchUserInspections = async (
     if (inspectionStatus) filter.inspectionStatus = inspectionStatus;
     if (stage) filter.stage = stage;
     if (propertyId) filter.propertyId = propertyId;
-
+ 
     const inspections = await DB.Models.InspectionBooking.find(filter)
       .populate("propertyId")
       .populate("transaction")
@@ -98,7 +99,12 @@ export const getInspectionStats = async (
   try {
     const userId = req.user._id;
 
-    const baseFilter = { owner: userId };
+    // 🚫 Exclude unwanted statuses globally
+    const excludedStatuses = ["pending_transaction", "transaction_failed"];
+    const baseFilter = {
+      owner: userId,
+      status: { $nin: excludedStatuses },
+    };
 
     const [
       totalInspections,
@@ -113,7 +119,6 @@ export const getInspectionStats = async (
         ...baseFilter,
         status: {
           $in: [
-            "pending_transaction",
             "inspection_rescheduled",
             "inspection_approved",
             "active_negotiation",

@@ -62,6 +62,8 @@ export const fetchAllProperties = async (
       owner: req.user._id,
     };
 
+    filter.isDeleted = false;
+
     if (status) filter.status = status;
     if (propertyType) filter.propertyType = propertyType;
     if (propertyCategory) filter.propertyCategory = propertyCategory;
@@ -75,7 +77,7 @@ export const fetchAllProperties = async (
       if (priceMin) filter.price.$gte = Number(priceMin);
       if (priceMax) filter.price.$lte = Number(priceMax);
     }
-
+ 
     const properties = await DB.Models.Property.find(filter)
       .populate("owner")
       .skip((Number(page) - 1) * Number(limit))
