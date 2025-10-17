@@ -20,7 +20,7 @@ export interface IUser {
   isDeleted: boolean;
   accountApproved: boolean; // For Agents
   accountStatus: "active" | "inactive" | "deleted";
-  
+   
   userType: "Landowners" | "Agent" | "FieldAgent";
   isFlagged: boolean;
   accountId: string;

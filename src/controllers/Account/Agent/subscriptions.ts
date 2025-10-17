@@ -25,6 +25,18 @@ export const createSubscription = async (
     const { planCode, autoRenewal } = req.body;
     const userId = req.user?._id;
 
+    // 1. Attempt to locate the agent account for this user
+    const agentAccount = await DB.Models.Agent.findOne({ userId });
+
+    if (!agentAccount) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Only registered agents can create subscriptions.");
+    }
+
+    if (agentAccount.kycStatus !== "approved") {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Your agent account must be approved before creating a subscription.");
+    }
+
+
     if (!planCode) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Plan code is required");
     } 
