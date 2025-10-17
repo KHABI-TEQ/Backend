@@ -1,127 +1,264 @@
-import { Document, model, Model, ObjectId, Schema } from "mongoose";
-
-export interface IProperty {
-	propertyType: string;
-	propertyCondition: string;
-	location: {
-		state: string;
-		localGovernment: string;
-		area: string;
-	};
-	briefType: string;
-	price: number;
-	landSize?: {
-		measurementType: string;
-		size: number;
-	};
-	features?: string[];
-	tenantCriteria?: string[];
-	owner: ObjectId; //ref to User
-	areYouTheOwner?: boolean;
-	isAvailable?: string;
-	budgetRange?: string;
-	pictures?: string[];
-	isApproved?: boolean;
-	isRejected?: boolean;
-	docOnProperty: {
-		docName: string;
-		isProvided: boolean;
-	}[];
-	additionalFeatures: {
-		noOfBedrooms: number;
-		noOfBathrooms: number;
-		noOfToilets: number;
-		noOfCarParks: number;
-		additionalFeatures: string[];
-	};
-	buildingType?: string;
-	additionalInfo?: string;
-	isPreference: boolean;
-	budgetMin?: number;
-	budgetMax?: number;
-	isPremium?: boolean;
-	preferenceFeeTransaction?: {
-		accountName: string;
-		transactionReciept: string;
-	};
+import { Document, model, Model, Types, Schema } from "mongoose";
+  
+export interface IBookedPeriod {
+  bookingId: Types.ObjectId;
+  checkInDateTime: Date;
+  checkOutDateTime: Date;
 }
-
+ 
+export interface IProperty {  
+  propertyType: string;
+  propertyCategory: string;
+  propertyCondition?: string;
+  typeOfBuilding?: string;
+  rentalType?: string;
+  shortletDuration?: string;
+  holdDuration?: string;
+  price?: number;
+  location?: {
+    state?: string;
+    localGovernment?: string;
+    area?: string;
+    streetAddress?: string;
+  }; 
+  landSize?: {
+    measurementType?: string;
+    size?: number;
+  };
+  docOnProperty?: {
+    docName?: string;
+    isProvided?: boolean;
+  }[];
+  owner: Types.ObjectId;                // ID of the owner
+  ownerModel: "User" | "Admin";         // tells Mongoose which collection
+  createdByRole: "user" | "admin"; 
+  areYouTheOwner: boolean;
+  leaseHold?: string;
+  features?: string[];
+  tenantCriteria?: string[];
+  rentalConditions?: {
+    conditions?: string[];
+    tenantGenderPreference?: string;
+  };
+  additionalFeatures?: {
+    noOfBedroom?: number;
+    noOfBathroom?: number;
+    noOfToilet?: number;
+    noOfCarPark?: number;
+  };
+  jvConditions?: string[];
+  shortletDetails?: {
+    streetAddress?: string;
+    maxGuests?: number;
+    availability?: { 
+      minStay: number 
+    };
+    pricing?: { 
+      nightly: number; 
+      weeklyDiscount?: number; 
+      monthlyDiscount?: number; 
+      cleaningFee?: number; 
+      securityDeposit: number; 
+    };
+    houseRules?: { 
+      checkIn: string; 
+      checkOut: string, 
+      smoking?: boolean; 
+      pets?: boolean; 
+      parties?: boolean; 
+      otherRules?: string 
+    };
+    cancellationPolicy?: string;
+  };
+  pictures?: string[];
+  videos?: string[];
+  employmentType?: string;
+  tenantGenderPreferences?: string;
+  description?: string;
+  addtionalInfo?: string;
+  isTenanted?: string;
+  isAvailable?: boolean;
+  status:
+    | "rejected"
+    | "approved"
+    | "pending"
+    | "deleted"
+    | "flagged"
+    | "available"
+    | "unavailable"
+    | "sold"
+    | "active"
+    | "contingent"
+    | "under_contract"
+    | "coming_soon"
+    | "expired"
+    | "withdrawn"
+    | "cancelled"
+    | "back_on_market"
+    | "temporarily_off_market"
+    | "hold"
+    | "failed"
+    | "never_listed"
+    | "booked";
+  reason?: string;
+  briefType: string;
+  isPremium: boolean;
+  isApproved?: boolean;
+  isDeleted?: boolean;
+  isRejected?: boolean;
+  bookedPeriods?: IBookedPeriod[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+ 
 export interface IPropertyDoc extends IProperty, Document {}
 
 export type IPropertyModel = Model<IPropertyDoc>;
-
+  
 export class Property {
-	private propertyModel: Model<IPropertyDoc>;
+  private propertyModel: Model<IPropertyDoc>;
 
-	constructor() {
-		const schema = new Schema(
-			{
-				propertyType: {
-					type: String,
-				},
-				propertyCondition: {
-					type: String,
-				},
-				location: {
-					state: { type: String },
-					localGovernment: { type: String },
-					area: { type: String },
-				},
-				briefType: { type: String },
-				price: { type: Number },
-				landSize: {
-					measurementType: { type: String },
-					size: { type: Number },
-				},
-				features: [{ type: String }],
-				tenantCriteria: [{ type: String }],
-				owner: { type: Schema.Types.ObjectId, ref: "User" }, //ref to User
-				areYouTheOwner: { type: Boolean, default: false },
-				isAvailable: { type: String, default: "yes" },
-				budgetRange: { type: String },
-				pictures: [{ type: String }],
-				isApproved: { type: Boolean, default: false },
-				isRejected: { type: Boolean, default: false },
-				docOnProperty: [
-					{
-						docName: {
-							type: String,
-						},
-						isProvided: {
-							type: Boolean,
-							default: false,
-						},
-					},
-				],
-				additionalFeatures: {
-					noOfBedrooms: { type: Number },
-					noOfBathrooms: { type: Number },
-					noOfToilets: { type: Number },
-					noOfCarParks: { type: Number },
-					additionalFeatures: [{ type: String }],
-				},
-				buildingType: { type: String },
-				additionalInfo: { type: String },
-				isPreference: { type: Boolean, default: false },
-				
-				budgetMin: { type: Number },
-				budgetMax: { type: Number },
-				isPremium: { type: Boolean, default: false },
-				preferenceId: { type: Schema.Types.ObjectId, ref: 'Preference'},
-				preferenceFeeTransaction: {
-					accountName: { type: String },
-					transactionReciept: { type: String },
-				},
-			},
-			{
-				timestamps: true,
-			}
-		);
+  constructor() {
 
-		this.propertyModel = model<IPropertyDoc>("Property", schema);
-	}
+    const schema = new Schema<IPropertyDoc>(
+      {
+        propertyType: { type: String, required: true },
+        propertyCategory: { type: String },
+        propertyCondition: { type: String },
+        typeOfBuilding: { type: String },
+        rentalType: { type: String },
+        shortletDuration: { type: String },
+        holdDuration: { type: String },
+        price: { type: Number },
+        location: {
+          state: { type: String },
+          localGovernment: { type: String },
+          area: { type: String },
+          streetAddress: { type: String },
+        },
+        landSize: {
+          measurementType: { type: String },
+          size: { type: Number },
+        }, 
+        docOnProperty: [
+          {
+            docName: { type: String },
+            isProvided: { type: Boolean },
+          },
+        ],
+        owner: { 
+          type: Schema.Types.ObjectId, 
+          required: true, 
+          refPath: "ownerModel"
+        },
+        ownerModel: {
+          type: String,
+          required: true,
+          enum: ["User", "Admin"],
+        },
+        areYouTheOwner: { type: Boolean, required: true },
+        features: [{ type: String }],
+        leaseHold: { type: String },
+        tenantCriteria: [{ type: String }],
+        rentalConditions: {
+          conditions: [{ type: String }],
+          tenantGenderPreference: { type: String },
+        },
+        additionalFeatures: {
+          noOfBedroom: { type: Number, default: 0 },
+          noOfBathroom: { type: Number, default: 0 },
+          noOfToilet: { type: Number, default: 0 },
+          noOfCarPark: { type: Number, default: 0 },
+        },
+        jvConditions: [{ type: String }],
+        shortletDetails: {
+          streetAddress: { type: String },
+          maxGuests: { type: Number },
+          availability: {
+            minStay: { type: Number },
+          },
+          pricing: {
+            nightly: { type: Number, default: 0 },
+            weeklyDiscount: { type: Number, default: 0 },
+            monthlyDiscount: { type: Number, default: 0 },
+            cleaningFee: { type: Number, default: 0 },
+            securityDeposit: { type: Number, default: 0 },
+          },
+          houseRules: {
+            checkIn: { type: String },
+            checkOut: { type: String },
+            smoking: { type: Boolean, default: false },
+            pets: { type: Boolean, default: false },
+            parties: { type: Boolean, default: false },
+            otherRules: { type: String },
+          },
+          cancellationPolicy: { type: String },
+        },
+        pictures: [{ type: String }],
+        videos: [{ type: String }],
+        description: { type: String },
+        addtionalInfo: { type: String },
+        isTenanted: { type: String, enum: ["yes", "no", "i-live-in-it"], default: "no" },
+        isAvailable: { type: Boolean, default: false },
+        status: {
+          type: String,
+          enum: [
+            "rejected",
+            "approved",
+            "pending",
+            "deleted",
+            "available",
+            "unavailable",
+            "flagged",
+            "sold",
+            "active",
+            "contingent",
+            "under_contract",
+            "coming_soon",
+            "expired",
+            "withdrawn",
+            "cancelled",
+            "back_on_market",
+            "temporarily_off_market",
+            "hold",
+            "failed",
+            "never_listed",
+            "booked"
+          ],
+          default: "pending",
+          required: true,
+        },
+        reason: { type: String },
+        employmentType: { type: String },
+        tenantGenderPreferences: { type: String },
+        briefType: { type: String },
+        isPremium: { type: Boolean, default: false },
+        isApproved: { type: Boolean, default: false },
+        isRejected: { type: Boolean, default: false },
+        isDeleted: { type: Boolean, default: false },
+        createdByRole: {
+          type: String,
+          enum: ["user", "admin"],
+          required: true,
+        },
+        bookedPeriods: {
+          type: [
+            {
+              bookingId: { type: Schema.Types.ObjectId, ref: "Booking" },
+              checkInDateTime: { type: Date, default: null },
+              checkOutDateTime: { type: Date, default: null },
+            },
+          ],
+          default: [],
+        },
+      },
+      { timestamps: true },
+    );
+ 
+    this.propertyModel = model<IPropertyDoc>("Property", schema);
+  }
 
-	public get model(): Model<IPropertyDoc> {
-		return this.propertyModel;
-	}
+  public get model(): Model<IPropertyDoc> {
+    return this.propertyModel;
+  }
 }

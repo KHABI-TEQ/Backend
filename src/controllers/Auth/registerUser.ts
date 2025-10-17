@@ -1,22 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { DB } from '..';
+import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
-import { verifyEmailTemplate } from "../../common/email.template";
-import { generalTemplate } from "../../common/email.template";
+import { verifyEmailTemplate, generalTemplate } from "../../common/email.template";
 import sendEmail from "../../common/send.email";
-import { generateUniqueAccountId } from "../../utils/generateUniqueAccountId";
+import { generateUniqueAccountId, generateUniqueReferralCode } from "../../utils/generateUniqueAccountId";
+import { referralService } from "../../services/referral.service";
+import { Types } from "mongoose";
+import { SystemSettingService } from "../../services/systemSetting.service";
 
 /**
  * Traditional Registration
- * @param req 
- * @param res 
- * @param next 
- * @returns 
  */
-export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
+export const registerUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     const {
       firstName,
@@ -30,29 +32,39 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
     } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
-    const existingUser = await DB.Models.User.findOne({ email: normalizedEmail });
+    const existingUser = await DB.Models.User.findOne({
+      email: normalizedEmail,
+    });
 
     if (existingUser) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Account already exists with this email.");
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Account already exists with this email.",
+      );
     }
 
     let referrerUser = null;
 
     if (referralCode) {
-      referrerUser = await DB.Models.User.findOne({ referralCode });
+      referrerUser = await DB.Models.User.findOne({
+        referralCode: referralCode,
+        accountStatus: "active",
+        isAccountVerified: true,
+        isDeleted: false,
+      });
 
       if (!referrerUser) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid referral code.");
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Invalid or inactive referral code.",
+        );
       }
-    }
+    } 
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const accountId = await generateUniqueAccountId();
+    const generateReferralCode = await generateUniqueReferralCode();
 
-    // Generate unique referral code for this new user
-    const selfReferralCode = crypto.randomBytes(6).toString("hex").toUpperCase();
-
-    // Create the new user
     const newUser = await DB.Models.User.create({
       firstName,
       lastName,
@@ -62,8 +74,8 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       phoneNumber,
       address,
       accountId,
-      referralCode: selfReferralCode,
-      referredBy: referrerUser?.referralCode || null,
+      referralCode: generateReferralCode,
+      referredBy: referralCode,
       isAccountInRecovery: false,
       profile_picture: "",
       isInActive: false,
@@ -74,22 +86,31 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       accountApproved: false,
     });
 
-    // If the user is an agent, create agent profile
     if (userType === "Agent") {
-      await DB.Models.Agent.create({ userId: newUser._id, accountStatus: "active" });
-    }
-
-    // If referred, log referral relationship
-    if (referrerUser) {
-      await DB.Models.Referral.create({
-        referrer: referrerUser._id,
-        referredUser: newUser._id,
-        referrerUserType: referrerUser.userType,
-        status: "pending",
+      await DB.Models.Agent.create({
+        userId: newUser._id,
+        accountStatus: "inactive",
       });
     }
 
-    // Email verification
+    const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
+    if (referralStatusSettings?.value) {
+      const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
+      // ✅ Log the referral if valid
+      if (referrerUser && newUser) {
+        await referralService.createReferralLog({
+          referrerId: new Types.ObjectId(referrerUser._id as Types.ObjectId),
+          referredUserId: new Types.ObjectId(newUser._id as Types.ObjectId),
+          rewardType: "registration_bonus",
+          triggerAction: "user_signup",
+          note: "Referral at account registration",
+          rewardStatus: "pending",
+          rewardAmount: referralRegisteredPoints?.value || 0
+        });
+      } 
+    }
+
+    // Generate and send email verification link
     const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
 
@@ -114,7 +135,6 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
       success: true,
       message: "Account created successfully. Please verify your email.",
     });
-
   } catch (err: any) {
     console.error("Registration Error:", err.message);
     next(err);

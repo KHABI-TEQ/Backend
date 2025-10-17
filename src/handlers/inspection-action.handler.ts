@@ -1,10 +1,17 @@
-import { InspectionActionData, ActionResult, EmailData, UpdateData, AcceptUpdateData, RejectUpdateData, CounterUpdateData, RequestChangesUpdateData } from "../types/inspection.types";
+import {
+  InspectionActionData,
+  ActionResult,
+  EmailData,
+  AcceptUpdateData,
+  RejectUpdateData,
+  CounterUpdateData,
+} from "../types/inspection.types";
 
 export class InspectionActionHandler {
   private generateInspectionLinks(
     inspectionId: string,
     buyerId: string,
-    ownerId: string
+    ownerId: string,
   ) {
     const clientLink = process.env.CLIENT_LINK || "http://localhost:3000";
     const inspectionIdStr = inspectionId.toString();
@@ -27,7 +34,7 @@ export class InspectionActionHandler {
     dateTimeChanged: boolean,
     inspectionId: string,
     buyerId: string,
-    ownerId: string
+    ownerId: string,
   ): ActionResult {
     switch (actionData.action) {
       case "accept":
@@ -64,22 +71,11 @@ export class InspectionActionHandler {
           ownerId,
         );
 
-      case "request_changes":
-        return this.handleRequestChanges(
-          actionData,
-          inspection,
-          senderName,
-          dateTimeChanged,
-          inspectionId,
-          buyerId,
-          ownerId,
-        );
-
       default:
         throw new Error("Invalid action");
     }
   }
- 
+
   private handleAccept(
     actionData: InspectionActionData,
     inspection: any,
@@ -89,51 +85,69 @@ export class InspectionActionHandler {
     buyerId: string,
     ownerId: string,
   ): ActionResult {
-    // Determine stage based on current stage and date/time presence
-    let stage: "inspection" | "completed";
-    
-    if (inspection.stage === "inspection") {
-      // If already in inspection stage, move to completed
-      stage = "completed";
-    } else {
-      // For both price and LOI: if no date/time in payload, go to completed; otherwise go to inspection
-      const hasDateTime = actionData.inspectionDate || actionData.inspectionTime;
-      stage = hasDateTime ? "inspection" : "completed";
-    }
-
     const update: AcceptUpdateData = {
       inspectionType: actionData.inspectionType,
       isLOI: actionData.inspectionType === "LOI",
       status: "negotiation_accepted",
-      inspectionStatus: "accepted",
+      inspectionStatus: dateTimeChanged ? "countered" : "accepted",
       isNegotiating: false,
-      stage,
-      pendingResponseFrom: undefined,
+      stage: "inspection",
+      pendingResponseFrom: actionData.userType === "buyer" ? "seller" : "buyer",
+      inspectionMode: actionData.inspectionMode,
     };
 
-    const baseSubject = `${actionData.inspectionType === "price" ? "Price Offer" : "Letter of Intent"} Accepted`;
-    const emailSubject = dateTimeChanged ? `${baseSubject} – Inspection Date Updated` : baseSubject;
-    const logMessage = `${senderName} accepted the ${actionData.inspectionType} offer${dateTimeChanged ? " with updated inspection date/time" : ""}`;
+    const modeChanged = actionData.inspectionMode && actionData.inspectionMode !== inspection.inspectionMode;
 
-    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
-    
+    const baseSubject = `${
+      actionData.inspectionType === "price" ? "Price Offer" : "Letter of Intent"
+    } Accepted`;
+
+    const emailSubject =
+      dateTimeChanged && modeChanged
+        ? `${baseSubject} – Inspection Date & Mode Updated`
+        : dateTimeChanged
+        ? `${baseSubject} – Inspection Date Updated`
+        : modeChanged
+        ? `${baseSubject} – Inspection Mode Updated`
+        : baseSubject;
+
+    const logMessage = `${senderName} accepted the ${actionData.inspectionType} offer${
+      dateTimeChanged && modeChanged
+        ? " with updated inspection date and mode"
+        : dateTimeChanged
+        ? " with updated inspection date/time"
+        : modeChanged
+        ? " with updated inspection mode"
+        : ""
+    }`;
+
+    const respLink = this.generateInspectionLinks(
+      inspectionId,
+      buyerId,
+      ownerId,
+    );
+
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
       location: (inspection.propertyId as any).location,
       price: (inspection.propertyId as any).price,
       negotiationPrice: inspection.negotiationPrice,
       inspectionDateStatus: "available",
-      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
+      responseLink: actionData.userType == "buyer" ? respLink.sellerResponseLink : respLink.buyerResponseLink,
+      inspectionMode: actionData.inspectionMode,
+      modeChanged,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {
           newDate: actionData.inspectionDate || inspection.inspectionDate,
           newTime: actionData.inspectionTime || inspection.inspectionTime,
         },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
+        oldDateTime: dateTimeChanged
+          ? {
+              newDate: inspection.inspectionDate,
+              oldTime: inspection.inspectionTime,
+            }
+          : undefined,
       },
     };
 
@@ -153,18 +167,39 @@ export class InspectionActionHandler {
       inspectionType: actionData.inspectionType,
       isLOI: actionData.inspectionType === "LOI",
       status: "negotiation_rejected",
-      inspectionStatus: "rejected",
+      inspectionStatus: dateTimeChanged ? "countered" : "accepted",
       isNegotiating: false,
-      stage: "cancelled",
-      reason: actionData.reason || actionData.rejectionReason,
-      pendingResponseFrom: undefined,
+      stage: "inspection",
+      reason: actionData.rejectionReason,
+      pendingResponseFrom: actionData.userType === "buyer" ? "seller" : "buyer",
+      inspectionMode: actionData.inspectionMode,
     };
 
-    const baseSubject = `${actionData.inspectionType === "price" ? "Price Offer" : "Letter of Intent"} Rejected`;
-    const emailSubject = dateTimeChanged ? `${baseSubject} – Inspection Date Updated` : baseSubject;
-    const logMessage = `${senderName} rejected the ${actionData.inspectionType} offer${update.reason ? `: ${update.reason}` : ""}`;
+    const modeChanged = actionData.inspectionMode && actionData.inspectionMode !== inspection.inspectionMode;
 
-    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
+    const baseSubject = actionData.inspectionType === "price" ? "Price Offer Rejected" : "Letter of Intent Rejected";
+
+    const emailSubject =
+      dateTimeChanged && modeChanged
+        ? `${baseSubject} – Inspection Date & Mode Updated`
+        : dateTimeChanged
+        ? `${baseSubject} – Inspection Date Updated`
+        : modeChanged
+        ? `${baseSubject} – Inspection Mode Updated`
+        : baseSubject;
+
+    const reasonSuffix = update.reason ? `: ${update.reason}` : "";
+
+    const logMessage = `${senderName} rejected the ${actionData.inspectionType} offer${reasonSuffix}${
+      dateTimeChanged || modeChanged ? ` and updated inspection ${dateTimeChanged && modeChanged ? "date and mode" : dateTimeChanged ? "date" : "mode"}` : ""
+    }`;
+
+
+    const respLink = this.generateInspectionLinks(
+      inspectionId,
+      buyerId,
+      ownerId,
+    );
 
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
@@ -173,19 +208,25 @@ export class InspectionActionHandler {
       reason: update.reason,
       checkLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
         .checkLink,
-      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
-      rejectLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).rejectLink,
-      browseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId).browseLink,
+      responseLink: actionData.userType == "buyer" ? respLink.sellerResponseLink : respLink.buyerResponseLink,
+      rejectLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
+        .rejectLink,
+      browseLink: this.generateInspectionLinks(inspectionId, buyerId, ownerId)
+        .browseLink,
+      inspectionMode: actionData.inspectionMode,
+      modeChanged,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {
           newDate: actionData.inspectionDate || inspection.inspectionDate,
           newTime: actionData.inspectionTime || inspection.inspectionTime,
         },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
+        oldDateTime: dateTimeChanged
+          ? {
+              newDate: inspection.inspectionDate,
+              oldTime: inspection.inspectionTime,
+            }
+          : undefined,
       },
     };
 
@@ -202,29 +243,59 @@ export class InspectionActionHandler {
     buyerId: string,
     ownerId: string,
   ): ActionResult {
+    // Increment the counterCount. If it doesn't exist, initialize to 1.
+    const newCounterCount = (inspection.counterCount || 0) + 1;
+ 
     const update: CounterUpdateData = {
       inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
+      isLOI: false,
       status: "negotiation_countered",
-      inspectionStatus: "countered",
+      inspectionStatus: dateTimeChanged ? "countered" : "accepted",
       isNegotiating: true,
       pendingResponseFrom: isSeller ? "buyer" : "seller",
-      stage: "negotiation", // Always negotiation for counter offers
+      stage:
+      inspection.stage === "inspection"
+      ? "inspection"
+      : typeof actionData.counterPrice === "number" &&
+        !isNaN(actionData.counterPrice) &&
+        actionData.counterPrice > 0
+      ? "negotiation"
+      : inspection.stage || "inspection",
+      counterCount: newCounterCount,
+      inspectionMode: actionData.inspectionMode,
     };
 
     let logMessage = "";
+
+    const modeChanged = actionData.inspectionMode && actionData.inspectionMode !== inspection.inspectionMode;
+
     if (actionData.inspectionType === "price") {
-      update.negotiationPrice = actionData.counterPrice;
-      logMessage = `${senderName} made a counter offer of ₦${actionData.counterPrice?.toLocaleString()}${dateTimeChanged ? " and updated inspection date/time" : ""}`;
-    } else {
-      update.letterOfIntention = actionData.documentUrl;
-      logMessage = `${senderName} uploaded a new LOI document${dateTimeChanged ? " and updated inspection date/time" : ""}`;
+      if (typeof actionData.counterPrice === "number" && !isNaN(actionData.counterPrice)) {
+        update.negotiationPrice = actionData.counterPrice;
+        logMessage = `${senderName} made counter offer #${newCounterCount} of ₦${actionData.counterPrice.toLocaleString()}${dateTimeChanged ? " and updated inspection date/time" : ""}${modeChanged ? " and changed inspection mode" : ""}`;
+      } else if (dateTimeChanged || modeChanged) {
+        logMessage = `${senderName} countered with${dateTimeChanged ? " updated inspection date/time" : ""}${modeChanged ? (dateTimeChanged ? " and" : "") + " changed inspection mode" : ""}`;
+      } else {
+        logMessage = `${senderName} initiated a counter without price or schedule change`; // fallback
+      }
     }
 
-    const baseSubject = "Counter Offer Received";
-    const emailSubject = dateTimeChanged ? `${baseSubject} – New Inspection Time Proposed` : baseSubject;
+    const baseSubject = `Counter Offer #${newCounterCount} Received`;
 
-    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
+    const emailSubject =
+      dateTimeChanged && modeChanged
+        ? `${baseSubject} – New Inspection Time & Mode Proposed`
+        : dateTimeChanged
+        ? `${baseSubject} – New Inspection Time Proposed`
+        : modeChanged
+        ? `${baseSubject} – New Inspection Mode Proposed`
+        : baseSubject;
+
+    const respLink = this.generateInspectionLinks(
+      inspectionId,
+      buyerId,
+      ownerId,
+    );
 
     const emailData: EmailData = {
       propertyType: (inspection.propertyId as any).propertyType,
@@ -232,67 +303,27 @@ export class InspectionActionHandler {
       price: (inspection.propertyId as any).price,
       negotiationPrice: inspection.negotiationPrice,
       sellerCounterOffer: actionData.counterPrice,
-      documentUrl: actionData.documentUrl,
       inspectionDateStatus: "available",
-      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
+      inspectionMode: actionData.inspectionMode,
+      modeChanged,
+      responseLink:
+        actionData.userType == "buyer"
+          ? respLink.sellerResponseLink
+          : respLink.buyerResponseLink,
       inspectionDateTime: {
         dateTimeChanged,
         newDateTime: {
           newDate: actionData.inspectionDate || inspection.inspectionDate,
           newTime: actionData.inspectionTime || inspection.inspectionTime,
         },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
+        oldDateTime: dateTimeChanged
+          ? {
+              newDate: inspection.inspectionDate,
+              oldTime: inspection.inspectionTime,
+            }
+          : undefined,
       },
-    };
-
-    return { update, logMessage, emailSubject, emailData };
-  }
-
-  private handleRequestChanges(
-    actionData: InspectionActionData,
-    inspection: any,
-    senderName: string,
-    dateTimeChanged: boolean,
-    inspectionId: string,
-    buyerId: string,
-    ownerId: string,
-  ): ActionResult {
-    const update: RequestChangesUpdateData = {
-      inspectionType: actionData.inspectionType,
-      isLOI: actionData.inspectionType === "LOI",
-      status: "negotiation_countered",
-      inspectionStatus: "requested_changes",
-      reason: actionData.reason,
-      isNegotiating: false,
-      stage: "negotiation", // Changed from "LOI" to "negotiation" as per requirements
-      pendingResponseFrom: "buyer",
-    };
-
-    const baseSubject = "Changes Requested for Letter of Intent";
-    const emailSubject = dateTimeChanged ? `${baseSubject} – Inspection Date Updated` : baseSubject;
-    const logMessage = `${senderName} requested changes to the LOI: ${actionData.reason}${dateTimeChanged ? " and updated inspection date/time" : ""}`;
-
-    const respLink = this.generateInspectionLinks(inspectionId, buyerId, ownerId);
-
-    const emailData: EmailData = {
-      propertyType: (inspection.propertyId as any).propertyType,
-      location: (inspection.propertyId as any).location,
-      reason: actionData.reason,
-      responseLink: actionData.userType == 'buyer' ? respLink.sellerResponseLink : respLink.sellerResponseLink,
-      inspectionDateTime: {
-        dateTimeChanged,
-        newDateTime: {
-          newDate: actionData.inspectionDate || inspection.inspectionDate,
-          newTime: actionData.inspectionTime || inspection.inspectionTime,
-        },
-        oldDateTime: dateTimeChanged ? {
-          newDate: inspection.inspectionDate,
-          oldTime: inspection.inspectionTime,
-        } : undefined,
-      },
+      counterCount: newCounterCount, // Pass the counter count to email data
     };
 
     return { update, logMessage, emailSubject, emailData };

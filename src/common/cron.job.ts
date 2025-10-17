@@ -1,68 +1,389 @@
 import cron from 'node-cron';
 import { DB } from '../controllers';
-import moment from 'moment';
+import mongoose from 'mongoose';
+import { generalEmailLayout } from './emailTemplates/emailLayout';
+import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail, generateSubscriptionFailureEmail, generateAutoRenewReceiptEmail } from './emailTemplates/subscriptionMails';
+import sendEmail from './send.email';
+import { PaystackService } from '../services/paystack.service';
+import { kebabToTitleCase } from '../utils/helper';
 
-const InspectionSlotModel = DB.Models.InspectionSlot;
+// Example DB connect (adjust for your project setup)
+mongoose.connect(process.env.MONGO_URI as string);
 
-/**
- * 1. Cron Job to Create Slots 3-4 Days Before the Start of a New Month
- *    - Runs at 12 AM on the 27th, 28th, 29th, 30th, or 31st of the month.
- *    - Generates slots for the upcoming month (excluding the first 3 days).
- */
 
-function CronJob() {
-  cron.schedule('0 0 27 * *', async () => {
-    console.log('Creating slots for the next month...');
+// ───────────────────────────────
+// 1. DELETE OLD PENDING ITEMS
+// ───────────────────────────────
+const deleteOldPendingItems = async () => {
+  try {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
 
-    const today = moment();
-    const nextMonth = today.add(1, 'month').startOf('month'); // First day of next month
+    // 1️⃣ Delete pending transactions older than 2 days
+    const txResult = await DB.Models.NewTransaction.deleteMany({
+      status: 'pending',
+      createdAt: { $lt: twoDaysAgo },
+    });
+    console.log(`[CRON] Deleted ${txResult.deletedCount} old pending transactions`);
 
-    // Ensure slots start from the 4th of the next month
-    for (let i = 3; i < 30; i++) {
-      const slotDate = nextMonth.clone().add(i, 'days').toDate();
-      const slotDay = slotDate.toLocaleString('en-US', { weekday: 'long' });
+    // 2️⃣ Delete inspection bookings with status 'pending_transaction' older than 2 days
+    const inspectionResult = await DB.Models.InspectionBooking.deleteMany({
+      status: 'pending_transaction',
+      createdAt: { $lt: twoDaysAgo },
+    });
+    console.log(`[CRON] Deleted ${inspectionResult.deletedCount} old pending inspection bookings`);
 
-      // Define 6 slots per day
-      const slots = [
-        { start: '9:00 AM', end: '10:00 AM' },
-        { start: '10:00 AM', end: '11:00 AM' },
-        { start: '11:00 AM', end: '12:00 PM' },
-        { start: '12:00 PM', end: '1:00 PM' },
-        { start: '1:00 PM', end: '2:00 PM' },
-        { start: '2:00 PM', end: '3:00 PM' },
-      ];
+    // 2️⃣ Delete document verification with status 'pending' older than 2 days
+    const documentVerficationResult = await DB.Models.DocumentVerification.deleteMany({
+      status: 'pending',
+      createdAt: { $lt: twoDaysAgo },
+    });
+    console.log(`[CRON] Deleted ${documentVerficationResult.deletedCount} old pending inspection bookings`);
 
-      for (const slot of slots) {
-        await InspectionSlotModel.create({
-          slotDay,
-          slotDate,
-          slotStartTime: slot.start,
-          slotEndTime: slot.end,
-          slotStatus: 'available', // Default status
-          bookedCount: 0,
+    // 2️⃣ Delete Subscription with status 'pending' older than 2 days
+    const subscriptionResult = await DB.Models.DocumentVerification.deleteMany({
+      status: 'pending',
+      createdAt: { $lt: twoDaysAgo },
+    });
+    console.log(`[CRON] Deleted ${subscriptionResult.deletedCount} old pending inspection bookings`);
+
+
+  } catch (err) {
+    console.error('[CRON] Error deleting old pending items:', err);
+  }
+};
+
+// 2. Expire subscriptions that passed expiresAt
+const expireSubscriptions = async () => {
+  try {
+    // 1️⃣ Find active subscriptions that have passed expiresAt
+    const expiredSubs = await DB.Models.UserSubscriptionSnapshot.find({
+      status: 'active',
+      expiresAt: { $lt: new Date() },
+    }).populate('user');
+
+    console.log(`[CRON] Found ${expiredSubs.length} subscriptions to expire`);
+
+    for (const sub of expiredSubs) {
+      // Update subscription status
+      sub.status = 'expired';
+      await sub.save();
+
+      const user = sub.user as any;
+
+      const plan = await DB.Models.SubscriptionPlan.findOne({
+        code: sub.plan,
+        isActive: true,
+      });
+
+      if (!plan) {
+        console.log(`[CRON] Subscription plan not found for code ${sub.plan}`);
+        continue;
+      }
+
+      // Check if the user has any other active subscriptions
+      const activeCount = await DB.Models.UserSubscriptionSnapshot.countDocuments({
+        user: user._id,
+        status: 'active',
+      });
+
+      if (activeCount === 0) {
+
+        const dealSite = await DB.Models.DealSite.findOne({
+          createdBy: user._id,
         });
+
+        if (!dealSite) {
+          console.log(`[CRON] DealSite not found`);
+          continue;
+        }
+
+        dealSite.status = "paused";
+        await dealSite.save();
+
+        // Send email notification
+        const emailBody = generalEmailLayout(
+          generateSubscriptionExpiredEmail({
+            fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+            planName: plan.name,
+            expiredDate: new Date().toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            publicAccessLink: '', // now disabled, so can leave empty or old link
+          })
+        );
+
+        await sendEmail({
+          to: user.email,
+          subject: 'Your Subscription Has Expired',
+          html: emailBody,
+          text: emailBody,
+        });
+
+        console.log(`[CRON] Notified user ${user.email} and disabled public access`);
+      } else {
+        console.log(`[CRON] User ${user.email} still has active subscriptions, public URL remains`);
       }
     }
 
-    console.log('Slots for the next month have been created!');
-  });
+    console.log('[CRON] Expire subscription job completed');
+  } catch (err) {
+    console.error('[CRON] Error expiring subscriptions:', err);
+  }
+};
 
-  /**
-   * 2. Cron Job to Run Every Day at 12:00 AM
-   *    - Marks slots as "expired" if they are less than 3 days away.
-   */
-  cron.schedule('0 0 * * *', async () => {
-    console.log('Updating expired slots...');
+// 3. Notify agents before subscription expires
+const notifyExpiringSubscriptions = async () => {
+  try {
+    const now = new Date();
+    const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
-    const threeDaysAhead = moment().add(3, 'days').startOf('day').toDate();
+    const expiringSoon = await DB.Models.UserSubscriptionSnapshot.find({
+      status: 'active',
+      expiresAt: { $lte: threeDaysLater, $gte: now },
+    }).populate('user');
 
-    await InspectionSlotModel.updateMany(
-      { slotDate: { $lt: threeDaysAhead } }, // Find slots older than 3 days
-      { $set: { slotStatus: 'expired' } } // Update status
-    );
+    for (const sub of expiringSoon) {
+      const user = sub.user as any;
+      const daysLeft = Math.ceil(
+        (sub.expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+      );
 
-    console.log('Expired slots have been updated.');
-  });
-}
+      const plan = await DB.Models.SubscriptionPlan.findOne({
+        code: sub.plan,
+        isActive: true,
+      });
 
-export default CronJob;
+      if (!plan) {
+        console.log(`[CRON] Subscription plan not found for code ${sub.plan}`);
+        continue;
+      }
+
+      console.log(
+        `[CRON] Notifying user ${user.email} about expiring subscription in ${daysLeft} day(s)`
+      );
+ 
+      const emailHtml = generalEmailLayout(
+        generateSubscriptionExpiringSoonEmail({
+          fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+          planName: plan.name,
+          expiryDate: sub.expiresAt.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          daysLeft,
+          publicAccessLink: user.publicAccess?.urlEnabled ? user.publicAccess.url : undefined,
+          autoRenewEnabled: sub.autoRenew
+        })
+      );
+
+      await sendEmail({
+        to: user.email,
+        subject: `Your subscription expires in ${daysLeft} day(s)`,
+        html: emailHtml,
+        text: emailHtml,
+      });
+    }
+  } catch (err) {
+    console.error('[CRON] Error notifying users:', err);
+  }
+};
+
+// 4. Auto-renew subscriptions cron job
+const autoRenewSubscriptionsCronJob = async () => {
+  try {
+    const today = new Date();
+
+    // Fetch active subscriptions with autoRenew enabled that are expiring today or earlier
+    const toRenew = await DB.Models.UserSubscriptionSnapshot.find({
+      status: "active",
+      autoRenew: true,
+      expiresAt: { $lte: today }, // ✅ should match your schema field
+    }).populate("user");
+
+    console.log(`[CRON] Found ${toRenew.length} subscriptions to auto-renew`);
+
+    for (const sub of toRenew) {
+      const user = sub.user as any;
+
+      // Fetch user's default payment method
+      const paymentMethod = await DB.Models.PaymentMethod.findOne({
+        user: user._id,
+        isDefault: true,
+      });
+
+      if (!paymentMethod) {
+        console.log(
+          `[CRON] No default payment method for user ${user.email}, cannot auto-renew`
+        );
+        // Optionally, send email to update payment method
+        continue;
+      }
+
+      let appliedPlanName: string;
+      let price: number;
+      let durationInDays: number;
+      let planType: "standard" | "discounted" = "standard";
+      let plan: any;
+
+      if (sub.meta.planType === "standard") {
+        // 1. Standard plan lookup
+        plan = await DB.Models.SubscriptionPlan.findOne({
+          code: sub.meta.planCode,
+          isActive: true,
+        });
+
+        if (!plan) {
+          console.log(
+            `[CRON] Standard plan not found for code ${sub.meta.planCode}`
+          );
+          continue;
+        }
+
+        appliedPlanName = plan.name;
+        price = plan.price;
+        durationInDays = plan.durationInDays;
+      } else {
+        // 2. Discounted plan lookup
+        plan = await DB.Models.SubscriptionPlan.findOne({
+          "discountedPlans.code": sub.meta.planCode,
+          isActive: true,
+        });
+
+        if (!plan) {
+          console.log(
+            `[CRON] Discounted plan not found for code ${sub.meta.planCode}`
+          );
+          continue;
+        }
+
+        const discounted = plan.discountedPlans.find(
+          (dp: any) => dp.code === sub.meta.planCode
+        );
+
+        if (!discounted) {
+          console.log(
+            `[CRON] Discounted plan entry missing for code ${sub.meta.planCode}`
+          );
+          continue;
+        }
+
+        appliedPlanName = discounted.name;
+        price = discounted.price;
+        durationInDays = discounted.durationInDays;
+        planType = "discounted";
+      }
+
+      // === Auto-charge user ===
+      const paymentResult = await PaystackService.autoCharge({
+        userId: user._id,
+        subscriptionId: sub._id.toString(),
+        amount: price, // ✅ use correct price (not always plan.price)
+        email: user.email,
+        authorizationCode: paymentMethod.authorizationCode,
+        transactionType: "subscription",
+      });
+
+      if (paymentResult.success) {
+
+        // ✅ Extend subscription dates
+        const newStartDate = sub.expiresAt;
+        const newEndDate = new Date(newStartDate);
+        newEndDate.setDate(newEndDate.getDate() + durationInDays);
+
+        // Map plan features into snapshot
+        const planFeatures = plan.features?.map((f: any) => ({
+          feature: f._id,
+          type: f.type,
+          value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
+          remaining: f.type === "count" ? f.value : undefined,
+        })) || [];
+
+        sub.startedAt = newStartDate;
+        sub.expiresAt = newEndDate;
+        sub.features = planFeatures;
+        await sub.save();
+
+        console.log(
+          `[CRON] Subscription ${sub._id} auto-renewed successfully for ${appliedPlanName}`
+        );
+
+        // create public link
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/deal-site`;
+
+        const { html, text } = generateAutoRenewReceiptEmail({
+          fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+          planName: `${appliedPlanName} - [${kebabToTitleCase(planType)}]`,
+          amount: paymentResult.transaction.amount,
+          transactionRef: paymentResult.transaction.reference,
+          nextBillingDate: newEndDate.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          publicAccessSettingsLink: publicAccessCompleteLink,
+        });
+
+        // ✅ Send success email
+        const emailBody = generalEmailLayout(html);
+
+        await sendEmail({
+          to: user.email,
+          subject: "Your subscription has been renewed automatically",
+          html: emailBody,
+          text: text,
+        });
+      } else {
+        console.log(`[CRON] Subscription ${sub._id} auto-renewal failed`);
+
+        // ✅ Send failure email
+        const emailBody = generalEmailLayout(
+          generateSubscriptionFailureEmail({
+            fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+            planName: appliedPlanName,
+            amount: price,
+            transactionRef: paymentResult.transaction?.reference || "N/A",
+            subscriptionPlansLink: `${process.env.CLIENT_LINK}/agent-subscriptions`,
+          })
+        );
+
+        await sendEmail({
+          to: user.email,
+          subject: "Auto-renewal failed for your subscription",
+          html: emailBody,
+          text: emailBody,
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[CRON] Error processing auto-renew subscriptions:", err);
+  }
+};
+
+
+// ───────────────────────────────
+// CRON SCHEDULES
+// ───────────────────────────────
+
+// Runs every midnight
+cron.schedule('0 0 * * *', () => {
+  console.log('[CRON] Midnight job running...');
+  expireSubscriptions();
+  notifyExpiringSubscriptions();
+});
+
+// Runs every day at 1:00 AM
+cron.schedule('0 1 * * *', () => {
+  console.log('[CRON] Deleting old pending transactions and inspections...');
+  deleteOldPendingItems();
+});
+
+// Run every day at 00:30 AM
+cron.schedule('30 0 * * *', () => {
+  console.log('[CRON] Auto-renew subscriptions job running...');
+  autoRenewSubscriptionsCronJob();
+});
+
+export default {};

@@ -1,19 +1,8 @@
-import { connect, connection, Connection } from 'mongoose';
+import { connect, connection, Connection } from "mongoose";
 import {
-  IPropertySellModel,
-  IPropertyRentModel,
-  PropertyRent,
-  PropertySell,
   IAgentModel,
   Agent,
-  IBuyerOrRent,
-  BuyerOrRent,
-  IBuyerOrRentModel,
-  IPropertyRequestModel,
-  PropertyRequest,
-  IInspectionSlotModel,
   IInspectionBookingModel,
-  InspectionSlot,
   InspectionBooking,
   IAdminModel,
   Admin,
@@ -28,51 +17,92 @@ import {
   IBuyerModel,
   Preference,
   IPreferenceModel,
-  BriefMatch,
-  IBriefMatchModel,
   IDocumentVerificationModel,
   DocumentVerification,
   IInspectionActivityLogModel,
   InspectionActivityLogModel,
+  IBookingActivityLogModel,
+  BookingActivityLogModel,
   INotificationModel,
   Notification,
-  Testimonial,
-  ITestimonialModel,
+  ContactUs,
+  IContactUsModel,
   VerificationToken,
   PasswordResetToken,
-  IReferralModel,
-  Referral,
-  IReferralCommissionModel,
-  ReferralCommission,
-} from '../models/index';
+  IMatchedPreferencePropertyModel,
+  MatchedPreferenceProperty,
+  PropertyView,
+  IPropertyView,
+  ITestimonialModel,
+  Testimonial,
+  IReferralLog,
+  ReferralLogModel,
+  IFieldAgentModel,
+  FieldAgent,
+  NewTransaction,
+  INewTransactionModel,
+  UserSubscriptionSnapshot,
+  IUserSubscriptionSnapshotModel,
+  SubscriptionPlan,
+  ISubscriptionPlanModel,
+  PlanFeature,
+  IPlanFeatureModel,
+  ISystemSettingModel,
+  SystemSetting,
+  PaymentMethod,
+  IPaymentMethodModel,
+  DealSite,
+  IDealSiteModel,
+  DealSiteReport,
+  IDealSiteReportModel,
+  DealSiteActivity,
+  IDealSiteActivityModel,
+  EmailSubscription,
+  IEmailSubscriptionModel,
+  Booking,
+  IBookingModel,
+  Promotion,
+  IPromotionModel,
+  PromotionActivity,
+  IPromotionActivityModel,
+} from "../models/index";
 
-import { IOwnerModel, Owner } from '../models/property.owner';
 
 declare interface IModels {
-  PropertySell: IPropertySellModel;
-  PropertyRent: IPropertyRentModel;
-  Owner: IOwnerModel;
   Agent: IAgentModel;
-  BuyerOrRent: IBuyerOrRentModel;
-  PropertyRequest: IPropertyRequestModel;
-  InspectionSlot: IInspectionSlotModel;
   InspectionActivityLog: IInspectionActivityLogModel;
+  BookingActivityLog: IBookingActivityLogModel;
   InspectionBooking: IInspectionBookingModel;
   Admin: IAdminModel;
   User: IUserModel;
   Property: IPropertyModel;
   Transaction: ITransactionModel;
   Buyer: IBuyerModel;
-  Preference:IPreferenceModel;
-  BriefMatch:IBriefMatchModel;
-  DocumentVerification:IDocumentVerificationModel;
+  Preference: IPreferenceModel;
+  DocumentVerification: IDocumentVerificationModel;
   Notification: INotificationModel;
-  Testimonial: ITestimonialModel;
-  Referral:IReferralModel;
-  ReferralCommission:IReferralCommissionModel;
+  ContactUs: IContactUsModel;
   VerificationToken: typeof VerificationToken;
   PasswordResetToken: typeof PasswordResetToken;
-}
+  MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
+  PropertyView: typeof PropertyView;
+  ReferralLog: typeof ReferralLogModel;
+  Testimonial: ITestimonialModel;
+  FieldAgent: IFieldAgentModel;
+  NewTransaction: INewTransactionModel;
+  UserSubscriptionSnapshot: IUserSubscriptionSnapshotModel;
+  SubscriptionPlan: ISubscriptionPlanModel;
+  PlanFeature: IPlanFeatureModel;
+  SystemSetting: ISystemSettingModel;
+  PaymentMethod: IPaymentMethodModel;
+  DealSite: IDealSiteModel;
+  DealSiteReport: IDealSiteReportModel;
+  DealSiteActivity: IDealSiteActivityModel;
+  EmailSubscription: IEmailSubscriptionModel;
+  Booking: IBookingModel;
+  Promotion: IPromotionModel;
+  PromotionActivity: IPromotionActivityModel;
+} 
 
 export class DB {
   private static instance: DB;
@@ -84,36 +114,46 @@ export class DB {
     try {
       connect(process.env.MONGO_URL as string);
     } catch (err) {
-      console.error(err, 'Error connecting to MongoDB');
+      console.error(err, "Error connecting to MongoDB");
     }
     this.mongoDB = connection;
-    this.mongoDB.on('open', this.connected);
-    this.mongoDB.on('error', this.error);
+    this.mongoDB.on("open", this.connected);
+    this.mongoDB.on("error", this.error);
 
     this.models = {
-      PropertyRent: new PropertyRent().model,
-      PropertySell: new PropertySell().model,
-      Owner: new Owner().model,
       Agent: new Agent().model,
-      BuyerOrRent: new BuyerOrRent().model,
-      PropertyRequest: new PropertyRequest().model,
-      InspectionSlot: new InspectionSlot().model,
-      InspectionActivityLog: InspectionActivityLogModel,
       InspectionBooking: new InspectionBooking().model,
       Admin: new Admin().model,
+      Testimonial: new Testimonial().model,
       User: new User().model,
       Property: new Property().model,
       Transaction: new Transaction().model,
       Buyer: new Buyer().model,
       Preference: new Preference().model,
-      BriefMatch: new BriefMatch().model,
       DocumentVerification: new DocumentVerification().model,
       Notification: new Notification().model,
-      Testimonial: new Testimonial().model,
-      Referral: new Referral().model,
-      ReferralCommission:new ReferralCommission().model,
+      ContactUs: new ContactUs().model,
       VerificationToken: VerificationToken,
       PasswordResetToken: PasswordResetToken,
+      MatchedPreferenceProperty: MatchedPreferenceProperty,
+      PropertyView: PropertyView,
+      ReferralLog: ReferralLogModel,
+      InspectionActivityLog: InspectionActivityLogModel,
+      BookingActivityLog: BookingActivityLogModel,
+      FieldAgent: new FieldAgent().model,
+      NewTransaction: new NewTransaction().model,
+      UserSubscriptionSnapshot: new UserSubscriptionSnapshot().model,
+      SubscriptionPlan: new SubscriptionPlan().model,
+      PlanFeature: new PlanFeature().model,
+      SystemSetting: new SystemSetting().model,
+      PaymentMethod: new PaymentMethod().model,
+      DealSite: new DealSite().model,
+      DealSiteReport: new DealSiteReport().model,
+      DealSiteActivity: new DealSiteActivity().model,
+      EmailSubscription: new EmailSubscription().model,
+      Booking: new Booking().model,
+      Promotion: new Promotion().model,
+      PromotionActivity: new PromotionActivity().model,
     };
   }
 
@@ -126,18 +166,10 @@ export class DB {
   }
 
   private connected() {
-    console.info('Mongoose has connected');
+    console.info("Mongoose has connected");
   }
 
   private error(error: Error) {
-    console.info('Mongoose has errored', error);
+    console.info("Mongoose has errored", error);
   }
 }
-
-export { AgentController, IAgentController } from './Agent';
-export { PropertyRentController, IPropertyRentController } from './Property.Rent';
-export { PropertySellController, IPropertySellController } from './Property.Sell';
-export { BuyerOrRentPropertyRentController, IBuyerOrRentPropertyRentController } from './Property.Rent.Request';
-
-export { BuyerOrRentPropertySellController, IBuyerOrRentPropertySellController } from './Property.Sell.Request';
-export { PropertyRequestController, IPropertRequestController } from './Property.Request';

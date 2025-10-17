@@ -7,15 +7,14 @@ export interface IAdmin {
   lastName: string;
   phoneNumber: string;
   isAccountInRecovery: boolean;
-  address: {
-    street: string;
-    // city: string;
-    state: string;
-    localGovtArea: string;
+  address?: {
+    street?: string;
+    state?: string;
+    localGovtArea?: string;
   };
   fullName?: string;
   profile_picture: string;
-  role: string;
+  role?: string;
   isVerifed: boolean;
   isAccountVerified: boolean;
 }
@@ -38,7 +37,6 @@ export class Admin {
         fullName: { type: String },
         address: {
           street: { type: String },
-          // city: { type: String },
           state: { type: String },
           localGovtArea: { type: String },
         },

@@ -1,0 +1,291 @@
+
+// ==========================================
+// ADMIN API PAYLOADS
+// ==========================================
+
+// 1. CREATE PROMOTION
+// POST /promotions/create
+interface CreatePromotionRequest {
+  title: string;
+  description?: string;
+  imageUrl: string;
+  redirectUrl?: string;
+  type: "banner" | "sidebar" | "popup" | "carousel" | "inline";
+  startDate?: string; // ISO date string
+  endDate?: string; // ISO date string
+  isFeatured?: boolean;
+  tags?: string[];
+  status?: "active" | "inactive" | "expired" | "draft";
+}
+
+const createPromotionPayload: CreatePromotionRequest = {
+  title: "Summer Sale 2025",
+  description: "Get 50% off on all items this summer!",
+  imageUrl: "https://example.com/images/summer-sale.jpg",
+  redirectUrl: "https://example.com/shop/summer-sale",
+  type: "banner",
+  startDate: "2025-06-01T00:00:00Z",
+  endDate: "2025-08-31T23:59:59Z",
+  isFeatured: true,
+  tags: ["sale", "summer", "discount"],
+  status: "active"
+};
+
+interface CreatePromotionResponse {
+  success: true;
+  message: "Promotion created successfully";
+  data: {
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    startDate?: string;
+    endDate?: string;
+    isFeatured: boolean;
+    tags: string[];
+    views: number;
+    clicks: number;
+    status: string;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+// 2. UPDATE PROMOTION
+// PATCH /promotions/:id/edit
+interface UpdatePromotionRequest {
+  title?: string;
+  description?: string;
+  imageUrl?: string;
+  redirectUrl?: string;
+  type?: "banner" | "sidebar" | "popup" | "carousel" | "inline";
+  startDate?: string;
+  endDate?: string;
+  isFeatured?: boolean;
+  tags?: string[];
+  status?: "active" | "inactive" | "expired" | "draft";
+}
+
+const updatePromotionPayload: UpdatePromotionRequest = {
+  title: "Updated Summer Sale 2025",
+  description: "Get 60% off on all items!",
+  isFeatured: true,
+  endDate: "2025-09-15T23:59:59Z"
+};
+
+// 3. UPDATE PROMOTION STATUS
+// PATCH /promotions/:id/status
+interface UpdatePromotionStatusRequest {
+  status: "active" | "inactive" | "expired" | "draft";
+}
+
+const updateStatusPayload: UpdatePromotionStatusRequest = {
+  status: "inactive"
+};
+
+// 4. LIST PROMOTIONS
+// GET /promotions/getAll?status=active&type=banner&search=summer&page=1&limit=20&startDate=2025-01-01&endDate=2025-12-31&isFeatured=true
+interface ListPromotionsQuery {
+  status?: "active" | "inactive" | "expired" | "draft";
+  type?: "banner" | "sidebar" | "popup" | "carousel" | "inline";
+  search?: string;
+  page?: string;
+  limit?: string;
+  startDate?: string;
+  endDate?: string;
+  isFeatured?: string;
+}
+
+interface ListPromotionsResponse {
+  success: true;
+  message: "Promotions fetched successfully";
+  data: Array<{
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    startDate?: string;
+    endDate?: string;
+    isFeatured: boolean;
+    tags: string[];
+    views: number;
+    clicks: number;
+    status: string;
+    createdBy: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  total: number;
+  page: number;
+  limit: number;
+  pages: number;
+}
+
+// 5. GET PROMOTION BY ID
+// GET /promotions/:id/getOne
+interface GetPromotionResponse {
+  success: true;
+  message: "Promotion fetched successfully";
+  data: {
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    startDate?: string;
+    endDate?: string;
+    isFeatured: boolean;
+    tags: string[];
+    views: number;
+    clicks: number;
+    status: string;
+    createdBy: {
+      _id: string;
+      name: string;
+      email: string;
+    };
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+// 6. GET PROMOTION ANALYTICS
+// GET /promotions/:id/analytics
+interface GetPromotionAnalyticsResponse {
+  success: true;
+  message: "Promotion analytics fetched successfully";
+  data: {
+    promotionId: string;
+    title: string;
+    type: string;
+    status: string;
+    totalActivities: number;
+    clicks: number;
+    views: number;
+    clickThroughRate: string; // e.g., "25.50%"
+    uniqueUsers: number;
+    topSources: Array<{
+      ipAddress: string;
+      activities: number;
+    }>;
+    createdAt: string;
+    startDate?: string;
+    endDate?: string;
+  };
+}
+
+// 7. DELETE PROMOTION
+// DELETE /promotions/:id/delete
+interface DeletePromotionResponse {
+  success: true;
+  message: "Promotion deleted successfully";
+  data: {
+    _id: string;
+    title: string;
+    status: string;
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// ==========================================
+// FRONTEND/PUBLIC API PAYLOADS
+// ==========================================
+
+// 8. GET ACTIVE PROMOTIONS
+// GET /promotions/active?type=banner&limit=3
+interface GetActivePromotionsQuery {
+  type?: "banner" | "sidebar" | "popup" | "carousel" | "inline";
+  limit?: string; // default: "3", max: "10"
+}
+
+interface GetActivePromotionsResponse {
+  success: true;
+  message: "Active promotions fetched successfully";
+  data: Array<{
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    isFeatured: boolean;
+    tags: string[];
+    views: number;
+    clicks: number;
+  }>;
+}
+
+
+// 10. GET FEATURED PROMOTIONS
+// GET /promotions/featured?limit=5
+interface GetFeaturedPromotionsResponse {
+  success: true;
+  message: "Featured promotions fetched successfully";
+  data: Array<{
+    _id: string;
+    title: string;
+    description?: string;
+    imageUrl: string;
+    redirectUrl?: string;
+    type: string;
+    isFeatured: true;
+    tags: string[];
+    views: number;
+    clicks: number;
+  }>;
+}
+
+
+// 13. LOG PROMOTION CLICK
+// POST /promotions/click
+interface LogPromotionClickRequest {
+  promotionId: string;
+}
+
+const logClickPayload: LogPromotionClickRequest = {
+  promotionId: "60f7b3b3b3b3b3b3b3b3b3b3"
+};
+
+interface LogPromotionClickResponse {
+  success: true;
+  message: "Click logged successfully";
+}
+
+// 14. LOG PROMOTION VIEWS (BATCH)
+// POST /promotions/views
+interface LogPromotionViewsRequest {
+  promotionIds: string[];
+}
+
+const logViewsPayload: LogPromotionViewsRequest = {
+  promotionIds: [
+    "60f7b3b3b3b3b3b3b3b3b3b3",
+    "60f7b3b3b3b3b3b3b3b3b3b4",
+    "60f7b3b3b3b3b3b3b3b3b3b5"
+  ]
+};
+
+interface LogPromotionViewsResponse {
+  success: true;
+  message: "Views logged successfully";
+}

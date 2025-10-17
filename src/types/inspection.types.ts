@@ -1,56 +1,43 @@
-
-export interface NewInspectionRequest {
-  briefType: string;
-  properties: {
-    propertyId: string;
-    negotiationPrice?: number;
-    letterOfIntention?: string;
-  }[];
-  inspectionDate: string;
-  inspectionTime: string;
-  requestedBy: {
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-  };
-  transaction: {
-    fullName: string;
-    transactionReceipt: string;
-  };
-}
-
-
 // Type definitions for inspection actions
 export interface InspectionActionData {
-  action: "accept" | "reject" | "counter" | "request_changes";
+  action: "accept" | "reject" | "counter";
   inspectionType: "price" | "LOI";
   userType: "buyer" | "seller";
   counterPrice?: number;
   inspectionDate?: string;
   inspectionTime?: string;
-  reason?: string;
   rejectionReason?: string;
-  documentUrl?: string;
+  inspectionMode?: "in_person" | "virtual";
+}
+
+export interface RequestedBy {
+  fullName: string;
+  phoneNumber: string;
+  email: string;
+}
+
+export interface InspectionDetails {
+  inspectionDate: string;
+  inspectionTime: string;
+  inspectionMode?: "in_person" | "virtual";
+}
+
+export interface Transaction {
+  amount: number;
+}
+
+export interface PropertyPayload {
+  propertyId: string;
+  inspectionType: "price" | "LOI";
+  negotiationPrice?: number;
+  letterOfIntention?: string;
 }
 
 export interface SubmitInspectionPayload {
-  inspectionType: "price" | "LOI";
-  inspectionDate: string;
-  inspectionTime: string;
-  requestedBy: {
-    fullName: string;
-    email: string;
-    phoneNumber: string;
-  };
-  transaction: {
-    fullName: string;
-    transactionReceipt: string;
-  };
-  properties: Array<{
-    propertyId: string;
-    negotiationPrice?: number;
-    letterOfIntention?: string;
-  }>;
+  requestedBy: RequestedBy;
+  inspectionDetails: InspectionDetails;
+  inspectionAmount: number;
+  properties: PropertyPayload[];
 }
 
 // Type definitions for update objects
@@ -59,45 +46,35 @@ interface BaseUpdateData {
   isLOI: boolean;
   inspectionDate?: string;
   inspectionTime?: string;
+  inspectionMode?: "in_person" | "virtual";
+  stage: "inspection" | "completed" | "cancelled" | "negotiation";
+  inspectionStatus: "accepted" | "countered";
+  pendingResponseFrom: "buyer" | "seller";
 }
 
 export interface AcceptUpdateData extends BaseUpdateData {
   status: "negotiation_accepted";
-  inspectionStatus: "accepted";
   isNegotiating: false;
-  stage: "inspection" | "completed";
-  pendingResponseFrom?: undefined;
 }
 
 export interface RejectUpdateData extends BaseUpdateData {
   status: "negotiation_rejected";
-  inspectionStatus: "rejected";
   isNegotiating: false;
-  stage: "cancelled";
   reason?: string;
-  pendingResponseFrom?: undefined;
 }
 
 export interface CounterUpdateData extends BaseUpdateData {
   status: "negotiation_countered";
-  inspectionStatus: "countered";
   isNegotiating: true;
-  pendingResponseFrom: "buyer" | "seller";
-  stage: "negotiation";
   negotiationPrice?: number;
   letterOfIntention?: string;
+  counterCount?: number;
 }
 
-export interface RequestChangesUpdateData extends BaseUpdateData {
-  status: "negotiation_countered";
-  inspectionStatus: "requested_changes";
-  reason?: string;
-  isNegotiating: false;
-  stage: "negotiation";
-  pendingResponseFrom: "buyer";
-}
-
-export type UpdateData = AcceptUpdateData | RejectUpdateData | CounterUpdateData | RequestChangesUpdateData;
+export type UpdateData =
+  | AcceptUpdateData
+  | RejectUpdateData
+  | CounterUpdateData;
 
 export interface EmailData {
   propertyType?: string;
@@ -105,9 +82,10 @@ export interface EmailData {
   price?: number;
   negotiationPrice?: number;
   sellerCounterOffer?: number;
-  documentUrl?: string;
   reason?: string;
   inspectionDateStatus?: string;
+  inspectionMode?: string;
+  modeChanged?: boolean;
   inspectionDateTime?: {
     dateTimeChanged: boolean;
     newDateTime: {
@@ -123,6 +101,7 @@ export interface EmailData {
   rejectLink?: string;
   browseLink?: string;
   responseLink?: string;
+  counterCount?: number;
 }
 
 export interface ActionResult {

@@ -303,7 +303,7 @@ export const accountApproved = (name: string): string => {
                 <p>Welcome to Khabi-Teq Realty! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
                 <p>Get ready to unlock new opportunities and grow your real estate career with us.</p>
         `;
-};
+}; 
 
 export const accountDisaapproved = (name: string): string => {
 	return `
@@ -537,20 +537,6 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
 		details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(
 			", "
 		)}</p>`;
-	// if (data.docOnProperty?.length)
-	//   details += `<p><strong>Documents on Property:</strong> ${data.docOnProperty.join(', ')}</p>`;
-	// if (data.owner?.email) details += `<p><strong>Owner Email:</strong> ${data.owner.email}</p>`;
-	// if (data.owner?.fullName) details += `<p><strong>Owner Name:</strong> ${data.owner.fullName}</p>`;
-	// if (data.owner?.phoneNumber) details += `<p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>`;
-	// if (typeof data.areYouTheOwner === 'boolean')
-	//   details += `<p><strong>Owner Status:</strong> ${data.areYouTheOwner ? 'Yes' : 'No'}</p>`;
-	// if (typeof data.isAvailable !== 'undefined')
-	//   details += `<p><strong>Availability:</strong> ${data.isAvailable}</p>`;
-	// if (data.budgetRange) details += `<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`;
-	// if (typeof data.isApproved === 'boolean')
-	//   details += `<p><strong>Approved:</strong> ${data.isApproved ? 'Yes' : 'No'}</p>`;
-	// if (typeof data.isRejected === 'boolean')
-	//   details += `<p><strong>Rejected:</strong> ${data.isRejected ? 'Yes' : 'No'}</p>`;
 	details += `<p><strong>Under Review:</strong>Yes</p>`;
 
 	return `

@@ -1,42 +1,65 @@
-import inspectionController from "../controllers/inspectionController";
+import { submitInspectionRequest } from "../controllers/public/inspection/inspectionRequest";
+import { authenticateBookingCode, getBookingByBookingCode } from "../controllers/Account/fetchBookings";
+import BookingController from "../controllers/public/inspection/bookingActions";
+import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
 import { Router } from "express";
 
 const inspectRouter = Router();
 
 // Submit a new inspection request
+inspectRouter.post("/request-inspection", submitInspectionRequest);
+
+// Submit a new booking request/instant
 inspectRouter.post(
-  "/request-inspection",
-  inspectionController.submitInspectionRequest
+  "/book-request",
+  BookingController.submitBookingRequest.bind(
+    BookingController,
+  ),
 );
 
-// Process inspection actions - accept, reject, counter, request_changes
+// Process inspection actions - accept, reject, counter
 inspectRouter.post(
   "/:inspectionId/actions/:userId",
-  inspectionController.processInspectionAction.bind(inspectionController)
+  InspectionActionsController.processInspectionAction.bind(
+    InspectionActionsController,
+  ),
 );
 
 // Validate access for security
 inspectRouter.get(
   "/validate-access/:userId/:inspectionId",
-  inspectionController.validateInspectionAccess,
+  InspectionActionsController.validateInspectionAccess,
 );
 
 // GET /inspection-details/:userID/:inspectionID/:userType
 inspectRouter.get(
   "/inspection-details/:userID/:inspectionID/:userType",
-  inspectionController.getInspectionDetails,
+  InspectionActionsController.getInspectionDetails,
 );
 
 // Get all inspections for a user by role
 inspectRouter.get(
   "/users/:userId",
-  inspectionController.getUserInspections,
+  InspectionActionsController.getUserInspections,
 );
 
 // Get inspection history/logs
 inspectRouter.get(
   "/:inspectionId/history",
-  inspectionController.getInspectionHistory,
+  InspectionActionsController.getInspectionHistory,
 );
+
+// Get inspection history/logs
+inspectRouter.get(
+  "/:inspectionId/reOpen",
+  InspectionActionsController.reopenInspection,
+);
+
+
+/**
+ * BOOKINGS 
+ */
+inspectRouter.post("/bookings/verify-code", authenticateBookingCode);
+inspectRouter.post("/bookings/:bookingCode", getBookingByBookingCode);
 
 export default inspectRouter;

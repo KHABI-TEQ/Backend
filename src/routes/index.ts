@@ -1,33 +1,32 @@
-import { NextFunction, Request, Response } from 'express';
-import PropertyRentRouter from './property.rent.api.actions';
-import PropertySellRouter from './property.sell.api.actions';
-import AgentRouter from './agent.api';
-import HttpStatusCodes from '../common/HttpStatusCodes';
-import cloudinary from '../common/cloudinary';
-import RentPropertyRentRequest from './buyer_rent_property_rent.api.actions';
-import BuyPropertySellRequest from './buyer_rent_property_sell.api.actions';
+import { NextFunction, Request, Response } from "express";
+import HttpStatusCodes from "../common/HttpStatusCodes";
+import cloudinary from "../common/cloudinary";
 
-import express from 'express';
-import multer from 'multer';
-import { DB, PropertyRequestController } from '../controllers';
-import { RouteError } from '../common/classes';
-import jwt from 'jsonwebtoken';
-import AdminRouter from './admin';
-import propertyRouter from './property';
-import { UserRouter } from './user.api';
-import { buyerRouter } from './buyer';
-import {documentVerificationController} from '../controllers/DocumentVerification';
-import { AdminController } from '../controllers/Admin';
-import inspectRouter from './inspectionRouter';
-import { loginUser } from '../controllers/Auth/loginUser';
-import { registerUser } from '../controllers/Auth/registerUser';
-import { requestPasswordReset } from '../controllers/Auth/requestPasswordReset';
-import { resetPassword } from '../controllers/Auth/resetPassword';
-import { resendVerificationToken } from '../controllers/Auth/resendVerificationToken';
-import { resendPasswordResetCode } from '../controllers/Auth/resendPasswordResetCode';
-import { verifyAccount } from '../controllers/Auth/verifyAccount';
-import { googleAuth, facebookAuth } from '../controllers/Auth/socialAuth';
-import { verifyPasswordResetCode } from '../controllers/Auth/verifyPasswordResetCode';
+import express from "express";
+import multer from "multer";
+import AdminRouter from "./admin";
+import propertyRouter from "./property";
+import inspectRouter from "./inspectionRouter";
+import PromotionRouter from "./promotions";
+
+import {
+  deleteFileFromCloudinary,
+  uploadFileToCloudinary,
+} from "../controllers/General/UploadFileController";
+
+import { getLatestApprovedTestimonials } from "../controllers/public/testimonial";
+import { AuthRouter } from "./auth";
+import { preferenceRouter } from "./preference";
+import AccountRouter from "./account";
+import thirdPartyRouter from "./thirdParty";
+import { submitContactForm } from "../controllers/public/contactUs";
+import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
+import { paymentVerification } from "../controllers/public/paymentVerification";
+import { fetchSystemSettings } from "../controllers/public/systemSettings";
+import { getPublicAgentProfile } from "../controllers/public/extralActions";
+import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
+import DealSiteRouter from "./dealSite";
+import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
 
 const router = express.Router();
 
@@ -35,219 +34,162 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-const propertyRequest = new PropertyRequestController();
-const adminController = new AdminController();
- 
-// Upload route using Multer to handle binary file
-router.post('/upload-image', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
-    }
-
-    const fileFor = req.body.for || 'property-image';
-
-    const filFolder = fileFor === 'property-image' ? 'property-images' : 'other-images';
-
-    // Convert the buffer to a Base64 string
-    const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-
-    const filename = Date.now() + '-' + fileFor;
-
-    // Upload to Cloudinary
-    const uploadImg = await cloudinary.uploadFile(fileBase64, filename, filFolder);
-
-    // console.log(uploadImg);
-
-    return res.status(HttpStatusCodes.OK).json({
-      message: 'Image uploaded successfully',
-      url: uploadImg,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
-  }
-});
-
-router.post('/upload-file', upload.single('file'), async (req: Request, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({ message: 'File is required' });
-    }
-
-    const fileFor = req.body.for || 'property-file';
-
-    const filFolder = fileFor === 'property-file' ? 'property-files' : 'other-files';
-
-    // Convert the buffer to a Base64 string
-    const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-
-    const filename = Date.now() + '-' + fileFor + '.' + req.file.originalname.split('.').pop();
-
-    // Upload to Cloudinary
-    const uploadImg = await cloudinary.uploadDoc(fileBase64, filename, filFolder);
-
-    // console.log(uploadImg);
-
-    return res.status(HttpStatusCodes.OK).json({
-      message: 'Image uploaded successfully',
-      url: uploadImg,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: 'Internal server error' });
-  }
-});
-
-router.post('/property/request-inspection', async (req: Request, res: Response) => {
-  try {
-    const { propertyId, requestFrom, propertyType } = req.body;
-
-    await propertyRequest.requestProperty({ propertyId, requestFrom, propertyType });
-
-    return res.status(HttpStatusCodes.OK).json({ success: true, message: 'Request sent successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message || 'Internal server error' });
-  }
-});
-
-
-
-router.get('/all/inspection-slots', async (req: Request, res: Response) => {
-  try {
-    const slots = await DB.Models.InspectionSlot.find({
-      slotStatus: 'available',
-      slotDate: { $gte: new Date(new Date().setDate(new Date().getDate() + 3)) },
-    });
-    return res.status(HttpStatusCodes.OK).json({ slots });
-  } catch (error) {
-    console.error(error);
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message || 'Internal server error' });
-  }
-});
-
-router.post('/property/schedule-inspection', async (req: Request, res: Response) => {
-  try {
-    const { token, inspectionDate, slotId, inspectionTime } = req.body;
-
-    if (!token || !inspectionDate)
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Token and inspection date are required');
-
-    const { requestId } = jwt.verify(token, process.env.JWT_SECRET) as any;
-
-    if (!requestId) throw new RouteError(HttpStatusCodes.BAD_REQUEST, 'Invalid token');
-
-    const response = await propertyRequest.scheduleInspection(requestId, inspectionDate, slotId, inspectionTime);
-
-    return res.status(HttpStatusCodes.OK).json(response);
-  } catch (error) {
-    console.error(error);
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({ message: error.message || 'Internal server error' });
-  }
-});
-
-//=============================================================
-const uploadFields = upload.fields([
-  { name: 'documents', maxCount: 2 },
-  { name: 'receipt', maxCount: 1 },
-]);
-
-router.post('/submit-docs', uploadFields, async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const result = await documentVerificationController.submitDocumentVerification(req.body,
-      (req as Request & { files: { documents: Express.Multer.File[]; receipt: Express.Multer.File[] } }).files
-    );
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/verification-result', async (req:Request, res:Response, next:NextFunction) => {
-  try {
-    const { email } = req.query;
-    const result = await documentVerificationController.getVerificationResult(email as string);
-    res.json({ success: true, data: result });
-  } catch (err) {
-    next(err);
-  }
-});
-
-
-
-
 /**
  * ******************************************************
  * ******************************************************
- * ************ AUTHENTICATION ROUTES *******************
+ * ************ CLOUDINARY UPLOAD ROUTES ****************
  * ******************************************************
  * ******************************************************
  */
-// Login route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/login', loginUser);
+router.post(
+  "/upload-single-file",
+  upload.single("file"),
+  uploadFileToCloudinary,
+);
 
-// Registration route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/register', registerUser);
+router.delete("/delete-single-file", deleteFileFromCloudinary);
 
-// Google auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/googleAuth', googleAuth);
+// Upload route using Multer to handle binary file
+router.post(
+  "/upload-image",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(HttpStatusCodes.BAD_REQUEST)
+          .json({ message: "File is required" });
+      }
 
-// FaceBook auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/facebookAuth', facebookAuth);
+      const fileFor = req.body.for || "property-image";
 
-// Reset Password Request route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/resetPasswordRequest', requestPasswordReset);
+      const filFolder =
+        fileFor === "property-image" ? "property-images" : "other-images";
 
-// Veryfy Reset Password Code route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/verifyPasswordResetCode', verifyPasswordResetCode);
+      // Convert the buffer to a Base64 string
+      const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
-// Reset Password route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/resetPassword', resetPassword);
+      const filename = Date.now() + "-" + fileFor;
 
-// Resend Verification Token route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/resendVerificationToken', resendVerificationToken);
+      // Upload to Cloudinary
+      const uploadImg = await cloudinary.uploadFile(
+        fileBase64,
+        filename,
+        filFolder,
+      );
 
-// Resend Reset Password Code route for "AGENTS" and "LANDOWNERS"
-router.post('/auth/resendPasswordCode', resendPasswordResetCode);
+      // console.log(uploadImg);
 
-// verify account route for "AGENTS" and "LANDOWNERS"
-router.get('/auth/verifyAccount', verifyAccount);
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Image uploaded successfully",
+        url: uploadImg,
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal server error" });
+    }
+  },
+);
 
+router.post(
+  "/upload-file",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(HttpStatusCodes.BAD_REQUEST)
+          .json({ message: "File is required" });
+      }
 
+      const fileFor = req.body.for || "property-file";
 
+      const filFolder =
+        fileFor === "property-file" ? "property-files" : "other-files";
 
+      // Convert the buffer to a Base64 string
+      const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
+      const filename =
+        Date.now() +
+        "-" +
+        fileFor +
+        "." +
+        req.file.originalname.split(".").pop();
+
+      // Upload to Cloudinary
+      const uploadImg = await cloudinary.uploadDoc(
+        fileBase64,
+        filename,
+        filFolder,
+      );
+
+      // console.log(uploadImg);
+
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Image uploaded successfully",
+        url: uploadImg,
+      });
+    } catch (error) {
+      console.error(error);
+      res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ message: "Internal server error" });
+    }
+  },
+);
+ 
+router.get("/getSystemSettings", fetchSystemSettings)
+
+// Promotions Routes
+router.use("/promotions", PromotionRouter);
+
+router.get("/verify-payment", paymentVerification)
+
+router.post("/emailSubscription/subscribe", subscribeEmail);
+
+router.post("/emailSubscription/unsubscribe", unsubscribeEmail);
+
+// Contact Form
+router.post("/submitVerificationDocs", submitDocumentVerification);
+
+// All Properties Routes
+router.use("/third-party", thirdPartyRouter);
+
+// All Properties Routes
+router.use("/deal-site", DealSiteRouter);
+
+// Contact Form
+router.post("/contact-us/submit", submitContactForm);
 
 // Testimonials route
-router.get('/testimonials', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const result = await adminController.getLatestApprovedTestimonials()
-      
-    return res.status(200).json({ success: true, ...result });
-  } catch (error) {
-    next(error);
-  }
-});
+router.get("/testimonials", getLatestApprovedTestimonials);
+ 
+router.get("/subscriptions/plans", getAllActiveSubscriptionPlans);
+router.get("/features/getAll", getAllActiveFeatures);
+ 
+// All Auth Routes
+router.get("/pv-account/:publicAccessUID", getPublicAgentProfile);
 
+// All Auth Routes
+router.use("/auth", AuthRouter);
 
-//===============================================
+// All Properties Routes
+router.use("/properties", propertyRouter);
+ 
+// All Preferences Routes
+router.use("/preferences", preferenceRouter);
 
-// Add sub-routes
-router.use('/admin', AdminRouter);
-router.use('/agent', AgentRouter);
-router.use('/properties/rents', PropertyRentRouter);
-router.use('/properties/sell', PropertySellRouter);
-router.use('/properties/buy/request', BuyPropertySellRequest);
-router.use('/properties/rent/request', RentPropertyRentRequest);
-router.use('/properties', propertyRouter);
-router.use('/user', UserRouter);
-router.use('/buyers', buyerRouter);
-router.use('/inspections', inspectRouter);
+// All Inspections Routes
+router.use("/inspections", inspectRouter);
 
-// Add one more middleware namely `authorize` after passport.authenticate to authorize user for access
-// console `req.user` and `req` in authorize middleware
-// router.use('/property-rent', passport.authenticate('jwt', {session: false}), PropertyRentRouter);
+// All Acoounts Routes
+router.use("/account", AccountRouter);
+
+router.use("/admin", AdminRouter);
+
 
 // Export the base-router
 export default router;
