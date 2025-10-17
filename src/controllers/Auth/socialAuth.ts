@@ -17,7 +17,7 @@ import crypto from "crypto";
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID!,
   process.env.GOOGLE_CLIENT_SECRET!,
-  'postmessage' // Use 'postmessage' for web applications using authorization code flow
+  'https://www.khabiteqrealty.com' // Use 'postmessage' for web applications using authorization code flow
 );
 
 // Helper function to detect if input is authorization code or ID token
