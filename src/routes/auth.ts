@@ -18,7 +18,7 @@ AuthRouter.post("/login", loginUser);
 
 // Registration route for "AGENTS" and "LANDOWNERS"
 AuthRouter.post("/register", validateJoi(registerUserSchema), registerUser);
-
+ 
 // Google auth (signin and signup) route for "AGENTS" and "LANDOWNERS"
 AuthRouter.post("/googleAuth", validateJoi(oauthRegisterSchema), googleAuth);
 

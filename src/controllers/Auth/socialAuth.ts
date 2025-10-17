@@ -118,10 +118,13 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     let payload;
 
     const googleAuthStatus = await SystemSettingService.getSetting("google_auth_enabled");
-    if (googleAuthStatus?.value) {
+
+    console.log("Google Auth Setting:", googleAuthStatus);
+
+    if (!googleAuthStatus?.value) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Sorry Google Auth is not enabled",
+        "Sorry Google Auth is not enabled"
       );
     }
 
