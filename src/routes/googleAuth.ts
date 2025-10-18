@@ -8,7 +8,7 @@ const client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_REDIRECT_URI
 );
-
+ 
 const googleAuthHandler = async (req: Request, res: Response, next: NextFunction) => {
   const { code } = req.body;
 
