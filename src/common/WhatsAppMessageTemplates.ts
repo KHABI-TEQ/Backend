@@ -9,8 +9,8 @@ export interface TemplateInfo {
   key: string;
   category: string;
   requiresApproval: boolean;
-}
-
+} 
+ 
 export interface TemplateData {
   template: string;
   category?: string;

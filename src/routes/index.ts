@@ -27,6 +27,7 @@ import { getPublicAgentProfile } from "../controllers/public/extralActions";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
 import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
+import { handleWebhook, verifyWebhook } from "../controllers/public/whatsappWebhookController";
 
 const router = express.Router();
 
@@ -147,6 +148,11 @@ router.get("/getSystemSettings", fetchSystemSettings)
 router.use("/promotions", PromotionRouter);
 
 router.get("/verify-payment", paymentVerification)
+
+
+router.get("/whatsapp/webhook", verifyWebhook);
+
+router.post("/whatsapp/webhook", handleWebhook);
 
 router.post("/emailSubscription/subscribe", subscribeEmail);
 
