@@ -7,8 +7,8 @@ export interface WhatsAppConfig {
   whatsappApiUrl?: string;
   accessToken: string;
   phoneNumberId: string;
-}
-
+} 
+ 
 export interface MessageOptions {
   preview_url?: boolean;
 }

@@ -118,7 +118,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     let payload;
 
     const googleAuthStatus = await SystemSettingService.getSetting("google_auth_enabled");
-    
+
     if (googleAuthStatus?.value) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
@@ -126,7 +126,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       );
     }
 
-    const googleClientID = (await SystemSettingService.getSetting("google_client_id"))?.value || process.env.GOOGLE_CLIENT_ID;
+    const googleClientID = process.env.GOOGLE_CLIENT_ID;
 
     if (isAuthorizationCode(idToken)) {
       // Handle authorization code flow
@@ -281,7 +281,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
   }
 };
 
-
+ 
 // ✅ FACEBOOK AUTH HANDLER
 export const facebookAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   const { idToken, userType, referreredCode } = req.body;
