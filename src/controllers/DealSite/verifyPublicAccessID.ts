@@ -199,6 +199,7 @@ export const getDealSiteBySlug = async (
       dealSite.featureSelection.mode === "manual" &&
       dealSite.featureSelection.propertyIds
     ) {
+      
       // Normalize propertyIds (support string or array)
       let propertyIds: string[] = [];
 
@@ -224,7 +225,6 @@ export const getDealSiteBySlug = async (
           .lean();
       }
     }
-
 
     // Attach featured properties to the dealSite response
     const formattedDealSite = {
