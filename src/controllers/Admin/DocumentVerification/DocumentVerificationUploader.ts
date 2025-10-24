@@ -8,7 +8,7 @@ import { verificationGeneralTemplate } from "../../../common/email.template";
 import { AppRequest } from "../../../types/express";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { generateThirdPartyVerificationEmail } from "../../../common/emailTemplates/documentVerificationMails";
-import { SystemSettingService } from "src/services/systemSetting.service";
+import { SystemSettingService } from "../../../services/systemSetting.service";
 
 // === Send to Verification Provider ===
 export const sendToVerificationProvider = async (
