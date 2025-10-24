@@ -192,49 +192,49 @@ export const getDealSiteBySlug = async (
     }
 
     // --- Handle featured properties ---
-    let featuredProperties: any[] = [];
+    // let featuredProperties: any[] = [];
 
-    if (
-      dealSite.featureSelection &&
-      dealSite.featureSelection.mode === "manual" &&
-      dealSite.featureSelection.propertyIds
-    ) {
-      
-      // Normalize propertyIds (support string or array)
-      let propertyIds: string[] = [];
+    // if (
+    //   dealSite.featureSelection &&
+    //   dealSite.featureSelection.mode === "manual" &&
+    //   dealSite.featureSelection.propertyIds
+    // ) {
 
-      if (Array.isArray(dealSite.featureSelection.propertyIds)) {
-        propertyIds = dealSite.featureSelection.propertyIds;
-      } else if (typeof dealSite.featureSelection.propertyIds === "string") {
-        propertyIds = dealSite.featureSelection.propertyIds
-          .split(",")
-          .map(id => id.trim())
-          .filter(Boolean);
-      }
+    //   // Normalize propertyIds (support string or array)
+    //   let propertyIds: string[] = [];
 
-      const listingsLimit = dealSite.listingsLimit || 6;
+    //   if (Array.isArray(dealSite.featureSelection.propertyIds)) {
+    //     propertyIds = dealSite.featureSelection.propertyIds;
+    //   } else if (typeof dealSite.featureSelection.propertyIds === "string") {
+    //     propertyIds = dealSite.featureSelection.propertyIds
+    //       .split(",")
+    //       .map(id => id.trim())
+    //       .filter(Boolean);
+    //   }
 
-      if (propertyIds.length > 0) {
-        featuredProperties = await DB.Models.Property.find({
-          _id: { $in: propertyIds },
-          isApproved: true,
-          isAvailable: true,
-          $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
-        })
-          .limit(listingsLimit)
-          .lean();
-      }
-    }
+    //   const listingsLimit = dealSite.listingsLimit || 6;
+
+    //   if (propertyIds.length > 0) {
+    //     featuredProperties = await DB.Models.Property.find({
+    //       _id: { $in: propertyIds },
+    //       isApproved: true,
+    //       isAvailable: true,
+    //       $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }],
+    //     })
+    //       .limit(listingsLimit)
+    //       .lean();
+    //   }
+    // }
 
     // Attach featured properties to the dealSite response
-    const formattedDealSite = {
-      ...(typeof dealSite.toObject === "function" ? dealSite.toObject() : dealSite),
-      featuredProperties,
-    };
+    // const formattedDealSite = {
+    //   ...(typeof dealSite.toObject === "function" ? dealSite.toObject() : dealSite),
+    //   featuredProperties,
+    // };
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: formattedDealSite,
+      data: dealSite,
     });
   } catch (err) {
     next(err);
@@ -347,7 +347,7 @@ export const getFeaturedProperties = async (
 ) => {
   try {
     const { publicSlug } = req.params;
-
+ 
     const dealSite = await DealSiteService.getBySlug(publicSlug);
     
     if (!dealSite) {
