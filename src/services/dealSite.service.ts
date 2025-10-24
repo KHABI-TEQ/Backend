@@ -292,6 +292,8 @@ export class DealSiteService {
       );
     }
 
+    console.log(updates, "all datasss");
+    
     // Disallow modifications if under review
     if (dealSite.status === "on-hold") {
       throw new RouteError(

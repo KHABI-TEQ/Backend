@@ -12,71 +12,6 @@ import { generateBookingRequestAcknowledgementForBuyer, generateBookingRequestRe
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
  
-
-
-    // ✅ Helper for duration and pricing (fixed calculation)
-    // export const calculateShortletAmount = (
-    //     property: any,
-    //     checkIn: Date,
-    //     checkOut: Date
-    // ) => {
-    //     const msInDay = 1000 * 60 * 60 * 24;
-    //     const diffMs = checkOut.getTime() - checkIn.getTime();
-
-    //     if (diffMs <= 0) {
-    //         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Check-out must be after check-in");
-    //     }
-
-    //     // Nights = any fraction of a day counts as a full day
-    //     const nights = Math.max(1, Math.ceil(diffMs / msInDay));
-
-    //     const pricing = property.shortletDetails?.pricing || {};
-    //     let duration = 0;
-    //     let expectedAmount = 0;
-
-    //     switch (property.shortletDuration) {
-    //         case "Daily": {
-    //         const perNight = pricing.nightly ?? property.price;
-    //         duration = nights;
-    //         expectedAmount = perNight * nights;
-    //         break;
-    //         }
-
-    //         case "Weekly": {
-    //         const weeklyRate = pricing.weekly ?? property.price;
-    //         const perNight = weeklyRate / 7; // ✅ spread weekly rate across 7 nights
-    //         duration = nights;
-    //         expectedAmount = perNight * nights;
-    //         break;
-    //         }
-
-    //         case "Monthly": {
-    //         const monthlyRate = pricing.monthly ?? property.price;
-    //         const perNight = monthlyRate / 30; // ✅ spread monthly rate across 30 nights
-    //         duration = nights;
-    //         expectedAmount = perNight * nights;
-    //         break;
-    //         }
-
-    //         default:
-    //         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid shortlet duration type");
-    //     }
-
-    //     // Add fixed fees (once per booking)
-    //     expectedAmount += (pricing.cleaningFee || 0) + (pricing.securityDeposit || 0);
-
-    //     // Round to nearest integer (avoid floating mismatch)
-    //     expectedAmount = Math.round(expectedAmount);
-
-    //     return {
-    //         duration,
-    //         expectedAmount,
-    //         nights,
-    //         cleaningFee: pricing.cleaningFee,
-    //         securityDeposit: pricing.securityDeposit,
-    //     };
-    // }
-
     export const  calculateShortletAmount = (
         property: any,
         checkIn: Date,
@@ -100,7 +35,8 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
         const discountAmount = Math.round((base * discountPct) / 100);
 
         const subtotal = Math.max(0, base - discountAmount);
-        const expectedAmount = subtotal + cleaningFee + securityDeposit;
+        const serviceCharge = (8/100) * (subtotal + cleaningFee + securityDeposit);
+        const expectedAmount = subtotal + cleaningFee + securityDeposit + serviceCharge;
 
         return {
             nights,
