@@ -2,7 +2,8 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
-
+import { ignoreWords } from "../../../utils/ignoreWords";
+ 
 export const getDealSiteProperties = async (
   req: AppRequest,
   res: Response,
@@ -67,19 +68,59 @@ export const getDealSiteProperties = async (
     // 4. Base query: properties by owner
     const query: any = {
       owner: dealSite.createdBy,
+      briefType,
       isApproved: true,
       isDeleted: false,
       isAvailable: true
     }; 
 
-    if (briefType) query.briefType = briefType;
-    if (filters.location) query["location.state"] = filters.location;
-    if (filters.homeCondition) query.propertyCondition = filters.homeCondition;
-    if (filters.landSizeType) query["landSize.measurementType"] = filters.landSizeType;
-    if (filters.type) query.propertyType = filters.type;
+    if (filters.location) {
+      const locationString = filters.location.trim();
+      const locationParts = locationString
+        .split(",")
+        .map((p: string) => p.trim())
+        .filter(Boolean);
+
+      // ✅ Build flexible OR conditions for matching
+      const locationQueries: Record<string, any>[] = [];
+
+      for (const part of locationParts) {
+        const lowerPart = part.toLowerCase();
+
+        // Skip broad or generic terms
+        if (ignoreWords.includes(lowerPart)) continue;
+
+        locationQueries.push(
+          { "location.state": new RegExp(part, "i") },
+          { "location.localGovernment": new RegExp(part, "i") },
+          { "location.area": new RegExp(part, "i") },
+          { "location.streetAddress": new RegExp(part, "i") }
+        );
+      }
+
+      // ✅ Attach OR query only if there’s something to match
+      if (locationQueries.length > 0) {
+        query.$or = [...(query.$or || []), ...locationQueries];
+      }
+    }
+
+    if (filters.homeCondition) query.homeCondition = filters.homeCondition;
+    if (filters.landSizeType) query.landSizeType = filters.landSizeType;
+
+    if (filters.propertyCategory) {
+      const types = filters.propertyCategory
+        .split(",")
+        .map((t: string) => t.trim())
+        .filter(Boolean);
+
+      if (types.length > 0) {
+        query.propertyCategory = { $in: types };
+      }
+    }
+
     if (filters.bedroom) query["additionalFeatures.noOfBedroom"] = filters.bedroom;
     if (filters.bathroom) query["additionalFeatures.noOfBathroom"] = filters.bathroom;
-    if (filters.landSize) query["landSize.size"] = { $gte: filters.landSize };
+    if (filters.landSize) query.landSize = { $gte: filters.landSize };
 
     if (filters.priceRange) {
       query.price = {
@@ -88,12 +129,28 @@ export const getDealSiteProperties = async (
       };
     }
 
-    if (filters.documentType) {
-      query["docOnProperty.docName"] = { $in: filters.documentType };
+    if (filters.documentType && filters.documentType.length > 0) {
+      const docs = filters.documentType.map((d: string) => {
+        const normalized = d
+          .trim()
+          .replace(/[-_()]/g, " ")
+          .replace(/\s+/g, "[-_\\s]*");
+
+        return new RegExp(normalized, "i");
+      });
+
+      query["docOnProperty.docName"] = { $in: docs };
     }
 
-    if (filters.desireFeature) {
-      query.features = { $all: filters.desireFeature };
+
+    if (filters.desireFeature?.length) {
+      const regexes = filters.desireFeature.flatMap((phrase: string) => {
+        return phrase
+          .split(/\s+/)
+          .map((word) => new RegExp(word, "i"));
+      });
+
+      query.features = { $in: regexes };
     }
 
     if (filters.tenantCriteria) {
