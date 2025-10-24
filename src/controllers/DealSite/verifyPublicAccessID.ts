@@ -216,7 +216,7 @@ export const getDealSiteBySlug = async (
 
     // Attach featured properties to the dealSite response
     const formattedDealSite = {
-      ...dealSite.toObject(),
+      ...(typeof dealSite.toObject === "function" ? dealSite.toObject() : dealSite),
       featuredProperties,
     };
 
