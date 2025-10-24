@@ -13,7 +13,7 @@ export const getAllProperties = async (
   next: NextFunction,
 ) => {
   try {
-
+ 
     console.log("Incoming query params:\n", JSON.stringify(req.query, null, 2));
 
     const {
