@@ -419,7 +419,7 @@ export class DealSiteService {
     if (!dealSite.featureSelection) {
       return [];
     }
-
+ 
     // Manual mode → specific IDs
     if (dealSite.featureSelection.mode === "manual" && dealSite.featureSelection.propertyIds) {
       const ids = dealSite.featureSelection.propertyIds
