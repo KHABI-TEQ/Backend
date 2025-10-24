@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { logPropertyView } from "../../../services/propertyView.service";
+import { ignoreWords } from "../../../utils/ignoreWords";
 
 // Fetch All Properties with Filters & Pagination (Public)
 export const getAllProperties = async (
@@ -62,7 +63,38 @@ export const getAllProperties = async (
       isDeleted: false,
     };
 
-    if (filters.location) query.location = filters.location;
+    if (filters.location) {
+      const locationString = filters.location.trim();
+      const locationParts = locationString
+        .split(",")
+        .map((p: string) => p.trim())
+        .filter(Boolean);
+
+      // ✅ Build flexible OR conditions for matching
+      const locationQueries: Record<string, any>[] = [];
+
+      for (const part of locationParts) {
+        const lowerPart = part.toLowerCase();
+
+        // Skip broad or generic terms
+        if (ignoreWords.includes(lowerPart)) continue;
+
+        locationQueries.push(
+          { "location.state": new RegExp(part, "i") },
+          { "location.localGovernment": new RegExp(part, "i") },
+          { "location.area": new RegExp(part, "i") },
+          { "location.streetAddress": new RegExp(part, "i") }
+        );
+      }
+
+      // ✅ Attach OR query only if there’s something to match
+      if (locationQueries.length > 0) {
+        query.$or = [...(query.$or || []), ...locationQueries];
+      }
+
+      // console.log("📍 Processed location filters:", JSON.stringify(locationQueries, null, 2));
+    }
+
     if (filters.homeCondition) query.homeCondition = filters.homeCondition;
     if (filters.landSizeType) query.landSizeType = filters.landSizeType;
 

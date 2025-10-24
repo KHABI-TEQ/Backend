@@ -24,7 +24,7 @@ export interface IProperty {
   landSize?: {
     measurementType?: string;
     size?: number;
-  };
+  }; 
   docOnProperty?: {
     docName?: string;
     isProvided?: boolean;

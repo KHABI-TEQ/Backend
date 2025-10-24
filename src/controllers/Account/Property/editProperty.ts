@@ -74,15 +74,14 @@ export const updatePropertyStatus = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
     }
 
-    // Only admin can update status
-    // if (req.user.role !== "admin") {
-    //   throw new RouteError(
-    //     HttpStatusCodes.FORBIDDEN,
-    //     "Only admin can update status",
-    //   );
-    // }
+    // Restrict updates for pending or deleted properties
+    if (["pending", "deleted", "rejected", "hold", "flagged"].includes(property.status)) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        `You cannot change the status of a ${property.status} property.`
+      );
+    }
 
-    
     const inactiveStatuses = [
       "withdrawn",
       "unavailable",
@@ -100,17 +99,19 @@ export const updatePropertyStatus = async (
       "deleted",
     ];
 
-    const activeStatuses = ["approved", "available", "active", "back_on_market", "pending"];
+    const activeStatuses = [
+      "approved",
+      "available",
+      "active",
+      "back_on_market",
+    ];
 
-    if (inactiveStatuses.includes(status)) {
-      property.isAvailable = false;
-    } else if (activeStatuses.includes(status)) {
-      property.isAvailable = true;
-    }
+    // Dynamically toggle availability
+    property.isAvailable = activeStatuses.includes(status);
 
+    // Update other fields
     property.status = status;
-    property.reason = reason || property.reason;
-
+    if (reason) property.reason = reason;
 
     await property.save();
 
@@ -123,3 +124,4 @@ export const updatePropertyStatus = async (
     next(err);
   }
 };
+
