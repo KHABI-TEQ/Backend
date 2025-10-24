@@ -5,7 +5,7 @@ import { PaystackService } from "../../services/paystack.service";
 
 /**
  * Controller to verify Paystack payment by transaction reference.
- */
+ */ 
 export const paymentVerification = async (
   req: AppRequest,
   res: Response,

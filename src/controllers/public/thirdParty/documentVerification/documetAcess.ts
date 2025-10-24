@@ -113,7 +113,7 @@ export const submitVerificationReport = async (
     if (!["registered", "unregistered"].includes(report.status)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Status must be either 'registered' or 'unregistered'");
     }
-    
+     
     const formattedReport = {
       originalDocumentType: report.originalDocumentType,
       newDocumentUrl: report.newDocumentUrl,
@@ -127,6 +127,7 @@ export const submitVerificationReport = async (
       ...formattedReport
     };
 
+    docVerification.status = report.status;
     await docVerification.save();
 
     const buyerData = docVerification.buyerId as any;

@@ -4,7 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
-
+ 
 // GET: /verification-docs
 export const fetchAllVerifyDocs = async (
   req: AppRequest,

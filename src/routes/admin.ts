@@ -126,7 +126,7 @@ AdminRouter.delete("/agents/:userId/delete", deleteAgentAccount);
 AdminRouter.put("/agents/:userId/flag-account", flagOrUnflagAgentAccount);
 AdminRouter.get("/agents/:userId/allProperties", getAllAgentProperties);
 
-
+ 
 // LANDOWNERS MANAGEMENT ROUTES
 AdminRouter.get("/landowners", getAllLandlords);
 AdminRouter.get("/landowners/:userId", getSingleLandlord);

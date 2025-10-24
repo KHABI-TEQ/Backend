@@ -32,7 +32,7 @@ export type IDocumentVerificationModel = Model<IDocumentVerificationDoc>;
 
 export class DocumentVerification {
   private generalModel: Model<IDocumentVerificationDoc>;
-
+ 
   constructor() {
     const schema = new Schema(
       {
