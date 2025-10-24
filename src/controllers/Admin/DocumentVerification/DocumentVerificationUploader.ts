@@ -4,11 +4,11 @@ import { DB } from "../..";
 import { RouteError } from "../../../common/classes";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import sendEmail from "../../../common/send.email";
-import cloudinary from "../../../common/cloudinary";
 import { verificationGeneralTemplate } from "../../../common/email.template";
 import { AppRequest } from "../../../types/express";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { generateThirdPartyVerificationEmail } from "../../../common/emailTemplates/documentVerificationMails";
+import { SystemSettingService } from "src/services/systemSetting.service";
 
 // === Send to Verification Provider ===
 export const sendToVerificationProvider = async (
@@ -32,16 +32,19 @@ export const sendToVerificationProvider = async (
     const buyerData = doc.buyerId as any;
 
     // Determine department based on docType
-    const hasSurveyPlan = doc.documents.documentType == '"survey-plan"';
+    const docType = (doc.documents.documentType || doc.docType).toLowerCase().trim();
+ 
+    // Construct the setting key dynamically
+    const settingKey = `${docType}_verification_email`;
 
-    const recipientEmail = hasSurveyPlan
-      ? process.env.SURVEY_GENERAL_MAIL // Survey Plan Department
-      : process.env.GENERAL_VERIFICATION_MAIL; // General Verification Department
-
+    let recipientEmail =
+      (await SystemSettingService.getSetting(settingKey))?.value ||
+      process.env.GENERAL_VERIFICATION_MAIL; // fallback
+    
     // Prepare third-party email
     const thirdPartyEmailHTML = generalEmailLayout(
       generateThirdPartyVerificationEmail({
-        recipientName: hasSurveyPlan
+        recipientName: docType === "survey-plan"
           ? "Survey Plan Officer"
           : "Verification Officer",
         requesterName: buyerData?.fullName || "",
@@ -54,7 +57,7 @@ export const sendToVerificationProvider = async (
 
     await sendEmail({
       to: recipientEmail,
-      subject: hasSurveyPlan
+      subject: docType === "survey-plan"
         ? "New Survey Plan Verification Request"
         : "New Document Verification Request",
       html: thirdPartyEmailHTML,

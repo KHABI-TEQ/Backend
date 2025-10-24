@@ -5,6 +5,7 @@ const ThirdPartyRouter = express.Router();
 
 
 ThirdPartyRouter.post("/verifyAccessCode", verifyAccessCode);
+
 ThirdPartyRouter.get("/getDocumentDetails/:documentId", getDocumentVerificationDetails);
 
 ThirdPartyRouter.post("/submit-report/:documentId", submitVerificationReport);

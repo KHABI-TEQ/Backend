@@ -10,7 +10,7 @@ export interface IDocumentVerification {
     documentNumber?: string;
     documentUrl: string;
   }; 
-  accessCode?: {
+  accessCode?: { 
     token?: string;
     status?: 'pending' | 'approved';
   };
@@ -32,7 +32,7 @@ export type IDocumentVerificationModel = Model<IDocumentVerificationDoc>;
 
 export class DocumentVerification {
   private generalModel: Model<IDocumentVerificationDoc>;
-
+ 
   constructor() {
     const schema = new Schema(
       {
