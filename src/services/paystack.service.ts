@@ -821,7 +821,7 @@ export class PaystackService {
 
  /**
  * Handles the effects of a document verification payment.
- */
+ */ 
   static async handleDocumentVerificationPayment(transaction: any) {
     const docVerifications = await DB.Models.DocumentVerification.find({
       transaction: transaction._id,
@@ -896,6 +896,9 @@ export class PaystackService {
             html: thirdPartyEmailHTML,
             text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
           });
+
+
+          
         }
 
         await docVerification.save();

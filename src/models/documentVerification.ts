@@ -10,7 +10,7 @@ export interface IDocumentVerification {
     documentNumber?: string;
     documentUrl: string;
   }; 
-  accessCode?: {
+  accessCode?: { 
     token?: string;
     status?: 'pending' | 'approved';
   };
