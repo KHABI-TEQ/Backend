@@ -378,8 +378,9 @@ export const getDashboardData = async (
     }
 
     if (user.userType === "Agent") {
-      const completedDeals = await DB.Models.Transaction.countDocuments({
-        agent: userId,
+      const completedDeals = await DB.Models.NewTransaction.countDocuments({
+        "fromWho.item": userId,
+        "fromWho.kind": "User",
         status: "completed",
       });
       const totalCommission = 0; // Replace with actual commission logic

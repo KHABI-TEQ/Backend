@@ -35,6 +35,7 @@ export interface IAgent {
       dateAwarded?: Date;
     }[];
   };
+  kycNote?: string;
   kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
 } 
   
@@ -88,6 +89,7 @@ export class Agent {
             default: [],
           },
         },
+        kycNote: { type: String, trim: true },
         kycStatus: {
           type: String,
           enum: ['none', 'pending', 'in_review', 'approved', 'rejected'],

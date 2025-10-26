@@ -114,11 +114,7 @@ AdminRouter.get("/agents/fetchAll/:type", getAgentsByType);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
 AdminRouter.post("/agents/:userId/reviewKycRequest", approveAgentKYCData);
 
-
-
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
-
-
 
 AdminRouter.get("/agents/:userId", getSingleAgentProfile);
 AdminRouter.post("/agents/:userId/status", toggleAgentStatus);

@@ -9,7 +9,6 @@ export * from "./passwordResetToken";
 export * from "./matchedProperty";
 export * from "./property";
 export * from "./buyers";
-export * from "./transaction";
 export * from "./preference";
 export * from "./documentVerification";
 export * from "./admin";
