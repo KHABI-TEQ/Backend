@@ -265,9 +265,9 @@ export class PaystackService {
             Authorization: `Bearer ${paystackSK?.value}`,
           },
         }
-      );
+      ); 
 
-      const data = response.data.data;
+      const data = response.data.data; 
 
       // Update DB regardless of success or failure
       const updatedTx = await DB.Models.NewTransaction.findOneAndUpdate(
@@ -309,7 +309,7 @@ export class PaystackService {
   static async handleTransactionTypeEffect(tx: INewTransactionDoc) {
     const { transactionType, status, fromWho, amount } = tx;
 
-    switch (transactionType) {
+    switch (transactionType) { 
       case 'inspection':
         return await PaystackService.handleInspectionPaymentEffect(tx);
 
@@ -347,6 +347,45 @@ export class PaystackService {
         .lean();
  
       if (!bookingRequest) return;
+
+      // 🧩 Helper: Build email template layout with DealSite branding
+      const getDealSiteTemplate = async (
+        baseHtml: string,
+        receiverMode: any
+      ): Promise<string> => {
+        if (receiverMode?.type !== "dealSite") return generalTemplate(baseHtml);
+
+        const dealSite = await DB.Models.DealSite.findOne({
+          _id: receiverMode.dealSiteID,
+          status: "running",
+        }).lean();
+
+        if (!dealSite) return generalTemplate(baseHtml);
+
+        const {
+          paymentDetails,
+          logoUrl,
+          title,
+          footerSection,
+          socialLinks = {},
+        } = dealSite;
+
+        const companyName =
+          paymentDetails?.businessName || title || "Our Partner";
+        const address = footerSection?.shortDescription || "Lagos, Nigeria";
+
+        return generalTemplate(baseHtml, {
+          companyName,
+          logoUrl:
+            logoUrl ||
+            "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+          address,
+          facebookUrl: socialLinks.facebook || "",
+          instagramUrl: socialLinks.instagram || "",
+          linkedinUrl: socialLinks.linkedin || "",
+          twitterUrl: socialLinks.twitter || "",
+        });
+      };
 
       if (bookingRequest.status === "pending") {
 
@@ -410,7 +449,7 @@ export class PaystackService {
                 meta: { propertyTitle, bookedPrice },
             });
 
-            const buyerEmail = generateSuccessfulBookingReceiptForBuyer({
+            const buyerEmailHtml = generateSuccessfulBookingReceiptForBuyer({
                 buyerName: buyer.fullName,
                 bookingCode: bookingRequest.bookingCode,
                 propertyTitle: propertyTitle,
@@ -420,7 +459,7 @@ export class PaystackService {
                 totalAmount: bookedPrice
             });
 
-            const sellerEmail = generateSuccessfulBookingReceiptForSeller({
+            const sellerEmailHtml = generateSuccessfulBookingReceiptForSeller({
                 sellerName: ownerData.firstName,
                 bookingCode: bookingRequest.bookingCode,
                 propertyTitle: propertyTitle,
@@ -431,18 +470,28 @@ export class PaystackService {
                 buyerName: buyer.fullName
             });
 
+            const buyerEmailLayout = await getDealSiteTemplate(
+              buyerEmailHtml,
+              bookingRequest.receiverMode
+            );
+
+            const sellerEmailLayout = await getDealSiteTemplate(
+              sellerEmailHtml,
+              bookingRequest.receiverMode
+            );
+
             await sendEmail({
                 to: buyer.email,
                 subject: `Booking Confirmed – ${propertyTitle}`,
-                html: generalEmailLayout(buyerEmail),
-                text: generalEmailLayout(buyerEmail),
+                html: buyerEmailLayout,
+                text: buyerEmailLayout,
             });
 
             await sendEmail({
                 to: ownerData.email,
                 subject: `Booking Confirmed for Your Property – ${propertyTitle}`,
-                html: generalEmailLayout(sellerEmail),
-                text: generalEmailLayout(sellerEmail),
+                html: sellerEmailLayout,
+                text: sellerEmailLayout,
             });
 
             await notificationService.createNotification({
@@ -484,7 +533,7 @@ export class PaystackService {
    * Handles the side effects of a successful or failed inspection payment.
    */
   static async handleInspectionPaymentEffect(transaction: INewTransactionDoc) {
-    // Fetch ALL inspections linked to this transaction
+    // Fetch all inspections for this transaction
     const inspections = await DB.Models.InspectionBooking.find({
       transaction: transaction._id,
     })
@@ -492,17 +541,52 @@ export class PaystackService {
       .populate("propertyId")
       .populate("owner");
 
-    if (!inspections || inspections.length === 0) return;
+    if (!inspections?.length) return;
 
-    // Track processed sellers to avoid duplicate emails
     const processedSellers = new Set<string>();
 
+    // 🧩 Helper: Build email template layout with DealSite branding
+    const getDealSiteTemplate = async (
+      baseHtml: string,
+      receiverMode: any
+    ): Promise<string> => {
+      if (receiverMode?.type !== "dealSite") return generalTemplate(baseHtml);
+
+      const dealSite = await DB.Models.DealSite.findOne({
+        _id: receiverMode.dealSiteID,
+        status: "running",
+      }).lean();
+
+      if (!dealSite) return generalTemplate(baseHtml);
+
+      const {
+        paymentDetails,
+        logoUrl,
+        title,
+        footerSection,
+        socialLinks = {},
+      } = dealSite;
+
+      const companyName =
+        paymentDetails?.businessName || title || "Our Partner";
+      const address = footerSection?.shortDescription || "Lagos, Nigeria";
+
+      return generalTemplate(baseHtml, {
+        companyName,
+        logoUrl:
+          logoUrl ||
+          "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+        address,
+        facebookUrl: socialLinks.facebook || "",
+        instagramUrl: socialLinks.instagram || "",
+        linkedinUrl: socialLinks.linkedin || "",
+        twitterUrl: socialLinks.twitter || "",
+      });
+    };
+
+    // 🔁 Iterate through all inspections
     for (const inspection of inspections) {
       if (inspection.status !== "pending_transaction") continue;
-
-      let updatedStatus: IInspectionBooking["status"];
-      let updatedStage: IInspectionBooking["stage"];
-      let pendingResponseFrom: IInspectionBooking["pendingResponseFrom"];
 
       const buyer = inspection.requestedBy as any;
       const property = inspection.propertyId as any;
@@ -523,22 +607,28 @@ export class PaystackService {
         negotiationPrice,
         letterOfIntention: inspection.letterOfIntention,
         agentName: owner.fullName || owner.firstName,
+        inspectionMode: inspection.inspectionMode,
       };
 
+      let updatedStatus: IInspectionBooking["status"];
+      let updatedStage: IInspectionBooking["stage"];
+      let pendingResponseFrom: IInspectionBooking["pendingResponseFrom"];
+
+      // 🟢 Transaction SUCCESS
       if (transaction.status === "success") {
-        // determine inspection stage
-        const isPrice = inspection.inspectionType === "price";
-        const isLOI = inspection.inspectionType === "LOI";
-        const hasNegotiationPrice = inspection.negotiationPrice > 0;
-        const hasLOIDocument =
-          inspection.letterOfIntention &&
-          inspection.letterOfIntention.trim() !== "";
+        const { inspectionType, negotiationPrice, letterOfIntention } =
+          inspection;
+        const isPrice = inspectionType === "price";
+        const isLOI = inspectionType === "LOI";
+
+        const hasNegotiationPrice = negotiationPrice > 0;
+        const hasLOIDocument = !!(letterOfIntention && letterOfIntention.trim());
 
         if (isPrice) {
           inspection.isNegotiating = hasNegotiationPrice;
           updatedStage = hasNegotiationPrice ? "negotiation" : "inspection";
         } else if (isLOI) {
-          inspection.isLOI = !!hasLOIDocument;
+          inspection.isLOI = hasLOIDocument;
           updatedStage = hasLOIDocument ? "negotiation" : "inspection";
         }
 
@@ -547,7 +637,7 @@ export class PaystackService {
           ? "negotiation_countered"
           : "active_negotiation";
 
-        // Log inspection activity
+        // 🔹 Log inspection activity
         await InspectionLogService.logActivity({
           inspectionId: inspection._id.toString(),
           propertyId: property._id.toString(),
@@ -559,29 +649,35 @@ export class PaystackService {
           stage: updatedStage,
         });
 
+        // 🔹 Handle matched preference update
         const metaData = inspection.meta as any;
-        // Check if inspection submitted was from the preference matched
-        if (metaData && metaData.requestSource && metaData.requestSource.page === "matched-properties") {
-          const matchedId = metaData.requestSource.matchedId;
-          const matchedPreferenceId = metaData.requestSource.preferenceId;
-
-          const updatedPreference = await DB.Models.Preference.findByIdAndUpdate(
-            matchedPreferenceId,
+        if (
+          metaData?.requestSource?.page === "matched-properties" &&
+          metaData.requestSource.preferenceId
+        ) {
+          await DB.Models.Preference.findByIdAndUpdate(
+            metaData.requestSource.preferenceId,
             { status: "closed" },
             { new: true }
           );
         }
 
-        // 🔹 Send buyer email only once per transaction
+        // 🔹 Build buyer email layout
         const buyerEmailHtml = InspectionRequestWithNegotiation(
           buyer.fullName,
-          emailData,
+          emailData
         );
+
+        const buyerTemplate = await getDealSiteTemplate(
+          buyerEmailHtml,
+          inspection.receiverMode
+        );
+
         await sendEmail({
           to: buyer.email,
           subject: `Inspection Request Submitted`,
-          html: generalTemplate(buyerEmailHtml),
-          text: generalTemplate(buyerEmailHtml),
+          html: buyerTemplate,
+          text: buyerTemplate,
         });
 
         // 🔹 Send seller email only once per property
@@ -591,18 +687,25 @@ export class PaystackService {
             {
               ...emailData,
               responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
-            },
+            }
           );
+
+          const sellerTemplate = await getDealSiteTemplate(
+            sellerEmailHtml,
+            inspection.receiverMode
+          );
+
           await sendEmail({
             to: owner.email,
             subject: `New Offer Received – Action Required`,
-            html: generalTemplate(sellerEmailHtml),
-            text: generalTemplate(sellerEmailHtml),
+            html: sellerTemplate,
+            text: sellerTemplate,
           });
+
           processedSellers.add(owner._id.toString());
         }
 
-        // 🔹 Create seller notification
+        // 🔹 Notify seller
         const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
         await notificationService.createNotification({
           user: owner._id,
@@ -614,28 +717,35 @@ export class PaystackService {
             status: updatedStatus,
           },
         });
-      } else {
-        // transaction failed
+      }
+
+      // 🔴 Transaction FAILED
+      else {
         updatedStatus = "transaction_failed";
         updatedStage = "cancelled";
         pendingResponseFrom = "admin";
 
-        const buyerRejectionHtml = InspectionTransactionRejectionTemplate(
+        const rejectionHtml = InspectionTransactionRejectionTemplate(
           buyer.fullName,
           {
             ...emailData,
             rejectionReason:
               "Your inspection request was not approved. Please contact support for more info.",
-          },
+          }
         );
+
+        const rejectionTemplate = await getDealSiteTemplate(
+          rejectionHtml,
+          inspection.receiverMode
+        );
+
         await sendEmail({
           to: buyer.email,
           subject: `Inspection Request Rejected`,
-          html: generalTemplate(buyerRejectionHtml),
-          text: generalTemplate(buyerRejectionHtml),
+          html: rejectionTemplate,
+          text: rejectionTemplate,
         });
 
-        // 🔹 Log failed activity
         await InspectionLogService.logActivity({
           inspectionId: inspection._id.toString(),
           propertyId: property._id.toString(),
@@ -648,7 +758,7 @@ export class PaystackService {
         });
       }
 
-      // update inspection
+      // 🧾 Save inspection
       inspection.pendingResponseFrom = pendingResponseFrom;
       inspection.status = updatedStatus;
       inspection.stage = updatedStage;
@@ -660,8 +770,8 @@ export class PaystackService {
 
 
   /**
- * Handles the side effects of a subscription payment.
- */ 
+  * Handles the side effects of a subscription payment.
+  */ 
   static async handleSubscriptionPayment(transaction: any) { 
     // get user subscription snapshot by transaction id
     const snapshot = await UserSubscriptionSnapshotService.getSnapshotByTransactionId(transaction._id);

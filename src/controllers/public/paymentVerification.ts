@@ -29,7 +29,7 @@ export const paymentVerification = async (
         message: `Transaction verification failed: ${verificationResult.reason || "Unknown error"}`,
         data: verificationResult.transaction || verificationResult,
       });
-    }
+    } 
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

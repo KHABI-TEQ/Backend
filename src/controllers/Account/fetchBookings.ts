@@ -183,7 +183,7 @@ export const respondToBookingRequest = async (
     let dealSite: any;
     if (booking.receiverMode.type === "dealSite") {
       // ✅ Find DealSite
-      dealSite = await DB.Models.DealSite.findOne({ _id: booking.receiverMode.dealSiteSlug }).lean();
+      dealSite = await DB.Models.DealSite.findOne({ _id: booking.receiverMode.dealSiteID }).lean();
       if (!dealSite) {
           res.status(HttpStatusCodes.NOT_FOUND).json({
               success: false,

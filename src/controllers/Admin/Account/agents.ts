@@ -307,10 +307,8 @@ export const getAgentsByType = async (
         _id: 1,
         agentType: 1,
         userId: 1,
-        regionOfOperation: 1,
         kycStatus: 1,
         companyAgent: 1,
-        address: 1,
 
         // ✅ include kycData when type = kycRequest
         ...(type === "kycRequest" ? { kycData: 1 } : {}),
@@ -573,6 +571,7 @@ export const getAllAgentUpgradeRequests = async (
   }
 };
 
+
 /**
  * Approves or disapproves an agent's onboarding status.
  * Sends an email notification to the agent.
@@ -628,6 +627,12 @@ export const approveAgentKYCData = async (
 
     // Update Agent record
     agent.kycStatus = approved ? "approved" : "rejected";
+
+    // ✅ Save note if provided
+    if (note && typeof note === "string" && note.trim().length > 0) {
+      agent.kycNote = note.trim();
+    }
+
     await agent.save();
 
     if (approved) {
@@ -684,7 +689,7 @@ export const approveAgentKYCData = async (
           });
 
           // Send subscription receipt email
-          const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/deal-site`;
+          const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
           const successMailBody = generalEmailLayout(
             generateSubscriptionReceiptEmail({
               fullName: userAcct.firstName,
@@ -711,7 +716,7 @@ export const approveAgentKYCData = async (
       : "Update on Your KhabiTeqRealty KYC Application";
 
     const emailBody = generalEmailLayout(
-      approved ? accountApproved(userAcct.firstName) : accountDisapproved(userAcct.firstName)
+      approved ? accountApproved(userAcct.firstName) : accountDisapproved(userAcct.firstName, note)
     );
 
     await sendEmail({
@@ -819,7 +824,10 @@ export const getSingleAgentProfile = async (
 
     const agentData = await DB.Models.Agent.findOne({ userId }).lean();
     const properties = await DB.Models.Property.find({ owner: user._id }).lean();
-    const transactions = await DB.Models.Transaction.find({ buyerId: user._id }).lean();
+    const transactions = await DB.Models.NewTransaction.find({ 
+      "fromWho.item": user._id,
+      "fromWho.kind": "User", 
+    }).lean();
     const inspections = await DB.Models.InspectionBooking.find({ bookedBy: user._id }).lean();
 
     // Fetch subscriptions

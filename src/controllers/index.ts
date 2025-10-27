@@ -11,8 +11,6 @@ import {
   IProperty,
   Property,
   IPropertyModel,
-  ITransactionModel,
-  Transaction,
   Buyer,
   IBuyerModel,
   Preference,
@@ -76,7 +74,6 @@ declare interface IModels {
   Admin: IAdminModel;
   User: IUserModel;
   Property: IPropertyModel;
-  Transaction: ITransactionModel;
   Buyer: IBuyerModel;
   Preference: IPreferenceModel;
   DocumentVerification: IDocumentVerificationModel;
@@ -127,7 +124,6 @@ export class DB {
       Testimonial: new Testimonial().model,
       User: new User().model,
       Property: new Property().model,
-      Transaction: new Transaction().model,
       Buyer: new Buyer().model,
       Preference: new Preference().model,
       DocumentVerification: new DocumentVerification().model,

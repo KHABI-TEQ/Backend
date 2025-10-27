@@ -18,8 +18,8 @@ export interface IUser {
   isAccountVerified: boolean;
   isInActive: boolean;
   isDeleted: boolean;
-  accountApproved: boolean; // For Agents
-  accountStatus: "active" | "inactive" | "deleted";
+  accountApproved: boolean;
+  accountStatus: "active" | "inactive" | "deleted" | "flagged";
    
   userType: "Landowners" | "Agent" | "FieldAgent";
   isFlagged: boolean;
@@ -67,7 +67,7 @@ export class User {
         accountApproved: { type: Boolean, default: false },
         accountStatus: { 
           type: String,
-          enum: ["active", "inactive", "deleted"],
+          enum: ["active", "inactive", "deleted", "flagged"],
           default: "active",
         },
 

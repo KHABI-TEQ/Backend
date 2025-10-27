@@ -1,5 +1,5 @@
 import { Schema, model, models, Document, Model, Types } from 'mongoose';
-
+ 
 export interface IAgent {
   address: {
     street: string;
@@ -35,9 +35,10 @@ export interface IAgent {
       dateAwarded?: Date;
     }[];
   };
+  kycNote?: string;
   kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
 } 
-  
+
 export interface IAgentDoc extends IAgent, Document {}
 
 export type IAgentModel = Model<IAgentDoc>;
@@ -88,6 +89,7 @@ export class Agent {
             default: [],
           },
         },
+        kycNote: { type: String, trim: true },
         kycStatus: {
           type: String,
           enum: ['none', 'pending', 'in_review', 'approved', 'rejected'],

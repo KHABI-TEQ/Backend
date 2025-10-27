@@ -232,7 +232,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                 },
                 receiverMode: {
                     type: "dealSite",
-                    dealSiteSlug: dealSite._id
+                    dealSiteID: dealSite._id
                 }
             });
 
@@ -261,7 +261,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
                     propertyTitle: propertyTitle,
                     checkInDateTime: checkIn,
                     checkOutDateTime: checkOut
-                });
+                }); 
 
                 const sellerEmail = generateBookingRequestReceivedForSeller({
                     sellerName: ownerData.firstName,

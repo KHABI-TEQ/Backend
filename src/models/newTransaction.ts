@@ -6,7 +6,7 @@ import {
   ObjectId,
   Types,
 } from 'mongoose';
-
+ 
 export type TransactionType =
   | 'payment'
   | 'withdrawal'
