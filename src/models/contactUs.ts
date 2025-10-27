@@ -11,7 +11,7 @@ export interface IContactUs {
   status: "pending" | "replied" | "archived" | "spam"; // Status to manage inquiries
   receiverMode: {
     type?: "general" | "dealSite";
-    dealSiteSlug?: Types.ObjectId;
+    dealSiteID?: Types.ObjectId;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -85,7 +85,7 @@ export class ContactUs {
             enum: ["general", "dealSite"],
             default: "general",
           },
-          dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
+          dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
       },
       {

@@ -139,7 +139,7 @@ export const submitInspectionRequest = async (
         stage,
         receiverMode: {
             type: "dealSite",
-            dealSiteSlug: dealSite._id
+            dealSiteID: dealSite._id
         }
       });
 

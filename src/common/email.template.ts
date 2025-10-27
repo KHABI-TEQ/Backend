@@ -1,4 +1,115 @@
-export const generalTemplate = (body: string): string => {
+interface EmailBrandingOptions {
+  companyName?: string;
+  logoUrl?: string;
+  address?: string;
+  facebookUrl?: string;
+  instagramUrl?: string;
+  linkedinUrl?: string;
+  twitterUrl?: string;
+}
+
+export const generalTemplate = (body: string, options: EmailBrandingOptions = {}): string => {
+  const {
+    companyName = "Khabiteq",
+    logoUrl = "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+    address = "Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.",
+    facebookUrl = "https://www.facebook.com/profile.php?id=61568584928290&mibextid=ZbWKwL",
+    instagramUrl = "https://www.instagram.com/khabiteq_realty/profilecard/?igsh=YjRvanQ3YmlmdDNl",
+    linkedinUrl = "#",
+    twitterUrl = "https://x.com/Khabi_Teq?t=Jq6MpEMfwfJ6aQ46CYGPpQ&s=09",
+  } = options;
+
+  return `
+  <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>${companyName} Notification</title>
+    </head>
+    <body style="margin: 0; padding: 0; background-color: #ffffff; height: 100%; display: flex; align-items: center; justify-content: center;">
+        
+        <!-- Main Wrapper -->
+        <table role="presentation" width="60%" cellspacing="0" cellpadding="0" border="0" bgcolor="#F0F3F1" style="margin: auto; padding-bottom: 40px">
+            <tr>
+
+                <!-- Header Logo -->
+                <tr>
+                    <td align="start" style="padding: 50px 0px 0 100px;">
+                        <img src="${logoUrl}" alt="${companyName} Logo" width="150">
+                    </td>
+                </tr>
+                <td align="center" style="padding: 30px;">
+                    
+                    <!-- Email Container -->
+                    <table role="presentation" width="90%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);">
+                    
+                        <!-- Email Body -->
+                        <tr>
+                            <td style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
+                                ${body}
+                                <p>Best regards,</p>
+                                <p><strong>${companyName}</strong></p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Footer Section -->
+                    <tr>
+                      <td align="start" style="padding: 20px 0px 0 100px;">
+                          
+                          <!-- Social Media Icons -->
+                          <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                              <tr>
+                                  ${
+                                    facebookUrl
+                                      ? `<td style="padding: 0 15px;">
+                                          <a href="${facebookUrl}"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="30" alt="Facebook"></a>
+                                         </td>`
+                                      : ""
+                                  }
+                                  ${
+                                    instagramUrl
+                                      ? `<td style="padding: 0 15px;">
+                                          <a href="${instagramUrl}"><img src="https://cdn-icons-png.flaticon.com/512/2111/2111463.png" width="30" alt="Instagram"></a>
+                                         </td>`
+                                      : ""
+                                  }
+                                  ${
+                                    linkedinUrl
+                                      ? `<td style="padding: 0 15px;">
+                                          <a href="${linkedinUrl}"><img src="https://cdn-icons-png.flaticon.com/512/145/145807.png" width="30" alt="LinkedIn"></a>
+                                         </td>`
+                                      : ""
+                                  }
+                                  ${
+                                    twitterUrl
+                                      ? `<td style="padding: 0 15px;">
+                                          <a href="${twitterUrl}"><img src="https://cdn-icons-png.flaticon.com/512/733/733635.png" width="30" alt="Twitter"></a>
+                                         </td>`
+                                      : ""
+                                  }
+                              </tr>
+                          </table>
+                      </td>
+                  </tr>
+
+                  <!-- Copyright Section -->
+                  <tr>
+                      <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
+                          <img src="${logoUrl}" alt="${companyName} Logo" width="120"><br><br>
+                          
+                          <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} ${companyName}.<br>
+                          ${address}</p>
+                      </td>
+                  </tr>
+                </td>
+            </tr>
+        </table>
+    </body>
+  </html>`;
+};
+
+
+export const generalTemplate___old = (body: string): string => {
 	return `
         <html>
           <head>
@@ -1141,6 +1252,7 @@ Below are your inspection details:</p>`
       <p><strong>Inspection Details:</strong></p>
       <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
       <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Mode:</strong> ${propertyData.inspectionMode === 'in_person' ? 'In Person' : 'Virtual'}</li>
     </ul>
 
     <p style="margin-top: 15px;">

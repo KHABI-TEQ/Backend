@@ -689,7 +689,7 @@ export const approveAgentKYCData = async (
           });
 
           // Send subscription receipt email
-          const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/deal-site`;
+          const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
           const successMailBody = generalEmailLayout(
             generateSubscriptionReceiptEmail({
               fullName: userAcct.firstName,

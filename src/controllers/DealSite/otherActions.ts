@@ -178,7 +178,7 @@ export const createDealSiteContactUs = async (
       status: "pending",
       receiverMode: {
         type: "dealSite",
-        dealSiteSlug: dealSite._id,
+        dealSiteID: dealSite._id,
       },
     });
 

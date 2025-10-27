@@ -40,7 +40,7 @@ DealSiteRouter.get("/:publicSlug/properties", getDealSiteProperties);
 // fetch single property of deal sites
 DealSiteRouter.get("/:publicSlug/properties/:propertyId", getSingleDealSiteProperty);
 
-// make inspection request
+// make inspection request 
 DealSiteRouter.post("/:publicSlug/inspections/makeRequest", submitInspectionRequest);
 
 // make booking request

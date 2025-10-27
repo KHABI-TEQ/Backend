@@ -1,5 +1,5 @@
 import { Schema, model, models, Document, Model, Types } from 'mongoose';
-
+ 
 export interface IAgent {
   address: {
     street: string;
@@ -38,7 +38,7 @@ export interface IAgent {
   kycNote?: string;
   kycStatus?: 'none' | 'pending' | 'in_review' | 'approved' | 'rejected';
 } 
-  
+
 export interface IAgentDoc extends IAgent, Document {}
 
 export type IAgentModel = Model<IAgentDoc>;

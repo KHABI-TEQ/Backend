@@ -28,7 +28,7 @@ export interface IBooking {
   meta?: Record<string, any>; 
   receiverMode: {
     type?: "general" | "dealSite";
-    dealSiteSlug?: Types.ObjectId;
+    dealSiteID?: Types.ObjectId;
   };
 } 
   
@@ -95,7 +95,7 @@ export class Booking {
             enum: ["general", "dealSite"],
             default: "general",
           },
-          dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
+          dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
       },
       { timestamps: true }

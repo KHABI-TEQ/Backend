@@ -62,7 +62,7 @@ export interface IInspectionBooking {
   propertyType: "jv" | "shortlet" | "buy" | "rent";
   receiverMode: {
     type?: "general" | "dealSite";
-    dealSiteSlug?: Types.ObjectId;
+    dealSiteID?: Types.ObjectId;
   };
 
   meta?: Record<string, any>;
@@ -71,8 +71,8 @@ export interface IInspectionBooking {
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
   createdAt: Date;
   updatedAt: Date;
-}
-
+} 
+ 
 export type IInspectionBookingModel = Model<IInspectionBookingDoc>;
 
 export class InspectionBooking {
@@ -183,7 +183,7 @@ export class InspectionBooking {
             enum: ["general", "dealSite"],
             default: "general",
           },
-          dealSiteSlug: { type: Schema.Types.ObjectId, ref: "DealSite" }
+          dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
         meta: { type: Schema.Types.Mixed, default: {} },
       },
