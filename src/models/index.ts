@@ -30,3 +30,5 @@ export * from "./dealSiteActivity";
 export * from "./emailSubscription";
 export * from "./promotion";
 export * from "./promotionActivity";
+export * from "./permission";
+export * from "./role";
