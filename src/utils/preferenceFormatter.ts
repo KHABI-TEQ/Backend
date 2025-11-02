@@ -40,6 +40,7 @@ interface BuyPreferencePayload {
   nearbyLandmark?: string;
   additionalNotes?: string;
   status: string;
+  createdAt: Date;
 }
 
 interface RentPreferencePayload {
@@ -84,6 +85,7 @@ interface RentPreferencePayload {
   nearbyLandmark?: string;
   additionalNotes?: string;
   status: string;
+  createdAt: Date;
 }
 
 interface JointVenturePreferencePayload {
@@ -134,6 +136,7 @@ interface JointVenturePreferencePayload {
   nearbyLandmark?: string;
   additionalNotes?: string;
   status: string;
+  createdAt: Date;
 }
 
 interface ShortletPreferencePayload {
@@ -194,6 +197,7 @@ interface ShortletPreferencePayload {
   nearbyLandmark?: string;
   additionalNotes?: string;
   status: string;
+  createdAt: Date;
 }
 
 export type PreferencePayload =
@@ -369,9 +373,12 @@ export function formatPreferenceForFrontend(preference: PreferencePayload): { [k
   if (preference?.additionalNotes) {
     formattedData.additionalNotes = preference.additionalNotes;
   }
+
   if ((preference as JointVenturePreferencePayload).partnerExpectations) {
     formattedData.partnerExpectations = (preference as JointVenturePreferencePayload).partnerExpectations;
   }
+
+  formattedData.createdAt = preference.createdAt;
 
   return formattedData;
 }

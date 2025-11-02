@@ -63,6 +63,10 @@ import {
   IPromotionModel,
   PromotionActivity,
   IPromotionActivityModel,
+  Permission,
+  IPermissionModel,
+  Role,
+  IRoleModel,
 } from "../models/index";
 
 
@@ -99,6 +103,8 @@ declare interface IModels {
   Booking: IBookingModel;
   Promotion: IPromotionModel;
   PromotionActivity: IPromotionActivityModel;
+  Permission: IPermissionModel;
+  Role: IRoleModel;
 } 
 
 export class DB {
@@ -150,6 +156,8 @@ export class DB {
       Booking: new Booking().model,
       Promotion: new Promotion().model,
       PromotionActivity: new PromotionActivity().model,
+      Permission: new Permission().model,
+      Role: new Role().model,
     };
   }
 

@@ -35,6 +35,10 @@ import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats
 import { adminAddSubscription, adminChangeSubscriptionStatus, adminDeleteSubscription, adminGetAllSubscriptions } from "../controllers/Admin/Settings/emailSubscriptionActionController";
 import { adminCreatePromotion, adminDeletePromotion, adminGetPromotionAnalytics, adminGetPromotionById, adminListPromotions, adminUpdatePromotion, adminUpdatePromotionStatus } from "../controllers/Admin/Campaign/adminPromotionController";
 import { DashboardStatsController } from "../controllers/Admin/Dashboard/DashboardStatsController";
+import { PERMISSIONS } from "../common/constants/permissions";
+import { requirePermission, requireSuperAdmin } from "../middlewares/authorizationMiddleware";
+import { assignPermissionsToAdmin, assignRolesToAdmin, createPermission, createRole, deletePermission, deleteRole, getAdminRolesAndPermissions, getAllPermissions, getAllRoles, getPermissionById, getRoleById, seedDefaultPermissions, seedDefaultRoles, updatePermission, updateRole } from "../controllers/Admin/Permission/rolePermissionController";
+
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -261,6 +265,126 @@ AdminRouter.put("/settings/:key/update", updateSetting);
 AdminRouter.get("/settings/:key/getOne", getSetting);
 AdminRouter.get("/settings/getAll", getAllSettings);
 AdminRouter.delete("/settings/:key/delete", deleteSetting);
+
+
+
+
+
+/**
+ * GET /api/permissions
+ * Get all permissions with optional filtering by category, isActive, or search
+ * Query params: category, isActive, search
+ */
+AdminRouter.get('/permissions', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getAllPermissions);
+
+/**
+ * GET /api/permissions/:id
+ * Get a single permission by ID
+ */
+AdminRouter.get('/permissions/:id', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getPermissionById);
+
+/**
+ * POST /api/permissions
+ * Create a new permission
+ * Body: { name, description, resource, action, category, isActive? }
+ */
+AdminRouter.post('/permissions', requireSuperAdmin, createPermission);
+
+/**
+ * PUT /api/permissions/:id
+ * Update a permission
+ * Body: { name?, description?, isActive? }
+ */
+AdminRouter.put('/permissions/:id', requireSuperAdmin, updatePermission);
+
+/**
+ * DELETE /api/permissions/:id
+ * Delete a permission (only if not used in any roles)
+ */
+AdminRouter.delete('/permissions/:id', requireSuperAdmin, deletePermission);
+
+/**
+ * POST /api/permissions/seed
+ * Seed default permissions from constants
+ * Only works if no permissions exist yet
+ */
+AdminRouter.post('/permissions/seed', requireSuperAdmin, seedDefaultPermissions);
+
+// ==================== ROLE ROUTES ====================
+
+/**
+ * GET /api/roles
+ * Get all roles with optional filtering
+ * Query params: isActive, search
+ */
+AdminRouter.get('/roles', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getAllRoles);
+
+/**
+ * GET /api/roles/:id
+ * Get a single role by ID
+ */
+AdminRouter.get('/roles/:id', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getRoleById);
+
+/**
+ * POST /api/roles
+ * Create a new role
+ * Body: { name, description, permissions[], level, isActive? }
+ */
+AdminRouter.post('/roles', requireSuperAdmin, createRole);
+
+/**
+ * PUT /api/roles/:id
+ * Update a role
+ * Body: { name?, description?, permissions[]?, level?, isActive? }
+ */
+AdminRouter.put('/roles/:id', requireSuperAdmin, updateRole);
+
+/**
+ * DELETE /api/roles/:id
+ * Delete a role (only if not assigned to any admins)
+ */
+AdminRouter.delete('/roles/:id', requireSuperAdmin, deleteRole);
+
+/**
+ * POST /api/roles/seed
+ * Seed default roles from constants
+ * Only works if no roles exist yet
+ */
+AdminRouter.post('/roles/seed', requireSuperAdmin, seedDefaultRoles);
+
+// ==================== ADMIN ROLE ASSIGNMENT ROUTES ====================
+
+/**
+ * GET /api/admins/:adminId/roles-and-permissions
+ * Get admin's assigned roles and permissions
+ */
+AdminRouter.get(
+  '/admins/:adminId/roles-and-permissions',
+  requirePermission(PERMISSIONS.ADMINS_VIEW),
+  getAdminRolesAndPermissions
+);
+
+/**
+ * POST /api/admins/:adminId/roles
+ * Assign roles to an admin
+ * Body: { roles: string[] }
+ */
+AdminRouter.post(
+  '/admins/:adminId/roles',
+  requirePermission(PERMISSIONS.ADMINS_ASSIGN_ROLES),
+  assignRolesToAdmin
+);
+
+/**
+ * POST /api/admins/:adminId/permissions
+ * Assign permissions to an admin
+ * Body: { permissions: string[], mode?: 'set' | 'add' | 'remove' }
+ */
+AdminRouter.post(
+  '/admins/:adminId/permissions',
+  requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS),
+  assignPermissionsToAdmin
+);
 
 AdminRouter.use(AdminInspRouter);
 
