@@ -17,6 +17,7 @@ import { getPropertyTitleFromLocation } from '../utils/helper';
 import { BookingLogService } from './bookingLog.service';
 import { generateSuccessfulBookingReceiptForBuyer, generateSuccessfulBookingReceiptForSeller } from '../common/emailTemplates/bookingMails';
 import { Url } from 'url';
+import WhatsAppNotificationService from './whatsAppNotification.service';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -266,7 +267,7 @@ export class PaystackService {
           },
         }
       ); 
-
+ 
       const data = response.data.data; 
 
       // Update DB regardless of success or failure
@@ -347,7 +348,7 @@ export class PaystackService {
         .lean();
  
       if (!bookingRequest) return;
-
+ 
       // 🧩 Helper: Build email template layout with DealSite branding
       const getDealSiteTemplate = async (
         baseHtml: string,
@@ -397,6 +398,16 @@ export class PaystackService {
           const bookedPrice = bookingRequest.meta.totalPrice?.toLocaleString("en-US") ?? "N/A";
 
           if (transaction.status === "success") {
+
+            // 1. Configuration for the service
+            const whatsappConfig = {
+              accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
+              phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID
+            };
+
+            // 2. Instantiate the service
+            const whatsappService = new WhatsAppNotificationService(whatsappConfig);
+
             // mark the property as unavailable
             const propertyId = bookingRequest.propertyId._id;
 
@@ -448,6 +459,34 @@ export class PaystackService {
                 stage: "completed",
                 meta: { propertyTitle, bookedPrice },
             });
+
+             const bookingData = {
+                booking: {
+                  id: bookingRequest._id.toString(),
+                  dateTime: bookingRequest.bookingDetails.checkInDateTime
+                },
+                user: {
+                  name: buyer.fullName,
+                  phone: buyer.whatsAppNumber,
+                },
+                agent: {
+                  name: ownerData.firstName,
+                  phone: buyer.phoneNumber,
+                },
+                property: {
+                  name: propertyTitle,
+                  address: propertyTitle
+                },
+              };
+               
+            // const result = await whatsappService.sendBookingConfirmation(bookingData);
+            // if (result.success) {
+            //   console.log('Booking confirmation sent successfully!');
+            //   result.results.forEach(r => console.log(`  Type: ${r.type}, Success: ${r.success}, Message ID: ${r.messageId}`));
+            // } else {
+            //   console.error(`Failed to send booking confirmation: ${result.error}`);
+            //   result.results.forEach(r => console.error(`  Type: ${r.type}, Error: ${r.error}`));
+            // }
 
             const buyerEmailHtml = generateSuccessfulBookingReceiptForBuyer({
                 buyerName: buyer.fullName,

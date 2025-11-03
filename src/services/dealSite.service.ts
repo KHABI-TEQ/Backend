@@ -291,8 +291,6 @@ export class DealSiteService {
         "Public slug cannot be changed once created."
       );
     }
-
-    console.log(updates, "all datasss");
     
     // Disallow modifications if under review
     if (dealSite.status === "on-hold") {
@@ -316,6 +314,8 @@ export class DealSiteService {
       "paymentDetails",
       "about",
       "contactUs",
+      'homeSettings',
+      'subscribeSettings'
     ];
 
     if (!allowedSections.includes(sectionName)) {

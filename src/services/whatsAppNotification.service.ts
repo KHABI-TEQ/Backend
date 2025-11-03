@@ -253,7 +253,7 @@ class WhatsAppNotificationService {
   };
 
   constructor(config: WhatsAppConfig) {
-    this.whatsappApiUrl = config.whatsappApiUrl || 'https://graph.facebook.com/v18.0';
+    this.whatsappApiUrl = config.whatsappApiUrl || 'https://graph.facebook.com/v22.0';
     this.accessToken = config.accessToken;
     this.phoneNumberId = config.phoneNumberId;
     
@@ -355,7 +355,7 @@ class WhatsAppNotificationService {
           link: mediaUrl,
           caption: caption
         }
-      };
+      }; 
 
       const response: AxiosResponse<WhatsAppApiResponse> = await axios.post(
         `${this.whatsappApiUrl}/${this.phoneNumberId}/messages`,
@@ -386,7 +386,7 @@ class WhatsAppNotificationService {
     const { booking, user, agent, property } = bookingData;
     const results: Array<{type: 'user' | 'agent'; success: boolean; messageId?: string; error?: string}> = [];
 
-    try {
+    try { 
       // Send confirmation to user
       const userResult = await this.sendMessage(user.phone, 'booking_confirmation', {
         userName: user.name,

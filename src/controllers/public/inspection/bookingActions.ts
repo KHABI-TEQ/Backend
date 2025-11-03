@@ -156,7 +156,7 @@ export class BookingController {
                     },
                     transactionType: "shortlet-booking",
                 });
-            }
+            } 
         
              const booking = await DB.Models.Booking.create({
                 propertyId: propertyId,

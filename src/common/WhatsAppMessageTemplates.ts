@@ -4,7 +4,7 @@ export interface Template {
   requiresApproval: boolean;
   createdAt?: string;
 }
-
+ 
 export interface TemplateInfo {
   key: string;
   category: string;
