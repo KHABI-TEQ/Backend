@@ -92,6 +92,56 @@ export interface IDealSite {
       question: string;
       answer: string;
     }[];
+  }; 
+
+  homeSettings?: {
+    testimonials?: {
+      title: string;
+      subTitle: string;
+      testimonials: {
+        rating: number;
+        description: string;
+        image: string;
+        name: string;
+        company: string;
+      }[];
+    };
+    whyChooseUs?: {
+      title: string;
+      subTitle: string;
+      items: {
+        icon: string;
+        title: string;
+        content: string;
+      }[];
+    };
+    readyToFind?: {
+      title: string;
+      subTitle: string;
+      ctas: {
+        bgColor: string;
+        text: string;
+        actionLink: string;
+      }[];
+      items: {
+        icon: string;
+        title: string;
+        subTitle: string;
+        content: string;
+      }[];
+    };
+  };
+
+
+  subscribeSettings?: {
+    title: string;
+    subTitle: string;
+    miniTitle: string;
+    backgroundColor: string;
+    cta: {
+      text: string;
+      color: string;
+    };
   };
 
   paymentDetails?: {
@@ -222,6 +272,64 @@ export class DealSite {
               answer: { type: String },
             },
           ],
+        },
+
+
+        homeSettings: {
+          testimonials: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            testimonials: [
+              {
+                rating: { type: Number },
+                description: { type: String },
+                image: { type: String },
+                name: { type: String },
+                company: { type: String },
+              },
+            ],
+          },
+          whyChooseUs: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            items: [
+              {
+                icon: { type: String },
+                title: { type: String },
+                content: { type: String },
+              },
+            ],
+          },
+          readyToFind: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            ctas: [
+              {
+                bgColor: { type: String },
+                text: { type: String },
+                actionLink: { type: String },
+              },
+            ],
+            items: [
+              {
+                icon: { type: String },
+                title: { type: String },
+                subTitle: { type: String },
+                content: { type: String },
+              },
+            ],
+          },
+        },
+
+        subscribeSettings: {
+          title: { type: String, default: "" },
+          subTitle: { type: String, default: "" },
+          miniTitle: { type: String, default: "" },
+          backgroundColor: { type: String, default: "#8DDB90" },
+          cta: {
+            text: { type: String, default: "" },
+            color: { type: String, default: "#09391C" },
+          },
         },
 
         footerSection: {

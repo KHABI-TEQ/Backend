@@ -7,6 +7,7 @@ import sendEmail from '../common/send.email';
 export class BookingService {
 
 
+  
    /**
    * Fetch bookings made by a buyer
    */

@@ -12,7 +12,7 @@ export interface IOwnerResponse {
   respondedAt?: Date;
   note?: string;
 }
- 
+  
 export interface IBooking {
   propertyId: Types.ObjectId;               // Ref -> Property
   bookedBy: Types.ObjectId;                 // Ref -> Buyer
