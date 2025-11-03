@@ -52,7 +52,7 @@ export const getAllProperties = async (
       desireFeature: desireFeature ? desireFeature.split(",") : undefined,
       tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
     };
-
+ 
     // ✅ Pretty-print processed filters
     console.log("Processed filters:\n", JSON.stringify(filters, null, 2));
 

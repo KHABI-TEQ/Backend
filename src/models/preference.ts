@@ -150,7 +150,7 @@ export interface IPreference {
 }
 
 export interface IPreferenceDoc extends IPreference, Document {}
-
+ 
 export type IPreferenceModel = Model<IPreferenceDoc>;
 
 export class Preference {
