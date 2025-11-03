@@ -31,6 +31,7 @@ import {
   requestAccountDeletion,
   updateNotificationSettings,
   updateProfile,
+  updateProfilePicture,
 } from "../controllers/Account/profileSettings";
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
@@ -54,7 +55,8 @@ AccountRouter.use(accountAuth);
 // PROFILE ROUTES
 AccountRouter.get("/profile", getProfile);
 AccountRouter.get("/dashboard", getDashboardData);
-AccountRouter.patch("/updateAccount", updateProfile);
+AccountRouter.patch("/updateAccount", updateProfile)
+AccountRouter.patch("/updateProfilePicture", updateProfilePicture);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
 AccountRouter.post("/cancelAccountDeletion", cancelAccountDeletion);
 AccountRouter.delete("/deleteAccountImmediately", deleteAccountImmediately);
