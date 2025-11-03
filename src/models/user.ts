@@ -14,13 +14,11 @@ export interface IUser {
   };
   fullName?: string;
   profile_picture?: string;
-
   isAccountVerified: boolean;
   isInActive: boolean;
   isDeleted: boolean;
   accountApproved: boolean;
-  accountStatus: "active" | "inactive" | "deleted" | "flagged";
-   
+  accountStatus: "active" | "inactive" | "deleted" | "flagged" | "pending_deletion";
   userType: "Landowners" | "Agent" | "FieldAgent";
   isFlagged: boolean;
   accountId: string;
@@ -29,10 +27,8 @@ export interface IUser {
   enableNotifications?: boolean;
   referralCode?: string;
   referredBy?: string;
-  publicAccess?: {
-    url?: string;
-    urlEnabled?: boolean;
-  };
+  deletionRequestedAt?: Date;
+  deletionGracePeriodDays?: number;
 }
  
 export interface IUserDoc extends IUser, Document {
@@ -67,11 +63,9 @@ export class User {
         accountApproved: { type: Boolean, default: false },
         accountStatus: { 
           type: String,
-          enum: ["active", "inactive", "deleted", "flagged"],
+          enum: ["active", "inactive", "deleted", "flagged", "pending_deletion"],
           default: "active",
         },
-
-
         userType: {
           type: String,
           enum: ["Landowners", "Agent", "FieldAgent"],
@@ -85,10 +79,8 @@ export class User {
         enableNotifications: { type: Boolean, default: true },
         referralCode: { type: String, unique: true, sparse: true },
         referredBy: { type: String },
-        publicAccess: {
-          url: { type: String, unique: true, sparse: true, trim: true },
-          urlEnabled: { type: Boolean, default: false },
-        },
+        deletionRequestedAt: { type: Date },
+        deletionGracePeriodDays: { type: Number, default: 7 },
       },
       {
         timestamps: true,

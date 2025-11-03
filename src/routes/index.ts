@@ -23,7 +23,6 @@ import { submitContactForm } from "../controllers/public/contactUs";
 import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
-import { getPublicAgentProfile } from "../controllers/public/extralActions";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
 import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
@@ -175,9 +174,6 @@ router.get("/testimonials", getLatestApprovedTestimonials);
  
 router.get("/subscriptions/plans", getAllActiveSubscriptionPlans);
 router.get("/features/getAll", getAllActiveFeatures);
- 
-// All Auth Routes
-router.get("/pv-account/:publicAccessUID", getPublicAgentProfile);
 
 // All Auth Routes
 router.use("/auth", AuthRouter);

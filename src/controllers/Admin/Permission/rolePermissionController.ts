@@ -26,7 +26,7 @@ type PopulatedRole = {
  */
 export const getAllPermissions = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
-    const { category, isActive = true, search } = req.query;
+    const { category, isActive, search } = req.query;
 
     const filter: any = {};
 
@@ -34,7 +34,7 @@ export const getAllPermissions = async (req: AppRequest, res: Response, next: Ne
       filter.category = category;
     }
 
-    if (isActive !== undefined) {
+    if (typeof isActive === 'string') {
       filter.isActive = isActive === 'true';
     }
 
@@ -244,7 +244,7 @@ export const seedDefaultPermissions = async (req: AppRequest, res: Response, nex
       category: permissionName.split('.')[0],
       isActive: true,
     }));
-
+ 
     const createdPermissions = await DB.Models.Permission.insertMany(permissionsToCreate);
 
     return res.status(HttpStatusCodes.OK).json({
@@ -266,11 +266,11 @@ export const seedDefaultPermissions = async (req: AppRequest, res: Response, nex
  */
 export const getAllRoles = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
-    const { isActive = true, search } = req.query;
+    const { isActive, search } = req.query;
 
     const filter: any = {};
 
-    if (isActive !== undefined) {
+    if (typeof isActive === 'string') {
       filter.isActive = isActive === 'true';
     }
 
