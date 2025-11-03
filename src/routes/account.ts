@@ -22,18 +22,19 @@ import {
   markNotificationAsUnRead,
 } from "../controllers/Account/notifications";
 import {
+  cancelAccountDeletion,
   changeEmail,
   changePassword,
+  deleteAccountImmediately,
   getDashboardData,
   getProfile,
   requestAccountDeletion,
   updateNotificationSettings,
   updateProfile,
-  validateAgentPublicAccess,
 } from "../controllers/Account/profileSettings";
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
-import { completeAgentKYC, completeOnboardingAgent, setAgentInspectionFee } from "../controllers/Account/Agent/onBoarding";
+import { completeAgentKYC, completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, sendInspectionParticipantDetails, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionSnapshotAutoRenewal } from "../controllers/Account/Agent/subscriptions";
@@ -55,6 +56,8 @@ AccountRouter.get("/profile", getProfile);
 AccountRouter.get("/dashboard", getDashboardData);
 AccountRouter.patch("/updateAccount", updateProfile);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
+AccountRouter.post("/cancelAccountDeletion", cancelAccountDeletion);
+AccountRouter.delete("/deleteAccountImmediately", deleteAccountImmediately);
 AccountRouter.put("/changePassword", changePassword);
 AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
@@ -63,9 +66,6 @@ AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
 // AGENT UNIQUE ROUTES
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completeAgentKYC);
-
-AccountRouter.put("/updateInspectionFee", setAgentInspectionFee);
-AccountRouter.get("/validatePublicAccess/", validateAgentPublicAccess);
 
 // PROPERTY ROUTES
 AccountRouter.post("/properties/create", postProperty);

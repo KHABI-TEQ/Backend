@@ -164,6 +164,9 @@ const notifyExpiringSubscriptions = async () => {
         `[CRON] Notifying user ${user.email} about expiring subscription in ${daysLeft} day(s)`
       );
  
+      // create public link
+      const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
+
       const emailHtml = generalEmailLayout(
         generateSubscriptionExpiringSoonEmail({
           fullName: user.fullName || `${user.firstName} ${user.lastName}`,
@@ -174,7 +177,7 @@ const notifyExpiringSubscriptions = async () => {
             year: 'numeric',
           }),
           daysLeft,
-          publicAccessLink: user.publicAccess?.urlEnabled ? user.publicAccess.url : undefined,
+          publicAccessLink: publicAccessCompleteLink,
           autoRenewEnabled: sub.autoRenew
         })
       );
@@ -311,7 +314,7 @@ const autoRenewSubscriptionsCronJob = async () => {
         );
 
         // create public link
-        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/deal-site`;
+        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
 
         const { html, text } = generateAutoRenewReceiptEmail({
           fullName: user.fullName || `${user.firstName} ${user.lastName}`,

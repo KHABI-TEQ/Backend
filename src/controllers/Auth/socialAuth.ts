@@ -288,7 +288,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
 export const facebookAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   const { idToken, userType, referreredCode } = req.body;
 
-  try {
+  try { 
     const facebookAuthStatus = await SystemSettingService.getSetting("facebook_auth_enabled");
     if (facebookAuthStatus?.value) {
       throw new RouteError(

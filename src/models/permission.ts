@@ -37,7 +37,6 @@ export class Permission {
         action: {
           type: String,
           required: true,
-          enum: ['create', 'read', 'update', 'delete', 'approve', 'reject', 'export', 'manage', 'view_analytics'],
         },
         category: {
           type: String,

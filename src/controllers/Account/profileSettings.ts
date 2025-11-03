@@ -7,6 +7,9 @@ import bcrypt from "bcryptjs";
 import { SystemSettingService } from "../../services/systemSetting.service";
 import { UserSubscriptionSnapshotService } from "../../services/userSubscriptionSnapshot.service";
 import { DealSiteService } from "../../services/dealSite.service";
+import sendEmail from "../../common/send.email";
+import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
+import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
 
 // Fetch Profile
 export const getProfile = async (
@@ -40,6 +43,7 @@ export const getProfile = async (
       isFlagged: user.isFlagged,
       accountId: user.accountId,
       referralCode: user.referralCode,
+      createdAt: user.createdAt
     };
 
     let responseData: any = userResponse;
@@ -77,39 +81,136 @@ export const getProfile = async (
 };
 
 
-// Update Profile (e.g. name, phone, address)
+// Update Profile (firstName, lastName, phoneNumber, address.street)
 export const updateProfile = async (
   req: AppRequest,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const userId = req.user?._id;
-    const updateData = req.body;
 
-    const updated = await DB.Models.User.findByIdAndUpdate(userId, updateData, {
+    // Define which fields are allowed
+    const allowedFields = ["firstName", "lastName", "phoneNumber", "address"];
+    const updateData: Record<string, any> = {};
+
+    // Build updateData safely
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) {
+        // Special handling for nested address field
+        if (key === "address" && typeof req.body.address === "string") {
+          updateData["address.street"] = req.body.address;
+        } else {
+          updateData[key] = req.body[key];
+        }
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "No valid fields provided to update"
+      );
+    }
+
+    const updatedUser = await DB.Models.User.findByIdAndUpdate(userId, updateData, {
       new: true,
     }).lean();
 
-    if (!updated) {
+    if (!updatedUser) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
+
+    // --- Send confirmation email ---
+    const updatedFieldsList = Object.keys(updateData).map((key) => {
+      const parts = key.split(".");
+      const fieldName = parts[parts.length - 1]; // e.g., "street" from "address.street"
+      return fieldName.charAt(0).toUpperCase() + fieldName.slice(1);
+    });
+
+    const emailBody = generalEmailLayout(
+      generateAccountUpdatedEmail({
+        fullName: `${updatedUser.firstName || ""} ${updatedUser.lastName || ""}`.trim() || "User",
+        updatedFields: updatedFieldsList,
+        settingsLink: `${process.env.CLIENT_LINK}/profile-settings`,
+      })
+    );
+
+    await sendEmail({
+      to: updatedUser.email,
+      subject: "Your Account Information Has Been Updated",
+      html: emailBody,
+      text: emailBody,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Profile updated successfully",
-      data: updated,
+      data: updatedUser,
     });
   } catch (err) {
     next(err);
   }
 };
 
-// Change Email (check if email exists before update)
+
+// Update Profile Picture
+export const updateProfilePicture = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+
+    // Accepts already uploaded URL from frontend
+    const { profile_picture } = req.body;
+    if (!profile_picture) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "No profile picture provided");
+    }
+
+    const updatedUser = await DB.Models.User.findByIdAndUpdate(
+      userId,
+      { profile_picture },
+      { new: true }
+    ).lean();
+
+    if (!updatedUser) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
+    }
+
+    // --- Send confirmation email ---
+    const emailBody = generalEmailLayout(
+      generateAccountUpdatedEmail({
+        fullName: updatedUser.fullName || "User",
+        updatedFields: ["Profile Picture"],
+        settingsLink: `${process.env.CLIENT_LINK}/profile-settings`,
+      })
+    );
+
+    await sendEmail({
+      to: updatedUser.email,
+      subject: "Your Account Information Has Been Updated",
+      html: emailBody,
+      text: emailBody,
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: updatedUser,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// Change Email (check if email exists before update and notify user)
 export const changeEmail = async (
   req: AppRequest,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const userId = req.user?._id;
@@ -118,40 +219,59 @@ export const changeEmail = async (
     if (!newEmail) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "New email is required",
+        "New email is required"
       );
     }
 
-    const exists = await DB.Models.User.findOne({ email: newEmail });
+    // Check if email already exists
+    const exists = await DB.Models.User.findOne({ email: newEmail.toLowerCase() });
     if (exists) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Email already in use");
     }
 
-    const updated = await DB.Models.User.findByIdAndUpdate(
+    // Update email and mark account unverified
+    const updatedUser = await DB.Models.User.findByIdAndUpdate(
       userId,
       { email: newEmail.toLowerCase(), isAccountVerified: false },
-      { new: true },
+      { new: true }
     ).lean();
 
-    if (!updated) {
+    if (!updatedUser) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
 
+    // --- Send confirmation email to the new address ---
+    const emailBody = generalEmailLayout(
+      generateAccountUpdatedEmail({
+        fullName: `${updatedUser.firstName || ""} ${updatedUser.lastName || ""}`.trim() || "User",
+        updatedFields: ["Email Address"],
+        settingsLink: `${process.env.CLIENT_LINK}/profile-settings`,
+      })
+    );
+
+    await sendEmail({
+      to: updatedUser.email,
+      subject: "Your Account Email Has Been Changed",
+      html: emailBody,
+      text: emailBody,
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Email changed successfully",
-      data: updated,
+      message: "Email changed successfully and confirmation sent",
+      data: updatedUser,
     });
   } catch (err) {
     next(err);
   }
 };
 
+
 // Change Password (must check old password)
 export const changePassword = async (
   req: AppRequest,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const userId = req.user?._id;
@@ -160,7 +280,7 @@ export const changePassword = async (
     if (!oldPassword || !newPassword) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Old and new password are required",
+        "Old and new password are required"
       );
     }
 
@@ -169,13 +289,31 @@ export const changePassword = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
 
+    // ✅ Verify old password
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid old password");
     }
 
+    // ✅ Hash and save new password
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
+
+    // --- Send confirmation email ---
+    const emailBody = generalEmailLayout(
+      generateAccountUpdatedEmail({
+        fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User",
+        updatedFields: ["Password"],
+        settingsLink: `${process.env.CLIENT_LINK}/profile-settings?tab=password`,
+      })
+    );
+
+    await sendEmail({
+      to: user.email,
+      subject: "Your Account Password Has Been Changed",
+      html: emailBody,
+      text: emailBody,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -186,19 +324,94 @@ export const changePassword = async (
   }
 };
 
-// Request Account Deletion (Soft delete or Flag)
+
+// Request Account Deletion (Schedule deletion, not immediate)
 export const requestAccountDeletion = async (
   req: AppRequest,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+    const user = await DB.Models.User.findById(userId);
+
+    if (!user) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
+    }
+
+    // Set deletion metadata
+    const deletionRequestedAt = new Date();
+    const deletionGracePeriodDays = 7;
+    const cancellationDate = new Date(
+      deletionRequestedAt.getTime() + deletionGracePeriodDays * 24 * 60 * 60 * 1000
+    );
+
+    // Update user record
+    user.deletionRequestedAt = deletionRequestedAt;
+    user.deletionGracePeriodDays = deletionGracePeriodDays;
+    user.accountStatus = "pending_deletion";
+    await user.save();
+
+    // Format dates nicely for the email
+    const deletionRequestDateStr = deletionRequestedAt.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    const cancellationDateStr = cancellationDate.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    // Generate a secure link to revert deletion (frontend route)
+    const revertDeletionLink = `${process.env.CLIENT_LINK}/profile-settings?tab=account`;
+
+    // Generate email content
+    const emailBody = generalEmailLayout(
+      generateAccountDeletionRequestEmail({
+        fullName: `${user.firstName} ${user.lastName}`,
+        deletionRequestDate: deletionRequestDateStr,
+        cancellationDate: cancellationDateStr,
+        revertDeletionLink,
+      })
+    );
+
+    // Send email notification to the user
+    await sendEmail({
+      to: user.email,
+      subject: "Your Account Deletion Request",
+      html: emailBody,
+      text: emailBody,
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: `Account deletion requested. Your account will be permanently deleted after ${deletionGracePeriodDays} days unless you cancel.`,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// Cancel Account Deletion
+export const cancelAccountDeletion = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
 ) => {
   try {
     const userId = req.user?._id;
 
     const updated = await DB.Models.User.findByIdAndUpdate(
       userId,
-      { isDeleted: true, accountStatus: "deleted" },
-      { new: true },
+      {
+        $unset: { deletionRequestedAt: "", deletionGracePeriodDays: "" },
+        accountStatus: "active",
+      },
+      { new: true }
     ).lean();
 
     if (!updated) {
@@ -207,7 +420,60 @@ export const requestAccountDeletion = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Account deletion requested successfully",
+      message: "Account deletion request canceled successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// Permanently Delete Account (immediate)
+export const deleteAccountImmediately = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+    const user = await DB.Models.User.findById(userId);
+
+    if (!user) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
+    }
+
+    const fullName = `${user.firstName} ${user.lastName}`.trim();
+
+    // 🧹 Clean up related data
+    await Promise.all([
+      DB.Models.Property.deleteMany({ owner: userId }),
+      DB.Models.DealSite.deleteMany({ createdBy: userId }),
+      DB.Models.PaymentMethod.deleteMany({ user: userId }),
+      DB.Models.NewTransaction.deleteMany({ "fromWho.kind": "User", "fromWho.item": userId }),
+      DB.Models.Notification.deleteMany({ user: userId }),
+    ]);
+
+    // 🗑️ Permanently remove user
+    await user.deleteOne();
+
+    // 📧 Notify admin
+    const adminEmailBody = generalEmailLayout(
+      generateAccountDeletedEmail({
+        fullName,
+        deletionDate: new Date().toISOString(),
+      })
+    );
+
+    await sendEmail({
+      to: user.email,
+      subject: "User Account Permanently Deleted",
+      html: adminEmailBody,
+      text: adminEmailBody,
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Account deleted permanently",
     });
   } catch (err) {
     next(err);
@@ -394,52 +660,5 @@ export const getDashboardData = async (
     });
   } catch (err) {
     next(err);
-  }
-};
-
-
-export const validateAgentPublicAccess = async (
-  req: AppRequest,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const authUser = req.user;
-
-    if (!authUser || authUser.userType !== "Agent") {
-      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
-        success: false,
-        message: "Only agents can have public access.",
-      });
-    }
-
-    const user = await DB.Models.User.findById(authUser._id).lean();
-    if (!user) {
-      return res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        message: "User account not found.",
-      });
-    }
-
-    const hasPublicAccess =
-      user.publicAccess?.urlEnabled === true && !!user.publicAccess?.url;
-
-    if (!hasPublicAccess) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        message:
-          "You do not have public access. Please subscribe to gain access.",
-      });
-    }
-
-    return res.status(HttpStatusCodes.OK).json({
-      success: true,
-      message: "Agent has valid public access.",
-      data: {
-        url: user.publicAccess?.url,
-      },
-    });
-  } catch (error) {
-    next(error);
   }
 };

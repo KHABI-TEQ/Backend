@@ -245,7 +245,7 @@ export const getDealSiteBySlug = async (
 
 /**
  * Fetch specific DealSite settings by section
- * Example: GET /deal-sites/:publicSlug/settings/:section
+ * Example: GET /public-access-page/:publicSlug/settings/:section
  */
 export const getDealSiteSection = async (
   req: AppRequest,
@@ -337,7 +337,7 @@ export const getDealSiteSection = async (
 
 
 /**
- * GET /deal-sites/:publicSlug/featured
+ * GET /public-access-page/:publicSlug/featured
  * Fetch all featured properties for a DealSite
  */
 export const getFeaturedProperties = async (
