@@ -14,7 +14,16 @@ export const loginAdmin = async (
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const admin = await DB.Models.Admin.findOne({ email: normalizedEmail });
+    // Find admin and populate roles with their permissions
+    const admin = await DB.Models.Admin.findOne({ email: normalizedEmail })
+      .populate({
+        path: 'roles',
+        populate: {
+          path: 'permissions',
+          model: 'Permission'
+        }
+      })
+      .populate('permissions'); // Also populate direct permissions
 
     if (!admin) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Admin account not found.");
@@ -39,11 +48,21 @@ export const loginAdmin = async (
       );
     }
 
+    // Collect all permissions from roles and direct permissions
+    const rolePermissions = admin.roles?.flatMap((role: any) => role.permissions || []) || [];
+    const directPermissions = admin.permissions || [];
+    
+    // Combine and deduplicate permissions
+    const allPermissions = [...rolePermissions, ...directPermissions];
+    const uniquePermissions = Array.from(
+      new Map(allPermissions.map((perm: any) => [perm._id.toString(), perm])).values()
+    );
+
     const token = generateToken({
       id: admin._id.toString(),
       email: admin.email,
       userType: "Admin",
-      role: admin.role,
+      roles: admin.roles?.map((role: any) => role._id.toString()),
     });
 
     const adminResponse = {
@@ -53,11 +72,25 @@ export const loginAdmin = async (
       email: admin.email,
       phoneNumber: admin.phoneNumber,
       fullName: admin.fullName,
-      role: admin.role,
       address: admin.address,
       profile_picture: admin.profile_picture,
       isAccountVerified: admin.isAccountVerified,
       isAccountInRecovery: admin.isAccountInRecovery,
+      roles: admin.roles?.map((role: any) => ({
+        id: role._id,
+        name: role.name,
+        description: role.description,
+        level: role.level,
+        isActive: role.isActive,
+      })),
+      permissions: uniquePermissions.map((perm: any) => ({
+        id: perm._id,
+        name: perm.name,
+        description: perm.description,
+        resource: perm.resource,
+        action: perm.action,
+        category: perm.category,
+      })),
     };
 
     return res.status(HttpStatusCodes.OK).json({

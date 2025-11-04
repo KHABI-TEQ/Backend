@@ -14,7 +14,6 @@ export interface IAdmin {
   };
   fullName?: string;
   profile_picture: string;
-  role?: string;
   roles?: string[]; // Array of Role IDs (supports multiple roles)
   permissions?: string[]; // Direct permissions (for flexibility)
   isVerified: boolean;
@@ -51,7 +50,6 @@ export class Admin {
         isAccountVerified: { type: Boolean, default: false },
         isVerified: { type: Boolean, default: false },
         isActive: { type: Boolean, default: true },
-        role: { type: String, default: 'admin' },
         roles: [
           {
             type: Schema.Types.ObjectId,

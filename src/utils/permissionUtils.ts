@@ -93,9 +93,9 @@ export function hasPermission(
   permissionNames?: string[]
 ): boolean {
   // Super admin has all permissions
-  if (admin.role === 'superAdmin') {
-    return true;
-  }
+  // if (admin.role === 'superAdmin') {
+  //   return true;
+  // }
 
   // If permission names are provided, check against them
   if (permissionNames && permissionNames.length > 0) {
@@ -138,9 +138,9 @@ export function hasAnyPermission(
   permissionNames?: string[]
 ): boolean {
   // Super admin has all permissions
-  if (admin.role === 'superAdmin') {
-    return true;
-  }
+  // if (admin.role === 'superAdmin') {
+  //   return true;
+  // }
 
   for (const permission of requiredPermissions) {
     if (hasPermission(admin, permission, permissionNames)) {
@@ -160,9 +160,9 @@ export function hasAllPermissions(
   permissionNames?: string[]
 ): boolean {
   // Super admin has all permissions
-  if (admin.role === 'superAdmin') {
-    return true;
-  }
+  // if (admin.role === 'superAdmin') {
+  //   return true;
+  // }
 
   for (const permission of requiredPermissions) {
     if (!hasPermission(admin, permission, permissionNames)) {
@@ -177,13 +177,13 @@ export function hasAllPermissions(
  * Get admin's role level (for hierarchical checking)
  */
 export function getAdminRoleLevel(admin: IAdminWithRole): number {
-  if (admin.role === 'superAdmin') {
-    return 1;
-  }
+  // if (admin.role === 'superAdmin') {
+  //   return 1;
+  // }
 
-  if (admin.role === 'admin') {
-    return 2;
-  }
+  // if (admin.role === 'admin') {
+  //   return 2;
+  // }
 
   // If roles are assigned, get the highest level
   if (admin.roles && Array.isArray(admin.roles)) {

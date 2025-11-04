@@ -7,7 +7,7 @@ export interface IRole {
   isActive: boolean;
   level: number; // 1: Super Admin, 2: Admin, 3: Manager, 4: Viewer
 }
-
+ 
 export interface IRoleDoc extends IRole, Document {}
 
 export type IRoleModel = Model<IRoleDoc>;
