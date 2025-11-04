@@ -13,7 +13,7 @@ export const updateDealSite = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
+  try { 
     const { publicSlug, sectionName } = req.params;
     const userId = req.user?._id;
 
@@ -23,6 +23,8 @@ export const updateDealSite = async (
       sectionName,
       req.body
     );
+
+    console.log("all body", req.body)
 
     await dealSiteActivityService.logActivity({
       dealSiteId: updated._id.toString(),

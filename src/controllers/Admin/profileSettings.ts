@@ -17,10 +17,31 @@ export const getAdminProfile = async (
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
     }
 
-    const admin = await DB.Models.Admin.findById(adminId).lean();
+    // Find admin and populate roles with their permissions
+    const admin = await DB.Models.Admin.findById(adminId)
+      .populate({
+        path: 'roles',
+        populate: {
+          path: 'permissions',
+          model: 'Permission'
+        }
+      })
+      .populate('permissions') // Also populate direct permissions
+      .lean();
+
     if (!admin) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Admin not found");
     }
+
+    // Collect all permissions from roles and direct permissions
+    const rolePermissions = admin.roles?.flatMap((role: any) => role.permissions || []) || [];
+    const directPermissions = admin.permissions || [];
+    
+    // Combine and deduplicate permissions
+    const allPermissions = [...rolePermissions, ...directPermissions];
+    const uniquePermissions = Array.from(
+      new Map(allPermissions.map((perm: any) => [perm._id.toString(), perm])).values()
+    );
 
     const adminResponse = {
       id: admin._id,
@@ -29,11 +50,25 @@ export const getAdminProfile = async (
       email: admin.email,
       phoneNumber: admin.phoneNumber,
       fullName: admin.fullName,
-      role: admin.role,
       address: admin.address,
       profile_picture: admin.profile_picture,
       isAccountVerified: admin.isAccountVerified,
       isAccountInRecovery: admin.isAccountInRecovery,
+      roles: admin.roles?.map((role: any) => ({
+        id: role._id,
+        name: role.name,
+        description: role.description,
+        level: role.level,
+        isActive: role.isActive,
+      })),
+      permissions: uniquePermissions.map((perm: any) => ({
+        id: perm._id,
+        name: perm.name,
+        description: perm.description,
+        resource: perm.resource,
+        action: perm.action,
+        category: perm.category,
+      })),
     };
 
     return res.status(HttpStatusCodes.OK).json({
