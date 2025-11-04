@@ -69,30 +69,135 @@ export interface IDealSite {
   };
 
   about?: {
-    title: string;
-    subTitle: string;
-    heroImageUrl?: string;
-    ctaButtons: {
-      text: string;
-      url: string;
-      color?: string;
-    }[];
-    mission?: string;
-    vision?: string;
-    howItWorks?: string;
-    ourValues?: {
+    hero?: {
       title: string;
       subTitle: string;
-    }[];
+      description: string;
+      backgroundImage: string;
+      backgroundVideo?: string;
+      mobileFallbackImage: string;
+      overlayColor: string;
+      cta: {
+        text: string;
+        link: string;
+        style: string;
+      };
+    };
+    identity?: {
+      headline: string;
+      content: string;
+      keyHighlights: string[];
+    };
+    missionVision?: {
+      title: string;
+      items: {
+        title: string;
+        description: string;
+      }[];
+      backgroundImage: string;
+    };
+    values?: {
+      title: string;
+      description: string;
+      items: {
+        icon: string;
+        title: string;
+        description: string;
+      }[];
+    };
+    journey?: {
+      title: string;
+      timeline: {
+        year: string;
+        title: string;
+        description: string;
+      }[];
+    };
+    leadership?: {
+      title: string;
+      subTitle: string;
+      members: {
+        name: string;
+        role: string;
+        image: string;
+        quote: string;
+      }[];
+    };
+    stats?: {
+      title: string;
+      subTitle: string;
+      backgroundColor: string;
+      items: {
+        label: string;
+        value: string;
+      }[];
+    };
+    partners?: {
+      title: string;
+      subTitle: string;
+      logos: string[];
+    };
+    testimonials?: {
+      showFromHome: boolean;
+      limit: number;
+      title: string;
+      layout: "carousel" | "grid";
+    };
+    cta?: {
+      title: string;
+      subTitle: string;
+      buttonText: string;
+      link: string;
+      backgroundGradient: string;
+    };
   };
 
   contactUs?: {
+    hero?: {
+      title: string;
+      subTitle: string;
+      description: string;
+      backgroundImage: string;
+      backgroundVideo?: string;
+      overlayColor: string;
+      cta: {
+        text: string;
+        link: string;
+        style: string;
+      };
+    };
+    contactInfo?: {
+      title: string;
+      subTitle: string;
+      items: {
+        icon: string;
+        label: string;
+        value: string;
+      }[];
+    };
+    mapSection?: {
+      title: string;
+      subTitle: string;
+      locations: {
+        city: string;
+        address: string;
+        coordinates: number[];
+      }[];
+    };
+    cta?: {
+      title: string;
+      subTitle: string;
+      buttonText: string;
+      link: string;
+      backgroundGradient: string;
+    };
+    // Legacy fields
     officeHours?: string;
     faqs?: {
       question: string;
       answer: string;
     }[];
-  }; 
+  };
 
   homeSettings?: {
     testimonials?: {
@@ -242,29 +347,171 @@ export class DealSite {
 
         // 🟢 About Section
         about: {
-          title: { type: String, default: "" },
-          subTitle: { type: String, default: "" },
-          heroImageUrl: { type: String, default: "" },
-          ctaButtons: [
-            {
-              text: { type: String },
-              url: { type: String },
-              color: { type: String, default: "#008000" },
+          // Hero Section
+          hero: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            description: { type: String, default: "" },
+            backgroundImage: { type: String, default: "" },
+            backgroundVideo: { type: String, default: "" },
+            mobileFallbackImage: { type: String, default: "" },
+            overlayColor: { type: String, default: "rgba(0, 0, 0, 0.55)" },
+            cta: {
+              text: { type: String, default: "" },
+              link: { type: String, default: "" },
+              style: { type: String, default: "light" },
             },
-          ],
-          mission: { type: String, default: "" },
-          vision: { type: String, default: "" },
-          howItWorks: { type: String, default: "" },
-          ourValues: [
-            {
-              title: { type: String },
-              subTitle: { type: String },
-            },
-          ],
+          },
+
+          // Identity Section
+          identity: {
+            headline: { type: String, default: "" },
+            content: { type: String, default: "" },
+            keyHighlights: [{ type: String }],
+          },
+
+          // Mission & Vision
+          missionVision: {
+            title: { type: String, default: "" },
+            items: [
+              {
+                title: { type: String },
+                description: { type: String },
+              },
+            ],
+            backgroundImage: { type: String, default: "" },
+          },
+
+          // Values
+          values: {
+            title: { type: String, default: "" },
+            description: { type: String, default: "" },
+            items: [
+              {
+                icon: { type: String },
+                title: { type: String },
+                description: { type: String },
+              },
+            ],
+          },
+
+          // Journey/Timeline
+          journey: {
+            title: { type: String, default: "" },
+            timeline: [
+              {
+                year: { type: String },
+                title: { type: String },
+                description: { type: String },
+              },
+            ],
+          },
+
+          // Leadership Team
+          leadership: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            members: [
+              {
+                name: { type: String },
+                role: { type: String },
+                image: { type: String },
+                quote: { type: String },
+              },
+            ],
+          },
+
+          // Statistics
+          stats: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            backgroundColor: { type: String, default: "#0B3B2E" },
+            items: [
+              {
+                label: { type: String },
+                value: { type: String },
+              },
+            ],
+          },
+
+          // Partners
+          partners: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            logos: [{ type: String }],
+          },
+
+          // Testimonials Configuration
+          testimonials: {
+            showFromHome: { type: Boolean, default: true },
+            limit: { type: Number, default: 3 },
+            title: { type: String, default: "" },
+            layout: { type: String, enum: ["carousel", "grid"], default: "carousel" },
+          },
+
+          // Call to Action
+          cta: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            buttonText: { type: String, default: "" },
+            link: { type: String, default: "" },
+            backgroundGradient: { type: String, default: "" },
+          },
         },
 
         // 🟣 Contact Us Section
         contactUs: {
+          // Hero Section
+          hero: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            description: { type: String, default: "" },
+            backgroundImage: { type: String, default: "" },
+            backgroundVideo: { type: String, default: "" },
+            overlayColor: { type: String, default: "rgba(0, 0, 0, 0.45)" },
+            cta: {
+              text: { type: String, default: "" },
+              link: { type: String, default: "" },
+              style: { type: String, default: "light" },
+            },
+          },
+
+          // Contact Information
+          contactInfo: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            items: [
+              {
+                icon: { type: String },
+                label: { type: String },
+                value: { type: String },
+              },
+            ],
+          },
+
+          // Map Section
+          mapSection: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            locations: [
+              {
+                city: { type: String },
+                address: { type: String },
+                coordinates: [{ type: Number }],
+              },
+            ],
+          },
+
+          // Call to Action
+          cta: {
+            title: { type: String, default: "" },
+            subTitle: { type: String, default: "" },
+            buttonText: { type: String, default: "" },
+            link: { type: String, default: "" },
+            backgroundGradient: { type: String, default: "" },
+          },
+
+          // Legacy fields (keeping for backward compatibility)
           officeHours: { type: String, default: "" },
           faqs: [
             {
@@ -320,7 +567,7 @@ export class DealSite {
             ],
           },
         },
-
+ 
         subscribeSettings: {
           title: { type: String, default: "" },
           subTitle: { type: String, default: "" },
