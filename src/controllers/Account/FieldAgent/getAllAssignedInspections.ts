@@ -136,7 +136,7 @@ export const sendInspectionParticipantDetails = async (
     const { inspectionId } = req.params;
     const { send } = req.body;
 
-    if (!["buyer-to-seller", "seller-to-buyer"].includes(send)) {
+    if (!["buyer-to-seller", "seller-to-buyer", "send-both"].includes(send)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid send direction");
     }
 
@@ -160,41 +160,51 @@ export const sendInspectionParticipantDetails = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing buyer or seller info");
     }
 
-    // ✅ Prepare email details
-    let toEmail: string;
-    let subject: string;
-    let message: string;
-
-    if (send === "buyer-to-seller") {
-      toEmail = buyer.email;
-      subject = "Buyer details for your property inspection";
-      message = generalEmailLayout(
-        SellerDetailsToBuyerTemplate(buyer, seller, inspection, property)
-      );
-    } else {
-      // send mail to buyer
-      toEmail = seller.email;
-      subject = "Seller details for your property inspection"
-      message = generalEmailLayout(
+    // ✅ Shared email templates
+    const buyerToSeller = {
+      to: seller.email,
+      subject: "Seller details for your property inspection",
+      html: generalEmailLayout(
         BuyerDetailsToSellerTemplate(seller, buyer, inspection, property)
-      );
-    }
+      ),
+      text: generalEmailLayout(
+        BuyerDetailsToSellerTemplate(seller, buyer, inspection, property)
+      ),
+    };
 
-    await sendEmail({
-      to: toEmail,
-      subject: subject,
-      html: message,
-      text: message,
-    });
+    const sellerToBuyer = {
+      to: buyer.email,
+      subject: "Buyer details for your property inspection",
+      html: generalEmailLayout(
+        SellerDetailsToBuyerTemplate(buyer, seller, inspection, property)
+      ),
+      text: generalEmailLayout(
+        SellerDetailsToBuyerTemplate(buyer, seller, inspection, property)
+      ),
+    };
+
+    // 📨 Determine send direction
+    if (send === "buyer-to-seller") {
+      await sendEmail(buyerToSeller);
+    } else if (send === "seller-to-buyer") {
+      await sendEmail(sellerToBuyer);
+    } else if (send === "send-both") {
+      // ✅ Send both concurrently
+      await Promise.all([sendEmail(buyerToSeller), sendEmail(sellerToBuyer)]);
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: `Details sent successfully from ${send.replace("-", " ")}`,
+      message:
+        send === "send-both"
+          ? "Both buyer and seller details sent successfully"
+          : `Details sent successfully from ${send.replace("-", " ")}`,
     });
   } catch (err) {
     next(err);
   }
 };
+
  
 
 

@@ -319,7 +319,7 @@ export class PaystackService {
 
       case 'document-verification':
         return await PaystackService.handleDocumentVerificationPayment(tx);
-
+ 
       case 'subscription':
         return await PaystackService.handleSubscriptionPayment(tx);
 
@@ -847,7 +847,7 @@ export class PaystackService {
         planDuration = plan.durationInDays;
       }
 
-      endDate.setDate(endDate.getDate() + plan.durationInDays);
+      endDate.setDate(endDate.getDate() + planDuration);
  
       // Map plan features into snapshot
       const planFeatures = plan.features?.map((f: any) => ({
