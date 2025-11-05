@@ -290,26 +290,30 @@ AdminRouter.get('/permissions/:id', getPermissionById);
  * Create a new permission
  * Body: { name, description, resource, action, category, isActive? }
  */
-AdminRouter.post('/permissions', requireSuperAdmin, createPermission);
+// AdminRouter.post('/permissions', requireSuperAdmin, createPermission);
+AdminRouter.post('/permissions', createPermission);
 
 /**
  * PUT /api/permissions/:id
  * Update a permission
  * Body: { name?, description?, isActive? }
  */
+// AdminRouter.put('/permissions/:id', requireSuperAdmin, updatePermission);
 AdminRouter.put('/permissions/:id', updatePermission);
 
 /**
  * DELETE /api/permissions/:id
  * Delete a permission (only if not used in any roles)
  */
-AdminRouter.delete('/permissions/:id', requireSuperAdmin, deletePermission);
+// AdminRouter.delete('/permissions/:id', requireSuperAdmin, deletePermission);
+AdminRouter.delete('/permissions/:id', deletePermission);
 
 /**
  * POST /api/permissions/seed
  * Seed default permissions from constants
  * Only works if no permissions exist yet
  */
+// AdminRouter.post('/permissions/seed', requireSuperAdmin, seedDefaultPermissions);
 AdminRouter.post('/permissions/seed', seedDefaultPermissions);
 
 // ==================== ROLE ROUTES ====================
@@ -334,19 +338,22 @@ AdminRouter.get('/roles/:id', getRoleById);
  * Create a new role
  * Body: { name, description, permissions[], level, isActive? }
  */
-AdminRouter.post('/roles', requireSuperAdmin, createRole);
+// AdminRouter.post('/roles', requireSuperAdmin, createRole);
+AdminRouter.post('/roles', createRole);
 
 /**
  * PUT /api/roles/:id
  * Update a role
  * Body: { name?, description?, permissions[]?, level?, isActive? }
  */
+// AdminRouter.put('/roles/:id', requireSuperAdmin, updateRole);
 AdminRouter.put('/roles/:id', updateRole);
 
 /**
  * DELETE /api/roles/:id
  * Delete a role (only if not assigned to any admins)
  */
+// AdminRouter.delete('/roles/:id', requireSuperAdmin, deleteRole);
 AdminRouter.delete('/roles/:id', deleteRole);
 
 /**
@@ -354,7 +361,8 @@ AdminRouter.delete('/roles/:id', deleteRole);
  * Seed default roles from constants
  * Only works if no roles exist yet
  */
-AdminRouter.post('/roles/seed', requireSuperAdmin, seedDefaultRoles);
+// AdminRouter.post('/roles/seed', requireSuperAdmin, seedDefaultRoles);
+AdminRouter.post('/roles/seed', seedDefaultRoles);
 
 // ==================== ADMIN ROLE ASSIGNMENT ROUTES ====================
 

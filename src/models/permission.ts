@@ -5,10 +5,30 @@ export interface IPermission {
   description: string;
   resource: string; // e.g., 'agents', 'properties', 'inspections'
   action: string; // e.g., 'create', 'read', 'update', 'delete'
-  category: 'agents' | 'properties' | 'landlords' | 'buyers' | 'inspections' | 'field-agents' | 'admins' | 'preferences' | 'promotions' | 'transactions' | 'analytics' | 'settings' | 'testimonials' | 'subscriptions' | 'referrals' | 'verification' | 'ads';
+  category:
+    | 'agents'
+    | 'properties'
+    | 'landlords'
+    | 'buyers'
+    | 'inspections'
+    | 'field-agents'
+    | 'admins'
+    | 'preferences'
+    | 'promotions'
+    | 'transactions'
+    | 'analytics'
+    | 'settings'
+    | 'testimonials'
+    | 'subscriptions'
+    | 'referrals'
+    | 'verification'
+    | 'ads'
+    | 'extra-pages'
+    | 'public-access-page'
+    | 'email-subscriptions';
   isActive: boolean;
 }
-
+ 
 export interface IPermissionDoc extends IPermission, Document {}
 
 export type IPermissionModel = Model<IPermissionDoc>;
@@ -41,7 +61,28 @@ export class Permission {
         category: {
           type: String,
           required: true,
-          enum: ['agents', 'properties', 'landlords', 'buyers', 'inspections', 'field-agents', 'admins', 'preferences', 'promotions', 'transactions', 'analytics', 'settings', 'testimonials', 'subscriptions', 'referrals', 'verification', 'ads'],
+          enum: [
+            'agents',
+            'properties',
+            'landlords',
+            'buyers',
+            'inspections',
+            'field-agents',
+            'admins',
+            'preferences',
+            'promotions',
+            'transactions',
+            'analytics',
+            'settings',
+            'testimonials',
+            'subscriptions',
+            'referrals',
+            'verification',
+            'ads',
+            'extra-pages',
+            'public-access-page',
+            'email-subscriptions',
+          ],
         },
         isActive: {
           type: Boolean,

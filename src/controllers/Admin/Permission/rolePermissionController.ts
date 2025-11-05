@@ -235,7 +235,7 @@ export const seedDefaultPermissions = async (req: AppRequest, res: Response, nex
         count: existingCount,
       });
     }
-
+ 
     const permissionsToCreate = Object.entries(PERMISSIONS).map(([key, permissionName]) => ({
       name: permissionName,
       description: PERMISSION_DESCRIPTIONS[permissionName as keyof typeof PERMISSION_DESCRIPTIONS],
