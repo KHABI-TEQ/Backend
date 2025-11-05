@@ -94,9 +94,16 @@ export const getSingleAdmin = async (
         success: false,
         message: "Admin ID is required",
       });
-    }
+    } 
 
-    const admin = await DB.Models.Admin.findById(adminId).lean();
+    const admin = await DB.Models.Admin.findById(adminId).populate({
+        path: 'roles',
+        populate: {
+          path: 'permissions',
+          model: 'Permission'
+        }
+      })
+      .populate('permissions').lean();
 
     if (!admin) {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Admin not found"));

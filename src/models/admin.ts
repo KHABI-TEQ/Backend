@@ -22,7 +22,7 @@ export interface IAdmin {
   lastLogin?: Date;
   loginAttempts: number;
   lockoutUntil?: Date;
-}
+} 
 
 export interface IAdminDoc extends IAdmin, Document {}
 

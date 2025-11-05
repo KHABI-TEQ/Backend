@@ -812,7 +812,7 @@ export class PaystackService {
   * Handles the side effects of a subscription payment.
   */ 
   static async handleSubscriptionPayment(transaction: any) { 
-    // get user subscription snapshot by transaction id
+    // get user subscription snapshot by transaction id 
     const snapshot = await UserSubscriptionSnapshotService.getSnapshotByTransactionId(transaction._id);
  
     // return false if subscription not found
@@ -835,7 +835,7 @@ export class PaystackService {
       if (snapshot.meta.planType === "discounted" && snapshot.meta.planCode) {
         // find exact discounted plan under this plan
         const discountedPlan = plan.discountedPlans?.find(
-          (p: any) => p.planCode === snapshot.meta.planCode
+          (p: any) => p.code === snapshot.meta.planCode
         );
 
         if (!discountedPlan) {
