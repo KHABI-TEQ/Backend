@@ -1,6 +1,7 @@
 export const PERMISSION_CATEGORIES = {
   AGENTS: 'agents',
   PROPERTIES: 'properties',
+  LANDLORDS: 'landlords',
   BUYERS: 'buyers',
   INSPECTIONS: 'inspections',
   FIELD_AGENTS: 'field-agents',
@@ -15,7 +16,11 @@ export const PERMISSION_CATEGORIES = {
   REFERRALS: 'referrals',
   VERIFICATION: 'verification',
   ADS: 'ads',
+  EXTRA_PAGES: 'extra-pages',
+  PUBLIC_ACCESS_PAGE: 'public-access-page',
+  EMAIL_SUBSCRIPTIONS: 'email-subscriptions',
 } as const;
+
 
 export const PERMISSIONS = {
   // Agents permissions
@@ -38,7 +43,16 @@ export const PERMISSIONS = {
   PROPERTIES_APPROVE: 'properties.approve',
   PROPERTIES_REJECT: 'properties.reject',
   PROPERTIES_VIEW_DETAILS: 'properties.view_details',
-  PROPERTIES_EXPORT: 'properties.export',
+
+   // Landlords permissions
+  LANDLORDS_VIEW: "landlords.read",
+  LANDLORDS_CREATE: "landlords.create",
+  LANDLORDS_EDIT: "landlords.update",
+  LANDLORDS_DELETE: "landlords.delete",
+  LANDLORDS_APPROVE: "landlords.approve",
+  LANDLORDS_REJECT: "landlords.reject",
+  LANDLORDS_FLAG: "landlords.flag",
+  LANDLORDS_MANAGE_STATUS: "landlords.manage_status",
 
   // Buyers permissions
   BUYERS_VIEW: 'buyers.read',
@@ -83,6 +97,18 @@ export const PERMISSIONS = {
   PREFERENCES_VIEW_MATCHES: 'preferences.view_matches',
   PREFERENCES_SEND_MATCHES: 'preferences.send_matches',
 
+  EXTRAL_PAGES_VIEW: "extral-pages.read",
+
+  // Public access page permissions
+  PUBLIC_ACCESS_PAGE_VIEW: "public-access-page.read",
+  PUBLIC_ACCESS_PAGE_APPROVE: "public-access-page.approve",
+  PUBLIC_ACCESS_PAGE_REJECT: "public-access-page.reject",
+
+  // Email Subscription permissions
+  EMAIL_SUB_VIEW: "email-sub.read",
+  EMAIL_SUB_APPROVE: "email-sub.approve",
+  EMAIL_SUB_REJECT: "email-sub.reject",
+
   // Promotions permissions
   PROMOTIONS_VIEW: 'promotions.read',
   PROMOTIONS_CREATE: 'promotions.create',
@@ -97,16 +123,21 @@ export const PERMISSIONS = {
   TRANSACTIONS_DELETE: 'transactions.delete',
   TRANSACTIONS_REFUND: 'transactions.refund',
   TRANSACTIONS_VIEW_DETAILS: 'transactions.view_details',
-  TRANSACTIONS_EXPORT: 'transactions.export',
 
-  // Analytics permissions
-  ANALYTICS_VIEW_DASHBOARD: 'analytics.view_analytics',
-  ANALYTICS_VIEW_AGENTS: 'analytics.view_agents',
-  ANALYTICS_VIEW_PROPERTIES: 'analytics.view_properties',
-  ANALYTICS_VIEW_BUYERS: 'analytics.view_buyers',
-  ANALYTICS_VIEW_INSPECTIONS: 'analytics.view_inspections',
-  ANALYTICS_VIEW_TRANSACTIONS: 'analytics.view_transactions',
-  ANALYTICS_VIEW_FIELD_AGENTS: 'analytics.view_field_agents',
+    // Analytics permissions
+  ANALYTICS_VIEW_DASHBOARD: "analytics.view_analytics",
+  ANALYTICS_VIEW_OVERVIEW: "analytics.view_overview",
+  ANALYTICS_VIEW_AGENTS: "analytics.view_agents",
+  ANALYTICS_VIEW_USERS: "analytics.view_users",
+  ANALYTICS_VIEW_PROPERTIES: "analytics.view_properties",
+  ANALYTICS_VIEW_PREFERENCES: "analytics.view_preferences",
+  ANALYTICS_VIEW_BUYERS: "analytics.view_buyers",
+  ANALYTICS_VIEW_BOOKINGS: "analytics.view_bookings",
+  ANALYTICS_VIEW_INSPECTIONS: "analytics.view_inspections",
+  ANALYTICS_VIEW_SUBSCRIPTIONS: "analytics.view_subscriptions",
+  ANALYTICS_VIEW_REFERRALS: "analytics.view_referrals",
+  ANALYTICS_VIEW_TRANSACTIONS: "analytics.view_transactions",
+  ANALYTICS_VIEW_FIELD_AGENTS: "analytics.view_field_agents",
 
   // Settings permissions
   SETTINGS_VIEW: 'settings.read',
@@ -166,8 +197,18 @@ export const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.PROPERTIES_APPROVE]: 'Approve properties for listing',
   [PERMISSIONS.PROPERTIES_REJECT]: 'Reject property listings',
   [PERMISSIONS.PROPERTIES_VIEW_DETAILS]: 'View detailed property information',
-  [PERMISSIONS.PROPERTIES_EXPORT]: 'Export property data',
 
+  // Landlords permissions
+  [PERMISSIONS.LANDLORDS_VIEW]: "View all landlords",
+  [PERMISSIONS.LANDLORDS_CREATE]: "Create new landlords",
+  [PERMISSIONS.LANDLORDS_EDIT]: "Edit landlord information",
+  [PERMISSIONS.LANDLORDS_DELETE]: "Delete landlords",
+  [PERMISSIONS.LANDLORDS_APPROVE]: "Approve landlord accounts",
+  [PERMISSIONS.LANDLORDS_REJECT]: "Reject landlord accounts",
+  [PERMISSIONS.LANDLORDS_FLAG]: "Flag landlords for review",
+  [PERMISSIONS.LANDLORDS_MANAGE_STATUS]: "Manage landlord active/inactive status",
+
+  
   [PERMISSIONS.BUYERS_VIEW]: 'View all buyers',
   [PERMISSIONS.BUYERS_CREATE]: 'Create buyer records',
   [PERMISSIONS.BUYERS_EDIT]: 'Edit buyer information',
@@ -206,6 +247,20 @@ export const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.PREFERENCES_VIEW_MATCHES]: 'View matched properties for preferences',
   [PERMISSIONS.PREFERENCES_SEND_MATCHES]: 'Send property matches to users',
 
+  // Extra pages permissions
+  [PERMISSIONS.EXTRAL_PAGES_VIEW]: "View extra CMS pages",
+
+  // Public access page permissions
+  [PERMISSIONS.PUBLIC_ACCESS_PAGE_VIEW]: "View public access pages",
+  [PERMISSIONS.PUBLIC_ACCESS_PAGE_APPROVE]: "Approve public access page",
+  [PERMISSIONS.PUBLIC_ACCESS_PAGE_REJECT]: "Reject public access page",
+
+  // Email Subscription permissions
+  [PERMISSIONS.EMAIL_SUB_VIEW]: "View email subscription list",
+  [PERMISSIONS.EMAIL_SUB_APPROVE]: "Approve email subscription",
+  [PERMISSIONS.EMAIL_SUB_REJECT]: "Reject email subscription",
+
+
   [PERMISSIONS.PROMOTIONS_VIEW]: 'View all promotions',
   [PERMISSIONS.PROMOTIONS_CREATE]: 'Create new promotions',
   [PERMISSIONS.PROMOTIONS_EDIT]: 'Edit promotion details',
@@ -218,15 +273,21 @@ export const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.TRANSACTIONS_DELETE]: 'Delete transactions',
   [PERMISSIONS.TRANSACTIONS_REFUND]: 'Process transaction refunds',
   [PERMISSIONS.TRANSACTIONS_VIEW_DETAILS]: 'View detailed transaction information',
-  [PERMISSIONS.TRANSACTIONS_EXPORT]: 'Export transaction data',
 
-  [PERMISSIONS.ANALYTICS_VIEW_DASHBOARD]: 'View dashboard analytics',
-  [PERMISSIONS.ANALYTICS_VIEW_AGENTS]: 'View agent analytics',
-  [PERMISSIONS.ANALYTICS_VIEW_PROPERTIES]: 'View property analytics',
-  [PERMISSIONS.ANALYTICS_VIEW_BUYERS]: 'View buyer analytics',
-  [PERMISSIONS.ANALYTICS_VIEW_INSPECTIONS]: 'View inspection analytics',
-  [PERMISSIONS.ANALYTICS_VIEW_TRANSACTIONS]: 'View transaction analytics',
-  [PERMISSIONS.ANALYTICS_VIEW_FIELD_AGENTS]: 'View field agent analytics',
+  // Analytics permissions
+  [PERMISSIONS.ANALYTICS_VIEW_DASHBOARD]: "View main analytics dashboard",
+  [PERMISSIONS.ANALYTICS_VIEW_OVERVIEW]: "View analytics overview",
+  [PERMISSIONS.ANALYTICS_VIEW_AGENTS]: "View analytics for agents",
+  [PERMISSIONS.ANALYTICS_VIEW_USERS]: "View analytics for users",
+  [PERMISSIONS.ANALYTICS_VIEW_PROPERTIES]: "View analytics for properties",
+  [PERMISSIONS.ANALYTICS_VIEW_PREFERENCES]: "View analytics for preferences",
+  [PERMISSIONS.ANALYTICS_VIEW_BUYERS]: "View analytics for buyers",
+  [PERMISSIONS.ANALYTICS_VIEW_BOOKINGS]: "View analytics for bookings",
+  [PERMISSIONS.ANALYTICS_VIEW_INSPECTIONS]: "View analytics for inspections",
+  [PERMISSIONS.ANALYTICS_VIEW_SUBSCRIPTIONS]: "View analytics for subscriptions",
+  [PERMISSIONS.ANALYTICS_VIEW_REFERRALS]: "View analytics for referrals",
+  [PERMISSIONS.ANALYTICS_VIEW_TRANSACTIONS]: "View analytics for transactions",
+  [PERMISSIONS.ANALYTICS_VIEW_FIELD_AGENTS]: "View analytics for field agents",
 
   [PERMISSIONS.SETTINGS_VIEW]: 'View system settings',
   [PERMISSIONS.SETTINGS_EDIT]: 'Modify system settings',
@@ -294,7 +355,6 @@ export const DEFAULT_ROLES = {
       PERMISSIONS.PROPERTIES_APPROVE,
       PERMISSIONS.PROPERTIES_REJECT,
       PERMISSIONS.PROPERTIES_VIEW_DETAILS,
-      PERMISSIONS.PROPERTIES_EXPORT,
 
       // Buyers
       PERMISSIONS.BUYERS_VIEW,
@@ -344,7 +404,6 @@ export const DEFAULT_ROLES = {
       PERMISSIONS.TRANSACTIONS_DELETE,
       PERMISSIONS.TRANSACTIONS_REFUND,
       PERMISSIONS.TRANSACTIONS_VIEW_DETAILS,
-      PERMISSIONS.TRANSACTIONS_EXPORT,
 
       // Analytics
       PERMISSIONS.ANALYTICS_VIEW_DASHBOARD,
@@ -441,7 +500,6 @@ export const DEFAULT_ROLES = {
       // Transactions
       PERMISSIONS.TRANSACTIONS_VIEW,
       PERMISSIONS.TRANSACTIONS_VIEW_DETAILS,
-      PERMISSIONS.TRANSACTIONS_EXPORT,
 
       // Analytics
       PERMISSIONS.ANALYTICS_VIEW_DASHBOARD,

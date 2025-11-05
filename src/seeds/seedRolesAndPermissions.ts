@@ -164,7 +164,7 @@ async function main() {
     process.exit(1);
   } finally {
     await mongoose.disconnect();
-  }
+  } 
 }
 
 main();
