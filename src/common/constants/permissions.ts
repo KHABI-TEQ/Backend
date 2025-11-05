@@ -97,7 +97,7 @@ export const PERMISSIONS = {
   PREFERENCES_VIEW_MATCHES: 'preferences.view_matches',
   PREFERENCES_SEND_MATCHES: 'preferences.send_matches',
 
-  EXTRAL_PAGES_VIEW: "extral-pages.read",
+  EXTRAL_PAGES_VIEW: "extra-pages.read",
 
   // Public access page permissions
   PUBLIC_ACCESS_PAGE_VIEW: "public-access-page.read",
@@ -105,9 +105,9 @@ export const PERMISSIONS = {
   PUBLIC_ACCESS_PAGE_REJECT: "public-access-page.reject",
 
   // Email Subscription permissions
-  EMAIL_SUB_VIEW: "email-sub.read",
-  EMAIL_SUB_APPROVE: "email-sub.approve",
-  EMAIL_SUB_REJECT: "email-sub.reject",
+  EMAIL_SUB_VIEW: "email-subscriptions.read",
+  EMAIL_SUB_APPROVE: "email-subscriptions.approve",
+  EMAIL_SUB_REJECT: "email-subscriptions.reject",
 
   // Promotions permissions
   PROMOTIONS_VIEW: 'promotions.read',
