@@ -115,6 +115,7 @@ export const createSubscription = async (
           planType,
           planCode,
           appliedPlanName,
+          durationInDays
         },
       });
 

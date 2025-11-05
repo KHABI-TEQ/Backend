@@ -33,7 +33,7 @@ AdminInspRouter.delete('/inspections/:id/delete', use(controller.deleteInspectio
 AdminInspRouter.patch('/inspections/:id/status', use(controller.updateInspectionStatus.bind(controller)));
 
 // share details
-AdminInspRouter.post('/inspections/:id/shareDetails', sendInspectionParticipantDetails);
+AdminInspRouter.post('/inspections/:inspectionId/shareDetails', sendInspectionParticipantDetails);
 
 // Update or approve or reject LOI document
 AdminInspRouter.patch('/inspections/:id/approveOrRejectLOI', use(controller.approveOrRejectLOIDocs.bind(controller)));

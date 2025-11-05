@@ -319,7 +319,7 @@ export class PaystackService {
 
       case 'document-verification':
         return await PaystackService.handleDocumentVerificationPayment(tx);
-
+ 
       case 'subscription':
         return await PaystackService.handleSubscriptionPayment(tx);
 
