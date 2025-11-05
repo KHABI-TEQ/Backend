@@ -1,6 +1,7 @@
 import express from 'express';
 import { AdminInspectionController } from '../controllers/Admin/AdminInspectionController';
 import { use } from '../utils/use';
+import { sendInspectionParticipantDetails } from '../controllers/Account/FieldAgent/getAllAssignedInspections';
 
 
 const AdminInspRouter = express.Router();
@@ -30,6 +31,9 @@ AdminInspRouter.delete('/inspections/:id/delete', use(controller.deleteInspectio
 
 // Update or approve an inspection status
 AdminInspRouter.patch('/inspections/:id/status', use(controller.updateInspectionStatus.bind(controller)));
+
+// share details
+AdminInspRouter.post('/inspections/:id/shareDetails', sendInspectionParticipantDetails);
 
 // Update or approve or reject LOI document
 AdminInspRouter.patch('/inspections/:id/approveOrRejectLOI', use(controller.approveOrRejectLOIDocs.bind(controller)));

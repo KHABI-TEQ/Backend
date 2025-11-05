@@ -297,7 +297,7 @@ AdminRouter.post('/permissions', requireSuperAdmin, createPermission);
  * Update a permission
  * Body: { name?, description?, isActive? }
  */
-AdminRouter.put('/permissions/:id', requireSuperAdmin, updatePermission);
+AdminRouter.put('/permissions/:id', updatePermission);
 
 /**
  * DELETE /api/permissions/:id
@@ -310,7 +310,7 @@ AdminRouter.delete('/permissions/:id', requireSuperAdmin, deletePermission);
  * Seed default permissions from constants
  * Only works if no permissions exist yet
  */
-AdminRouter.post('/permissions/seed', requireSuperAdmin, seedDefaultPermissions);
+AdminRouter.post('/permissions/seed', seedDefaultPermissions);
 
 // ==================== ROLE ROUTES ====================
 
@@ -341,13 +341,13 @@ AdminRouter.post('/roles', requireSuperAdmin, createRole);
  * Update a role
  * Body: { name?, description?, permissions[]?, level?, isActive? }
  */
-AdminRouter.put('/roles/:id', requireSuperAdmin, updateRole);
+AdminRouter.put('/roles/:id', updateRole);
 
 /**
  * DELETE /api/roles/:id
  * Delete a role (only if not assigned to any admins)
  */
-AdminRouter.delete('/roles/:id', requireSuperAdmin, deleteRole);
+AdminRouter.delete('/roles/:id', deleteRole);
 
 /**
  * POST /api/roles/seed
