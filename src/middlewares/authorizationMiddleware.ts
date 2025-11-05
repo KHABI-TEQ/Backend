@@ -1,3 +1,4 @@
+// authorizationMiddleware.ts file
 import { Request, Response, NextFunction } from 'express';
 import { IAdminDoc } from '../models';
 import {
@@ -6,6 +7,7 @@ import {
   hasAllPermissions,
   getAllPermissionNamesForAdmin,
   canManageAdmin,
+  getAdminRoleLevel,
 } from '../utils/permissionUtils';
  
 /**
@@ -132,7 +134,8 @@ export const requireAllPermissions = (permissions: string[]) => {
 };
 
 /**
- * Middleware to check if user is admin or super admin
+ * Middleware to check if user has admin-level access (level 1-2)
+ * Checks based on role levels rather than role names
  */
 export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -143,12 +146,15 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
       });
     }
 
-    // if (req.admin.role !== 'admin' && req.admin.role !== 'superAdmin') {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Admin access required',
-    //   });
-    // }
+    const roleLevel = getAdminRoleLevel(req.admin);
+    
+    // Admin level access: level 1 (Super Admin) or level 2 (Admin)
+    if (roleLevel > 2) {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required',
+      });
+    }
 
     next();
   } catch (error) {
@@ -161,7 +167,8 @@ export const requireAdmin = (req: Request, res: Response, next: NextFunction) =>
 };
 
 /**
- * Middleware to check if user is super admin
+ * Middleware to check if user has super admin access (level 1)
+ * Checks based on role level rather than role name
  */
 export const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -172,12 +179,15 @@ export const requireSuperAdmin = (req: Request, res: Response, next: NextFunctio
       });
     }
 
-    // if (req.admin.role !== 'superAdmin') {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Super admin access required',
-    //   });
-    // }
+    const roleLevel = getAdminRoleLevel(req.admin);
+    
+    // Super admin access: level 1 only
+    if (roleLevel !== 1) {
+      return res.status(403).json({
+        success: false,
+        message: 'Super admin access required',
+      });
+    }
 
     next();
   } catch (error) {
@@ -187,6 +197,73 @@ export const requireSuperAdmin = (req: Request, res: Response, next: NextFunctio
       message: 'Super admin check failed',
     });
   }
+};
+
+/**
+ * Middleware to check if user has manager-level access or higher (level 1-3)
+ */
+export const requireManager = (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.admin) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    const roleLevel = getAdminRoleLevel(req.admin);
+    
+    // Manager level access: level 1, 2, or 3
+    if (roleLevel > 3) {
+      return res.status(403).json({
+        success: false,
+        message: 'Manager access required',
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Manager check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Manager check failed',
+    });
+  }
+};
+
+/**
+ * Middleware to check minimum required role level
+ */
+export const requireRoleLevel = (maxLevel: number) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.admin) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+      }
+
+      const roleLevel = getAdminRoleLevel(req.admin);
+      
+      if (roleLevel > maxLevel) {
+        return res.status(403).json({
+          success: false,
+          message: `Insufficient access level. Required level ${maxLevel} or higher`,
+          requiredLevel: maxLevel,
+          currentLevel: roleLevel,
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Role level check error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Role level check failed',
+      });
+    }
+  };
 };
 
 /**

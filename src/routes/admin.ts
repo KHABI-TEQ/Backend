@@ -275,13 +275,15 @@ AdminRouter.delete("/settings/:key/delete", deleteSetting);
  * Get all permissions with optional filtering by category, isActive, or search
  * Query params: category, isActive, search
  */
-AdminRouter.get('/permissions', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getAllPermissions);
+// AdminRouter.get('/permissions', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getAllPermissions);
+AdminRouter.get('/permissions', getAllPermissions);
 
 /**
  * GET /api/permissions/:id
  * Get a single permission by ID
  */
-AdminRouter.get('/permissions/:id', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getPermissionById);
+// AdminRouter.get('/permissions/:id', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getPermissionById);
+AdminRouter.get('/permissions/:id', getPermissionById);
 
 /**
  * POST /api/permissions
@@ -317,13 +319,15 @@ AdminRouter.post('/permissions/seed', requireSuperAdmin, seedDefaultPermissions)
  * Get all roles with optional filtering
  * Query params: isActive, search
  */
-AdminRouter.get('/roles', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getAllRoles);
+// AdminRouter.get('/roles', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getAllRoles);
+AdminRouter.get('/roles', getAllRoles);
 
 /**
  * GET /api/roles/:id
  * Get a single role by ID
  */
-AdminRouter.get('/roles/:id', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getRoleById);
+// AdminRouter.get('/roles/:id', requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS), getRoleById);
+AdminRouter.get('/roles/:id', getRoleById);
 
 /**
  * POST /api/roles

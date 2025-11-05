@@ -28,11 +28,37 @@ export const adminAuth = async (
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
 
-    const admin = await DB.Models.Admin.findById(decoded.id);
+    const admin = await DB.Models.Admin.findById(decoded.id)
+      .populate({
+        path: 'roles',
+        populate: {
+          path: 'permissions',
+          model: 'Permission',
+        },
+      })
+      .populate('permissions')
+      .exec();
+
     if (!admin) {
       return res.status(401).json({ message: 'Admin not found or invalid token' });
     }
 
+    if (!admin.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is inactive',
+      });
+    }
+
+    // Check if account is locked
+    if (admin.lockoutUntil && admin.lockoutUntil > new Date()) {
+      return res.status(401).json({
+        success: false,
+        message: 'Account is temporarily locked',
+        lockoutUntil: admin.lockoutUntil,
+      });
+    }
+    
     req.admin = admin;
     next();
   } catch (error: any) {
