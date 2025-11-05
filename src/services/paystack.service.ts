@@ -847,7 +847,7 @@ export class PaystackService {
         planDuration = plan.durationInDays;
       }
 
-      endDate.setDate(endDate.getDate() + plan.durationInDays);
+      endDate.setDate(endDate.getDate() + planDuration);
  
       // Map plan features into snapshot
       const planFeatures = plan.features?.map((f: any) => ({
