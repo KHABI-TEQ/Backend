@@ -9,6 +9,7 @@ import { reportDealSite } from "../controllers/DealSite/reportDealSite";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { createDealSiteContactUs } from "../controllers/DealSite/otherActions";
+import { subscribeEmailDealSite } from "../controllers/public/emailSubscribeActions";
 
 // Configure Multer (Store file in memory before uploading)
 const storage = multer.memoryStorage();
@@ -52,6 +53,9 @@ DealSiteRouter.get("/:publicSlug/verify-payment", paymentVerification);
 // contact us
 DealSiteRouter.post("/:publicSlug/contactUs", createDealSiteContactUs);
 
+
+DealSiteRouter.post("/:publicSlug/newsletter/subscribe", subscribeEmailDealSite);
+ 
 // report dealsite
 DealSiteRouter.post("/:publicSlug/reportDealPage", reportDealSite);
 

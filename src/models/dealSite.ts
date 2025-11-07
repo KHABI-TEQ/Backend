@@ -17,7 +17,7 @@ export interface IDealSite {
     primaryColor: string;
     secondaryColor: string;
   };
-
+ 
   inspectionSettings?: {
     allowPublicBooking: boolean;
     defaultInspectionFee: number;

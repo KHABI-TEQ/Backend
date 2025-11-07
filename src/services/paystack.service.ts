@@ -605,7 +605,7 @@ export class PaystackService {
         footerSection,
         socialLinks = {},
       } = dealSite;
-
+ 
       const companyName =
         paymentDetails?.businessName || title || "Our Partner";
       const address = footerSection?.shortDescription || "Lagos, Nigeria";
