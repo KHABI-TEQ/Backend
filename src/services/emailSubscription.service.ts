@@ -1,14 +1,24 @@
 import { DB } from "../controllers";
 import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
+import { Types } from "mongoose";
+import { generalTemplate } from "../common/email.template";
+
+interface IReceiverMode {
+  type?: "general" | "dealSite";
+  dealSiteID?: Types.ObjectId;
+}
 
 interface SubscribeInput {
   email: string;
   firstName?: string | null;
   lastName?: string | null;
+  receiverMode?: IReceiverMode; // ✅ Added here
+  dealSite?: any;
 }
 
 export class EmailSubscriptionService {
+
   /**
    * Subscribe a user by email
    */
@@ -55,6 +65,91 @@ export class EmailSubscriptionService {
     return subscription.toObject();
   }
 
+
+  /**
+   * Subscribe a user by email
+   */
+  public static async subscribeDealSite(input: SubscribeInput) {
+    const { email, receiverMode, dealSite } = input;
+
+    // Check if email already exists
+    let subscription = await DB.Models.EmailSubscription.findOne({ email });
+
+    if (subscription) {
+      if (subscription.status === "unsubscribed") {
+        subscription.status = "subscribed";
+        subscription.receiverMode = receiverMode ?? subscription.receiverMode;
+        await subscription.save();
+      }
+    } else {
+      // Create new subscription
+      subscription = await DB.Models.EmailSubscription.create({
+        email,
+        status: "subscribed",
+        receiverMode: receiverMode,
+      });
+    }
+
+    const {
+      paymentDetails,
+      logoUrl,
+      title,
+      footerSection,
+      socialLinks = {},
+    } = dealSite;
+ 
+    const companyName = title || paymentDetails?.businessName || "Our Partner";
+    const address = footerSection?.shortDescription || "Lagos, Nigeria";
+
+    const baseHtml = `
+      <div style="font-family: Arial, sans-serif; color: #2d3748; line-height: 1.6;">
+        <h2 style="color: #2b6cb0; margin-bottom: 10px;">Welcome to ${companyName}!</h2>
+        <p>Hello <strong>${email}</strong>,</p>
+        <p>
+          Thank you for subscribing to <strong>${companyName}</strong> updates. 
+          You’ll now receive timely information on new deals, exclusive property listings, 
+          and insider opportunities tailored just for you.
+        </p>
+        <p>
+          Stay tuned — our team is dedicated to bringing you only the best real estate offers 
+          and opportunities that match your interests.
+        </p>
+        <p style="margin-top: 20px;">
+          Best regards,<br />
+          <strong>The ${companyName} Team</strong>
+        </p>
+      </div>
+    `;
+    
+    const dealSiteMail = generalTemplate(baseHtml, {
+      companyName,
+      logoUrl:
+        logoUrl ||
+        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+      address,
+      facebookUrl: socialLinks.facebook || "",
+      instagramUrl: socialLinks.instagram || "",
+      linkedinUrl: socialLinks.linkedin || "",
+      twitterUrl: socialLinks.twitter || "",
+    })
+
+    // Send DealSite subscription confirmation email
+    await sendEmail({
+      to: email,
+      subject: `🎉 You’re Subscribed to ${companyName} Updates!`,
+      html: dealSiteMail,
+      text: `Hello ${email},
+
+    Thank you for subscribing to ${companyName} updates.
+    You’ll now receive new deals, exclusive listings, and real estate opportunities straight to your inbox.
+
+    Best regards,
+    The ${companyName} Team`,
+    });
+
+    return subscription.toObject();
+  }
+
   /**
    * Unsubscribe a user by email
    */
@@ -88,11 +183,8 @@ export class EmailSubscriptionService {
    */
   public static async getSubscriptions(page = 1, limit = 10, status?: string) {
     const skip = (page - 1) * limit;
-
     const filter: any = {};
-    if (status) {
-      filter.status = status;
-    }
+    if (status) filter.status = status;
 
     const [data, total] = await Promise.all([
       DB.Models.EmailSubscription.find(filter)

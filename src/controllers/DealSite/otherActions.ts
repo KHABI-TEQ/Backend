@@ -4,6 +4,10 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DB } from "..";
 import { DealSiteService } from "../../services/dealSite.service";
 import { dealSiteActivityService } from "../../services/dealSiteActivity.service";
+import { generateDealSiteContactOwnerMail, generateDealSiteContactUserMail } from "../../common/emailTemplates/dealSiteMails";
+import sendEmail from "../../common/send.email";
+import { generalTemplate } from "../../common/email.template";
+import { RouteError } from "../../common/classes";
 
 /**
  * Update a DealSite
@@ -23,8 +27,6 @@ export const updateDealSite = async (
       sectionName,
       req.body
     );
-
-    console.log("all body", req.body)
 
     await dealSiteActivityService.logActivity({
       dealSiteId: updated._id.toString(),
@@ -154,7 +156,7 @@ export const createDealSiteContactUs = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {
+  try { 
     const { publicSlug } = req.params;
 
     // ✅ Ensure dealSite exists
@@ -164,6 +166,15 @@ export const createDealSiteContactUs = async (
         success: false,
         message: "Public access page not found",
       });
+    }
+
+    // fetch the owner email and name
+    const ownerDetails = await DB.Models.User.findById(dealSite.createdBy)
+      .select("firstName lastName email")
+      .lean();
+
+    if (!ownerDetails) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite owner not found");
     }
 
     const { name, email, phoneNumber, whatsAppNumber, subject, message } =
@@ -182,6 +193,77 @@ export const createDealSiteContactUs = async (
         type: "dealSite",
         dealSiteID: dealSite._id,
       },
+    });
+
+     const {
+      paymentDetails,
+      logoUrl,
+      title,
+      footerSection,
+      socialLinks = {},
+    } = dealSite;
+
+    const companyName = title || paymentDetails?.businessName || "Our Partner";
+    const address = footerSection?.shortDescription || "Lagos, Nigeria";
+
+    // send mails to seller and buyer
+    const sellerEmailRaw = generateDealSiteContactOwnerMail({
+      ownerName: dealSite?.title || dealSite?.paymentDetails?.businessName,
+      dealSiteName: dealSite?.title || dealSite?.paymentDetails?.businessName,
+      name,
+      email,
+      phoneNumber,
+      whatsAppNumber,
+      subject,
+      message,
+    });
+
+    const buyerEmailRaw = generateDealSiteContactUserMail({
+      name,
+      email,
+      subject,
+      message,
+      phoneNumber,
+      whatsAppNumber,
+      dealSiteName: dealSite?.title || dealSite?.paymentDetails?.businessName,
+    })
+
+    const buyerEmail = generalTemplate(buyerEmailRaw, {
+      companyName,
+      logoUrl:
+        logoUrl ||
+        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+      address,
+      facebookUrl: socialLinks.facebook || "",
+      instagramUrl: socialLinks.instagram || "",
+      linkedinUrl: socialLinks.linkedin || "",
+      twitterUrl: socialLinks.twitter || "",
+    });
+
+    const sellerEmail = generalTemplate(sellerEmailRaw, {
+      companyName,
+      logoUrl:
+        logoUrl ||
+        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+      address,
+      facebookUrl: socialLinks.facebook || "",
+      instagramUrl: socialLinks.instagram || "",
+      linkedinUrl: socialLinks.linkedin || "",
+      twitterUrl: socialLinks.twitter || "",
+    });
+
+    await sendEmail({
+        to: email,
+        subject: `Your message to ${companyName} has been received`,
+        html: buyerEmail,
+        text: buyerEmail,
+    });
+
+    await sendEmail({
+        to: ownerDetails.email,
+        subject: `New Contact Message from ${name} via ${companyName} Page`,
+        html: sellerEmail,
+        text: sellerEmail,
     });
 
     return res.status(HttpStatusCodes.CREATED).json({

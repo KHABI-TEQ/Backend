@@ -1,10 +1,16 @@
-import { Schema, model, Document, Model } from "mongoose";
+import { Schema, model, Document, Model, Types } from "mongoose";
+
+export interface IReceiverMode {
+  type?: "general" | "dealSite";
+  dealSiteID?: Types.ObjectId;
+}
 
 export interface IEmailSubscription {
   firstName?: string | null;  // nullable
   lastName?: string | null;   // nullable
   email: string;              // required
-  status: string;             // required (e.g., "subscribed", "unsubscribed")
+  status: "subscribed" | "unsubscribed";  // required
+  receiverMode?: IReceiverMode; // NEW FIELD
 }
 
 export interface IEmailSubscriptionDoc extends IEmailSubscription, Document {}
@@ -39,8 +45,16 @@ export class EmailSubscription {
         status: {
           type: String,
           required: true,
-          enum: ["subscribed", "unsubscribed"], // you can extend if needed
+          enum: ["subscribed", "unsubscribed"],
           default: "subscribed",
+        },
+        receiverMode: {
+          type: {
+            type: String,
+            enum: ["general", "dealSite"],
+            default: "general",
+          },
+          dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" },
         },
       },
       { timestamps: true }
