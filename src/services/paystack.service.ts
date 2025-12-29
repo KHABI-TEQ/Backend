@@ -1041,7 +1041,7 @@ export class PaystackService {
           );
 
           await sendEmail({
-            to: recipientEmail,
+            to: 'gatukurh1+2222@gmail.com',
             subject: docType === "survey-plan"
               ? "New Survey Plan Verification Request"
               : "New Document Verification Request",
