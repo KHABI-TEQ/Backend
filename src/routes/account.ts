@@ -99,7 +99,7 @@ AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus
 AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
 AccountRouter.get("/properties/fetchAll", fetchAllProperties);
-   
+  
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
@@ -122,11 +122,11 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
- 
+
 // REFERRAL ROUTES
 AccountRouter.get("/referrals/stats", fetchReferralStats);
 AccountRouter.get("/referrals/records", fetchReferralRecords);
- 
+
 // DEAL SITE ROUTES
 AccountRouter.post("/dealSite/setUp", createDealSite);
 AccountRouter.post("/dealSite/slugAvailability", checkSlugAvailability);

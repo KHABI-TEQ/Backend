@@ -29,7 +29,7 @@ export interface IDocumentVerification {
 export interface IDocumentVerificationDoc extends IDocumentVerification, Document {}
 
 export type IDocumentVerificationModel = Model<IDocumentVerificationDoc>;
-
+ 
 export class DocumentVerification {
   private generalModel: Model<IDocumentVerificationDoc>;
  

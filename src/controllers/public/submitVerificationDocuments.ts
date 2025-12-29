@@ -102,7 +102,7 @@ export const submitDocumentVerification = async (
       },
       transactionType: "document-verification",
     });
-
+ 
     // ✅ Create a record for each document
     const createdDocs = await Promise.all(
       documentsMetadata.map((doc) => {
