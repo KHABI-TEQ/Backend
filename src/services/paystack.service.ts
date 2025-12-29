@@ -980,17 +980,20 @@ export class PaystackService {
 
     for (const docVerification of docVerifications) {
       if (docVerification.status === "pending") {
-        const newStatus =
-          transaction.status === "success" ? "payment-approved" : "payment-failed";
+        const newStatus = transaction.status === "success" ? "payment-approved" : "payment-failed";
         docVerification.status = newStatus;
 
         const buyerData = docVerification.buyerId as any;
-
+ 
         if (transaction.status === "success") {
           // Generate a 6-digit unique code
           const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
-          docVerification.accessCode.token = accessCode;
 
+          docVerification.accessCode = {
+            token: accessCode,
+            status: 'pending',
+          };
+          
           // Send confirmation email to buyer
           const emailParams: GenerateVerificationEmailParams = {
             fullName: buyerData?.fullName || "",
