@@ -1041,7 +1041,7 @@ export class PaystackService {
           );
 
           await sendEmail({
-            to: 'gatukurh1+2222@gmail.com',
+            to: recipientEmail,
             subject: docType === "survey-plan"
               ? "New Survey Plan Verification Request"
               : "New Document Verification Request",
@@ -1049,8 +1049,6 @@ export class PaystackService {
             text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
           });
 
-
-          
         }
 
         await docVerification.save();
