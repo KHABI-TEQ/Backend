@@ -1043,8 +1043,8 @@ export class PaystackService {
           await sendEmail({
             to: recipientEmail,
             subject: docType === "survey-plan"
-              ? "New Survey Plan Verification Request"
-              : "New Document Verification Request",
+              ? `New Survey Plan Verification Request - ${buyerData?.fullName}`
+              : `New Document Verification Request - ${buyerData?.fullName}`,
             html: thirdPartyEmailHTML,
             text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
           });
