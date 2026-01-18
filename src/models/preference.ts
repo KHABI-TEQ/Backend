@@ -145,10 +145,15 @@ export interface IPreference {
   assignedAgent?: Types.ObjectId;
   status: "pending" | "approved" | "matched" | "closed" | "rejected";
 
+  receiverMode: {
+    type?: "general" | "dealSite";
+    dealSiteID?: Types.ObjectId;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
-
+ 
 export interface IPreferenceDoc extends IPreference, Document {}
  
 export type IPreferenceModel = Model<IPreferenceDoc>;
@@ -289,6 +294,15 @@ export class Preference {
           type: String,
           enum: ["pending", "approved", "matched", "closed", "rejected"],
           default: "pending",
+        },
+
+        receiverMode: {
+          type: {
+            type: String,
+            enum: ["general", "dealSite"],
+            default: "general",
+          },
+          dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
       },
       { timestamps: true },

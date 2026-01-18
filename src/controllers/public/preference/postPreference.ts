@@ -14,13 +14,11 @@ export const postPreference = async (
   res: Response,
   next: NextFunction,
 ) => {
-  try {
+  try { 
     // Validate payload
     const payload = await preferenceValidationSchema.validateAsync(req.body, {
       abortEarly: false,
     });
-
-    console.log(payload, "ccc")
 
     const rawContactInfo = payload.contactInfo || {};
 
@@ -35,7 +33,6 @@ export const postPreference = async (
     } = rawContactInfo;
 
     
-
     // Ensure required fields for Buyer model
     const normalizedBuyerPayload: {
       fullName: string;
@@ -52,8 +49,6 @@ export const postPreference = async (
       ...(contactPerson && { contactPerson }),
       ...(cacRegistrationNumber && { cacRegistrationNumber }),
     };
-
-    console.log(normalizedBuyerPayload, "buyer.....")
 
     // Check if buyer already exists
     let buyer = await DB.Models.Buyer.findOne({
