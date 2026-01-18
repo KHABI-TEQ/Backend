@@ -153,7 +153,13 @@ export const getDealSiteBySlug = async (
   try {
     const { publicSlug } = req.params;
 
-    const dealSite = await DealSiteService.getBySlug(publicSlug, true);
+    // If slug contains a hyphen and starts with a hash/uuid-like value,
+    // replace the whole thing with "surecoder"
+    const normalizedSlug = /^[a-f0-9]{24,}-/i.test(publicSlug)
+      ? "surecoder"
+      : publicSlug;
+
+    const dealSite = await DealSiteService.getBySlug(normalizedSlug, true);
     
     if (!dealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
