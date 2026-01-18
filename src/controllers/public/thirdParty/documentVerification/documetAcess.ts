@@ -94,15 +94,15 @@ export const getDocumentVerificationDetails = async (
 };
 
 
-
-export const submitVerificationReport = async (
+ 
+export const submitVerificationReport_old = async (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { documentId } = req.params;
-    const { report } = req.body;
+    const { report, additionalDocuments } = req.body;
 
     const docVerification = await DB.Models.DocumentVerification.findById(documentId).populate("buyerId");
 
@@ -177,4 +177,117 @@ export const submitVerificationReport = async (
     next(err);
   }
 };
+
+
+export const submitVerificationReport = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { documentId } = req.params;
+    const { report, additionalDocuments } = req.body;
+
+    const docVerification = await DB.Models.DocumentVerification
+      .findById(documentId)
+      .populate("buyerId");
+
+    if (!docVerification) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        "Document verification record not found"
+      );
+    }
+
+    if (!report || !report.status) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Report payload is required"
+      );
+    }
+
+    if (!["registered", "unregistered"].includes(report.status)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Status must be either 'registered' or 'unregistered'"
+      );
+    }
+
+    // Format report
+    const formattedReport = {
+      originalDocumentType: report.originalDocumentType,
+      newDocumentUrl: report.newDocumentUrl,
+      description: report.description,
+      status: report.status,
+      verifiedAt: new Date(),
+      selfVerification: false,
+    };
+
+    docVerification.verificationReports = formattedReport;
+    docVerification.status = report.status;
+
+    // Handle additional documents (optional)
+    if (Array.isArray(additionalDocuments) && additionalDocuments.length > 0) {
+      const formattedAdditionalDocs = additionalDocuments.map((doc: any) => ({
+        name: doc.name,
+        documentFile: doc.documentFile,
+        comment: doc.comment,
+        uploadedAt: doc.uploadedAt || new Date(),
+      }));
+
+      docVerification.additionalDocuments = [
+        ...(docVerification.additionalDocuments || []),
+        ...formattedAdditionalDocs,
+      ];
+    }
+
+    await docVerification.save();
+
+    const buyerData = docVerification.buyerId as any;
+
+    // 📧 Buyer email
+    const buyerEmailHTML = generalEmailLayout(
+      generateBuyerVerificationReportForBuyer({
+        buyerName: buyerData.fullName,
+        documentCustomId: docVerification.docCode,
+        reports: [formattedReport],
+        additionalDocuments: docVerification.additionalDocuments,
+      })
+    );
+
+    await sendEmail({
+      to: buyerData.email,
+      subject: `Your Verification Report has been ${formattedReport.status.toUpperCase()}`,
+      html: buyerEmailHTML,
+      text: buyerEmailHTML,
+    });
+
+    // 📧 Admin email
+    const adminEmailHTML = generalEmailLayout(
+      generateAdminVerificationReportEmail({
+        adminName: "Admin",
+        requesterName: buyerData.fullName,
+        documentCustomId: docVerification.docCode,
+        report: formattedReport,
+        additionalDocuments: docVerification.additionalDocuments,
+        verificationPageLink: `${process.env.ADMIN_CLIENT_LINK}/verify_document/${docVerification.status}/${documentId}`,
+      })
+    );
+
+    await sendEmail({
+      to: process.env.DOCUMENT_ADMIN_MAIL,
+      subject: `New Verification Report Submitted for Document ${docVerification.docCode}`,
+      html: adminEmailHTML,
+      text: `New verification report submitted for document ${docVerification.docCode}`,
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Verification report submitted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 

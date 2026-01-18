@@ -96,7 +96,6 @@ export const generateThirdPartyVerificationEmail = ({
   `;
 };
 
-
 export interface GenerateAdminVerificationReportEmailParams {
   adminName: string;
   requesterName: string;
@@ -106,7 +105,15 @@ export interface GenerateAdminVerificationReportEmailParams {
     status: string;
     description?: string;
     newDocumentUrl?: string;
+    verifiedAt?: Date;
+    selfVerification?: boolean;
   };
+  additionalDocuments?: {
+    name: string;
+    documentFile: string;
+    comment?: string;
+    uploadedAt?: Date;
+  }[];
   verificationPageLink: string;
 }
 
@@ -115,34 +122,74 @@ export const generateAdminVerificationReportEmail = ({
   requesterName,
   documentCustomId,
   report,
-  verificationPageLink
+  additionalDocuments,
+  verificationPageLink,
 }: GenerateAdminVerificationReportEmailParams): string => {
-  const reportsHtml = `
+  const reportHtml = `
     <li style="margin-bottom: 12px;">
       <strong>Document Type:</strong> ${kebabToTitleCase(report.originalDocumentType)} <br />
       <strong>Status:</strong> ${report.status} <br />
       <strong>Description:</strong> ${report.description ?? "N/A"} <br />
-      ${report.newDocumentUrl ? `<strong>New Document:</strong> <a href="${report.newDocumentUrl}" style="color: #0066cc; text-decoration: none;" target="_blank">View Document</a>` : ""}
+      ${
+        report.newDocumentUrl
+          ? `<strong>New Document:</strong>
+             <a href="${report.newDocumentUrl}" target="_blank" style="color:#0066cc;text-decoration:none;">
+               View Document
+             </a>`
+          : ""
+      }
     </li>
   `;
 
+  const additionalDocsHtml =
+    additionalDocuments?.length
+      ? `
+        <p><strong>Additional Supporting Documents:</strong></p>
+        <ul style="padding-left:20px;">
+          ${additionalDocuments
+            .map(
+              (doc) => `
+              <li style="margin-bottom:10px;">
+                <strong>Name:</strong> ${doc.name}<br />
+                ${doc.comment ? `<strong>Comment:</strong> ${doc.comment}<br />` : ""}
+                <a href="${doc.documentFile}" target="_blank" style="color:#0066cc;text-decoration:none;">
+                  View Document
+                </a>
+              </li>
+            `
+            )
+            .join("")}
+        </ul>
+      `
+      : "";
+
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;max-width:600px;margin:auto;line-height:1.6;">
       <p>Dear ${adminName},</p>
 
-      <p>${requesterName} has submitted new verification report(s) for the document verification request <strong>${documentCustomId}</strong>.</p>
+      <p>
+        ${requesterName} has submitted a new verification report for the document
+        verification request <strong>${documentCustomId}</strong>.
+      </p>
 
-      <p><strong>Verification Reports:</strong></p>
-      <ul style="padding-left: 20px;">
-        ${reportsHtml}
+      <p><strong>Verification Report:</strong></p>
+      <ul style="padding-left:20px;">
+        ${reportHtml}
       </ul>
 
-      <p>You can review the full details in the admin panel by clicking the link below:</p>
-      <p><a href="${verificationPageLink}" style="color: #0066cc; text-decoration: none;">Access Document Verification Request</a></p>
+      ${additionalDocsHtml}
 
-      <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;" />
+      <p>
+        <a href="${verificationPageLink}" style="color:#0066cc;text-decoration:none;">
+          Access Document Verification Request
+        </a>
+      </p>
 
-      <p style="font-size: 13px; color: #999;">This is an automated message. Please do not reply directly to this email.</p>
+      <hr style="border:none;border-top:1px solid #ccc;margin:30px 0;" />
+
+      <p style="font-size:13px;color:#999;">
+        This is an automated message. Please do not reply directly to this email.
+      </p>
     </div>
   `;
 };
@@ -152,6 +199,7 @@ export const generateBuyerVerificationReportForBuyer = ({
   buyerName,
   documentCustomId,
   reports,
+  additionalDocuments,
 }: {
   buyerName: string;
   documentCustomId: string;
@@ -163,24 +211,31 @@ export const generateBuyerVerificationReportForBuyer = ({
     verifiedAt?: Date;
     selfVerification?: boolean;
   }[];
+  additionalDocuments?: {
+    name: string;
+    documentFile: string;
+    comment?: string;
+    uploadedAt?: Date;
+  }[];
 }): string => {
   const reportsHtml = reports
     .map(
       (report) => `
-      <li style="margin-bottom: 12px;">
-        <strong>Document Type:</strong> ${kebabToTitleCase(report.originalDocumentType) ?? "N/A"} <br />
-        <strong>Status:</strong> ${report.status} <br />
-        <strong>Description:</strong> ${report.description ?? "N/A"} <br />
+      <li style="margin-bottom:12px;">
+        <strong>Document Type:</strong> ${kebabToTitleCase(report.originalDocumentType) ?? "N/A"}<br />
+        <strong>Status:</strong> ${report.status}<br />
+        <strong>Description:</strong> ${report.description ?? "N/A"}<br />
         ${
           report.newDocumentUrl
-            ? `<strong>New Document:</strong> <a href="${report.newDocumentUrl}" style="color: #0066cc; text-decoration: none;" target="_blank">View Document</a>`
+            ? `<strong>New Document:</strong>
+               <a href="${report.newDocumentUrl}" target="_blank" style="color:#0066cc;text-decoration:none;">
+                 View Document
+               </a>`
             : ""
         }
         ${
           report.verifiedAt
-            ? `<br /><strong>Verified At:</strong> ${new Date(
-                report.verifiedAt
-              ).toLocaleString()}`
+            ? `<br /><strong>Verified At:</strong> ${new Date(report.verifiedAt).toLocaleString()}`
             : ""
         }
       </li>
@@ -188,23 +243,53 @@ export const generateBuyerVerificationReportForBuyer = ({
     )
     .join("");
 
+  const additionalDocsHtml =
+    additionalDocuments?.length
+      ? `
+        <p><strong>Supporting Documents:</strong></p>
+        <ul style="padding-left:20px;">
+          ${additionalDocuments
+            .map(
+              (doc) => `
+              <li style="margin-bottom:10px;">
+                <strong>Name:</strong> ${doc.name}<br />
+                ${doc.comment ? `<strong>Comment:</strong> ${doc.comment}<br />` : ""}
+                <a href="${doc.documentFile}" target="_blank" style="color:#0066cc;text-decoration:none;">
+                  View Document
+                </a>
+              </li>
+            `
+            )
+            .join("")}
+        </ul>
+      `
+      : "";
+
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;max-width:600px;margin:auto;line-height:1.6;">
       <p>Dear ${buyerName},</p>
 
-      <p>The verification reports for your document request <strong>${documentCustomId}</strong> are now available.</p>
+      <p>
+        The verification reports for your document request
+        <strong>${documentCustomId}</strong> are now available.
+      </p>
 
       <p><strong>Verification Report(s):</strong></p>
-      <ul style="padding-left: 20px;">
+      <ul style="padding-left:20px;">
         ${reportsHtml}
       </ul>
 
+      ${additionalDocsHtml}
+
       <p>If you have any questions, kindly contact support.</p>
 
-      <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;" />
+      <hr style="border:none;border-top:1px solid #ccc;margin:30px 0;" />
 
-      <p style="font-size: 13px; color: #999;">This is an automated message. Please do not reply directly to this email.</p>
+      <p style="font-size:13px;color:#999;">
+        This is an automated message. Please do not reply directly to this email.
+      </p>
     </div>
   `;
 };
+
 
