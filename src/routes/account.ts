@@ -47,6 +47,7 @@ import { bankList, checkSlugAvailability, createDealSite } from "../controllers/
 import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
+import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
 
 const AccountRouter = express.Router();
 
@@ -132,6 +133,7 @@ AccountRouter.post("/dealSite/setUp", createDealSite);
 AccountRouter.post("/dealSite/slugAvailability", checkSlugAvailability);
 AccountRouter.get("/dealSite/bankList", bankList);
 AccountRouter.get("/dealSite/details", getDealSiteDetailsByUser);
+AccountRouter.get("/dealSite/get-preferences", fetchMyDealSitePreference);
 AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
 AccountRouter.get("/dealSite/:publicSlug/logs", getDealSiteLogsBySlug);
 AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);

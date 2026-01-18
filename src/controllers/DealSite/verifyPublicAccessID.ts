@@ -120,7 +120,7 @@ export const getDealSiteDetailsByUser = async (
   next: NextFunction
 ) => {
   try {
-
+ 
     const userId = req.user?._id;
   
     const dealSite = await DealSiteService.getByAgent(userId);
