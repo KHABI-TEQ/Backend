@@ -24,6 +24,12 @@ export interface IDocumentVerification {
     verifiedAt?: Date;
     selfVerification: boolean;
   };
+   additionalDocuments?: {
+    name: string;
+    documentFile: string;
+    comment?: string;
+    uploadedAt?: Date;
+  }[];
 }
 
 export interface IDocumentVerificationDoc extends IDocumentVerification, Document {}
@@ -52,7 +58,7 @@ export class DocumentVerification {
           documentNumber: { type: String },
           documentUrl: { type: String },
         },
-
+ 
         accessCode: {
           token: { type: String },
           status: {
@@ -88,6 +94,16 @@ export class DocumentVerification {
           verifiedAt: { type: Date },
           selfVerification: { type: Boolean, default: false },
         },
+
+        additionalDocuments: [
+          {
+            name: { type: String, required: true },
+            documentFile: { type: String, required: true },
+            comment: { type: String },
+            uploadedAt: { type: Date, default: Date.now },
+          },
+        ],
+
       },
       { timestamps: true }
     );
