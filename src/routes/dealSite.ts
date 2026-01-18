@@ -10,6 +10,7 @@ import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { createDealSiteContactUs } from "../controllers/DealSite/otherActions";
 import { subscribeEmailDealSite } from "../controllers/public/emailSubscribeActions";
+import { sendPreferenceRequest } from "../controllers/DealSite/submitPreference";
 
 // Configure Multer (Store file in memory before uploading)
 const storage = multer.memoryStorage();
@@ -52,6 +53,9 @@ DealSiteRouter.get("/:publicSlug/verify-payment", paymentVerification);
 
 // contact us
 DealSiteRouter.post("/:publicSlug/contactUs", createDealSiteContactUs);
+
+// Submit Preferences
+DealSiteRouter.post("/:publicSlug/submit-preference", sendPreferenceRequest);
 
 
 DealSiteRouter.post("/:publicSlug/newsletter/subscribe", subscribeEmailDealSite);
