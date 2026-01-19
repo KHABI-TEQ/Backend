@@ -154,7 +154,7 @@ AdminRouter.get("/field-agents/:userId/allAssignedInspections", getFieldAgentAss
 AdminRouter.get("/preferences/:preferenceMode", getPreferencesByMode);
 AdminRouter.get("/preferences/:preferenceMode/stats", getPreferenceModeStats);
 AdminRouter.patch("/preferences/:preferenceId/approve", approvePreference);
-AdminRouter.patch("/preferences/:preferenceId/reject", rejectPreference);
+AdminRouter.post("/preferences/:preferenceId/reject", rejectPreference);
 AdminRouter.get("/preferences/:preferenceId/withAllBuyerPreferences", getSinglePreference);
 AdminRouter.get("/preferences/:preferenceId/findMatchesProperties", findMatchedProperties);
 AdminRouter.delete("/preferences/:preferenceId/delete", deletePreference);
