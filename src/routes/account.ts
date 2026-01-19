@@ -85,15 +85,18 @@ AccountRouter.post("/properties/create", postProperty);
 // );
 
 // Preference page → requires "POST_PREFERENCE_PROPERTY"
-AccountRouter.post(
-  "/preferences/:preferenceId/properties",
-  agentSubscriptionFeatureChecker({
-    requireActiveSubscription: true,
-    requiredFeatureKey: "AGENT_MARKETPLACE",
-    allowedUserTypes: ["Agent"]
-  }),
-  postProperty
-);
+// AccountRouter.post(
+//   "/preferences/:preferenceId/properties",
+//   agentSubscriptionFeatureChecker({
+//     requireActiveSubscription: true,
+//     requiredFeatureKey: "AGENT_MARKETPLACE",
+//     allowedUserTypes: ["Agent"]
+//   }),
+//   postProperty
+// );
+
+// PROPERTY ROUTES
+AccountRouter.post("/preferences/:preferenceId/properties", postProperty);
 
 AccountRouter.patch("/properties/:propertyId/edit", editProperty);
 AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus);
