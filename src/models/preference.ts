@@ -52,7 +52,7 @@ export interface IDevelopmentDetails {
   willingToConsiderPendingTitle?: boolean;
   additionalRequirements?: string;
 }
-
+ 
 
 // Booking Details for Shortlet
 export interface IBookingDetails {
