@@ -20,7 +20,7 @@ export const fetchMyDealSitePreference = async (
     }
 
     // 1️⃣ Get DealSite owned by this agent
-    const dealSite = await DB.Models.DealSite.find({ createdBy: userId })
+    const dealSite = await DB.Models.DealSite.findOne({ createdBy: userId })
     .sort({
       createdAt: -1,
     })

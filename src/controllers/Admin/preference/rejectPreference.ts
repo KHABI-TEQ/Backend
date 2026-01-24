@@ -5,7 +5,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
-import { rejectedPreferenceMail } from "src/common/emailTemplates/preference";
+import { rejectedPreferenceMail } from "../../../common/emailTemplates/preference";
 
 export const rejectPreference = async (
   req: Request,
@@ -62,7 +62,6 @@ export const rejectPreference = async (
     const preferenceSummary = {
       propertyType:
         preference.propertyDetails?.propertyType ||
-        preference.developmentDetails?.propertyType ||
         preference.bookingDetails?.propertyType ||
         "N/A",
 
