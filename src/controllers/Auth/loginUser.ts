@@ -6,7 +6,9 @@ import { generateToken, RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { verifyEmailTemplate, generalTemplate } from "../../common/email.template";
 import sendEmail from "../../common/send.email";
-
+import { UserSubscriptionSnapshotService } from "../../services/userSubscriptionSnapshot.service";
+import { DealSiteService } from "../../services/dealSite.service";
+ 
 export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password } = req.body;
@@ -100,11 +102,22 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     if (user.userType === "Agent") {
       const agentData = await DB.Models.Agent.findOne({ userId: user._id });
 
+       // Get active subscription snapshot using the service
+        const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+          user._id.toString()
+        );
+
+       // get the agent deal site page if found
+        const dealSite = await DealSiteService.getByAgent(user._id.toString());
+      
+
       const userWithAgent = agentData?.agentType
         ? {
             ...userResponse,
             agentData,
             isAccountApproved: user.accountApproved,
+            activeSubscription: activeSnapshot || null,
+            dealSite: dealSite || null
           }
         : userResponse;
 
