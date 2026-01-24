@@ -94,6 +94,41 @@ export const getDocumentVerificationDetails = async (
 };
 
 
+/**
+ * Fetch document verification status (to validate the status of an document)
+ */
+export const getDocumentVerificationStatusDetails = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { documentId } = req.params;
+
+    if (!documentId) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Document verification ID is required");
+    }
+
+    const docVerification = await DB.Models.DocumentVerification.findById(documentId)
+      .lean();
+
+    if (!docVerification) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Document verification not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Document verification details fetched successfully",
+      data:{
+        status: docVerification.status
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
  
 export const submitVerificationReport_old = async (
   req: AppRequest,
