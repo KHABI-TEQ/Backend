@@ -1,19 +1,39 @@
 import { Schema, model, Document, Model, Types } from "mongoose";
 
+/**
+ * Receiver Mode
+ */
 export interface IReceiverMode {
   type?: "general" | "dealSite";
   dealSiteID?: Types.ObjectId;
 }
 
+/**
+ * Email Subscription fields
+ */
 export interface IEmailSubscription {
-  firstName?: string | null;  // nullable
-  lastName?: string | null;   // nullable
-  email: string;              // required
-  status: "subscribed" | "unsubscribed";  // required
-  receiverMode?: IReceiverMode; // NEW FIELD
+  firstName?: string | null;
+  lastName?: string | null;
+  email: string;
+  status: "subscribed" | "unsubscribed";
+  receiverMode?: IReceiverMode;
 }
 
-export interface IEmailSubscriptionDoc extends IEmailSubscription, Document {}
+/**
+ * Mongoose timestamps
+ */
+export interface ITimestamps {
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Document interface
+ */
+export interface IEmailSubscriptionDoc
+  extends IEmailSubscription,
+    ITimestamps,
+    Document {}
 
 export type IEmailSubscriptionModel = Model<IEmailSubscriptionDoc>;
 
@@ -25,13 +45,11 @@ export class EmailSubscription {
       {
         firstName: {
           type: String,
-          required: false,
           default: null,
           trim: true,
         },
         lastName: {
           type: String,
-          required: false,
           default: null,
           trim: true,
         },
@@ -44,9 +62,9 @@ export class EmailSubscription {
         },
         status: {
           type: String,
-          required: true,
           enum: ["subscribed", "unsubscribed"],
           default: "subscribed",
+          required: true,
         },
         receiverMode: {
           type: {
@@ -54,10 +72,15 @@ export class EmailSubscription {
             enum: ["general", "dealSite"],
             default: "general",
           },
-          dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" },
+          dealSiteID: {
+            type: Schema.Types.ObjectId,
+            ref: "DealSite",
+          },
         },
       },
-      { timestamps: true }
+      {
+        timestamps: true,
+      }
     );
 
     this.emailSubscriptionModel = model<IEmailSubscriptionDoc>(

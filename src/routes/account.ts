@@ -149,13 +149,13 @@ AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
 AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);
 
 // DEAL SITE CONTACT MESSAGES ROUTES
-AccountRouter.get("/dealSite/:publicSlug/contact-messages", getDealSiteContactMessages);
-AccountRouter.delete("/dealSite/:publicSlug/contact-messages/:messageId", deleteDealSiteContactMessage);
+AccountRouter.get("/dealSite/contact-messages", getDealSiteContactMessages);
+AccountRouter.delete("/dealSite/contact-messages/:messageId", deleteDealSiteContactMessage);
 
 // DEAL SITE EMAIL SUBSCRIBERS ROUTES
-AccountRouter.get("/dealSite/:publicSlug/email-subscribers", getDealSiteEmailSubscribers);
-AccountRouter.delete("/dealSite/:publicSlug/email-subscribers/:subscriberId", deleteDealSiteEmailSubscriber);
-AccountRouter.get("/dealSite/:publicSlug/email-subscribers/export/csv", exportDealSiteEmailSubscribers);
+AccountRouter.get("/dealSite/email-subscribers", getDealSiteEmailSubscribers);
+AccountRouter.delete("/dealSite/email-subscribers/:subscriberId", deleteDealSiteEmailSubscriber);
+AccountRouter.get("/dealSite/email-subscribers/export/csv", exportDealSiteEmailSubscribers);
 
 // FIELD AGENT INSPECTIONS ROUTES
 AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);
