@@ -10,6 +10,65 @@ import { generalTemplate } from "../../common/email.template";
 import { RouteError } from "../../common/classes";
 
 /**
+ * Bulk update a DealSite (handles multiple sections in one request)
+ * Used by frontend forms that update multiple sections at once
+ */
+export const bulkUpdateDealSite = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+    const payload = req.body;
+
+    // Get the user's dealSite (they should have only one)
+    const dealSites = await DealSiteService.getByAgent(userId, false);
+    if (!dealSites || dealSites.length === 0) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Public access page not found",
+      });
+    }
+
+    const dealSite = dealSites[0];
+    const publicSlug = dealSite.publicSlug;
+
+    // Process each section in the payload
+    const sections = Object.keys(payload);
+    let updated = dealSite;
+
+    for (const sectionName of sections) {
+      updated = await DealSiteService.updateDealSiteSection(
+        userId,
+        publicSlug,
+        sectionName,
+        payload[sectionName]
+      );
+    }
+
+    // Log activity
+    await dealSiteActivityService.logActivity({
+      dealSiteId: updated._id.toString(),
+      actorId: req.user._id,
+      actorModel: "User",
+      category: "settings-updated",
+      action: `Updated ${sections.join(", ")} sections`,
+      description: `User modified multiple settings on their deal site.`,
+      req,
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Public access page updated successfully",
+      data: updated,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * Update a DealSite
  */
 export const updateDealSite = async (
@@ -17,7 +76,7 @@ export const updateDealSite = async (
   res: Response,
   next: NextFunction
 ) => {
-  try { 
+  try {
     const { publicSlug, sectionName } = req.params;
     const userId = req.user?._id;
 
@@ -271,6 +330,332 @@ export const createDealSiteContactUs = async (
       message: "Your inquiry has been submitted successfully",
       data: contact,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Get all contact messages for a DealSite (for admin dashboard)
+ */
+export const getDealSiteContactMessages = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+    const userId = req.user?._id;
+    const { page = "1", limit = "10", status, search } = req.query;
+
+    // Verify dealSite ownership
+    const dealSite = await DealSiteService.getByAgent(userId, false);
+    if (!dealSite || dealSite.length === 0) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Public access page not found",
+      });
+    }
+
+    const userDealSite = dealSite.find(d => d.publicSlug === publicSlug);
+    if (!userDealSite) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message: "You don't have permission to access these messages",
+      });
+    }
+
+    // Build query
+    const query: any = {
+      "receiverMode.dealSiteID": userDealSite._id,
+      "receiverMode.type": "dealSite",
+    };
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { subject: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, parseInt(limit as string) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Fetch messages
+    const messages = await DB.Models.ContactUs.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    const total = await DB.Models.ContactUs.countDocuments(query);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Contact messages retrieved successfully",
+      data: messages,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Delete a contact message
+ */
+export const deleteDealSiteContactMessage = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug, messageId } = req.params;
+    const userId = req.user?._id;
+
+    // Verify dealSite ownership
+    const dealSites = await DealSiteService.getByAgent(userId, false);
+    if (!dealSites || dealSites.length === 0) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Public access page not found",
+      });
+    }
+
+    const userDealSite = dealSites.find(d => d.publicSlug === publicSlug);
+    if (!userDealSite) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message: "You don't have permission to delete this message",
+      });
+    }
+
+    // Delete message
+    const message = await DB.Models.ContactUs.findByIdAndDelete(messageId);
+
+    if (!message) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Message not found",
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Message deleted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Get all email subscribers for a DealSite
+ */
+export const getDealSiteEmailSubscribers = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+    const userId = req.user?._id;
+    const { page = "1", limit = "10", status, search } = req.query;
+
+    // Verify dealSite ownership
+    const dealSite = await DealSiteService.getByAgent(userId, false);
+    if (!dealSite || dealSite.length === 0) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Public access page not found",
+      });
+    }
+
+    const userDealSite = dealSite.find(d => d.publicSlug === publicSlug);
+    if (!userDealSite) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message: "You don't have permission to access these subscribers",
+      });
+    }
+
+    // Build query
+    const query: any = {
+      "receiverMode.dealSiteID": userDealSite._id,
+      "receiverMode.type": "dealSite",
+    };
+
+    if (status) {
+      query.status = status;
+    }
+
+    if (search) {
+      query.$or = [
+        { firstName: { $regex: search, $options: "i" } },
+        { lastName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Pagination
+    const pageNum = Math.max(1, parseInt(page as string) || 1);
+    const limitNum = Math.min(100, parseInt(limit as string) || 10);
+    const skip = (pageNum - 1) * limitNum;
+
+    // Fetch subscribers
+    const subscribers = await DB.Models.EmailSubscription.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean();
+
+    const total = await DB.Models.EmailSubscription.countDocuments(query);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Email subscribers retrieved successfully",
+      data: subscribers,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Delete an email subscriber
+ */
+export const deleteDealSiteEmailSubscriber = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug, subscriberId } = req.params;
+    const userId = req.user?._id;
+
+    // Verify dealSite ownership
+    const dealSites = await DealSiteService.getByAgent(userId, false);
+    if (!dealSites || dealSites.length === 0) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Public access page not found",
+      });
+    }
+
+    const userDealSite = dealSites.find(d => d.publicSlug === publicSlug);
+    if (!userDealSite) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message: "You don't have permission to delete this subscriber",
+      });
+    }
+
+    // Delete subscriber
+    const subscriber = await DB.Models.EmailSubscription.findByIdAndDelete(subscriberId);
+
+    if (!subscriber) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Subscriber not found",
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Subscriber deleted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+/**
+ * Export email subscribers as CSV
+ */
+export const exportDealSiteEmailSubscribers = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { publicSlug } = req.params;
+    const userId = req.user?._id;
+    const { status } = req.query;
+
+    // Verify dealSite ownership
+    const dealSites = await DealSiteService.getByAgent(userId, false);
+    if (!dealSites || dealSites.length === 0) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Public access page not found",
+      });
+    }
+
+    const userDealSite = dealSites.find(d => d.publicSlug === publicSlug);
+    if (!userDealSite) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message: "You don't have permission to export these subscribers",
+      });
+    }
+
+    // Build query
+    const query: any = {
+      "receiverMode.dealSiteID": userDealSite._id,
+      "receiverMode.type": "dealSite",
+    };
+
+    if (status) {
+      query.status = status;
+    }
+
+    // Fetch all subscribers
+    const subscribers = await DB.Models.EmailSubscription.find(query)
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Convert to CSV
+    const csvHeaders = "First Name,Last Name,Email,Status,Subscribed Date\n";
+    const csvRows = subscribers
+      .map(
+        (sub) =>
+          `${sub.firstName || ""},${sub.lastName || ""},"${sub.email}",${sub.status},${new Date(sub.createdAt).toLocaleDateString()}`
+      )
+      .join("\n");
+
+    const csvContent = csvHeaders + csvRows;
+
+    // Set response headers for file download
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="subscribers_${publicSlug}_${new Date().toISOString().split("T")[0]}.csv"`
+    );
+
+    return res.send(csvContent);
   } catch (err) {
     next(err);
   }
