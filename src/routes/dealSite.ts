@@ -57,10 +57,10 @@ DealSiteRouter.post("/:publicSlug/contactUs", createDealSiteContactUs);
 // Submit Preferences
 DealSiteRouter.post("/:publicSlug/submit-preference", sendPreferenceRequest);
 
-
+// Subscribe to public access page newsletter
 DealSiteRouter.post("/:publicSlug/newsletter/subscribe", subscribeEmailDealSite);
  
-// report dealsite
+// report public access page
 DealSiteRouter.post("/:publicSlug/reportDealPage", reportDealSite);
 
 export default DealSiteRouter;
