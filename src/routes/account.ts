@@ -45,7 +45,7 @@ import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
 import { getDealSiteDetailsBySlug, getDealSiteDetailsByUser, getDealSiteLogsBySlug } from "../controllers/DealSite/verifyPublicAccessID";
 import { bankList, checkSlugAvailability, createDealSite } from "../controllers/DealSite/setUp";
-import { deleteDealSite, disableDealSite, enableDealSite, updateDealSite } from "../controllers/DealSite/otherActions";
+import { bulkUpdateDealSite, deleteDealSite, disableDealSite, enableDealSite, updateDealSite, getDealSiteContactMessages, deleteDealSiteContactMessage, getDealSiteEmailSubscribers, deleteDealSiteEmailSubscriber, exportDealSiteEmailSubscribers } from "../controllers/DealSite/otherActions";
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
 import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
@@ -140,10 +140,22 @@ AccountRouter.get("/dealSite/details", getDealSiteDetailsByUser);
 AccountRouter.get("/dealSite/get-preferences", fetchMyDealSitePreference);
 AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
 AccountRouter.get("/dealSite/:publicSlug/logs", getDealSiteLogsBySlug);
+// Bulk update endpoint (for updating multiple sections at once from frontend forms)
+AccountRouter.post("/dealSite/update", bulkUpdateDealSite);
+// Single section update endpoint (for updating one section at a time)
 AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);
 AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
 AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
 AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);
+
+// DEAL SITE CONTACT MESSAGES ROUTES
+AccountRouter.get("/dealSite/:publicSlug/contact-messages", getDealSiteContactMessages);
+AccountRouter.delete("/dealSite/:publicSlug/contact-messages/:messageId", deleteDealSiteContactMessage);
+
+// DEAL SITE EMAIL SUBSCRIBERS ROUTES
+AccountRouter.get("/dealSite/:publicSlug/email-subscribers", getDealSiteEmailSubscribers);
+AccountRouter.delete("/dealSite/:publicSlug/email-subscribers/:subscriberId", deleteDealSiteEmailSubscriber);
+AccountRouter.get("/dealSite/:publicSlug/email-subscribers/export/csv", exportDealSiteEmailSubscribers);
 
 // FIELD AGENT INSPECTIONS ROUTES
 AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);
