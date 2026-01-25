@@ -337,7 +337,7 @@ export const createDealSiteContactUs = async (
 
 
 /**
- * Get all contact messages for a DealSite (for admin dashboard)
+ * Get all contact messages for a DealSite (for agent dashboard)
  */
 export const getDealSiteContactMessages = async (
   req: AppRequest,
@@ -345,30 +345,34 @@ export const getDealSiteContactMessages = async (
   next: NextFunction
 ) => {
   try {
-    const { publicSlug } = req.params;
     const userId = req.user?._id;
-    const { page = "1", limit = "10", status, search } = req.query;
+
+    // Normalize query params
+    const page = Number(req.query.page) || 1;
+    const limit = Math.min(100, Number(req.query.limit) || 10);
+    const status = typeof req.query.status === "string" && req.query.status.trim() !== ""
+      ? req.query.status
+      : undefined;
+    const search = typeof req.query.search === "string" && req.query.search.trim() !== ""
+      ? req.query.search
+      : undefined;
 
     // Verify dealSite ownership
-    const dealSite = await DealSiteService.getByAgent(userId, false);
-    if (!dealSite || dealSite.length === 0) {
+    const userDealSite = await DB.Models.DealSite.findOne({ createdBy: userId })
+      .sort({ createdAt: -1 })
+      .select("-paymentDetails -__v")
+      .lean();
+
+    if (!userDealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         message: "Public access page not found",
       });
     }
 
-    const userDealSite = dealSite.find(d => d.publicSlug === publicSlug);
-    if (!userDealSite) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        message: "You don't have permission to access these messages",
-      });
-    }
-
     // Build query
     const query: any = {
-      "receiverMode.dealSiteID": userDealSite._id,
+      "receiverMode.dealSiteID": userDealSite._id.toString(),
       "receiverMode.type": "dealSite",
     };
 
@@ -385,18 +389,16 @@ export const getDealSiteContactMessages = async (
     }
 
     // Pagination
-    const pageNum = Math.max(1, parseInt(page as string) || 1);
-    const limitNum = Math.min(100, parseInt(limit as string) || 10);
-    const skip = (pageNum - 1) * limitNum;
+    const skip = (page - 1) * limit;
 
-    // Fetch messages
-    const messages = await DB.Models.ContactUs.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
-
-    const total = await DB.Models.ContactUs.countDocuments(query);
+    const [messages, total] = await Promise.all([
+      DB.Models.ContactUs.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      DB.Models.ContactUs.countDocuments(query),
+    ]);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -404,15 +406,16 @@ export const getDealSiteContactMessages = async (
       data: messages,
       pagination: {
         total,
-        page: pageNum,
-        limit: limitNum,
-        pages: Math.ceil(total / limitNum),
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
       },
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 
 /**
@@ -424,7 +427,7 @@ export const deleteDealSiteContactMessage = async (
   next: NextFunction
 ) => {
   try {
-    const { publicSlug, messageId } = req.params;
+    const { messageId } = req.params;
     const userId = req.user?._id;
 
     // Verify dealSite ownership
@@ -433,14 +436,6 @@ export const deleteDealSiteContactMessage = async (
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         message: "Public access page not found",
-      });
-    }
-
-    const userDealSite = dealSites.find(d => d.publicSlug === publicSlug);
-    if (!userDealSite) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        message: "You don't have permission to delete this message",
       });
     }
 
@@ -473,24 +468,19 @@ export const getDealSiteEmailSubscribers = async (
   next: NextFunction
 ) => {
   try {
-    const { publicSlug } = req.params;
     const userId = req.user?._id;
     const { page = "1", limit = "10", status, search } = req.query;
 
     // Verify dealSite ownership
-    const dealSite = await DealSiteService.getByAgent(userId, false);
-    if (!dealSite || dealSite.length === 0) {
+    const userDealSite = await DB.Models.DealSite.findOne({ createdBy: userId })
+      .sort({ createdAt: -1 })
+      .select("-paymentDetails -__v")
+      .lean();
+
+    if (!userDealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         message: "Public access page not found",
-      });
-    }
-
-    const userDealSite = dealSite.find(d => d.publicSlug === publicSlug);
-    if (!userDealSite) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        message: "You don't have permission to access these subscribers",
       });
     }
 
@@ -552,7 +542,7 @@ export const deleteDealSiteEmailSubscriber = async (
   next: NextFunction
 ) => {
   try {
-    const { publicSlug, subscriberId } = req.params;
+    const { subscriberId } = req.params;
     const userId = req.user?._id;
 
     // Verify dealSite ownership
@@ -561,14 +551,6 @@ export const deleteDealSiteEmailSubscriber = async (
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         message: "Public access page not found",
-      });
-    }
-
-    const userDealSite = dealSites.find(d => d.publicSlug === publicSlug);
-    if (!userDealSite) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        message: "You don't have permission to delete this subscriber",
       });
     }
 
@@ -601,30 +583,30 @@ export const exportDealSiteEmailSubscribers = async (
   next: NextFunction
 ) => {
   try {
-    const { publicSlug } = req.params;
     const userId = req.user?._id;
-    const { status } = req.query;
+    const status =
+      typeof req.query.status === "string" && req.query.status.trim() !== ""
+        ? req.query.status
+        : undefined;
 
     // Verify dealSite ownership
-    const dealSites = await DealSiteService.getByAgent(userId, false);
-    if (!dealSites || dealSites.length === 0) {
+    const userDealSite = await DB.Models.DealSite.findOne({
+      createdBy: userId,
+    })
+      .sort({ createdAt: -1 })
+      .select("-paymentDetails -__v")
+      .lean();
+
+    if (!userDealSite) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         message: "Public access page not found",
       });
     }
 
-    const userDealSite = dealSites.find(d => d.publicSlug === publicSlug);
-    if (!userDealSite) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        message: "You don't have permission to export these subscribers",
-      });
-    }
-
     // Build query
     const query: any = {
-      "receiverMode.dealSiteID": userDealSite._id,
+      "receiverMode.dealSiteID": userDealSite._id.toString(),
       "receiverMode.type": "dealSite",
     };
 
@@ -639,20 +621,28 @@ export const exportDealSiteEmailSubscribers = async (
 
     // Convert to CSV
     const csvHeaders = "First Name,Last Name,Email,Status,Subscribed Date\n";
+
     const csvRows = subscribers
-      .map(
-        (sub) =>
-          `${sub.firstName || ""},${sub.lastName || ""},"${sub.email}",${sub.status},${new Date(sub.createdAt).toLocaleDateString()}`
-      )
+      .map((sub) => {
+        const firstName = sub.firstName || "";
+        const lastName = sub.lastName || "";
+        const email = `"${sub.email}"`;
+        const status = sub.status;
+        const subscribedDate = new Date(sub.createdAt).toLocaleDateString();
+
+        return `${firstName},${lastName},${email},${status},${subscribedDate}`;
+      })
       .join("\n");
 
     const csvContent = csvHeaders + csvRows;
 
-    // Set response headers for file download
+    // Set response headers
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="subscribers_${publicSlug}_${new Date().toISOString().split("T")[0]}.csv"`
+      `attachment; filename="subscribers_${userDealSite.publicSlug}_${new Date()
+        .toISOString()
+        .split("T")[0]}.csv"`
     );
 
     return res.send(csvContent);
