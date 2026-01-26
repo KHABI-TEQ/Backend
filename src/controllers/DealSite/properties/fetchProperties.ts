@@ -56,8 +56,8 @@ export const getDealSiteProperties = async (
       homeCondition: homeCondition || undefined,
       landSizeType: landSizeType || undefined,
       type: type || undefined,
-      bedroom: bedroom ? Number(bedroom) : undefined,
-      bathroom: bathroom ? Number(bathroom) : undefined,
+      bedroom: bedroom ? bedroom.split(",").map(b => b.trim()).filter(Boolean) : undefined,
+      bathroom: bathroom ? bathroom.split(",").map(b => b.trim()).filter(Boolean) : undefined,
       landSize: landSize ? Number(landSize) : undefined,
       priceRange: priceRange ? JSON.parse(priceRange) : undefined,
       documentType: documentType ? documentType.split(",") : undefined,
@@ -107,19 +107,31 @@ export const getDealSiteProperties = async (
     if (filters.homeCondition) query.homeCondition = filters.homeCondition;
     if (filters.landSizeType) query.landSizeType = filters.landSizeType;
 
-    if (filters.propertyCategory) {
-      const types = filters.propertyCategory
-        .split(",")
+    if (filters.type) {
+      const types = Array.isArray(filters.type) ? filters.type : filters.type.split(",");
+      const cleanTypes = types
         .map((t: string) => t.trim())
         .filter(Boolean);
 
-      if (types.length > 0) {
-        query.propertyCategory = { $in: types };
+      if (cleanTypes.length > 0) {
+        query.propertyCategory = { $in: cleanTypes };
       }
     }
 
-    if (filters.bedroom) query["additionalFeatures.noOfBedroom"] = filters.bedroom;
-    if (filters.bathroom) query["additionalFeatures.noOfBathroom"] = filters.bathroom;
+    if (filters.bedroom) {
+      const bedrooms = Array.isArray(filters.bedroom) ? filters.bedroom : [filters.bedroom];
+      const bedroomNums = bedrooms.map(b => Number(b)).filter(n => !isNaN(n));
+      if (bedroomNums.length > 0) {
+        query["additionalFeatures.noOfBedroom"] = { $in: bedroomNums };
+      }
+    }
+    if (filters.bathroom) {
+      const bathrooms = Array.isArray(filters.bathroom) ? filters.bathroom : [filters.bathroom];
+      const bathroomNums = bathrooms.map(b => Number(b)).filter(n => !isNaN(n));
+      if (bathroomNums.length > 0) {
+        query["additionalFeatures.noOfBathroom"] = { $in: bathroomNums };
+      }
+    }
     if (filters.landSize) query.landSize = { $gte: filters.landSize };
 
     if (filters.priceRange) {
