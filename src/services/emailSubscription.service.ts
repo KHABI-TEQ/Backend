@@ -94,12 +94,12 @@ export class EmailSubscriptionService {
       paymentDetails,
       logoUrl,
       title,
-      footerSection,
+      footer,
       socialLinks = {},
     } = dealSite;
- 
+
     const companyName = title || paymentDetails?.businessName || "Our Partner";
-    const address = footerSection?.shortDescription || "Lagos, Nigeria";
+    const address = footer?.shortDescription || "Lagos, Nigeria";
 
     const baseHtml = `
       <div style="font-family: Arial, sans-serif; color: #2d3748; line-height: 1.6;">

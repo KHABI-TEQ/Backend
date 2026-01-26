@@ -52,11 +52,11 @@ export const sendPreferenceRequest = async (
       logoUrl,
       paymentDetails,
       title,
-      footerSection,
+      footer,
       socialLinks = {},
     } = dealSite;
 
-    const address = footerSection?.shortDescription || "Lagos, Nigeria";
+    const address = footer?.shortDescription || "Lagos, Nigeria";
     const dealSiteName = title || paymentDetails?.businessName || "Our Partner";
 
     // Ensure required fields for Buyer model

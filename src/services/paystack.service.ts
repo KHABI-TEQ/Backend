@@ -367,13 +367,13 @@ export class PaystackService {
           paymentDetails,
           logoUrl,
           title,
-          footerSection,
+          footer,
           socialLinks = {},
         } = dealSite;
 
         const companyName =
           paymentDetails?.businessName || title || "Our Partner";
-        const address = footerSection?.shortDescription || "Lagos, Nigeria";
+        const address = footer?.shortDescription || "Lagos, Nigeria";
 
         return generalTemplate(baseHtml, {
           companyName,
@@ -602,13 +602,13 @@ export class PaystackService {
         paymentDetails,
         logoUrl,
         title,
-        footerSection,
+        footer,
         socialLinks = {},
       } = dealSite;
- 
+
       const companyName =
         paymentDetails?.businessName || title || "Our Partner";
-      const address = footerSection?.shortDescription || "Lagos, Nigeria";
+      const address = footer?.shortDescription || "Lagos, Nigeria";
 
       return generalTemplate(baseHtml, {
         companyName,

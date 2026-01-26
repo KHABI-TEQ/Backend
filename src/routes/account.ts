@@ -142,6 +142,7 @@ AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
 AccountRouter.get("/dealSite/:publicSlug/logs", getDealSiteLogsBySlug);
 // Bulk update endpoint (for updating multiple sections at once from frontend forms)
 AccountRouter.post("/dealSite/update", bulkUpdateDealSite);
+
 // Single section update endpoint (for updating one section at a time)
 AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);
 AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
