@@ -111,11 +111,11 @@ export class DealSiteService {
       primaryContactPhone: primaryContactPhone || null,
     };
 
-    // Save the DealSite
+    // Save the DealSite with status "paused" (newly created pages start paused)
     const dealSite = await DB.Models.DealSite.create({
       ...payload,
       createdBy: userId,
-      status: "pending",
+      status: "paused",
     });
 
     return dealSite;
