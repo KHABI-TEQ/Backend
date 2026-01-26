@@ -13,8 +13,8 @@ const allowedSections = [
   "socialLinks",
   "contactVisibility",
   "featureSelection",
-  "marketplaceDefaults",
-  "footerSection",
+  "footer",
+  "securitySettings",
   "publicPage",
   "paymentDetails",
 ] as const;
@@ -294,13 +294,15 @@ export const getDealSiteSection = async (
       "socialLinks",
       "contactVisibility",
       "featureSelection",
-      "marketplaceDefaults",
       "publicPage",
-      "footerSection",
+      "footer",
+      "securitySettings",
       "paymentDetails",
       "about",
       "contactUs",
       "brandingSeo",
+      "homeSettings",
+      "support",
     ];
 
     if (!myAllowedSections.includes(sectionName)) {
@@ -312,13 +314,16 @@ export const getDealSiteSection = async (
 
     // ✅ Handle grouped flat fields
     if (sectionName === "brandingSeo") {
-      return {
-        title: dealSite.title,
-        keywords: dealSite.keywords,
-        description: dealSite.description,
-        logoUrl: dealSite.logoUrl,
-        listingsLimit: dealSite.listingsLimit,
-      };
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: `Public access page section '${sectionName}' fetched successfully`,
+        data: {
+          title: dealSite.title,
+          keywords: dealSite.keywords,
+          description: dealSite.description,
+          logoUrl: dealSite.logoUrl,
+        },
+      });
     }
 
     // Type-safe access
@@ -385,4 +390,3 @@ export const getFeaturedProperties = async (
     next(err);
   }
 };
-

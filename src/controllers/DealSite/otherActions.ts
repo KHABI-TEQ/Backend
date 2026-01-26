@@ -258,12 +258,12 @@ export const createDealSiteContactUs = async (
       paymentDetails,
       logoUrl,
       title,
-      footerSection,
+      footer,
       socialLinks = {},
     } = dealSite;
 
     const companyName = title || paymentDetails?.businessName || "Our Partner";
-    const address = footerSection?.shortDescription || "Lagos, Nigeria";
+    const address = footer?.shortDescription || "Lagos, Nigeria";
 
     // send mails to seller and buyer
     const sellerEmailRaw = generateDealSiteContactOwnerMail({
