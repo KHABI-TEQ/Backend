@@ -39,6 +39,8 @@ export const preferenceValidationSchema = Joi.object({
     propertyCondition: Joi.string(),
     purpose: Joi.string(),
     landSize: Joi.string(),
+    minLandSize: Joi.string().allow(""), // For SQM range
+    maxLandSize: Joi.string().allow(""), // For SQM range
     measurementUnit: Joi.string(),
     documentTypes: Joi.array().items(Joi.string()).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
@@ -111,6 +113,8 @@ export const preferenceValidationSchema = Joi.object({
     propertyCondition: Joi.string(),
     purpose: Joi.string(),
     landSize: Joi.string().allow(""),
+    minLandSize: Joi.string().allow(""), // For SQM range
+    maxLandSize: Joi.string().allow(""), // For SQM range
     measurementUnit: Joi.string().allow(""),
     documentTypes: Joi.array().items(Joi.string()).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),

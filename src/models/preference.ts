@@ -27,6 +27,8 @@ export interface IPropertyDetails {
   propertyCondition?: string;
   purpose?: string;
   landSize?: string; // Changed to string to match payload
+  minLandSize?: string; // New: for SQM range
+  maxLandSize?: string; // New: for SQM range
   measurementUnit?: string; // Changed from measurementType
   documentTypes?: string[]; // Changed from documents
   landConditions?: string[]; // New field
@@ -69,6 +71,8 @@ export interface IBookingDetails {
   propertyCondition?: string; // Added from payload
   purpose?: string; // Added from payload
   landSize?: string; // Added from payload, changed to string
+  minLandSize?: string; // New: for SQM range
+  maxLandSize?: string; // New: for SQM range
   measurementUnit?: string; // Added from payload, changed from measurementType
   documentTypes?: string[]; // Added from payload, changed from documents
   landConditions?: string[]; // Added from payload, new field
@@ -204,6 +208,8 @@ export class Preference {
           propertyCondition: String,
           purpose: String,
           landSize: String, // Stored as string
+          minLandSize: String, // New: for SQM range
+          maxLandSize: String, // New: for SQM range
           measurementUnit: String, // Stored as string
           documentTypes: [String],
           landConditions: [String],
@@ -251,6 +257,8 @@ export class Preference {
           propertyCondition: String,
           purpose: String,
           landSize: String,
+          minLandSize: String,
+          maxLandSize: String,
           measurementUnit: String,
           documentTypes: [String],
           landConditions: [String],
