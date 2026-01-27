@@ -968,7 +968,8 @@ export class PaystackService {
   }
 
 
- /**
+
+  /**
  * Handles the effects of a document verification payment.
  */ 
   static async handleDocumentVerificationPayment(transaction: any) {
@@ -984,7 +985,7 @@ export class PaystackService {
         docVerification.status = newStatus;
 
         const buyerData = docVerification.buyerId as any;
- 
+  
         if (transaction.status === "success") {
           // Generate a 6-digit unique code
           const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -994,6 +995,9 @@ export class PaystackService {
             status: 'pending',
           };
           
+          // ✅ SAVE FIRST - This ensures the access code is in the DB before emails are sent
+          await docVerification.save();
+
           // Send confirmation email to buyer
           const emailParams: GenerateVerificationEmailParams = {
             fullName: buyerData?.fullName || "",
@@ -1009,15 +1013,14 @@ export class PaystackService {
 
           await sendEmail({
             to: buyerData?.email,
-            subject:
-              "Document Verification Submission Received – Under Review",
+            subject: "Document Verification Submission Received – Under Review",
             html: buyerMailBody,
             text: buyerMailBody,
           });
 
           const docType = (docVerification.documents.documentType || "")
-          .toLowerCase()
-          .trim(); // normalize
+            .toLowerCase()
+            .trim(); // normalize
 
           // Construct the setting key dynamically
           const settingKey = `${docType}_verification_email`;
@@ -1033,8 +1036,7 @@ export class PaystackService {
                 ? "Survey Plan Officer"
                 : "Verification Officer",
               requesterName: buyerData?.fullName || "",
-              message:
-                "Please review the submitted documents and confirm verification status.",
+              message: "Please review the submitted documents and confirm verification status.",
               accessCode: accessCode,
               accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
             })
@@ -1049,9 +1051,10 @@ export class PaystackService {
             text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
           });
 
+        } else {
+          // ✅ Save failed status
+          await docVerification.save();
         }
-
-        await docVerification.save();
       }
     }
 
