@@ -15,6 +15,8 @@ const listDocNames: Record<string, string> = {
   "governors-consent": "governors-consent_price",
   "survey-plan": "survey-plan_price",
   "deed-of-lease": "deed-of-lease_price",
+  "deed-of-conveyance-or-sale": "deed-of-conveyance-or-sale_price",
+  "land-certificate": "land-certificate_price",
 };
 
 // Controller to create a document verification request
