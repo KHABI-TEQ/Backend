@@ -76,9 +76,9 @@ export const getDocumentVerificationDetails = async (
     }
 
     // Check access code approval status
-    if (docVerification.accessCode?.status !== "approved") {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Access code not approved. Please verify the access code first.");
-    }
+    // if (docVerification.accessCode?.status !== "approved") {
+    //   throw new RouteError(HttpStatusCodes.FORBIDDEN, "Access code not approved. Please verify the access code first.");
+    // }
 
     // Remove accessCode before sending to client
     const { accessCode, ...safeData } = docVerification;
