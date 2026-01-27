@@ -119,19 +119,34 @@ export const getDealSiteProperties = async (
     }
 
     if (filters.bedroom) {
-      const bedrooms = Array.isArray(filters.bedroom) ? filters.bedroom : [filters.bedroom];
-      const bedroomNums = bedrooms.map(b => Number(b)).filter(n => !isNaN(n));
+      const bedrooms: (string | number)[] = Array.isArray(filters.bedroom)
+        ? filters.bedroom
+        : [filters.bedroom];
+
+      const bedroomNums = bedrooms
+        .map((b: string | number) => Number(b))
+        .filter((n: number) => !isNaN(n));
+
       if (bedroomNums.length > 0) {
         query["additionalFeatures.noOfBedroom"] = { $in: bedroomNums };
       }
     }
+
     if (filters.bathroom) {
-      const bathrooms = Array.isArray(filters.bathroom) ? filters.bathroom : [filters.bathroom];
-      const bathroomNums = bathrooms.map(b => Number(b)).filter(n => !isNaN(n));
+      const bathrooms: (string | number)[] = Array.isArray(filters.bathroom)
+        ? filters.bathroom
+        : [filters.bathroom];
+
+      const bathroomNums = bathrooms
+        .map((b: string | number) => Number(b))
+        .filter((n: number) => !isNaN(n));
+
       if (bathroomNums.length > 0) {
         query["additionalFeatures.noOfBathroom"] = { $in: bathroomNums };
       }
     }
+
+
     if (filters.landSize) query.landSize = { $gte: filters.landSize };
 
     if (filters.priceRange) {
