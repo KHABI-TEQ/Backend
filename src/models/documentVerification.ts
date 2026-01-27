@@ -1,5 +1,5 @@
 import { Schema, model, Document, Model, Types } from 'mongoose';
-
+ 
 export interface IDocumentVerification {
   buyerId: Types.ObjectId;
   docCode: string;
@@ -15,7 +15,7 @@ export interface IDocumentVerification {
     status?: 'pending' | 'approved';
   };
   status: 'pending' | 'registered' | 'unregistered' | 'in-progress' | 'payment-approved' | 'payment-failed';
-  docType: 'certificate-of-occupancy' | 'deed-of-partition' | 'deed-of-assignment' | 'governors-consent' | 'survey-plan' | 'deed-of-lease';
+  docType: 'certificate-of-occupancy' | 'deed-of-partition' | 'deed-of-assignment' | 'governors-consent' | 'survey-plan' | 'deed-of-lease' | 'deed-of-conveyance-or-sale' | 'land-certificate';
   verificationReports?: { 
     originalDocumentType?: string;
     newDocumentUrl?: string;
@@ -83,6 +83,8 @@ export class DocumentVerification {
             'governors-consent',
             'survey-plan',
             'deed-of-lease',
+            'deed-of-conveyance-or-sale',
+            'land-certificate'
           ],
           required: true,
         },
