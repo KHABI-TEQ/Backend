@@ -50,38 +50,43 @@ export const postProperty = async (
       ownerModel
     );
 
-    // ✅ Ensure user has active subscription
-    const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
-    if (!activeSnapshot) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "No active subscription. Please subscribe to a plan to post properties."
-      );
+    // ✅ Only check subscription for Agents, NOT for Landowners
+    let activeSnapshot = null;
+    if (req.user?.userType === "Agent") {
+      activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
+      if (!activeSnapshot) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "No active subscription. Please subscribe to a plan to post properties."
+        );
+      }
     }
 
     // ✅ Create property first (inside session)
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    // ✅ Deduct quota after successful property creation
-    try {
-      if (preferenceId) {
-        await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
-          activeSnapshot._id.toString(),
-          "AGENT_MARKETPLACE",
-          1
-        );
-      } else {
-        await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
-          activeSnapshot._id.toString(),
-          "LISTINGS",
-          1
-        );
+    // ✅ Deduct quota after successful property creation (only if agent with active subscription)
+    if (activeSnapshot) {
+      try {
+        if (preferenceId) {
+          await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
+            activeSnapshot._id.toString(),
+            "AGENT_MARKETPLACE",
+            1
+          );
+        } else {
+          await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
+            activeSnapshot._id.toString(),
+            "LISTINGS",
+            1
+          );
+        }
+      } catch (err: any) {
+        // rollback property creation if quota fails
+        await session.abortTransaction();
+        session.endSession();
+        return next(new RouteError(HttpStatusCodes.FORBIDDEN, err.message));
       }
-    } catch (err: any) {
-      // rollback property creation if quota fails
-      await session.abortTransaction();
-      session.endSession();
-      return next(new RouteError(HttpStatusCodes.FORBIDDEN, err.message));
     }
 
     await session.commitTransaction();
