@@ -112,12 +112,6 @@ export const preferenceValidationSchema = Joi.object({
     preferredCheckOutTime: Joi.string(),
     propertyCondition: Joi.string(),
     purpose: Joi.string(),
-    landSize: Joi.string().allow(""),
-    minLandSize: Joi.string().allow(""), // For SQM range
-    maxLandSize: Joi.string().allow(""), // For SQM range
-    measurementUnit: Joi.string().allow(""),
-    documentTypes: Joi.array().items(Joi.string()).default([]),
-    landConditions: Joi.array().items(Joi.string()).default([]),
   }).optional(),
 
   features: Joi.object({
