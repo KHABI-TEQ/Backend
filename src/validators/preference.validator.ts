@@ -35,13 +35,13 @@ export const preferenceValidationSchema = Joi.object({
     buildingType: Joi.string(),
     minBedrooms: Joi.string(),
     minBathrooms: Joi.number(),
-    leaseTerm: Joi.string(),
+    leaseTerm: Joi.string().allow(""),
     propertyCondition: Joi.string(),
-    purpose: Joi.string(),
-    landSize: Joi.string(),
+    purpose: Joi.string().allow(""),
+    landSize: Joi.string().allow(""),
     minLandSize: Joi.string().allow(""), // For SQM range
     maxLandSize: Joi.string().allow(""), // For SQM range
-    measurementUnit: Joi.string(),
+    measurementUnit: Joi.string().allow(""),
     documentTypes: Joi.array().items(Joi.string()).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
   }).optional(),
