@@ -70,6 +70,12 @@ export interface IBookingDetails {
   preferredCheckOutTime?: string;
   propertyCondition?: string; // Added from payload
   purpose?: string; // Added from payload
+  landSize?: string; // Added from payload, changed to string
+  minLandSize?: string; // New: for SQM range
+  maxLandSize?: string; // New: for SQM range
+  measurementUnit?: string; // Added from payload, changed from measurementType
+  documentTypes?: string[]; // Added from payload, changed from documents
+  landConditions?: string[]; // Added from payload, new field
 }
 
 // Features Interface
@@ -250,6 +256,12 @@ export class Preference {
           preferredCheckOutTime: String,
           propertyCondition: String,
           purpose: String,
+          landSize: String,
+          minLandSize: String,
+          maxLandSize: String,
+          measurementUnit: String,
+          documentTypes: [String],
+          landConditions: [String],
         },
 
         features: {
