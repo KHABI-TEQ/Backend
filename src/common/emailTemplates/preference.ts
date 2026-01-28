@@ -52,6 +52,12 @@ export const preferenceMail = (mailData: any): string => {
     bookingDetails?.landSize ||
     "N/A";
 
+  const measurementUnit =
+    propertyDetails?.measurementUnit ||
+    developmentDetails?.measurementUnit ||
+    bookingDetails?.measurementUnit ||
+    "";
+
   return `
     <div style="font-family: Arial, sans-serif; background-color: white; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
@@ -68,7 +74,7 @@ export const preferenceMail = (mailData: any): string => {
           <li style="margin-bottom: 8px;">Price Range: <strong>${priceRange}</strong></li>
           <li style="margin-bottom: 8px;">Usage Options: <strong>${usageOption}</strong></li>
           <li style="margin-bottom: 8px;">Property Features: <strong>${propertyFeatures}</strong></li>
-          <li style="margin-bottom: 0;">Land Size: <strong>${landSize} ${propertyDetails.measurementUnit}</strong></li>
+          <li style="margin-bottom: 0;">Land Size: <strong>${landSize} ${measurementUnit}</strong></li>
         </ul>
       </div>
 
@@ -263,4 +269,3 @@ export const rejectedPreferenceMail = (mailData: {
     </div>
   `;
 };
-
