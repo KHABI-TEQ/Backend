@@ -12,186 +12,48 @@ interface PropertyDocument {
 
 /**
  * ============================================================================
- * PROPERTY PREFERENCE MATCHING SYSTEM - REFINED FOR 100% ACCURACY
+ * IMPROVED PROPERTY PREFERENCE MATCHING SYSTEM
  * ============================================================================
  *
- * MATCHING STRATEGY:
+ * CRITICAL FIXES:
+ * 1. ✅ Proper preference type to property briefType mapping
+ * 2. ✅ Strict DB-level filtering for all hard requirements
+ * 3. ✅ Accurate scoring that reflects true match quality
+ * 4. ✅ Better handling of optional vs required criteria
  *
- * 1. HARD REQUIREMENTS (Database Query Level)
- *    - State location match
- *    - Local Government Area (if specified)
- *    - Specific areas/neighborhoods (if specified)
- *    - Price within budget range
- *    - Minimum bedrooms/bathrooms
- *    - Property type match
- *    - Building type match (if specified)
- *    - Property condition (if specified)
- *    - Additional type-specific requirements (shortlet, joint-venture)
- *
- * 2. SCORING ALGORITHM (50% - 100% Range)
- *
- *    Base Score: 50%
- *    - Properties passing hard requirements start at 50% (minimum viable match)
- *
- *    Bonus Points (0-50%):
- *    - Location exactness: 0-15 points (state → LGA → area progression)
- *    - Price match: 0-15 points (must be in exact range)
- *    - Bedroom requirements: 0-10 points (must meet minimum)
- *    - Bathroom requirements: 0-10 points (must meet minimum)
- *    - Property type: 0-10 points (must match if specified)
- *    - Property condition: 0-3 points (bonus if matches)
- *    - Building type: 0-2 points (bonus if matches)
- *    - Features: 0-5 points (proportional to match ratio, min 50%)
- *    - Type-specific bonuses: 0-5-10 points (shortlet/JV)
- *
- *    Final Score Range: 50% (minimum) to 100% (perfect match)
- *
- * 3. FILTERING RULES
- *    - Properties with score < 50% are EXCLUDED (insufficient match)
- *    - Properties with score 50-100% are INCLUDED (viable matches)
- *    - Results sorted by match score (highest first)
- *    - Top 80% marked as priority (high confidence matches)
- *
- * ACCURACY GUARANTEE:
- * ✅ Only properties matching hard requirements are returned
- * ✅ Scoring reflects actual match quality (no fuzzy partial credit)
- * ✅ 100% score = all criteria matched perfectly
- * ✅ 50% score = core requirements met, but missing optional criteria
+ * MATCHING HIERARCHY:
+ * 1. Preference Type (CRITICAL - must match briefType)
+ * 2. Location (State → LGA → Area)
+ * 3. Price Range (must be within budget)
+ * 4. Bedrooms/Bathrooms (must meet minimum if specified)
+ * 5. Property Type, Building Type, Condition (bonus if matches)
+ * 6. Features and amenities (bonus points)
+ * 7. Type-specific criteria (shortlet/JV)
  * ============================================================================
  */
 
-// Map briefType to preferenceType
-const briefTypeToPreferenceType: Record<string, string> = {
-  "Outright Sales": "buy",
-  "Joint Venture": "joint-venture",
-  "Rent": "rent",
-  "Shortlet": "shortlet",
+/**
+ * CORRECTED MAPPING: Preference Type → Property briefType
+ * 
+ * Preference uses: "buy" | "joint-venture" | "rent" | "shortlet"
+ * Property uses: "sell" | "jv" | "rent" | "shortlet"
+ */
+const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
+  "buy": "sell",
+  "joint-venture": "jv", 
+  "rent": "rent",
+  "shortlet": "shortlet",
 };
 
-// Match scoring
-const calculateMatchScore = (property: any, preference: any): number => {
-  let score = 0;
-
-  // Location match (local government)
-  if (
-    property.location?.localGovernment &&
-    preference.location?.localGovernmentAreas?.includes(property.location.localGovernment)
-  ) {
-    score += 30;
-  }
-
-  // Budget match
-  const price = Number(property.price?.toString().replace(/[^\d.]/g, "")) || 0;
-  if (
-    preference.budget?.minPrice != null &&
-    preference.budget?.maxPrice != null &&
-    price >= preference.budget.minPrice &&
-    price <= preference.budget.maxPrice
-  ) {
-    score += 40;
-  }
-
-  // Preference type match
-  const propertyPrefType = briefTypeToPreferenceType[property.briefType] || "";
-  if (propertyPrefType === preference.preferenceType) {
-    score += 30;
-  }
-
-  // Bedroom match
-  const minBed = preference.propertyDetails?.minBedrooms;
-  const bedCount = Number(property.additionalFeatures?.noOfBedroom) || 0;
-  if (minBed && bedCount >= minBed) score += 5;
-
-  // Bathroom match
-  const minBath = preference.propertyDetails?.minBathrooms;
-  const bathCount = Number(property.additionalFeatures?.noOfBathroom) || 0;
-  if (minBath && bathCount >= minBath) score += 5;
-
-  return Math.min(score, 100);
+/**
+ * Reverse mapping for validation and scoring
+ */
+const BRIEF_TYPE_TO_PREFERENCE: Record<string, string> = {
+  "sell": "buy",
+  "jv": "joint-venture",
+  "rent": "rent",
+  "shortlet": "shortlet",
 };
-
-// Controller
-export const findMatchedProperties_old = async (
-  req: AppRequest,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const { preferenceId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-
-    if (!preferenceId) {
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        message: "Preference ID is required",
-      });
-    }
-
-    const preference = await DB.Models.Preference.findById(preferenceId).lean();
-    if (!preference) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found");
-    } 
-
-    const finalQuery: any = {
-      "location.state": preference.location?.state,
-      isDeleted: false,
-      isRejected: false,
-      isApproved: true,
-      briefType: { $in: Object.keys(briefTypeToPreferenceType) },
-    };
-
-    const rawMatches = await DB.Models.Property.find(finalQuery).lean();
-
-    const withScore = rawMatches.map((property) => {
-      const matchScore = calculateMatchScore(property, preference);
-      const formatted = formatPropertyDataForTable(property);
-      return {
-        ...formatted,
-        matchScore,
-        isPriority: false, // temp placeholder
-      };
-    }); 
-
-    // ✅ Filter out properties with 0 match score
-    const filtered = withScore.filter((p) => p.matchScore > 0);
-
-    // ✅ Separate into exact matches (score === 100) and partial matches
-    const exactMatches = filtered.filter((p) => p.matchScore === 100);
-    const partialMatches = filtered.filter((p) => p.matchScore < 100);
-
-    // Sort each group by score (descending)
-    exactMatches.sort((a, b) => b.matchScore - a.matchScore);
-    partialMatches.sort((a, b) => b.matchScore - a.matchScore);
-
-    // Merge so exact matches come first
-    const sorted = [...exactMatches, ...partialMatches];
- 
-    // Mark top 80% as priority
-    const cutoff = Math.ceil(sorted.length * 0.8);
-    const prioritized = sorted.map((item, index) => ({
-      ...item,
-      isPriority: index < cutoff,
-    }));
-
-    // Pagination
-    const paginated = prioritized.slice((+page - 1) * +limit, +page * +limit);
-
-    return res.status(HttpStatusCodes.OK).json({
-      success: true,
-      message: "Matched properties ranked and formatted successfully",
-      data: paginated,
-      pagination: {
-        total: prioritized.length,
-        totalPages: Math.ceil(prioritized.length / +limit),
-        page: +page,
-        limit: +limit,
-      },
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 
 export const findMatchedProperties = async (
   req: AppRequest,
@@ -209,115 +71,138 @@ export const findMatchedProperties = async (
       });
     }
 
+    // Fetch preference
     const preference = await DB.Models.Preference.findById(preferenceId).lean();
     if (!preference) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Preference not found");
     }
 
-    // Build strict base query
+    // ============================================================================
+    // BUILD STRICT BASE QUERY - HARD REQUIREMENTS ONLY
+    // ============================================================================
+    
     const baseQuery: any = {
       isDeleted: false,
       isRejected: false,
       isApproved: true,
-      briefType: { $in: Object.keys(briefTypeToPreferenceType) },
     };
 
-    // ✅ STRICT LOCATION MATCHING
-    if (preference.location?.state) {
-      baseQuery["location.state"] = preference.location.state;
+    // ✅ 1. PREFERENCE TYPE MATCH (CRITICAL - MUST MATCH)
+    const expectedBriefType = PREFERENCE_TO_BRIEF_TYPE[preference.preferenceType];
+    if (!expectedBriefType) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        `Invalid preference type: ${preference.preferenceType}`
+      );
     }
+    baseQuery.briefType = expectedBriefType;
 
-    // Filter by specific LGAs if provided
+    // ✅ 2. LOCATION FILTERING (HIERARCHICAL)
+    // Start with state (required)
+    if (!preference.location?.state) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Preference must have a state specified"
+      );
+    }
+    baseQuery["location.state"] = preference.location.state;
+
+    // Filter by LGAs if specified
     if (preference.location?.localGovernmentAreas?.length) {
       baseQuery["location.localGovernment"] = {
         $in: preference.location.localGovernmentAreas,
       };
     }
 
-    // Filter by specific areas within LGAs if provided
+    // Filter by specific areas if specified
     if (preference.location?.lgasWithAreas?.length) {
-      const areas = preference.location.lgasWithAreas.flatMap((lga) => lga.areas || []);
-      if (areas.length > 0) {
-        baseQuery["location.area"] = { $in: areas };
+      const allAreas = preference.location.lgasWithAreas.flatMap(
+        (lga) => lga.areas || []
+      );
+      if (allAreas.length > 0) {
+        baseQuery["location.area"] = { $in: allAreas };
       }
     }
 
-    // ✅ STRICT PRICE MATCHING
-    if (preference.budget?.minPrice || preference.budget?.maxPrice) {
+    // ✅ 3. PRICE FILTERING (STRICT RANGE)
+    if (preference.budget?.minPrice != null || preference.budget?.maxPrice != null) {
       baseQuery.price = {};
-      
-      if (preference.budget.minPrice) {
+
+      if (preference.budget.minPrice != null) {
         baseQuery.price.$gte = preference.budget.minPrice;
       }
-      
-      if (preference.budget.maxPrice) {
+
+      if (preference.budget.maxPrice != null) {
         baseQuery.price.$lte = preference.budget.maxPrice;
       }
     }
 
-    // ✅ STRICT BEDROOM MATCHING (for buy, rent, shortlet)
-    const minBedrooms = 
-      preference.propertyDetails?.minBedrooms || 
+    // ✅ 4. BEDROOM FILTERING (MINIMUM REQUIREMENT)
+    const minBedrooms =
+      preference.propertyDetails?.minBedrooms ||
       preference.bookingDetails?.minBedrooms;
-    
+
     if (minBedrooms) {
-      const bedroomNum = parseInt(minBedrooms);
-      if (!isNaN(bedroomNum)) {
+      const bedroomNum = parseInt(String(minBedrooms));
+      if (!isNaN(bedroomNum) && bedroomNum > 0) {
         baseQuery["additionalFeatures.noOfBedroom"] = { $gte: bedroomNum };
       }
     }
 
-    // ✅ STRICT BATHROOM MATCHING
-    const minBathrooms = 
-      preference.propertyDetails?.minBathrooms || 
+    // ✅ 5. BATHROOM FILTERING (MINIMUM REQUIREMENT)
+    const minBathrooms =
+      preference.propertyDetails?.minBathrooms ||
       preference.bookingDetails?.minBathrooms;
-    
-    if (minBathrooms) {
+
+    if (minBathrooms && minBathrooms > 0) {
       baseQuery["additionalFeatures.noOfBathroom"] = { $gte: minBathrooms };
     }
 
-    // ✅ PROPERTY TYPE MATCHING
-    const propertyType = 
-      preference.propertyDetails?.propertyType || 
+    // ✅ 6. PROPERTY TYPE FILTERING (IF SPECIFIED)
+    const propertyType =
+      preference.propertyDetails?.propertyType ||
       preference.bookingDetails?.propertyType;
-    
+
     if (propertyType) {
       baseQuery.propertyType = propertyType;
     }
 
-    // ✅ BUILDING TYPE MATCHING
-    const buildingType = 
-      preference.propertyDetails?.buildingType || 
+    // ✅ 7. BUILDING TYPE FILTERING (IF SPECIFIED)
+    const buildingType =
+      preference.propertyDetails?.buildingType ||
       preference.bookingDetails?.buildingType;
-    
+
     if (buildingType) {
       baseQuery.typeOfBuilding = buildingType;
     }
 
-    // ✅ PROPERTY CONDITION MATCHING
-    const propertyCondition = 
-      preference.propertyDetails?.propertyCondition || 
+    // ✅ 8. PROPERTY CONDITION FILTERING (IF SPECIFIED)
+    const propertyCondition =
+      preference.propertyDetails?.propertyCondition ||
       preference.bookingDetails?.propertyCondition;
-    
+
     if (propertyCondition) {
       baseQuery.propertyCondition = propertyCondition;
     }
 
-    // ✅ SHORTLET-SPECIFIC MATCHING
+    // ✅ 9. SHORTLET-SPECIFIC FILTERING
     if (preference.preferenceType === "shortlet" && preference.bookingDetails) {
-      // Match number of guests
+      // Filter by guest capacity
       if (preference.bookingDetails.numberOfGuests) {
         baseQuery["shortletDetails.maxGuests"] = {
           $gte: preference.bookingDetails.numberOfGuests,
         };
       }
 
-      // Match check-in/check-out availability
-      if (preference.bookingDetails.checkInDate && preference.bookingDetails.checkOutDate) {
+      // Filter by availability (date range)
+      if (
+        preference.bookingDetails.checkInDate &&
+        preference.bookingDetails.checkOutDate
+      ) {
         const checkIn = new Date(preference.bookingDetails.checkInDate);
         const checkOut = new Date(preference.bookingDetails.checkOutDate);
-        
-        // Ensure property is not already booked during this period
+
+        // Ensure property is not booked during requested period
         baseQuery.$or = [
           { bookedPeriods: { $exists: false } },
           { bookedPeriods: { $size: 0 } },
@@ -325,12 +210,8 @@ export const findMatchedProperties = async (
             bookedPeriods: {
               $not: {
                 $elemMatch: {
-                  $or: [
-                    {
-                      checkInDateTime: { $lte: checkOut },
-                      checkOutDateTime: { $gte: checkIn },
-                    },
-                  ],
+                  checkInDateTime: { $lt: checkOut },
+                  checkOutDateTime: { $gt: checkIn },
                 },
               },
             },
@@ -338,51 +219,71 @@ export const findMatchedProperties = async (
         ];
       }
 
-      // Match pets/smoking/parties preferences
+      // Filter by house rules (if user requires specific permissions)
       if (preference.contactInfo && 'petsAllowed' in preference.contactInfo) {
-        if (preference.contactInfo.petsAllowed) {
+        const shortletContact = preference.contactInfo as any;
+        
+        if (shortletContact.petsAllowed === true) {
           baseQuery["shortletDetails.houseRules.pets"] = true;
         }
-        if (preference.contactInfo.smokingAllowed) {
+        if (shortletContact.smokingAllowed === true) {
           baseQuery["shortletDetails.houseRules.smoking"] = true;
         }
-        if (preference.contactInfo.partiesAllowed) {
+        if (shortletContact.partiesAllowed === true) {
           baseQuery["shortletDetails.houseRules.parties"] = true;
         }
       }
     }
 
-    // ✅ JOINT VENTURE SPECIFIC MATCHING
+    // ✅ 10. JOINT VENTURE SPECIFIC FILTERING
     if (preference.preferenceType === "joint-venture" && preference.developmentDetails) {
-      // Match land size for joint ventures
-      if (preference.developmentDetails.minLandSize) {
-        const minSize = parseFloat(preference.developmentDetails.minLandSize);
-        if (!isNaN(minSize)) {
+      // Filter by land size
+      if (
+        preference.developmentDetails.minLandSize ||
+        preference.developmentDetails.maxLandSize
+      ) {
+        const minSize = preference.developmentDetails.minLandSize
+          ? parseFloat(preference.developmentDetails.minLandSize)
+          : 0;
+        const maxSize = preference.developmentDetails.maxLandSize
+          ? parseFloat(preference.developmentDetails.maxLandSize)
+          : Infinity;
+
+        if (!isNaN(minSize) && minSize > 0) {
           baseQuery["landSize.size"] = { $gte: minSize };
         }
-      }
-      
-      if (preference.developmentDetails.maxLandSize) {
-        const maxSize = parseFloat(preference.developmentDetails.maxLandSize);
-        if (!isNaN(maxSize)) {
+        if (!isNaN(maxSize) && maxSize < Infinity) {
           baseQuery["landSize.size"] = baseQuery["landSize.size"] || {};
           baseQuery["landSize.size"].$lte = maxSize;
         }
       }
 
-      // Match document requirements
+      // Filter by required documents (critical for JV)
       if (preference.developmentDetails.minimumTitleRequirements?.length) {
-        baseQuery["docOnProperty.docName"] = {
-          $in: preference.developmentDetails.minimumTitleRequirements,
+        // Property must have ALL required documents marked as provided
+        const requiredDocs = preference.developmentDetails.minimumTitleRequirements;
+        
+        baseQuery.docOnProperty = {
+          $all: requiredDocs.map((docName) => ({
+            $elemMatch: {
+              docName: docName,
+              isProvided: true,
+            },
+          })),
         };
-        baseQuery["docOnProperty.isProvided"] = true;
       }
     }
 
-    // Fetch matching properties
+    // ============================================================================
+    // FETCH MATCHING PROPERTIES
+    // ============================================================================
+    
     const rawMatches = await DB.Models.Property.find(baseQuery).lean();
 
-    // Calculate detailed match scores
+    // ============================================================================
+    // CALCULATE MATCH SCORES
+    // ============================================================================
+    
     const withScore = rawMatches.map((property) => {
       const matchScore = calculateDetailedMatchScore(property, preference);
       const formatted = formatPropertyDataForTable(property);
@@ -393,26 +294,32 @@ export const findMatchedProperties = async (
       };
     });
 
-    // ✅ STRICT FILTERING: Only include properties with scores between 50% and 100%
-    // Properties below 50% do not meet minimum matching criteria
+    // ✅ FILTERING: Only properties with 50-100% score
+    // (Properties below 50% don't meet minimum criteria)
     const filtered = withScore.filter((p) => p.matchScore >= 50 && p.matchScore <= 100);
 
-    // Sort by match score (descending) - highest match scores first
+    // Sort by match score (descending)
     const sorted = filtered.sort((a, b) => b.matchScore - a.matchScore);
 
-    // Mark top 80% as priority (high confidence matches)
-    const cutoff = Math.ceil(sorted.length * 0.8);
+    // Mark top 80% as priority
+    const priorityCutoff = Math.ceil(sorted.length * 0.8);
     const prioritized = sorted.map((item, index) => ({
       ...item,
-      isPriority: index < cutoff,
+      isPriority: index < priorityCutoff,
     }));
 
-    // Pagination
-    const paginated = prioritized.slice((+page - 1) * +limit, +page * +limit);
+    // ============================================================================
+    // PAGINATION
+    // ============================================================================
+    
+    const paginated = prioritized.slice(
+      (+page - 1) * +limit,
+      +page * +limit
+    );
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Matched properties ranked and formatted successfully. Scores range from 50% (minimum match) to 100% (perfect match).",
+      message: "Properties matched successfully with strict criteria enforcement",
       data: paginated,
       pagination: {
         total: prioritized.length,
@@ -420,10 +327,23 @@ export const findMatchedProperties = async (
         page: +page,
         limit: +limit,
       },
-      scoreExplanation: {
-        minimum: 50,
-        maximum: 100,
-        description: "Properties with scores below 50% are excluded as they do not meet minimum matching criteria."
+      matchingCriteria: {
+        preferenceType: preference.preferenceType,
+        propertyBriefType: expectedBriefType,
+        location: {
+          state: preference.location.state,
+          lgas: preference.location.localGovernmentAreas,
+          areas: preference.location.lgasWithAreas,
+        },
+        priceRange: {
+          min: preference.budget?.minPrice,
+          max: preference.budget?.maxPrice,
+        },
+        scoreRange: {
+          minimum: 50,
+          maximum: 100,
+          description: "Scores reflect match quality. 100% = perfect match, 50% = minimum viable match",
+        },
       },
     });
   } catch (err) {
@@ -432,245 +352,275 @@ export const findMatchedProperties = async (
 };
 
 /**
- * Calculate detailed match score with STRICT criteria enforcement
- *
- * Scoring Strategy:
- * - 100% Match: All EXACT criteria matched (location, price, beds, baths, type, condition)
- * - 90-99% Match: All exact criteria matched + bonus features
- * - 75-89% Match: Most exact criteria matched (missing one non-critical criterion)
- * - 50-74% Match: Core criteria matched (location, price) but missing details (beds/baths/type)
- * - Below 50%: Does not match enough criteria (filtered out)
- *
- * Properties not passing base query are never returned (hard requirements enforced at DB level)
+ * ============================================================================
+ * IMPROVED SCORING ALGORITHM
+ * ============================================================================
+ * 
+ * SCORING BREAKDOWN:
+ * - Base: 50 points (property passed all hard requirements)
+ * - Preference Type Match: Auto-included (filtered at DB level)
+ * - Location Precision: 0-15 points (state → LGA → area progression)
+ * - Price Match: 0-15 points (within range gets full points)
+ * - Bedrooms: 0-10 points (meets/exceeds minimum)
+ * - Bathrooms: 0-10 points (meets/exceeds minimum)
+ * - Property Type: 0-5 points (bonus if specified and matches)
+ * - Building Type: 0-5 points (bonus if specified and matches)
+ * - Condition: 0-5 points (bonus if specified and matches)
+ * - Features: 0-10 points (proportional to matched features)
+ * - Type-specific bonuses: 0-10 points (shortlet/JV extras)
+ * 
+ * Total possible: 50 (base) + 85 (bonuses) = 135, capped at 100
  */
 function calculateDetailedMatchScore(property: any, preference: any): number {
-  // Start with 50% as baseline (property passed hard requirements via base query)
-  let baseScore = 50;
-  let bonusPoints = 0;
-  const maxBonusPoints = 50; // Can go up to 100%
+  let score = 50; // Base score for passing hard requirements
 
-  // ===== EXACT MATCHING CRITERIA (Must match for full points) =====
+  // ✅ 1. PREFERENCE TYPE - Already enforced at DB level, no scoring needed
+  // Properties returned MUST match the preference type
 
-  // 1. LOCATION MATCH (15 points max)
-  let locationPoints = 0;
-  const stateMatch = property.location?.state === preference.location?.state;
+  // ✅ 2. LOCATION PRECISION SCORING (0-15 points)
+  let locationScore = 0;
+  
+  // State match (already enforced, but verify)
+  if (property.location?.state === preference.location?.state) {
+    locationScore += 5;
 
-  if (stateMatch) {
-    locationPoints += 5; // Base state match
-
-    // LGA match (if preference specifies LGAs)
+    // LGA match
     if (preference.location?.localGovernmentAreas?.length) {
-      const lgaMatch = preference.location.localGovernmentAreas.includes(property.location?.localGovernment);
-      if (lgaMatch) {
-        locationPoints += 5; // LGA match
+      const lgaMatches = preference.location.localGovernmentAreas.includes(
+        property.location?.localGovernment
+      );
+      if (lgaMatches) {
+        locationScore += 5;
 
-        // Area match (if preference specifies areas within LGAs)
+        // Specific area match
         if (preference.location?.lgasWithAreas?.length) {
-          const allAreas = preference.location.lgasWithAreas.flatMap((lga: any) => lga.areas || []);
-          const areaMatch = allAreas.includes(property.location?.area);
-          if (areaMatch) {
-            locationPoints += 5; // Exact area match
+          const allAreas = preference.location.lgasWithAreas.flatMap(
+            (lga: any) => lga.areas || []
+          );
+          if (allAreas.includes(property.location?.area)) {
+            locationScore += 5; // Most specific match
           }
         } else {
-          locationPoints += 5; // No area preference specified
+          locationScore += 5; // No area specified, LGA is sufficient
         }
-      } else {
-        locationPoints = 5; // State only, no LGA match - loses points
       }
     } else {
-      locationPoints += 10; // No LGA preference, state match is sufficient
+      locationScore += 10; // No LGA/area preference, state match is sufficient
     }
   }
+  
+  score += locationScore;
 
-  bonusPoints += locationPoints;
-
-  // 2. PRICE MATCH (15 points) - EXACT RANGE MATCH ONLY
+  // ✅ 3. PRICE MATCH (0-15 points)
+  // Property within exact budget range gets full points
   const minPrice = preference.budget?.minPrice || 0;
   const maxPrice = preference.budget?.maxPrice || Infinity;
   const propertyPrice = property.price || 0;
 
   if (propertyPrice >= minPrice && propertyPrice <= maxPrice) {
-    // Perfect price match - full points
-    bonusPoints += 15;
-  } else {
-    // Outside range - no points (hard query should prevent this, but extra validation)
-    bonusPoints += 0;
+    score += 15; // Perfect price match
   }
+  // If outside range, property shouldn't be here (DB filtering)
+  // But if it somehow is, it gets 0 points
 
-  // 3. BEDROOM MATCH (10 points) - EXACT MATCH REQUIRED
+  // ✅ 4. BEDROOM MATCH (0-10 points)
   const minBedrooms =
     preference.propertyDetails?.minBedrooms ||
     preference.bookingDetails?.minBedrooms;
 
-  const propertyBedrooms = property.additionalFeatures?.noOfBedroom || 0;
-
   if (minBedrooms) {
-    const requiredBedrooms = parseInt(minBedrooms);
-    if (propertyBedrooms >= requiredBedrooms) {
-      bonusPoints += 10; // Meets minimum bedroom requirement
+    const requiredBeds = parseInt(String(minBedrooms));
+    const propertyBeds = property.additionalFeatures?.noOfBedroom || 0;
+    
+    if (propertyBeds >= requiredBeds) {
+      // Award points based on how well it matches
+      const excess = propertyBeds - requiredBeds;
+      if (excess === 0) {
+        score += 10; // Exact match
+      } else if (excess <= 2) {
+        score += 8; // Close match (1-2 extra bedrooms)
+      } else {
+        score += 5; // Has more than needed
+      }
     }
-    // If below requirement, no points (hard query should prevent this)
   } else {
-    bonusPoints += 10; // No bedroom preference specified
+    score += 10; // No bedroom preference specified
   }
 
-  // 4. BATHROOM MATCH (10 points) - EXACT MATCH REQUIRED
+  // ✅ 5. BATHROOM MATCH (0-10 points)
   const minBathrooms =
     preference.propertyDetails?.minBathrooms ||
     preference.bookingDetails?.minBathrooms;
 
-  const propertyBathrooms = property.additionalFeatures?.noOfBathroom || 0;
-
   if (minBathrooms) {
-    if (propertyBathrooms >= minBathrooms) {
-      bonusPoints += 10; // Meets minimum bathroom requirement
+    const propertyBaths = property.additionalFeatures?.noOfBathroom || 0;
+    
+    if (propertyBaths >= minBathrooms) {
+      const excess = propertyBaths - minBathrooms;
+      if (excess === 0) {
+        score += 10; // Exact match
+      } else if (excess <= 1) {
+        score += 8; // Close match
+      } else {
+        score += 5; // Has more than needed
+      }
     }
-    // If below requirement, no points
   } else {
-    bonusPoints += 10; // No bathroom preference specified
+    score += 10; // No bathroom preference
   }
 
-  // 5. PROPERTY TYPE MATCH (10 points) - EXACT MATCH REQUIRED
+  // ✅ 6. PROPERTY TYPE BONUS (0-5 points)
   const preferredPropertyType =
     preference.propertyDetails?.propertyType ||
     preference.bookingDetails?.propertyType;
 
   if (preferredPropertyType) {
     if (property.propertyType === preferredPropertyType) {
-      bonusPoints += 10; // Property type matches exactly
-    }
-    // No partial credit for property type mismatch
-  } else {
-    bonusPoints += 10; // No property type preference specified
-  }
-
-  // ===== BONUS CRITERIA (Optional, for exceeding 100%) =====
-
-  // 6. PROPERTY CONDITION (+ 3 points)
-  const preferredCondition =
-    preference.propertyDetails?.propertyCondition ||
-    preference.bookingDetails?.propertyCondition;
-
-  if (preferredCondition) {
-    if (property.propertyCondition === preferredCondition) {
-      bonusPoints += 3; // Condition matches exactly
+      score += 5;
     }
   } else {
-    bonusPoints += 3; // No condition preference
+    score += 5; // No preference
   }
 
-  // 7. BUILDING TYPE (+ 2 points)
+  // ✅ 7. BUILDING TYPE BONUS (0-5 points)
   const preferredBuildingType =
     preference.propertyDetails?.buildingType ||
     preference.bookingDetails?.buildingType;
 
   if (preferredBuildingType) {
     if (property.typeOfBuilding === preferredBuildingType) {
-      bonusPoints += 2;
+      score += 5;
     }
   } else {
-    bonusPoints += 2;
+    score += 5; // No preference
   }
 
-  // 8. FEATURES MATCH (+ 5 points) - Proportional to match ratio
+  // ✅ 8. CONDITION BONUS (0-5 points)
+  const preferredCondition =
+    preference.propertyDetails?.propertyCondition ||
+    preference.bookingDetails?.propertyCondition;
+
+  if (preferredCondition) {
+    if (property.propertyCondition === preferredCondition) {
+      score += 5;
+    }
+  } else {
+    score += 5; // No preference
+  }
+
+  // ✅ 9. FEATURES MATCH (0-10 points)
   if (preference.features?.baseFeatures?.length && property.features?.length) {
     const matchedFeatures = preference.features.baseFeatures.filter((f: string) =>
       property.features.includes(f)
     );
-    const featureMatchRatio = matchedFeatures.length / preference.features.baseFeatures.length;
-    // Only award points if at least 50% of features match
-    if (featureMatchRatio >= 0.5) {
-      bonusPoints += Math.round(featureMatchRatio * 5);
-    }
+    const matchRatio = matchedFeatures.length / preference.features.baseFeatures.length;
+    
+    // Proportional scoring
+    score += Math.round(matchRatio * 10);
   } else if (!preference.features?.baseFeatures?.length) {
-    bonusPoints += 5; // No feature preference specified
+    score += 10; // No feature preference
   }
 
-  // 9. SHORTLET-SPECIFIC BONUS (+ 5 points max)
+  // ✅ 10. SHORTLET-SPECIFIC BONUSES (0-10 points)
   if (preference.preferenceType === "shortlet" && preference.bookingDetails) {
     let shortletBonus = 0;
 
-    if (preference.bookingDetails.numberOfGuests && property.shortletDetails?.maxGuests) {
-      if (property.shortletDetails.maxGuests >= preference.bookingDetails.numberOfGuests) {
-        shortletBonus += 2;
+    // Guest capacity match
+    if (preference.bookingDetails.numberOfGuests) {
+      const maxGuests = property.shortletDetails?.maxGuests || 0;
+      if (maxGuests >= preference.bookingDetails.numberOfGuests) {
+        const excess = maxGuests - preference.bookingDetails.numberOfGuests;
+        if (excess <= 2) {
+          shortletBonus += 5; // Perfect or close match
+        } else {
+          shortletBonus += 3; // Accommodates but much larger
+        }
       }
+    } else {
+      shortletBonus += 5;
     }
 
+    // House rules compatibility
     if (preference.contactInfo && 'petsAllowed' in preference.contactInfo) {
-      let rulesMatched = 0;
-      let rulesRequired = 0;
+      const shortletContact = preference.contactInfo as any;
+      let rulesScore = 0;
+      let rulesChecked = 0;
 
-      if (preference.contactInfo.petsAllowed) {
-        rulesRequired++;
-        if (property.shortletDetails?.houseRules?.pets === true) rulesMatched++;
+      if (shortletContact.petsAllowed === true) {
+        rulesChecked++;
+        if (property.shortletDetails?.houseRules?.pets === true) rulesScore++;
       }
-      if (preference.contactInfo.smokingAllowed) {
-        rulesRequired++;
-        if (property.shortletDetails?.houseRules?.smoking === true) rulesMatched++;
+      if (shortletContact.smokingAllowed === true) {
+        rulesChecked++;
+        if (property.shortletDetails?.houseRules?.smoking === true) rulesScore++;
       }
-      if (preference.contactInfo.partiesAllowed) {
-        rulesRequired++;
-        if (property.shortletDetails?.houseRules?.parties === true) rulesMatched++;
+      if (shortletContact.partiesAllowed === true) {
+        rulesChecked++;
+        if (property.shortletDetails?.houseRules?.parties === true) rulesScore++;
       }
 
-      if (rulesRequired > 0) {
-        shortletBonus += Math.round((rulesMatched / rulesRequired) * 3);
+      if (rulesChecked > 0) {
+        shortletBonus += Math.round((rulesScore / rulesChecked) * 5);
       } else {
-        shortletBonus += 3;
+        shortletBonus += 5; // No special rules required
       }
+    } else {
+      shortletBonus += 5;
     }
 
-    bonusPoints += shortletBonus;
+    score += shortletBonus;
   }
 
-  // 10. JOINT VENTURE-SPECIFIC BONUS (+ 5 points max)
+  // ✅ 11. JOINT VENTURE BONUSES (0-10 points)
   if (preference.preferenceType === "joint-venture" && preference.developmentDetails) {
     let jvBonus = 0;
 
     // Land size match
-    if (preference.developmentDetails.minLandSize || preference.developmentDetails.maxLandSize) {
+    if (
+      preference.developmentDetails.minLandSize ||
+      preference.developmentDetails.maxLandSize
+    ) {
       const minSize = preference.developmentDetails.minLandSize
         ? parseFloat(preference.developmentDetails.minLandSize)
         : 0;
       const maxSize = preference.developmentDetails.maxLandSize
         ? parseFloat(preference.developmentDetails.maxLandSize)
         : Infinity;
-
       const propertySize = property.landSize?.size || 0;
 
       if (propertySize >= minSize && propertySize <= maxSize) {
-        jvBonus += 2;
+        jvBonus += 5; // Within desired range
       }
+    } else {
+      jvBonus += 5;
     }
 
-    // Title documents match
-    if (preference.developmentDetails.minimumTitleRequirements?.length && property.docOnProperty?.length) {
+    // Document compliance
+    if (preference.developmentDetails.minimumTitleRequirements?.length) {
       const requiredDocs = preference.developmentDetails.minimumTitleRequirements;
-      const propertyDocs = property.docOnProperty
+      const propertyDocs = (property.docOnProperty || [])
         .filter((d: PropertyDocument) => d.isProvided)
         .map((d: PropertyDocument) => d.docName);
-      const docsMatched = requiredDocs.filter((doc: string) => propertyDocs.includes(doc)).length;
 
-      // const propertyDocs = property.docOnProperty.filter(d => d.isProvided).map(d => d.docName);
-      // const docsMatched = requiredDocs.filter(doc => propertyDocs.includes(doc)).length;
+      const matchedDocs = requiredDocs.filter((doc: string) =>
+        propertyDocs.includes(doc)
+      );
+      const docRatio = matchedDocs.length / requiredDocs.length;
 
-
-      const docMatchRatio = docsMatched / requiredDocs.length;
-
-      if (docMatchRatio >= 0.5) {
-        jvBonus += Math.round(docMatchRatio * 3);
-      }
-    } else if (!preference.developmentDetails.minimumTitleRequirements?.length) {
-      jvBonus += 3;
+      jvBonus += Math.round(docRatio * 5);
+    } else {
+      jvBonus += 5;
     }
 
-    bonusPoints += jvBonus;
+    score += jvBonus;
   }
 
-  // ===== FINAL CALCULATION =====
-  // Clamp bonus points to max (prevents exceeding 100%)
-  const cappedBonus = Math.min(bonusPoints, maxBonusPoints);
-  const finalScore = baseScore + cappedBonus;
-
+  // ============================================================================
+  // FINAL SCORE CALCULATION
+  // ============================================================================
+  
+  // Cap at 100
+  const finalScore = Math.min(score, 100);
+  
   return Math.round(finalScore);
 }
