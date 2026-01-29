@@ -10,7 +10,7 @@ import {
   fetchAllProperties,
 } from "../controllers/Account/Property/fetchProperty";
 import { fetchUserInspections, getInspectionStats, getOneUserInspection } from "../controllers/Account/fetchInpections";
-
+ 
 import {
   getAllNotifications,
   getNotificationById,
@@ -137,17 +137,7 @@ AccountRouter.post("/dealSite/setUp", createDealSite);
 AccountRouter.post("/dealSite/slugAvailability", checkSlugAvailability);
 AccountRouter.get("/dealSite/bankList", bankList);
 AccountRouter.get("/dealSite/details", getDealSiteDetailsByUser);
-AccountRouter.get("/dealSite/get-preferences", fetchMyDealSitePreference);
-AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
-AccountRouter.get("/dealSite/:publicSlug/logs", getDealSiteLogsBySlug);
-// Bulk update endpoint (for updating multiple sections at once from frontend forms)
-AccountRouter.post("/dealSite/update", bulkUpdateDealSite);
 
-// Single section update endpoint (for updating one section at a time)
-AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);
-AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
-AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
-AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);
 
 // DEAL SITE CONTACT MESSAGES ROUTES
 AccountRouter.get("/dealSite/contact-messages", getDealSiteContactMessages);
@@ -157,6 +147,21 @@ AccountRouter.delete("/dealSite/contact-messages/:messageId", deleteDealSiteCont
 AccountRouter.get("/dealSite/email-subscribers", getDealSiteEmailSubscribers);
 AccountRouter.delete("/dealSite/email-subscribers/:subscriberId", deleteDealSiteEmailSubscriber);
 AccountRouter.get("/dealSite/email-subscribers/export/csv", exportDealSiteEmailSubscribers);
+
+// Bulk update endpoint (for updating multiple sections at once from frontend forms)
+AccountRouter.post("/dealSite/update", bulkUpdateDealSite);
+
+AccountRouter.get("/dealSite/get-preferences", fetchMyDealSitePreference);
+AccountRouter.get("/dealSite/:publicSlug", getDealSiteDetailsBySlug);
+AccountRouter.get("/dealSite/:publicSlug/logs", getDealSiteLogsBySlug);
+
+
+// Single section update endpoint (for updating one section at a time)
+AccountRouter.put("/dealSite/:publicSlug/:sectionName/update", updateDealSite);
+AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
+AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
+AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);
+
 
 // FIELD AGENT INSPECTIONS ROUTES
 AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);

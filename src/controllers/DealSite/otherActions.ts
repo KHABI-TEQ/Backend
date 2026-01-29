@@ -359,7 +359,6 @@ export const getDealSiteContactMessages = async (
 
     // Verify dealSite ownership
     const userDealSite = await DB.Models.DealSite.findOne({ createdBy: userId })
-      .sort({ createdAt: -1 })
       .select("-paymentDetails -__v")
       .lean();
 
