@@ -9,6 +9,7 @@ export interface IPromotion {
   description?: string;
   imageUrl: string;
   redirectUrl?: string;
+  slot?: string;
   type: PromotionType;
   startDate?: Date;
   endDate?: Date;
@@ -35,6 +36,7 @@ export class Promotion {
         description: { type: String, trim: true },
         imageUrl: { type: String, required: true },
         redirectUrl: { type: String },
+        slot: { type: String },
         type: {
           type: String,
           enum: ["banner", "sidebar", "popup", "carousel", "inline"],
