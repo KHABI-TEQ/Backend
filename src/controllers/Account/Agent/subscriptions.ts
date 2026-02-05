@@ -151,36 +151,51 @@ export const fetchUserSubscriptions = async (
       limit?: string;
       status?: string;
     };
+
     const userId = req.user?._id;
 
-    const filters: any = { 
+    // 👇 STEP 1: expire outdated subscriptions for this user
+    await DB.Models.UserSubscriptionSnapshot.updateMany(
+      {
+        user: userId,
+        status: "active",
+        expiresAt: { $lt: new Date() },
+      },
+      { $set: { status: "expired" } }
+    );
+
+    // 👇 STEP 2: build filters
+    const filters: any = {
       user: userId,
       status: { $nin: ["pending"] },
     };
+
     if (status) filters.status = status;
 
     // pagination
     const skip = (Number(page) - 1) * Number(limit);
     const perPage = Number(limit);
 
-    const subscriptions = await UserSubscriptionSnapshotService.querySnapshots(filters, {
-      sort: { createdAt: -1 },
-      skip,
-      limit: perPage,
-      populate: [
-        {
-          path: "transaction",
-          select: "reference amount status transactionType paymentMode",
-        },
-        {
-          path: "plan",
-          select: "name code",
-        },
-      ],
-    });
+    // 👇 STEP 3: fetch subscriptions
+    const subscriptions =
+      await UserSubscriptionSnapshotService.querySnapshots(filters, {
+        sort: { createdAt: -1 },
+        skip,
+        limit: perPage,
+        populate: [
+          {
+            path: "transaction",
+            select: "reference amount status transactionType paymentMode",
+          },
+          {
+            path: "plan",
+            select: "name code",
+          },
+        ],
+      });
 
-
-    const total = await DB.Models.UserSubscriptionSnapshot.countDocuments(filters);
+    const total =
+      await DB.Models.UserSubscriptionSnapshot.countDocuments(filters);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -196,6 +211,7 @@ export const fetchUserSubscriptions = async (
     next(err);
   }
 };
+
 
 
 /**
