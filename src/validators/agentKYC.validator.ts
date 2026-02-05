@@ -18,7 +18,7 @@ export const agentKycSchema = Joi.object({
   }),
 
   agentLicenseNumber: Joi.string().trim().optional().allow(""),
-  profileBio: Joi.string().trim().optional(),
+  profileBio: Joi.string().trim().optional().allow(""),
   specializations: Joi.array().items(Joi.string().trim()).optional(),
   languagesSpoken: Joi.array().items(Joi.string().trim()).optional(),
   servicesOffered: Joi.array().items(Joi.string().trim()).optional(),
@@ -31,7 +31,7 @@ export const agentKycSchema = Joi.object({
         }),
         description: Joi.string().trim().optional().allow(""),
         fileUrl: Joi.string().uri().optional().allow(""),
-        dateAwarded: Joi.date().optional(),
+        dateAwarded: Joi.date().optional().allow(""),
       })
     )
     .optional()
