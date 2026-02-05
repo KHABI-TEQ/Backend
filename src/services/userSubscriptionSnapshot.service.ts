@@ -206,9 +206,11 @@ export class UserSubscriptionSnapshotService {
       expiresAt: { $gte: new Date() },
     })
       .sort({ createdAt: -1 })
-      .populate("features.feature", "key label isActive"); // 👈 bring in PlanFeature fields
+      .populate("features.feature", "key label isActive") // bring in PlanFeature fields
+      .populate("plan", "name code");
   }
 
+ 
   /**
    * Expire snapshots that passed expiry date
    */
