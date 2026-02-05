@@ -442,7 +442,6 @@ export class DealSiteService {
         .filter((id) => Types.ObjectId.isValid(id))
         .map((id) => new Types.ObjectId(id));
 
-      return ids;
       return Property.find({
         _id: { $in: ids },
         isAvailable: true,
