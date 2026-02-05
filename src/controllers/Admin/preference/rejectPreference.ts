@@ -102,7 +102,7 @@ export const rejectPreference = async (
         contactInfo: preference.contactInfo,
         preferenceSummary,
         rejectionReason: reason,
-        updatePreferenceLink: `${process.env.FRONTEND_URL}/update-preference/${buyer._id}/${preference._id}`,
+        updatePreferenceLink: `${process.env.CLIENT_LINK}/update-preference/${buyer._id}/${preference._id}`,
       }),
     );
 
