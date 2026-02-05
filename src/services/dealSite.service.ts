@@ -420,13 +420,35 @@ export class DealSiteService {
     }
 
     // Manual mode → specific IDs
-    if (dealSite.featureSelection.mode === "manual" && dealSite.featureSelection.propertyIds) {
-      const ids = dealSite.featureSelection.propertyIds
-        .split(",")
-        .map((id) => id.trim())
-        .filter((id) => Types.ObjectId.isValid(id));
+    // if ((dealSite.featureSelection.mode === "manual" || dealSite.featureSelection.mode === "auto") && dealSite.featureSelection.propertyIds) {
+    //   const ids = dealSite.featureSelection.propertyIds
+    //     .split(",")
+    //     .map((id) => id.trim())
+    //     .filter((id) => Types.ObjectId.isValid(id));
 
-      return Property.find({ _id: { $in: ids }, isAvailable: true, isApproved: true, isDeleted: false })
+    //   return Property.find({ _id: { $in: ids }, isAvailable: true, isApproved: true, isDeleted: false })
+    //     .limit(6)
+    //     .lean();
+    // }
+
+    // Manual / Auto → specific IDs
+    if (
+      (dealSite.featureSelection.mode === "manual" ||
+        dealSite.featureSelection.mode === "auto") &&
+      Array.isArray(dealSite.featureSelection.featuredListings) &&
+      dealSite.featureSelection.featuredListings.length > 0
+    ) {
+      const ids = dealSite.featureSelection.featuredListings
+        .filter((id) => Types.ObjectId.isValid(id))
+        .map((id) => new Types.ObjectId(id));
+
+      return ids;
+      return Property.find({
+        _id: { $in: ids },
+        isAvailable: true,
+        isApproved: true,
+        isDeleted: false,
+      })
         .limit(6)
         .lean();
     }
