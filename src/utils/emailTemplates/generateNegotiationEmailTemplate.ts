@@ -101,7 +101,8 @@ function RejectTemplate(
   recipientName: string,
   payload: any,
   isInitiator: boolean,
-  recipientType: "buyer" | "seller"
+  recipientType: "buyer" | "seller",
+  locationString: string
 ): string {
   const {
     location,
@@ -124,11 +125,12 @@ function RejectTemplate(
   let inspectionDetailsBgColor = "#FAFAFA";
 
   const modeInfo = getInspectionModeInfo(inspectionMode);
+  
 
   if (isInitiator) {
-    introMessage = `You have <span style="color: #FF2539;">rejected</span> the ${recipientType === "buyer" ? "seller's" : "buyer's"} offer for the property at ${location}.`;
+    introMessage = `You have <span style="color: #FF2539;">rejected</span> the ${recipientType === "buyer" ? "seller's" : "buyer's"} offer for the property at ${locationString}.`;
   } else {
-    introMessage = `The ${recipientType === "buyer" ? "seller" : "buyer"} has <span style="color: #FF2539;">rejected</span> your offer for the property at ${location}.`;
+    introMessage = `The ${recipientType === "buyer" ? "seller" : "buyer"} has <span style="color: #FF2539;">rejected</span> your offer for the property at ${locationString}.`;
 
     inspectionDetailsHtml = `
       <ul class="content-block" style="background-color: ${inspectionDetailsBgColor}; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px; list-style: none; margin-left: 0; padding-left: 20px; padding-right: 20px;">
@@ -237,7 +239,7 @@ function RejectTemplate(
         <ul class="content-block" style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; list-style: none; margin-left: 0; padding-left: 20px; padding-right: 20px;">
           <p class="mobile-title" style="margin: 0 0 10px 0;"><strong>Property Details:</strong></p>
           <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Property Type:</strong> ${propertyType || "N/A"}</li>
-          <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Location:</strong> ${location || "N/A"}</li>
+          <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Location:</strong> ${locationString || "N/A"}</li>
           <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Original Price:</strong> ${formatPrice(price) || "N/A"}</li>
         </ul>
         
@@ -287,7 +289,8 @@ function CounterTemplate(
   recipientName: string,
   payload: any,
   isInitiator: boolean,
-  recipientType: "buyer" | "seller"
+  recipientType: "buyer" | "seller",
+  locationString: string
 ): string {
   const {
     sellerCounterOffer,
@@ -310,9 +313,9 @@ function CounterTemplate(
   const hasInspectionUpdate = dateTimeChanged || modeChanged;
 
   if (isInitiator) {
-    introMessage = `You have successfully <span style="color: #1AAD1F;">countered</span> the ${recipientType === "buyer" ? "seller's" : "buyer's"} offer for the property at ${location}.`;
+    introMessage = `You have successfully <span style="color: #1AAD1F;">countered</span> the ${recipientType === "buyer" ? "seller's" : "buyer's"} offer for the property at ${locationString}.`;
   } else {
-    introMessage = `The ${recipientType === "buyer" ? "seller" : "buyer"} has <span style="color: #1AAD1F;">countered</span> your offer for the property at ${location}.`;
+    introMessage = `The ${recipientType === "buyer" ? "seller" : "buyer"} has <span style="color: #1AAD1F;">countered</span> your offer for the property at ${locationString}.`;
   }
 
   const modeInfo = getInspectionModeInfo(inspectionMode);
@@ -410,7 +413,7 @@ function CounterTemplate(
         <ul class="content-block" style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; list-style: none; margin-left: 0; padding-left: 20px; padding-right: 20px;">
           <p class="mobile-title" style="margin: 0 0 10px 0;"><strong>Property Details:</strong></p>
           <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Property Type:</strong> ${propertyType || "N/A"}</li>
-          <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Location:</strong> ${location || "N/A"}</li>
+          <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Location:</strong> ${locationString || "N/A"}</li>
           <li class="mobile-list-item" style="margin-bottom: 8px; word-wrap: break-word;"><strong>Original Price:</strong> ${formatPrice(price) || "N/A"}</li>
         </ul>
         
@@ -441,7 +444,8 @@ function InspectionAcceptedTemplate(
   recipientName: string,
   payload: any,
   isInitiator: boolean,
-  recipientType: "buyer" | "seller"
+  recipientType: "buyer" | "seller",
+  locationString: string
 ): string {
   const {
     location,
@@ -463,9 +467,9 @@ function InspectionAcceptedTemplate(
   let inspectionModeHtml = "";
 
   if (isInitiator) {
-    introMessage = `You have successfully <span style="color: #1AAD1F;">accepted</span> the inspection request for ${location}.`;
+    introMessage = `You have successfully <span style="color: #1AAD1F;">accepted</span> the inspection request for ${locationString}.`;
   } else {
-    introMessage = `Good news! The ${recipientType === "buyer" ? "seller" : "buyer"} has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${location}.`;
+    introMessage = `Good news! The ${recipientType === "buyer" ? "seller" : "buyer"} has <span style="color: #1AAD1F;">accepted</span> your inspection request for ${locationString}.`;
 
     if (dateTimeChanged) {
       introMessage += ` The originally requested date was unavailable, and a <strong style="color: #1AAD1F;">new date and time have been confirmed</strong>.`;
@@ -554,7 +558,7 @@ function InspectionAcceptedTemplate(
         <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
           <p><strong>Property Details:</strong></p>
           <li><strong>Property Type:</strong> ${propertyType || "N/A"}</li>
-          <li><strong>Location:</strong> ${location || "N/A"}</li>
+          <li><strong>Location:</strong> ${locationString || "N/A"}</li>
           <li><strong>Price:</strong> ${formatPrice(price) || "N/A"}</li>
         </ul>
         ${
@@ -593,7 +597,8 @@ function InspectionAcceptedTemplate(
 function LOINegotiationAcceptedTemplate(
   buyerName: string,
   propertyData: any,
-  isInitiator: boolean = false
+  isInitiator: boolean = false,
+  locationString: string,
 ): string {
   const {
     location,
@@ -612,12 +617,12 @@ function LOINegotiationAcceptedTemplate(
   const oldTime = inspectionDateTime?.oldDateTime?.oldTime;
 
   const introMessage = isInitiator
-    ? `You have successfully <span style="color: #1AAD1F;">accepted</span> the buyer's Letter of Intent (LOI) for the property at ${location}.`
+    ? `You have successfully <span style="color: #1AAD1F;">accepted</span> the buyer's Letter of Intent (LOI) for the property at ${locationString}.`
     : `Great news! The seller has <span style="color: #1AAD1F;">accepted</span> your Letter of Intent (LOI)${
         dateTimeChanged || modeChanged
           ? " and <strong style='color: #1AAD1F;'>updated the inspection schedule</strong>"
           : ""
-      } for the property at ${location}.`;
+      } for the property at ${locationString}.`;
 
   const loiStatusHtml = `
     <ul style="background-color: #E4EFE7; padding: 25px 20px; border-radius: 10px; margin-top: 15px;">
@@ -717,7 +722,8 @@ function LOINegotiationAcceptedTemplate(
 function LOIRequestChangesTemplate(
   recipientName: string,
   propertyData: any,
-  isInitiator: boolean = false
+  isInitiator: boolean = false,
+  locationString: string
 ): string {
   const {
     location,
@@ -740,13 +746,13 @@ function LOIRequestChangesTemplate(
   let actionButtons = "";
 
   if (isInitiator) {
-    introMessage = `You have successfully <span style="color: #1976D2;">requested changes</span> to the buyer's LOI document for the property at ${location}.`;
+    introMessage = `You have successfully <span style="color: #1976D2;">requested changes</span> to the buyer's LOI document for the property at ${locationString}.`;
 
     if (dateTimeChanged) {
       introMessage += ` You also <strong style="color: #34A853;">updated the inspection schedule</strong>.`;
     }
   } else {
-    introMessage = `The seller has <span style="color: #1976D2;">requested changes</span> to your LOI document for the property at ${location}.`;
+    introMessage = `The seller has <span style="color: #1976D2;">requested changes</span> to your LOI document for the property at ${locationString}.`;
 
     if (dateTimeChanged) {
       introMessage += ` They also <strong style="color: #34A853;">proposed new inspection date/time details</strong>.`;
@@ -794,7 +800,7 @@ function LOIRequestChangesTemplate(
     <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Property Details:</strong></p>
       <li><strong>Property Type:</strong> ${propertyType || "N/A"}</li>
-      <li><strong>Location:</strong> ${location || "N/A"}</li>
+      <li><strong>Location:</strong> ${locationString || "N/A"}</li>
       <li><strong>Original Price:</strong> ${formatPrice(price) || "N/A"}</li>
     </ul>`;
 
@@ -820,7 +826,8 @@ function LOIRequestChangesTemplate(
 function LOICounterTemplate(
   recipientName: string,
   propertyData: any,
-  isInitiator: boolean = false
+  isInitiator: boolean = false,
+  locationString: string
 ): string {
   const {
     location,
@@ -846,7 +853,7 @@ function LOICounterTemplate(
   let negotiationDetailsHtml = "";
 
   if (isInitiator) {
-    introMessage = `You have successfully <span style="color: #1AAD1F;">responded</span> to the seller's request changes on your previous LOI document for the property at ${location}.`;
+    introMessage = `You have successfully <span style="color: #1AAD1F;">responded</span> to the seller's request changes on your previous LOI document for the property at ${locationString}.`;
   } else {
     introMessage = `The buyer has re-uploaded the LOI document in respond to your <span style="color: #1976D2;">request-changes</span>.`;
   }
@@ -886,7 +893,7 @@ function LOICounterTemplate(
     <ul style="background-color: #E4EFE7; padding: 25px 20px; border-radius: 10px; list-style: none; width: 100%; max-width: 100%; box-sizing: border-box;">
       <p style="margin: 0 0 10px 0;"><strong>Property Details:</strong></p>
       <li><strong>Property Type:</strong> ${propertyType || "N/A"}</li>
-      <li><strong>Location:</strong> ${location || "N/A"}</li>
+      <li><strong>Location:</strong> ${locationString || "N/A"}</li>
       <li><strong>Original Price:</strong> ${formatPrice(price) || "N/A"}</li>
     </ul>
 
@@ -912,7 +919,8 @@ function LOICounterTemplate(
 function LOIRejectTemplate(
   recipientName: string,
   propertyData: any,
-  isInitiator: boolean = false
+  isInitiator: boolean = false,
+  locationString: string
 ): string {
   const {
     location,
@@ -935,7 +943,7 @@ function LOIRejectTemplate(
   let rejectionDetailsHtml = "";
 
   if (isInitiator) {
-    introMessage = `You have <span style="color: #FF2539;">rejected</span> the buyer's LOI for the property at ${location}.`;
+    introMessage = `You have <span style="color: #FF2539;">rejected</span> the buyer's LOI for the property at ${locationString}.`;
 
     rejectionDetailsHtml = `
       <ul style="background-color: #FFF3CD; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
@@ -943,7 +951,7 @@ function LOIRejectTemplate(
         <li><strong>Reason for Rejection:</strong> ${rejectionReason || "N/A"}</li>
       </ul>`;
   } else {
-    introMessage = `The buyer's LOI has been rejected for the property at ${location}.`;
+    introMessage = `The buyer's LOI has been rejected for the property at ${locationString}.`;
 
     rejectionDetailsHtml = `
       <ul style="background-color: #FFF3CD; padding: 25px 20px; gap: 10px; border-radius: 10px; margin-top: 15px;">
@@ -1000,7 +1008,7 @@ function LOIRejectTemplate(
       <ul style="background-color: #E4EFE7; padding: 25px 20px; gap: 10px; border-radius: 10px;">
         <p><strong>Property Details:</strong></p>
         <li><strong>Property Type:</strong> ${propertyType || "N/A"}</li>
-        <li><strong>Location:</strong> ${location || "N/A"}</li>
+        <li><strong>Location:</strong> ${locationString || "N/A"}</li>
         <li><strong>Original Price:</strong> ${formatPrice(price) || "N/A"}</li>
       </ul>
       ${!isInitiator ? `
@@ -1037,7 +1045,7 @@ interface EmailTemplate {
   text: string;
   subject: string;
 }
-
+ 
 export function generateNegotiationEmailTemplate(
   params: EmailTemplateParams,
 ): EmailTemplate {
@@ -1051,35 +1059,49 @@ export function generateNegotiationEmailTemplate(
     isLOI,
     isInitiator = false,
   } = params;
-
+ 
   const recipientName = recipientType === "buyer" ? buyerName : sellerName;
+
   const location = payload.propertyAddress || payload.location || 'Property'; // Adjust based on your payload structure
+
+  const stateLocation = location.state || "";
+  const localGovernmentLocation = location.localGovernment || "";
+  const areaLocation = location.area || "";
+  const streetAddressLocation = location.streetAddress || "";
+
+  // Combine the address components into a string, filtering out empty values
+  const locationString = [
+    stateLocation,
+    localGovernmentLocation,
+    areaLocation,
+    streetAddressLocation,
+  ].filter(Boolean).join(", ") || "N/A"; 
 
   if (isLOI) {
     switch (action) {
       case "accept":
         return {
-          html: LOINegotiationAcceptedTemplate(buyerName, payload, isInitiator),
+          html: LOINegotiationAcceptedTemplate(buyerName, payload, isInitiator, locationString),
           text: "",
-          subject: generateAcceptSubject(recipientType, isInitiator, location, isLOI),
+          subject: generateAcceptSubject(recipientType, isInitiator, locationString, isLOI),
         };
       case "reject":
         return {
-          html: LOIRejectTemplate(recipientName, payload, isInitiator),
+          html: LOIRejectTemplate(recipientName, payload, isInitiator, locationString),
           text: "",
-          subject: generateRejectSubject(recipientType, isInitiator, location, isLOI),
+          subject: generateRejectSubject(recipientType, isInitiator, locationString, isLOI),
         };
       case "counter":
         return {
-          html: LOICounterTemplate(recipientName, payload, isInitiator),
+          html: LOICounterTemplate(recipientName, payload, isInitiator, locationString),
           text: "",
-          subject: generateCounterSubject(recipientType, isInitiator, location, isLOI),
+          subject: generateCounterSubject(recipientType, isInitiator, locationString, isLOI),
         };
       case "request_changes":
         return {
-          html: LOIRequestChangesTemplate(recipientName, payload, isInitiator),
+          html: LOIRequestChangesTemplate(recipientName, payload, isInitiator, locationString),
           text: "",
-          subject: generateRequestChangesSubject(recipientType, isInitiator, location, isLOI),
+          subject: generateRequestChangesSubject(recipientType, isInitiator, locationString, isLOI),
         };
       default:
         throw new Error(`Unsupported LOI action: ${action}`);
@@ -1089,21 +1111,21 @@ export function generateNegotiationEmailTemplate(
   switch (action) {
     case "reject":
       return {
-        html: RejectTemplate(recipientName, payload, isInitiator, recipientType),
+        html: RejectTemplate(recipientName, payload, isInitiator, recipientType, locationString),
         text: "",
-        subject: generateRejectSubject(recipientType, isInitiator, location, isLOI),
+        subject: generateRejectSubject(recipientType, isInitiator, locationString, isLOI),
       };
     case "counter":
       return {
-        html: CounterTemplate(recipientName, payload, isInitiator, recipientType),
+        html: CounterTemplate(recipientName, payload, isInitiator, recipientType, locationString),
         text: "",
-        subject: generateCounterSubject(recipientType, isInitiator, location, isLOI),
+        subject: generateCounterSubject(recipientType, isInitiator, locationString, isLOI),
       };
     case "accept":
       return {
-        html: InspectionAcceptedTemplate(recipientName, payload, isInitiator, recipientType),
+        html: InspectionAcceptedTemplate(recipientName, payload, isInitiator, recipientType, locationString),
         text: "",
-        subject: generateAcceptSubject(recipientType, isInitiator, location, isLOI),
+        subject: generateAcceptSubject(recipientType, isInitiator, locationString, isLOI),
       };
     default:
       throw new Error(`Unsupported action: ${action}`);
