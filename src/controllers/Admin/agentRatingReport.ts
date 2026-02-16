@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { DB } from "../..";
+import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import mongoose from "mongoose";
