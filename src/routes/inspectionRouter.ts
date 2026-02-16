@@ -1,13 +1,22 @@
-import { submitInspectionRequest } from "../controllers/public/inspection/inspectionRequest";
+// General/marketplace: no publicSlug, receiverMode.general → payment to company
+import { submitInspectionRequest as submitGeneralInspectionRequest } from "../controllers/public/inspection/inspectionRequest";
 import { authenticateBookingCode, getBookingByBookingCode } from "../controllers/Account/fetchBookings";
 import BookingController from "../controllers/public/inspection/bookingActions";
 import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
+import {
+  submitInspectionRatingPublic,
+  submitInspectionReportPublic,
+} from "../controllers/Account/agentRatingReport";
 import { Router } from "express";
 
 const inspectRouter = Router();
 
-// Submit a new inspection request
-inspectRouter.post("/request-inspection", submitInspectionRequest);
+// Inspection request from main site (marketplace / home) → general flow
+inspectRouter.post("/request-inspection", submitGeneralInspectionRequest);
+
+// Buyer rate/report agent after completed inspection (no auth; buyer identified by email in body)
+inspectRouter.post("/:inspectionId/rate", submitInspectionRatingPublic);
+inspectRouter.post("/:inspectionId/report", submitInspectionReportPublic);
 
 // Submit a new booking request/instant
 inspectRouter.post(

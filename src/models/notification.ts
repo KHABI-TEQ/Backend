@@ -1,6 +1,17 @@
 import { model, Model, Schema, Types, Document } from 'mongoose';
 
 /**
+ * Notification types for filtering in-app.
+ */
+export type NotificationType =
+  | "general"
+  | "property_update"
+  | "agent_broadcast"
+  | "inspection"
+  | "booking"
+  | "other";
+
+/**
  * Interface for Notification records.
  */
 export interface INotification {
@@ -8,6 +19,7 @@ export interface INotification {
   title: string;
   message: string;
   isRead: boolean;
+  type?: NotificationType;
   meta?: Record<string, any>; // optional data payload
 }
 
@@ -42,6 +54,11 @@ export class Notification {
         isRead: {
           type: Boolean,
           default: false,
+        },
+        type: {
+          type: String,
+          enum: ["general", "property_update", "agent_broadcast", "inspection", "booking", "other"],
+          default: "general",
         },
         meta: {
           type: Schema.Types.Mixed,

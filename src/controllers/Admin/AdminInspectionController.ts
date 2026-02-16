@@ -48,7 +48,7 @@ export class AdminInspectionController {
       if (typeof isNegotiating !== "undefined")
         query.isNegotiating = isNegotiating === "true";
 
-      query.status = { $ne: "pending_transaction" };
+      // For auditing, admin sees all statuses (including pending_approval, pending_transaction, agent_rejected)
 
       const currentPage = Math.max(1, parseInt(page as string, 10));
       const perPage = Math.min(100, parseInt(limit as string, 10));
@@ -145,16 +145,24 @@ export class AdminInspectionController {
         path: "assignedFieldAgent",
         model: DB.Models.User.modelName,
         select: "firstName lastName email phoneNumber"
-      });
+      })
+      .lean();
 
     if (!inspection) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
 
+    // Include activity log for admin auditing (last 50 entries)
+    const auditLog = await InspectionLogService.getLogsByInspection(id, 1, 50);
+
     return res.status(200).json({
       success: true,
       message: "Inspection details fetched successfully",
-      data: inspection,
+      data: {
+        ...inspection,
+        activityLog: auditLog.data,
+        activityLogPagination: auditLog.pagination,
+      },
     });
   }
 

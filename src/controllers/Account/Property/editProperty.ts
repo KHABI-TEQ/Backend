@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { propertyValidationSchema } from "../../../utils/formValidation/propertyValidationSchema";
+import { notifySubscribersOfPropertyUpdate } from "../../../services/agentSubscriber.service";
 
 export const editProperty = async (
   req: AppRequest,
@@ -41,6 +42,13 @@ export const editProperty = async (
 
     await property.save();
 
+    // Notify agent's subscribers (email + in-app)
+    try {
+      await notifySubscribersOfPropertyUpdate(property as any);
+    } catch (notifyErr) {
+      console.warn("[editProperty] Notify subscribers failed:", notifyErr);
+    }
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Property updated successfully",
@@ -72,6 +80,17 @@ export const updatePropertyStatus = async (
     const property = await DB.Models.Property.findById(propertyId);
     if (!property) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
+    }
+
+    // Check ownership or admin privilege
+    if (
+      property.owner.toString() !== req.user._id.toString() &&
+      req.user.role !== "admin"
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "You do not have permission to change this property's status",
+      );
     }
 
     // Restrict updates for pending or deleted properties
@@ -114,6 +133,13 @@ export const updatePropertyStatus = async (
     if (reason) property.reason = reason;
 
     await property.save();
+
+    // Notify agent's subscribers (email + in-app)
+    try {
+      await notifySubscribersOfPropertyUpdate(property as any);
+    } catch (notifyErr) {
+      console.warn("[updatePropertyStatus] Notify subscribers failed:", notifyErr);
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

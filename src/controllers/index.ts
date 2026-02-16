@@ -67,6 +67,10 @@ import {
   IPermissionModel,
   Role,
   IRoleModel,
+  AgentRating,
+  IAgentRatingModel,
+  AgentReport,
+  IAgentReportModel,
 } from "../models/index";
 
 
@@ -105,6 +109,8 @@ declare interface IModels {
   PromotionActivity: IPromotionActivityModel;
   Permission: IPermissionModel;
   Role: IRoleModel;
+  AgentRating: IAgentRatingModel;
+  AgentReport: IAgentReportModel;
 } 
 
 export class DB {
@@ -158,6 +164,8 @@ export class DB {
       PromotionActivity: new PromotionActivity().model,
       Permission: new Permission().model,
       Role: new Role().model,
+      AgentRating: new AgentRating().model,
+      AgentReport: new AgentReport().model,
     };
   }
 

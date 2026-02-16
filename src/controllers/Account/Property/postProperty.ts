@@ -3,7 +3,6 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
-import { propertyValidationSchema } from "../../../utils/formValidation/propertyValidationSchema";
 import {
   generatePropertyBriefEmail,
   generatePropertySellBriefEmail,
@@ -12,6 +11,7 @@ import {
 import sendEmail from "../../../common/send.email";
 import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
+import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import mongoose from "mongoose";
 
 export const postProperty = async (
@@ -23,24 +23,28 @@ export const postProperty = async (
   session.startTransaction();
 
   try {
-    // const payload = await propertyValidationSchema.validateAsync(req.body, {
-    //   abortEarly: false,
-    // });
     const { preferenceId } = req.params;
     const userId = req.user?._id;
-    const payload = req.body; // skipping Joi for now
 
     if (!userId) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "User not authenticated");
     }
 
-    // Determine creator role
+    const validation = await validatePropertyPayload(req.body);
+    if (!validation.success) {
+      const message = validation.errors?.map((e) => `${e.field}: ${e.message}`).join(", ") ?? "Validation failed";
+      return next(new RouteError(HttpStatusCodes.BAD_REQUEST, message));
+    }
+
+    const payload = validation.data;
     const createdByRole = "user";
     const ownerModel = "User";
 
     const propertyData = {
       ...payload,
-      status: payload.status || "pending",
+      status: "approved",
+      isApproved: true,
+      isAvailable: true,
     };
 
     const formatted = formatPropertyPayload(
@@ -142,12 +146,6 @@ export const postProperty = async (
   } catch (err: any) {
     await session.abortTransaction();
     session.endSession();
-
-    if (err?.isJoi) {
-      const message = err.details?.map((e: any) => e.message).join(", ");
-      return next(new RouteError(HttpStatusCodes.BAD_REQUEST, message));
-    }
-
     return next(err);
   }
 };

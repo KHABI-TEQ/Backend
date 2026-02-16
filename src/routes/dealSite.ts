@@ -4,7 +4,8 @@ import { getDealSiteProperties } from "../controllers/DealSite/properties/fetchP
 import { getSingleDealSiteProperty } from "../controllers/DealSite/properties/getSingleProperty";
 import { submitBookingRequest } from "../controllers/DealSite/inspections/bookingActions";
 import multer from "multer";
-import { submitInspectionRequest } from "../controllers/DealSite/inspections/inpectionActions";
+// DealSite-specific: uses publicSlug, sets receiverMode.dealSite (split payment to agent)
+import { submitInspectionRequest as submitDealSiteInspectionRequest } from "../controllers/DealSite/inspections/inpectionActions";
 import { reportDealSite } from "../controllers/DealSite/reportDealSite";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 import { paymentVerification } from "../controllers/public/paymentVerification";
@@ -42,15 +43,14 @@ DealSiteRouter.get("/:publicSlug/properties", getDealSiteProperties);
 // fetch single property of deal sites
 DealSiteRouter.get("/:publicSlug/properties/:propertyId", getSingleDealSiteProperty);
 
-// make inspection request 
-DealSiteRouter.post("/:publicSlug/inspections/makeRequest", submitInspectionRequest);
+// Inspection request from agent's DealSite page → receiverMode.dealSite, split payment
+DealSiteRouter.post("/:publicSlug/inspections/makeRequest", submitDealSiteInspectionRequest);
 
 // make booking request
 DealSiteRouter.post("/:publicSlug/bookings/makeRequest", submitBookingRequest);
 
 // verify payment
 DealSiteRouter.get("/:publicSlug/verify-payment", paymentVerification);
-
 // contact us
 DealSiteRouter.post("/:publicSlug/contactUs", createDealSiteContactUs);
 

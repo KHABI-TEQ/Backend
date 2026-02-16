@@ -13,6 +13,7 @@ class NotificationService {
       month?: number;
       year?: number;
       withPagination?: boolean;
+      type?: string;
     }
   ): Promise<{
     data: INotificationDoc[];
@@ -31,9 +32,14 @@ class NotificationService {
       month,
       year,
       withPagination = false,
+      type,
     } = params;
 
     const filter: Record<string, any> = { user: userId };
+
+    if (type) {
+      filter.type = type;
+    }
 
     if (search) {
       filter.$or = [
@@ -111,6 +117,7 @@ class NotificationService {
     user: string;
     title: string;
     message: string;
+    type?: string;
     meta?: Record<string, any>;
   }): Promise<INotificationDoc> {
     return DB.Models.Notification.create(payload);

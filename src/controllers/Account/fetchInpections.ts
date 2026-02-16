@@ -24,7 +24,7 @@ export const fetchUserInspections = async (
 
     const filter: any = {
       owner: req.user._id,
-      status: { $nin: ["pending_transaction", "transaction_failed"] },
+      status: { $nin: ["transaction_failed", "cancelled", "agent_rejected"] },
     };
 
     if (status) filter.status = status;

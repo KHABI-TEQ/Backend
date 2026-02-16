@@ -38,6 +38,12 @@ import { DashboardStatsController } from "../controllers/Admin/Dashboard/Dashboa
 import { PERMISSIONS } from "../common/constants/permissions";
 import { requirePermission, requireSuperAdmin } from "../middlewares/authorizationMiddleware";
 import { assignPermissionsToAdmin, assignRolesToAdmin, createPermission, createRole, deletePermission, deleteRole, getAdminRolesAndPermissions, getAllPermissions, getAllRoles, getPermissionById, getRoleById, seedDefaultPermissions, seedDefaultRoles, updatePermission, updateRole } from "../controllers/Admin/Permission/rolePermissionController";
+import {
+  adminListRatings,
+  adminListReports,
+  adminGetReportById,
+  adminUpdateReport,
+} from "../controllers/Admin/agentRatingReport";
 
 
 const storage = multer.memoryStorage();
@@ -168,6 +174,7 @@ AdminRouter.get("/properties/:propertyId/getOne", getSinglePropertyDetails);
 AdminRouter.patch("/properties/:propertyId/update", editPropertyAsAdmin);
 AdminRouter.delete("/properties/:propertyId/delete", deletePropertyById);
 AdminRouter.post("/properties/:propertyId/changeStatus", updatePropertyStatusAsAdmin);
+AdminRouter.put("/properties/:propertyId/approval", setPropertyApprovalStatus);
 AdminRouter.get("/properties/:propertyId/inspections", getPropertyInspections);
   
 
@@ -397,6 +404,12 @@ AdminRouter.post(
   requirePermission(PERMISSIONS.ADMINS_MANAGE_PERMISSIONS),
   assignPermissionsToAdmin
 );
+
+// Agent ratings and complaints (for investigation)
+AdminRouter.get("/ratings", adminListRatings);
+AdminRouter.get("/reports", adminListReports);
+AdminRouter.get("/reports/:id", adminGetReportById);
+AdminRouter.patch("/reports/:id", adminUpdateReport);
 
 AdminRouter.use(AdminInspRouter);
 

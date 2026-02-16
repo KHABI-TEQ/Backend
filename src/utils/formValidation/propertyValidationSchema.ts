@@ -57,7 +57,7 @@ export const propertyValidationSchema = Joi.object({
     .min(1)
     .required(),
 
-  owner: Joi.string().required(),
+  owner: Joi.string().optional(), // Set by server from authenticated user
 
   areYouTheOwner: Joi.boolean().required(),
 
@@ -133,5 +133,8 @@ export const propertyValidationSchema = Joi.object({
 
   reason: Joi.string().optional(),
 
-  createdByRole: Joi.string().valid("user", "admin").required(),
+  /** Inspection fee in Naira. Min ₦1,000, max ₦50,000. */
+  inspectionFee: Joi.number().min(1000).max(50000).default(5000).optional(),
+
+  createdByRole: Joi.string().valid("user", "admin").optional(),
 });

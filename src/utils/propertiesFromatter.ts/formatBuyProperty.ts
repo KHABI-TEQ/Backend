@@ -1,6 +1,15 @@
 import { IProperty } from "../../models";
 import { Types } from "mongoose";
 
+const INSPECTION_FEE_MIN = 1000;
+const INSPECTION_FEE_MAX = 50000;
+const INSPECTION_FEE_DEFAULT = 5000;
+function clampInspectionFee(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return INSPECTION_FEE_DEFAULT;
+  return Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, Math.round(n)));
+}
+
 export const formatBuyProperty = (
   payload: any,
   ownerId: string,
@@ -47,9 +56,11 @@ export const formatBuyProperty = (
   holdDuration: payload.holdDuration || "",
   briefType: "Outright Sales", // fixed for Buy
   createdByRole: createdByRole,
-  status: payload.status || "pending", // default pending if not sent
+  status: payload.status || "approved",
   isPremium: false,
-  isApproved: false,
+  inspectionFee: clampInspectionFee(payload.inspectionFee),
+  isApproved: payload.isApproved ?? true,
+  isAvailable: payload.isAvailable ?? true,
   isDeleted: false,
   isRejected: false,
 });

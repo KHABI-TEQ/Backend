@@ -8,6 +8,8 @@ export interface IInspectionBooking {
   inspectionTime: string;
  
   status:
+    | "pending_approval"
+    | "agent_rejected"
     | "pending_transaction"
     | "transaction_failed"
     | "active_negotiation"
@@ -21,7 +23,7 @@ export interface IInspectionBooking {
     | "cancelled";
 
   requestedBy: Types.ObjectId;
-  transaction: Types.ObjectId;
+  transaction?: Types.ObjectId;
   isNegotiating: boolean;
   isLOI: boolean;
   inspectionType: "price" | "LOI";
@@ -90,6 +92,8 @@ export class InspectionBooking {
         status: {
           type: String,
           enum: [
+            "pending_approval",
+            "agent_rejected",
             "pending_transaction",
             "transaction_failed",
             "active_negotiation",
@@ -102,11 +106,11 @@ export class InspectionBooking {
             "completed",
             "cancelled",
           ],
-          default: "pending_transaction",
+          default: "pending_approval",
         },
 
         requestedBy: { type: Schema.Types.ObjectId, required: true, ref: "Buyer" },
-        transaction: { type: Schema.Types.ObjectId, ref: "newTransaction", required: true },
+        transaction: { type: Schema.Types.ObjectId, ref: "newTransaction", required: false },
 
         isNegotiating: { type: Boolean, default: false },
         isLOI: { type: Boolean, default: false },

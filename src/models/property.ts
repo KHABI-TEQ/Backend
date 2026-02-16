@@ -103,6 +103,8 @@ export interface IProperty {
   reason?: string;
   briefType: string;
   isPremium: boolean;
+  /** Inspection fee in Naira. Min ₦1,000, max ₦50,000. */
+  inspectionFee?: number;
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
@@ -233,6 +235,7 @@ export class Property {
         tenantGenderPreferences: { type: String },
         briefType: { type: String },
         isPremium: { type: Boolean, default: false },
+        inspectionFee: { type: Number, default: 5000, min: 1000, max: 50000 },
         isApproved: { type: Boolean, default: false },
         isRejected: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },

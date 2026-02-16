@@ -14,7 +14,8 @@ export const submitInspectionSchema = Joi.object({
     inspectionMode: Joi.string().valid("in_person", "virtual").required()
   }).required(),
 
-  inspectionAmount: Joi.number().positive().required(),
+  /** Total inspection amount; if omitted, computed from sum of each property's inspectionFee. */
+  inspectionAmount: Joi.number().positive().optional(),
 
   properties: Joi.array()
     .items(

@@ -32,3 +32,5 @@ export * from "./promotion";
 export * from "./promotionActivity";
 export * from "./permission";
 export * from "./role";
+export * from "./agentRating";
+export * from "./agentReport";

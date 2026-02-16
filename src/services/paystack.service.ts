@@ -4,7 +4,8 @@ import { DB } from '../controllers';
 import { IInspectionBooking, INewTransactionDoc } from '../models';
 import notificationService from './notification.service';
 import { InspectionLogService } from './inspectionLog.service';
-import { generalTemplate, InspectionRequestWithNegotiation, InspectionRequestWithNegotiationSellerTemplate, InspectionTransactionRejectionTemplate } from '../common/email.template';
+import { generalTemplate, InspectionRequestWithNegotiation, InspectionTransactionRejectionTemplate } from '../common/email.template';
+import { notifyAgentPaymentReceived } from './inspectionWorkflow.service';
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
 import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
@@ -719,43 +720,19 @@ export class PaystackService {
           text: buyerTemplate,
         });
 
-        // 🔹 Send seller email only once per property
+        // 🔹 Notify agent (seller) that payment was received – email + in-app
+        const propertyLocation = `${property.location?.area || ""}, ${property.location?.localGovernment || ""}, ${property.location?.state || ""}`.replace(/^,\s*|,\s*$/g, "").trim() || "Property";
+        const paidAmount = transaction.amount ?? property?.inspectionFee ?? 0;
         if (!processedSellers.has(owner._id.toString())) {
-          const sellerEmailHtml = InspectionRequestWithNegotiationSellerTemplate(
-            owner.fullName || owner.firstName,
-            {
-              ...emailData,
-              responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
-            }
-          );
-
-          const sellerTemplate = await getDealSiteTemplate(
-            sellerEmailHtml,
-            inspection.receiverMode
-          );
-
-          await sendEmail({
-            to: owner.email,
-            subject: `New Offer Received – Action Required`,
-            html: sellerTemplate,
-            text: sellerTemplate,
+          await notifyAgentPaymentReceived({
+            ownerId: owner._id.toString(),
+            buyerName: buyer?.fullName || buyer?.email || "Buyer",
+            propertyLocation,
+            amount: paidAmount,
+            inspectionId: inspection._id.toString(),
           });
-
           processedSellers.add(owner._id.toString());
         }
-
-        // 🔹 Notify seller
-        const propertyLocation = `${property.location.area}, ${property.location.localGovernment}, ${property.location.state}`;
-        await notificationService.createNotification({
-          user: owner._id,
-          title: "New Inspection Request",
-          message: `${buyer.fullName} has requested an inspection for your property at ${propertyLocation}.`,
-          meta: {
-            propertyId: property._id,
-            inspectionId: inspection._id,
-            status: updatedStatus,
-          },
-        });
       }
 
       // 🔴 Transaction FAILED

@@ -10,6 +10,7 @@ import {
   fetchAllProperties,
 } from "../controllers/Account/Property/fetchProperty";
 import { fetchUserInspections, getInspectionStats, getOneUserInspection } from "../controllers/Account/fetchInpections";
+import { respondToInspectionRequest } from "../controllers/Account/inspectionRespond";
  
 import {
   getAllNotifications,
@@ -37,6 +38,7 @@ import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { fetchDealsitePreferences, fetchDealsitePreferenceById } from "../controllers/Account/Preference/fetchDealsitePreferences";
 import { completeAgentKYC, completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
+import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, sendInspectionParticipantDetails, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionSnapshotAutoRenewal } from "../controllers/Account/Agent/subscriptions";
@@ -70,6 +72,9 @@ AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
 // AGENT UNIQUE ROUTES
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completeAgentKYC);
+
+// Agent broadcast to DealSite email subscribers (guests subscribe with email on DealSite)
+AccountRouter.post("/agent/broadcast", broadcastToMySubscribers);
 
 // PROPERTY ROUTES
 AccountRouter.post("/properties/create", postProperty);
@@ -108,8 +113,9 @@ AccountRouter.get("/properties/fetchAll", fetchAllProperties);
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
+AccountRouter.post("/my-inspections/:inspectionId/respond", respondToInspectionRequest);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
-  
+
 // BOOKING REQUEST ROUTES
 AccountRouter.get("/my-bookings/fetchAll", fetchUserBookings);
 AccountRouter.get("/my-bookings/stats", getBookingStats);

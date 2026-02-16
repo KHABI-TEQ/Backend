@@ -27,8 +27,16 @@ import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controll
 import DealSiteRouter from "./dealSite";
 import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
 import { handleWebhook, verifyWebhook } from "../controllers/public/whatsappWebhookController";
+import {
+  getAgentRatingSummaryPublic,
+  getAgentRatingsPublic,
+} from "../controllers/Account/agentRatingReport";
 
 const router = express.Router();
+
+// Public agent ratings (for landing page / prospective buyers)
+router.get("/agent/:agentId/rating-summary", getAgentRatingSummaryPublic);
+router.get("/agent/:agentId/ratings", getAgentRatingsPublic);
 
 // Configure Multer (Store file in memory before uploading)
 const storage = multer.memoryStorage();
