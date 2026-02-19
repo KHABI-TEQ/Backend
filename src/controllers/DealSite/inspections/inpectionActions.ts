@@ -6,11 +6,7 @@ import { Types } from "mongoose";
 import { InspectionLogService } from "../../../services/inspectionLog.service";
 import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
-import { INSPECTION_FEE_DEFAULT } from "../../../services/propertyValidation.service";
 import { notifyAgentOfInspectionRequest } from "../../../services/inspectionWorkflow.service";
-
-const INSPECTION_FEE_MIN = 1000;
-const INSPECTION_FEE_MAX = 50000;
 
 export const submitInspectionRequest = async (
   req: AppRequest,
@@ -33,7 +29,7 @@ export const submitInspectionRequest = async (
       return;
     }
 
-    const { requestedBy, inspectionAmount: clientAmount, inspectionDetails, properties } = validation.data!;
+    const { requestedBy, inspectionDetails, properties } = validation.data!;
 
     // ✅ Find DealSite
     const dealSite = await DB.Models.DealSite.findOne({ publicSlug }).lean();
@@ -58,6 +54,20 @@ export const submitInspectionRequest = async (
     }
 
     const propertyIds = properties.map((p: { propertyId: string }) => p.propertyId);
+    const propertiesWithRegistration = await DB.Models.TransactionRegistration.find({
+      propertyId: { $in: propertyIds },
+      status: { $in: ["submitted", "pending_completion", "completed"] },
+    })
+      .select("propertyId")
+      .lean();
+    const registeredPropertyIds = new Set(
+      propertiesWithRegistration.map((r: any) => r.propertyId?.toString()).filter(Boolean)
+    );
+    const warnings: Record<string, string> = {};
+    registeredPropertyIds.forEach((id) => {
+      warnings[id] = "This property has an active or completed registered transaction.";
+    });
+
     const propertiesList = await DB.Models.Property.find({ _id: { $in: propertyIds } }).lean();
     if (propertiesList.length !== propertyIds.length) {
       const foundIds = new Set(propertiesList.map((p: any) => p._id.toString()));
@@ -71,23 +81,7 @@ export const submitInspectionRequest = async (
       return;
     }
 
-    let totalInspectionAmount = 0;
-    for (const property of propertiesList as any[]) {
-      const fee = property.inspectionFee ?? INSPECTION_FEE_DEFAULT;
-      totalInspectionAmount += Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, fee));
-    }
-
-    if (clientAmount != null && Number(clientAmount) !== totalInspectionAmount) {
-      res.status(HttpStatusCodes.BAD_REQUEST).json({
-        success: false,
-        errorCode: "INSPECTION_AMOUNT_MISMATCH",
-        message: `Inspection amount must equal the sum of selected properties' inspection fees (₦${totalInspectionAmount}).`,
-        data: { expectedAmount: totalInspectionAmount },
-      });
-      return;
-    }
-    const inspectionAmount = totalInspectionAmount;
-
+    // DealSite: inspection fee is not required for buyer; no payment link is sent on accept.
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
       { email: requestedBy.email },
       { $setOnInsert: requestedBy },
@@ -128,9 +122,6 @@ export const submitInspectionRequest = async (
       const inspectionMode = inspectionDetails.inspectionMode || "in_person";
       const inspectionType = prop.inspectionType;
       const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
-
-      const fee = (property as any).inspectionFee ?? INSPECTION_FEE_DEFAULT;
-      const propertyAmount = Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, fee));
 
       const inspection = await DB.Models.InspectionBooking.create({
         propertyId: prop.propertyId,
@@ -187,7 +178,7 @@ export const submitInspectionRequest = async (
           buyerEmail: buyer.email,
           inspectionDate: inspection.inspectionDate,
           inspectionTime: inspection.inspectionTime,
-          amount: propertyAmount,
+          amount: 0,
           respondUrl: `${respondUrl}/${inspection._id}`,
         });
       } catch (e) {
@@ -197,9 +188,10 @@ export const submitInspectionRequest = async (
 
     res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Inspection request submitted. The agent will respond and you will receive a payment link if accepted.",
+      message: "Inspection request submitted. The agent will respond shortly.",
       data: {
         inspections: savedInspections,
+        ...(Object.keys(warnings).length > 0 ? { warnings } : {}),
       },
     });
   } catch (error) {

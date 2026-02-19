@@ -71,6 +71,8 @@ import {
   IAgentRatingModel,
   AgentReport,
   IAgentReportModel,
+  TransactionRegistration,
+  ITransactionRegistrationModel,
 } from "../models/index";
 
 
@@ -111,6 +113,7 @@ declare interface IModels {
   Role: IRoleModel;
   AgentRating: IAgentRatingModel;
   AgentReport: IAgentReportModel;
+  TransactionRegistration: ITransactionRegistrationModel;
 } 
 
 export class DB {
@@ -166,6 +169,7 @@ export class DB {
       Role: new Role().model,
       AgentRating: new AgentRating().model,
       AgentReport: new AgentReport().model,
+      TransactionRegistration: new TransactionRegistration().model,
     };
   }
 

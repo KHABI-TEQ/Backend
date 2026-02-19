@@ -5,7 +5,7 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { PaystackService } from "../../services/paystack.service";
 import { Types } from "mongoose";
-import { notifyBuyerPaymentLink, notifyBuyerRejected } from "../../services/inspectionWorkflow.service";
+import { notifyBuyerPaymentLink, notifyBuyerAcceptedNoPayment, notifyBuyerRejected } from "../../services/inspectionWorkflow.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { INSPECTION_FEE_DEFAULT } from "../../services/propertyValidation.service";
@@ -118,37 +118,48 @@ export const respondToInspectionRequest = async (
     const receiverMode = (inspection as any).receiverMode;
     const isDealSite = receiverMode?.type === "dealSite" && receiverMode?.dealSiteID;
 
-    let paymentResponse: { authorization_url: string; transactionId: Types.ObjectId };
+    // DealSite: no inspection fee, no payment link. Buyer is only notified that request was accepted.
     if (isDealSite) {
-      const dealSite = await DB.Models.DealSite.findById(receiverMode.dealSiteID)
-        .select("paymentDetails publicSlug")
-        .lean();
-      if (!dealSite?.paymentDetails?.subAccountCode) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "DealSite payment not configured");
+      await DB.Models.InspectionBooking.updateOne(
+        { _id: inspectionId },
+        { $set: { status: "inspection_approved" } },
+      );
+
+      if (propertyIdStr) {
+        await InspectionLogService.logActivity({
+          inspectionId: inspectionId as string,
+          propertyId: propertyIdStr,
+          senderId: userId.toString(),
+          senderRole: "seller",
+          senderModel: "User",
+          message: "Agent accepted the inspection request. Buyer has been notified.",
+          status: "inspection_approved",
+          stage: "inspection",
+        });
       }
-      const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
-      const fifteenPercent = (amount * 10) / 100;
-      const result = await PaystackService.initializeSplitPayment({
-        subAccount: dealSite.paymentDetails.subAccountCode,
-        publicPageUrl,
-        amountCharge: fifteenPercent,
-        email: buyer?.email,
-        amount,
-        fromWho: { kind: "Buyer", item: buyer._id },
-        transactionType: "inspection",
-        metadata: { inspectionId },
+
+      await notifyBuyerAcceptedNoPayment({
+        buyerEmail: buyer?.email,
+        buyerName: buyer?.fullName || buyer?.email,
+        propertyLocation,
       });
-      paymentResponse = { authorization_url: result.authorization_url, transactionId: result.transactionId as Types.ObjectId };
-    } else {
-      const result = await PaystackService.initializePayment({
-        email: buyer?.email,
-        amount,
-        fromWho: { kind: "Buyer", item: buyer._id },
-        transactionType: "inspection",
-        metadata: { inspectionId },
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Inspection accepted. The buyer has been notified.",
+        data: { status: "inspection_approved" },
       });
-      paymentResponse = { authorization_url: result.authorization_url, transactionId: result.transactionId as Types.ObjectId };
     }
+
+    let paymentResponse: { authorization_url: string; transactionId: Types.ObjectId };
+    const result = await PaystackService.initializePayment({
+      email: buyer?.email,
+      amount,
+      fromWho: { kind: "Buyer", item: buyer._id },
+      transactionType: "inspection",
+      metadata: { inspectionId },
+    });
+    paymentResponse = { authorization_url: result.authorization_url, transactionId: result.transactionId as Types.ObjectId };
 
     await DB.Models.InspectionBooking.updateOne(
       { _id: inspectionId },

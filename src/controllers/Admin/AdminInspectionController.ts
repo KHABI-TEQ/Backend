@@ -13,6 +13,7 @@ import {
 } from "../../common/email.template";
 import notificationService from "../../services/notification.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
+import { sendInspectionRateReportEmailToBuyer } from "../../services/inspectionWorkflow.service";
 import { AppRequest } from "../../types/express";
 import { FieldAgentAssignmentTemplate, FieldAgentRemovalTemplate, InspectionLoiRejectionTemplate } from "../../common/emailTemplates/inspectionMails";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
@@ -960,6 +961,39 @@ export class AdminInspectionController {
     });
   }
 
-
-
+  /**
+   * Send rate/report email to buyer for a completed inspection.
+   * Uses DealSite subdomain (e.g. https://realhomes.khabiteq.com) or main app as base URL for links.
+   */
+  public async sendRateReportEmailToBuyer(req: Request, res: Response): Promise<Response> {
+    try {
+      const { id: inspectionId } = req.params;
+      if (!mongoose.isValidObjectId(inspectionId)) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid inspection ID");
+      }
+      const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
+        .select("status stage requestedBy")
+        .lean();
+      if (!inspection) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+      }
+      const inv = inspection as any;
+      if (inv.stage !== "completed" || inv.status !== "completed") {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Rate/report email can only be sent for completed inspections"
+        );
+      }
+      await sendInspectionRateReportEmailToBuyer(inspectionId);
+      return res.status(200).json({
+        success: true,
+        message: "Rate/report email sent to buyer successfully.",
+      });
+    } catch (error: any) {
+      throw new RouteError(
+        error.statusCode || HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        error.message || "Failed to send email"
+      );
+    }
+  }
 }

@@ -34,3 +34,4 @@ export * from "./permission";
 export * from "./role";
 export * from "./agentRating";
 export * from "./agentReport";
+export * from "./transactionRegistration";

@@ -38,5 +38,7 @@ AdminInspRouter.post('/inspections/:inspectionId/shareDetails', sendInspectionPa
 // Update or approve or reject LOI document
 AdminInspRouter.patch('/inspections/:id/approveOrRejectLOI', use(controller.approveOrRejectLOIDocs.bind(controller)));
 
+// Send rate/report email to buyer (completed inspections only; links use DealSite or main app base URL)
+AdminInspRouter.post('/inspections/:id/send-rate-report-email', use(controller.sendRateReportEmailToBuyer.bind(controller)));
 
 export default AdminInspRouter;

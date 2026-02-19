@@ -99,7 +99,9 @@ export interface IProperty {
     | "hold"
     | "failed"
     | "never_listed"
-    | "booked";
+    | "booked"
+    | "transaction_registered_pending"
+    | "sold_leased_registered";
   reason?: string;
   briefType: string;
   isPremium: boolean;
@@ -225,7 +227,9 @@ export class Property {
             "hold",
             "failed",
             "never_listed",
-            "booked"
+            "booked",
+            "transaction_registered_pending",
+            "sold_leased_registered"
           ],
           default: "pending",
           required: true,

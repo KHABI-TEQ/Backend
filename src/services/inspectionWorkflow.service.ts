@@ -7,6 +7,7 @@ import { getPropertyTitleFromLocation } from "../utils/helper";
 /**
  * Notify agent (property owner) that a buyer submitted an inspection request.
  * Email + in-app. Used when status is pending_approval.
+ * When amount is 0 (e.g. DealSite), fee line and payment-link wording are omitted.
  */
 export async function notifyAgentOfInspectionRequest(params: {
   inspectionId: string;
@@ -28,7 +29,10 @@ export async function notifyAgentOfInspectionRequest(params: {
     ? getPropertyTitleFromLocation(property.location) || "Property"
     : "Property";
   const title = "New inspection request";
-  const message = `${buyerName} has requested an inspection for ${location} (₦${amount?.toLocaleString() || ""}). Please accept or reject the request.`;
+  const hasFee = amount != null && amount > 0;
+  const message = hasFee
+    ? `${buyerName} has requested an inspection for ${location} (₦${amount.toLocaleString()}). Please accept or reject the request.`
+    : `${buyerName} has requested an inspection for ${location}. Please accept or reject the request.`;
 
   await notificationService.createNotification({
     user: ownerId,
@@ -39,12 +43,16 @@ export async function notifyAgentOfInspectionRequest(params: {
   });
 
   const link = respondUrl || `${process.env.CLIENT_LINK}/account/inspections`;
+  const feeLine = hasFee ? `<p>Inspection fee: ₦${amount.toLocaleString()}</p>` : "";
+  const acceptLine = hasFee
+    ? "<p>Please accept or reject this request. If you accept, the buyer will receive a payment link.</p>"
+    : "<p>Please accept or reject this request. If you accept, the buyer will be notified.</p>";
   const html = generalEmailLayout(`
     <p>Hello ${(owner as any).firstName || (owner as any).lastName || "there"},</p>
     <p><strong>${buyerName}</strong> has requested an inspection for your property at <strong>${location}</strong>.</p>
-    <p>Inspection fee: ₦${amount?.toLocaleString() || ""}</p>
+    ${feeLine}
     <p>Preferred date: ${inspectionDate} at ${inspectionTime}</p>
-    <p>Please accept or reject this request. If you accept, the buyer will receive a payment link.</p>
+    ${acceptLine}
     <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
   `);
 
@@ -80,6 +88,29 @@ export async function notifyBuyerPaymentLink(params: {
     subject: "Inspection accepted – complete your payment",
     html,
     text: `Your inspection was accepted. Pay ₦${amount?.toLocaleString()} here: ${paymentUrl}`,
+  });
+}
+
+/**
+ * Notify buyer that agent accepted the request (no payment – e.g. DealSite).
+ * Email does not contain a payment link.
+ */
+export async function notifyBuyerAcceptedNoPayment(params: {
+  buyerEmail: string;
+  buyerName: string;
+  propertyLocation: string;
+}): Promise<void> {
+  const { buyerEmail, buyerName, propertyLocation } = params;
+  const html = generalEmailLayout(`
+    <p>Hello ${buyerName || "there"},</p>
+    <p>Your inspection request for <strong>${propertyLocation}</strong> has been accepted by the agent.</p>
+    <p>The agent will coordinate with you for the scheduled date and time.</p>
+  `);
+  await sendEmail({
+    to: buyerEmail,
+    subject: "Inspection accepted",
+    html,
+    text: `Your inspection request for ${propertyLocation} has been accepted. The agent will coordinate with you for the scheduled date and time.`,
   });
 }
 
@@ -143,5 +174,63 @@ export async function notifyAgentPaymentReceived(params: {
     subject: "Inspection payment received",
     html,
     text: message,
+  });
+}
+
+/** DealSite subdomain base URL format (e.g. https://realhomes.khabiteq.com) */
+const DEALSITE_BASE_URL_FORMAT = "https://{publicSlug}.khabiteq.com";
+
+/**
+ * Get the frontend base URL for an inspection: DealSite subdomain if from DealSite, else main app.
+ */
+export async function getInspectionFrontendBaseUrl(inspection: {
+  receiverMode?: { type?: string; dealSiteID?: any };
+}): Promise<string> {
+  const base = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
+  if (inspection.receiverMode?.type === "dealSite" && inspection.receiverMode?.dealSiteID) {
+    const dealSite = await DB.Models.DealSite.findById(inspection.receiverMode.dealSiteID)
+      .select("publicSlug")
+      .lean();
+    if (dealSite?.publicSlug) {
+      return DEALSITE_BASE_URL_FORMAT.replace("{publicSlug}", (dealSite as any).publicSlug);
+    }
+  }
+  return base;
+}
+
+/**
+ * Send email to buyer after inspection is completed with links to rate and report the agent.
+ * Base URL is the agent's DealSite (e.g. https://realhomes.khabiteq.com) or main app.
+ */
+export async function sendInspectionRateReportEmailToBuyer(inspectionId: string): Promise<void> {
+  const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
+    .populate("requestedBy")
+    .populate("propertyId")
+    .lean();
+  if (!inspection) return;
+  const inv = inspection as any;
+  if (inv.stage !== "completed" || inv.status !== "completed") return;
+
+  const buyer = inv.requestedBy;
+  if (!buyer?.email) return;
+
+  const baseUrl = await getInspectionFrontendBaseUrl(inv);
+  const rateLink = `${baseUrl}/inspection/rate?inspectionId=${inspectionId}`;
+  const reportLink = `${baseUrl}/report-agent?inspectionId=${inspectionId}`;
+  const buyerName = buyer.fullName || buyer.email || "there";
+
+  const html = generalEmailLayout(`
+    <p>Hello ${buyerName},</p>
+    <p>Your inspection has been completed. We’d love to hear about your experience.</p>
+    <p><strong>Rate your experience:</strong> <a href="${rateLink}">${rateLink}</a></p>
+    <p><strong>To report the agent for this inspection:</strong> <a href="${reportLink}">${reportLink}</a></p>
+    <p>Thank you for using our platform.</p>
+  `);
+
+  await sendEmail({
+    to: buyer.email,
+    subject: "Inspection completed – rate your experience",
+    html,
+    text: `Rate your experience: ${rateLink}\nTo report the agent: ${reportLink}`,
   });
 }

@@ -7,6 +7,7 @@ import { formatInspectionForTable } from "../../../utils/formatInspectionForTabl
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { BuyerDetailsToSellerTemplate, SellerDetailsToBuyerTemplate } from "../../../common/emailTemplates/inspectionMails";
 import sendEmail from "../../../common/send.email";
+import { sendInspectionRateReportEmailToBuyer } from "../../../services/inspectionWorkflow.service";
 
 // Fetch all inspections assigned to field agent
 export const fetchAssignedInspections = async (
@@ -334,7 +335,20 @@ export const submitInspectionReport = async (
       submittedAt: new Date(),
     };
 
+    if (bothPresent) {
+      (inspection as any).status = "completed";
+      (inspection as any).stage = "completed";
+    }
+
     await inspection.save();
+
+    if (bothPresent) {
+      try {
+        await sendInspectionRateReportEmailToBuyer(inspectionId);
+      } catch (emailErr) {
+        console.warn("[submitInspectionReport] Rate/report email failed:", emailErr);
+      }
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

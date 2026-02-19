@@ -28,6 +28,20 @@ export const submitInspectionRequest = async (
       const { requestedBy, inspectionAmount: clientAmount, inspectionDetails, properties } = validation.data!;
 
       const propertyIds = properties.map((p: { propertyId: string }) => p.propertyId);
+      const propertiesWithRegistration = await DB.Models.TransactionRegistration.find({
+        propertyId: { $in: propertyIds },
+        status: { $in: ["submitted", "pending_completion", "completed"] },
+      })
+        .select("propertyId")
+        .lean();
+      const registeredPropertyIds = new Set(
+        propertiesWithRegistration.map((r: any) => r.propertyId?.toString()).filter(Boolean)
+      );
+      const warnings: Record<string, string> = {};
+      registeredPropertyIds.forEach((id) => {
+        warnings[id] = "This property has an active or completed registered transaction.";
+      });
+
       const propertiesList = await DB.Models.Property.find({ _id: { $in: propertyIds } }).lean();
       if (propertiesList.length !== propertyIds.length) {
         const foundIds = new Set(propertiesList.map((p: any) => p._id.toString()));
@@ -137,7 +151,10 @@ export const submitInspectionRequest = async (
       res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Inspection request submitted. The agent will respond and you will receive a payment link if accepted.",
-        data: { inspections: savedInspections },
+        data: {
+          inspections: savedInspections,
+          ...(Object.keys(warnings).length > 0 ? { warnings } : {}),
+        },
       });
       
     } catch (error) {

@@ -25,6 +25,7 @@ import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
+import TransactionRegistrationRouter from "./transactionRegistration";
 import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
 import { handleWebhook, verifyWebhook } from "../controllers/public/whatsappWebhookController";
 import {
@@ -191,6 +192,9 @@ router.use("/properties", propertyRouter);
  
 // All Preferences Routes
 router.use("/preferences", preferenceRouter);
+
+// Public Transaction Registration Portal (LASRERA buyer-led compliance)
+router.use("/transaction-registration", TransactionRegistrationRouter);
 
 // All Inspections Routes
 router.use("/inspections", inspectRouter);

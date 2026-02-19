@@ -4,6 +4,36 @@ A simple log of changes made across the app. Add new entries at the top.
 
 ---
 
+## Public Transaction Registration Portal (LASRERA buyer-led compliance)
+
+**When:** Feb 2025  
+**Where:** TransactionRegistration model, property status enum, config, public routes, inspection request flow, docs.
+
+**What changed:**  
+A dedicated **Transaction Registration** feature was added so parties can register regulated transactions (Rental Agreements, Outright Property Sales, Off-Plan Purchases, Joint Venture Arrangements) with defined eligibility, regulatory requirements, and **fixed tiered processing fees** by transaction type and value band. Only transactions above designated thresholds require mandatory registration. The flow supports **inspection-to-transaction conversion**: after a completed inspection, the buyer can confirm intent to proceed and then review Safe Transaction Guidelines before registering. Once a transaction is registered, the property is tagged in the central registry and its status is set to **Transaction Registered – Pending Completion** (or **Sold / Leased – Registered** when the registration is later marked completed). If another user attempts to book an inspection or register the same property, the system returns a **warning** (“This property has an active or completed registered transaction”) but does **not** block viewings. Public **due-diligence search** by property address, LPIN, or GPS returns whether a transaction is registered, sold/leased status, and limited inspection history (e.g. count).
+
+**New routes (base path: `/api/transaction-registration`):**
+
+| Method | Path | Purpose |
+|--------|------|--------|
+| GET | `/transaction-registration/types` | Returns all transaction types with eligibility criteria, regulatory requirements, value bands (tiered processing fees in Naira), and mandatory registration thresholds. |
+| GET | `/transaction-registration/guidelines` | Returns Safe Transaction Guidelines: required documentation checklist, commission compliance rules, ownership verification standards, title verification recommendations, dispute resolution procedures, mandatory data disclosure requirements. |
+| POST | `/transaction-registration/intent` | Buyer confirms “I wish to proceed with this transaction” after a completed inspection. Body: `{ inspectionId, email, wishToProceed: true }`. Email must match the inspection’s buyer. Activates the Transaction Registration Guidance (next: review guidelines and register). |
+| POST | `/transaction-registration/register` | Registers a transaction. Body: `transactionType`, `propertyId`, optional `inspectionId`, `buyer` (email, fullName, phoneNumber), `transactionValue`, `propertyIdentification` (building: exactAddress required, LPIN/title/owner optional, GPS optional; land: GPS required, exactAddress/surveyPlan/ownerConfirmation optional). Computes processing fee from config, creates registration, updates property status to `transaction_registered_pending`. Returns 409 if property already has an active or completed registration. |
+| GET | `/transaction-registration/search` | Public due-diligence search. Query: **one of** `address`, `lpin`, or **both** `lat` and `lng`. Returns matches with: `hasRegisteredTransaction`, `registrationStatus`, `propertyStatus`, `soldOrLeasedRegistered`, `inspectionHistoryCount` (limited disclosure), and minimal property identification (address, LPIN, GPS). |
+| GET | `/transaction-registration/check` | Query: `propertyId`. Returns whether the property has an active or completed registration and, if so, a `warning` message. Used to show due-diligence warning when booking an inspection or starting registration; does not block. |
+
+**Other behaviour:**  
+- **Property status enum** extended with `transaction_registered_pending` and `sold_leased_registered`.  
+- **Inspection request (general and DealSite):** When submitting an inspection request, if any of the selected properties have an active or completed registered transaction, the response includes a `warnings` object (keyed by propertyId) with the message above; viewings are not blocked.  
+- **Config:** Transaction types, value bands, fees, and thresholds live in `src/config/transactionRegistration.config.ts`. Guidelines content is in the same file.  
+- **Model:** `TransactionRegistration` stores transaction type, property, optional inspection, buyer info, value, fee, status (`submitted` | `pending_completion` | `completed` | `rejected`), and property identification (building vs land with required fields as per spec).  
+
+**In short:**  
+Buyer-led compliance: register transactions (rental, sale, off-plan, JV) with tiered fees and thresholds; intent after completed inspection → guidelines → register; property locked in registry with status; public search by address/LPIN/GPS; inspection and registration flows show a warning when a property already has a registered transaction but do not block viewings.
+
+---
+
 ## Buyer rating and reporting after inspection (revised: no buyer auth)
 
 **When:** Feb 2025  
