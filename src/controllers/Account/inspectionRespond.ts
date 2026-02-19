@@ -138,10 +138,44 @@ export const respondToInspectionRequest = async (
         });
       }
 
+      const dealSite = await DB.Models.DealSite.findById(receiverMode.dealSiteID)
+        .select("publicSlug")
+        .lean();
+      const publicSlug = (dealSite as any)?.publicSlug;
+      const viewPropertyUrl =
+        publicSlug && propertyIdStr
+          ? `https://${publicSlug}.khabiteq.com/properties/${propertyIdStr}`
+          : undefined;
+
+      const inspectionDateStr = (inspection as any).inspectionDate
+        ? new Date((inspection as any).inspectionDate).toLocaleDateString("en-NG", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : undefined;
+      const inspectionTimeStr = (inspection as any).inspectionTime ?? undefined;
+
       await notifyBuyerAcceptedNoPayment({
         buyerEmail: buyer?.email,
         buyerName: buyer?.fullName || buyer?.email,
         propertyLocation,
+        propertyDetails: {
+          title: propertyLocation,
+          address: property?.location ? getPropertyTitleFromLocation(property.location) : undefined,
+          price: property?.price,
+          briefType: property?.briefType,
+          propertyType: property?.propertyType,
+          bedrooms: property?.additionalFeatures?.noOfBedroom,
+          bathrooms: property?.additionalFeatures?.noOfBathroom,
+          toilets: property?.additionalFeatures?.noOfToilet,
+          carPark: property?.additionalFeatures?.noOfCarPark,
+          viewPropertyUrl,
+          imageUrl: Array.isArray(property?.pictures) && property.pictures.length > 0 ? property.pictures[0] : undefined,
+        },
+        inspectionDate: inspectionDateStr,
+        inspectionTime: inspectionTimeStr,
       });
 
       return res.status(HttpStatusCodes.OK).json({

@@ -92,25 +92,114 @@ export async function notifyBuyerPaymentLink(params: {
 }
 
 /**
+ * Property details for the "inspection accepted" buyer email (e.g. DealSite).
+ */
+export interface InspectionAcceptedPropertyDetails {
+  title: string;
+  address?: string;
+  price?: number;
+  briefType?: string;
+  propertyType?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  toilets?: number;
+  carPark?: number;
+  viewPropertyUrl?: string;
+  imageUrl?: string;
+}
+
+/**
  * Notify buyer that agent accepted the request (no payment – e.g. DealSite).
- * Email does not contain a payment link.
+ * Email does not contain a payment link. Optionally includes professional property details.
  */
 export async function notifyBuyerAcceptedNoPayment(params: {
   buyerEmail: string;
   buyerName: string;
   propertyLocation: string;
+  propertyDetails?: InspectionAcceptedPropertyDetails;
+  inspectionDate?: string;
+  inspectionTime?: string;
 }): Promise<void> {
-  const { buyerEmail, buyerName, propertyLocation } = params;
+  const { buyerEmail, buyerName, propertyLocation, propertyDetails, inspectionDate, inspectionTime } = params;
+
+  const detailsSection = propertyDetails
+    ? (() => {
+        const addr =
+          propertyDetails.address && propertyDetails.address !== propertyDetails.title
+            ? `<p><strong>Address:</strong> ${propertyDetails.address}</p>`
+            : "";
+        const price =
+          propertyDetails.price != null && propertyDetails.price > 0
+            ? `<p><strong>Price:</strong> ₦${propertyDetails.price.toLocaleString()}</p>`
+            : "";
+        const typeParts = [propertyDetails.briefType, propertyDetails.propertyType].filter(Boolean);
+        const typeLine =
+          typeParts.length > 0 ? `<p><strong>Type:</strong> ${typeParts.join(" · ")}</p>` : "";
+        const beds =
+          propertyDetails.bedrooms != null
+            ? `<p><strong>Bedrooms:</strong> ${propertyDetails.bedrooms}</p>`
+            : "";
+        const baths =
+          propertyDetails.bathrooms != null
+            ? `<p><strong>Bathrooms:</strong> ${propertyDetails.bathrooms}</p>`
+            : "";
+        const toilets =
+          propertyDetails.toilets != null
+            ? `<p><strong>Toilets:</strong> ${propertyDetails.toilets}</p>`
+            : "";
+        const parking =
+          propertyDetails.carPark != null
+            ? `<p><strong>Parking:</strong> ${propertyDetails.carPark}</p>`
+            : "";
+        const viewLink =
+          propertyDetails.viewPropertyUrl
+            ? `<p><a href="${propertyDetails.viewPropertyUrl}" style="display:inline-block;background:#09391C;color:white;padding:10px 18px;text-decoration:none;border-radius:6px;margin-top:8px;">View property</a></p>`
+            : "";
+        const img =
+          propertyDetails.imageUrl
+            ? `<p style="margin:12px 0;"><img src="${propertyDetails.imageUrl}" alt="Property" style="max-width:100%;height:auto;border-radius:8px;max-height:200px;object-fit:cover;" /></p>`
+            : "";
+        return `
+    <div style="margin:20px 0;padding:16px;background:#f8f9fa;border-radius:8px;border:1px solid #e9ecef;">
+      <p style="margin:0 0 12px 0;font-weight:600;color:#09391C;">Property details</p>
+      <p style="margin:0 0 8px 0;"><strong>${propertyDetails.title}</strong></p>
+      ${addr}
+      ${price}
+      ${typeLine}
+      ${beds}
+      ${baths}
+      ${toilets}
+      ${parking}
+      ${img}
+      ${viewLink}
+    </div>`;
+      })()
+    : "";
+
+  const scheduleLine =
+    inspectionDate || inspectionTime
+      ? `<p><strong>Scheduled:</strong> ${[inspectionDate, inspectionTime].filter(Boolean).join(" at ")}</p>`
+      : "";
+
   const html = generalEmailLayout(`
     <p>Hello ${buyerName || "there"},</p>
     <p>Your inspection request for <strong>${propertyLocation}</strong> has been accepted by the agent.</p>
+    ${detailsSection}
+    ${scheduleLine}
     <p>The agent will coordinate with you for the scheduled date and time.</p>
   `);
+
+  const textParts = [
+    `Your inspection request for ${propertyLocation} has been accepted.`,
+    propertyDetails ? `Property: ${propertyDetails.title}${propertyDetails.address ? ` — ${propertyDetails.address}` : ""}.` : "",
+    inspectionDate || inspectionTime ? `Scheduled: ${[inspectionDate, inspectionTime].filter(Boolean).join(" at ")}.` : "",
+    "The agent will coordinate with you for the scheduled date and time.",
+  ].filter(Boolean);
   await sendEmail({
     to: buyerEmail,
-    subject: "Inspection accepted",
+    subject: "Inspection accepted – " + (propertyDetails?.title || propertyLocation),
     html,
-    text: `Your inspection request for ${propertyLocation} has been accepted. The agent will coordinate with you for the scheduled date and time.`,
+    text: textParts.join(" "),
   });
 }
 
