@@ -44,6 +44,10 @@ export interface ITransactionRegistration {
   processingFee: number;
   status: TransactionRegistrationStatus;
   propertyIdentification: IPropertyIdentification;
+  /** Optional receipt file name (e.g. from frontend register payload). */
+  paymentReceiptFileName?: string;
+  /** Optional base64-encoded receipt (e.g. from frontend register payload). */
+  paymentReceiptBase64?: string;
 }
 
 export interface ITransactionRegistrationDoc extends ITransactionRegistration, Document {
@@ -96,6 +100,8 @@ export class TransactionRegistration {
           type: Schema.Types.Mixed,
           required: true,
         },
+        paymentReceiptFileName: { type: String, required: false },
+        paymentReceiptBase64: { type: String, required: false },
       },
       { timestamps: true }
     );

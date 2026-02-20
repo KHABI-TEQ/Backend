@@ -8,7 +8,10 @@ import { JoiValidator } from "../../../validators/JoiValidator";
 import {
   buyerIntentSchema,
   registerTransactionSchema,
+  registerTransactionFrontendSchema,
   publicSearchSchema,
+  checkPropertyQuerySchema,
+  egisValidateQuerySchema,
 } from "../../../validators/transactionRegistration.validator";
 import {
   TRANSACTION_TYPE_CONFIGS,
@@ -21,9 +24,26 @@ import type { IPropertyIdentification } from "../../../models/transactionRegistr
 
 const ACTIVE_OR_COMPLETED_STATUSES = ["submitted", "pending_completion", "completed"] as const;
 
+/** Frontend slug for each backend transaction type */
+const TYPE_TO_SLUG: Record<TransactionRegistrationType, string> = {
+  rental_agreement: "rental",
+  outright_sale: "outright-purchase",
+  off_plan_purchase: "off-plan",
+  joint_venture: "joint-venture",
+};
+
+/** Map frontend slug to internal transaction type */
+const SLUG_TO_TYPE: Record<string, TransactionRegistrationType> = {
+  rental: "rental_agreement",
+  "outright-purchase": "outright_sale",
+  "contract-of-sale": "outright_sale",
+  "off-plan": "off_plan_purchase",
+  "joint-venture": "joint_venture",
+};
+
 /**
  * GET /transaction-registration/types
- * Returns transaction types with eligibility, regulatory requirements, value bands (tiered fees), and thresholds.
+ * Returns transaction types in frontend shape: id, name, slug, label, title, mandatoryRegistrationThreshold, valueBands, eligibilityCriteria, regulatoryRequirements.
  */
 export const getRegistrationTypes = async (
   _req: AppRequest,
@@ -31,19 +51,45 @@ export const getRegistrationTypes = async (
   next: NextFunction
 ) => {
   try {
+    const data = TRANSACTION_TYPE_CONFIGS.map((c) => ({
+      id: c.type,
+      name: c.label,
+      slug: TYPE_TO_SLUG[c.type],
+      label: c.label,
+      title: c.label,
+      mandatoryRegistrationThreshold: c.mandatoryRegistrationThresholdNaira,
+      valueBands: c.valueBands.map((b) => ({
+        min: b.minValueNaira,
+        max: b.maxValueNaira,
+        feeNaira: b.processingFeeNaira,
+        label: b.label,
+      })),
+      eligibilityCriteria: c.eligibilityCriteria,
+      regulatoryRequirements: c.regulatoryRequirements,
+    }));
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Transaction registration types with fees and thresholds",
-      data: TRANSACTION_TYPE_CONFIGS,
+      data,
     });
   } catch (error) {
     next(error);
   }
 };
 
+/** Map section heading to frontend key */
+const GUIDELINES_KEYS: Record<string, string> = {
+  "Required Documentation Checklist": "requiredDocumentation",
+  "Commission Compliance Rules": "commissionCompliance",
+  "Ownership Verification Standards": "ownershipVerification",
+  "Title Verification Recommendations": "titleVerification",
+  "Dispute Resolution Procedures": "disputeResolution",
+  "Mandatory Data Disclosure Requirements": "mandatoryDataDisclosure",
+};
+
 /**
  * GET /transaction-registration/guidelines
- * Returns Safe Transaction Guidelines (documentation checklist, commission, ownership, title, dispute, disclosure).
+ * Returns Safe Transaction Guidelines in frontend shape: requiredDocumentation, commissionCompliance, ownershipVerification, titleVerification, disputeResolution, mandatoryDataDisclosure (arrays of strings).
  */
 export const getGuidelines = async (
   _req: AppRequest,
@@ -51,10 +97,15 @@ export const getGuidelines = async (
   next: NextFunction
 ) => {
   try {
+    const data: Record<string, string[]> = {};
+    for (const section of SAFE_TRANSACTION_GUIDELINES.sections) {
+      const key = GUIDELINES_KEYS[section.heading] ?? section.heading;
+      data[key] = section.content;
+    }
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Safe transaction guidelines",
-      data: SAFE_TRANSACTION_GUIDELINES,
+      data,
     });
   } catch (error) {
     next(error);
@@ -115,9 +166,68 @@ export const submitBuyerIntent = async (
 };
 
 /**
+ * Normalize frontend register payload to internal shape (transactionType + propertyIdentification).
+ */
+function normalizeRegisterPayload(body: any): {
+  transactionType: TransactionRegistrationType;
+  propertyId: string;
+  inspectionId?: string;
+  buyer: { email: string; fullName: string; phoneNumber: string };
+  transactionValue: number;
+  propertyIdentification: IPropertyIdentification;
+} {
+  const slug = body.transactionType as string;
+  const internalType = SLUG_TO_TYPE[slug];
+  if (!internalType) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, `Invalid transactionType: ${slug}`);
+  }
+  const pi = body.propertyIdentification;
+  const isLand = pi.type === "land";
+  if (isLand) {
+    if (pi.lat == null || pi.lng == null) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "For land transactions, lat and lng are required.");
+    }
+    return {
+      transactionType: internalType,
+      propertyId: body.propertyId,
+      inspectionId: body.inspectionId || undefined,
+      buyer: body.buyer,
+      transactionValue: body.transactionValue,
+      propertyIdentification: {
+        type: "land",
+        exactAddress: pi.exactAddress || undefined,
+        gpsCoordinates: { lat: Number(pi.lat), lng: Number(pi.lng) },
+        surveyPlanDetails: pi.surveyPlanRef || undefined,
+        ownerConfirmation: pi.ownerConfirmation != null ? String(pi.ownerConfirmation) : undefined,
+      },
+    };
+  }
+  const hasAddress = pi.exactAddress && String(pi.exactAddress).trim().length > 0;
+  const hasGps = pi.lat != null && pi.lng != null;
+  if (!hasAddress && !hasGps) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "For building/residential/commercial/duplex, exactAddress or lat/lng is required.");
+  }
+  return {
+    transactionType: internalType,
+    propertyId: body.propertyId,
+    inspectionId: body.inspectionId || undefined,
+    buyer: body.buyer,
+    transactionValue: body.transactionValue,
+    propertyIdentification: {
+      type: "building",
+      exactAddress: (pi.exactAddress && String(pi.exactAddress).trim()) || "Address not provided",
+      lpin: undefined,
+      titleReference: pi.titleNumber || undefined,
+      ownerVerification: pi.ownerName || undefined,
+      gpsCoordinates: hasGps ? { lat: Number(pi.lat), lng: Number(pi.lng) } : undefined,
+    },
+  };
+}
+
+/**
  * POST /transaction-registration/register
- * Registers a transaction (rental, outright sale, off-plan, JV). Validates property identification (building vs land),
- * ensures no existing active/completed registration for the property, computes fee, saves registration, updates property status.
+ * Registers a transaction. Accepts either backend shape or frontend shape (slugs, flat propertyIdentification).
+ * Response: data.registrationId, data.processingFee, optional data.paymentUrl.
  */
 export const registerTransaction = async (
   req: AppRequest,
@@ -125,19 +235,45 @@ export const registerTransaction = async (
   next: NextFunction
 ) => {
   try {
-    const validation = JoiValidator.validate(registerTransactionSchema, req.body);
-    if (!validation.success) {
-      const errorMessage = validation.errors.map((e) => `${e.field}: ${e.message}`).join(", ");
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, errorMessage);
+    let payload: {
+      transactionType: TransactionRegistrationType;
+      propertyId: string;
+      inspectionId?: string;
+      buyer: { email: string; fullName: string; phoneNumber: string };
+      transactionValue: number;
+      propertyIdentification: IPropertyIdentification;
+    };
+    let paymentReceiptFileName: string | undefined;
+    let paymentReceiptBase64: string | undefined;
+
+    const frontendValidation = JoiValidator.validate(registerTransactionFrontendSchema, req.body);
+    if (frontendValidation.success && frontendValidation.data) {
+      payload = normalizeRegisterPayload(frontendValidation.data);
+      const fd = frontendValidation.data as any;
+      if (fd.paymentReceiptFileName != null && String(fd.paymentReceiptFileName).trim()) {
+        paymentReceiptFileName = String(fd.paymentReceiptFileName).trim();
+      }
+      if (fd.paymentReceiptBase64 != null && String(fd.paymentReceiptBase64).trim()) {
+        paymentReceiptBase64 = String(fd.paymentReceiptBase64).trim();
+      }
+    } else {
+      const validation = JoiValidator.validate(registerTransactionSchema, req.body);
+      if (!validation.success) {
+        const errorMessage = validation.errors.map((e) => `${e.field}: ${e.message}`).join(", ");
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, errorMessage);
+      }
+      const d = validation.data!;
+      payload = {
+        transactionType: d.transactionType as TransactionRegistrationType,
+        propertyId: d.propertyId,
+        inspectionId: d.inspectionId || undefined,
+        buyer: d.buyer,
+        transactionValue: d.transactionValue,
+        propertyIdentification: d.propertyIdentification as IPropertyIdentification,
+      };
     }
-    const {
-      transactionType,
-      propertyId,
-      inspectionId,
-      buyer,
-      transactionValue,
-      propertyIdentification,
-    } = validation.data!;
+
+    const { transactionType, propertyId, inspectionId, buyer, transactionValue, propertyIdentification } = payload;
 
     const property = await DB.Models.Property.findById(propertyId).lean();
     if (!property) {
@@ -155,10 +291,9 @@ export const registerTransaction = async (
       );
     }
 
-    const fee = getProcessingFeeNaira(transactionType as TransactionRegistrationType, transactionValue);
-    const mandatory = isMandatoryRegistration(transactionType as TransactionRegistrationType, transactionValue);
+    const fee = getProcessingFeeNaira(transactionType, transactionValue);
 
-    const reg = await DB.Models.TransactionRegistration.create({
+    const createPayload: any = {
       transactionType,
       propertyId,
       inspectionId: inspectionId || undefined,
@@ -170,25 +305,24 @@ export const registerTransaction = async (
       transactionValue,
       processingFee: fee,
       status: "submitted",
-      propertyIdentification: propertyIdentification as IPropertyIdentification,
-    });
+      propertyIdentification,
+    };
+    if (paymentReceiptFileName != null) createPayload.paymentReceiptFileName = paymentReceiptFileName;
+    if (paymentReceiptBase64 != null) createPayload.paymentReceiptBase64 = paymentReceiptBase64;
+    const reg = await DB.Models.TransactionRegistration.create(createPayload);
 
     await DB.Models.Property.findByIdAndUpdate(propertyId, {
       status: "transaction_registered_pending",
     });
 
+    const data: { registrationId: string; processingFee: number; paymentUrl?: string } = {
+      registrationId: String(reg._id),
+      processingFee: fee,
+    };
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
-      message:
-        "Transaction registered successfully. Property status has been updated to 'Transaction Registered – Pending Completion'.",
-      data: {
-        registrationId: reg._id,
-        transactionType,
-        propertyId,
-        processingFee: fee,
-        mandatoryRegistration: mandatory,
-        propertyStatus: "transaction_registered_pending",
-      },
+      message: "Transaction registered successfully.",
+      data,
     });
   } catch (error) {
     next(error);
@@ -263,29 +397,32 @@ export const publicSearch = async (
 
     const results = registrations.map((r: any) => {
       const propId = r.propertyId?._id?.toString();
+      const ident = r.propertyIdentification;
+      const addr = ident?.exactAddress ?? null;
+      const gps = ident?.gpsCoordinates;
+      const registrationStatus =
+        r.status === "completed" ? "Registered" : r.status === "submitted" || r.status === "pending_completion" ? "Pending" : String(r.status);
       return {
-        registrationId: r._id,
-        transactionType: r.transactionType,
-        registrationStatus: r.status,
+        address: addr,
+        lpin: ident?.lpin ?? null,
+        lat: gps?.lat ?? null,
+        lng: gps?.lng ?? null,
         hasRegisteredTransaction: true,
+        registrationStatus,
         propertyStatus: r.propertyId?.status ?? null,
         soldOrLeasedRegistered: r.status === "completed" || r.propertyId?.status === "sold_leased_registered",
         inspectionHistoryCount: propId ? inspectionCounts.get(propId) ?? 0 : 0,
-        propertyIdentification: {
-          exactAddress: r.propertyIdentification?.exactAddress,
-          lpin: r.propertyIdentification?.lpin,
-          gpsCoordinates: r.propertyIdentification?.gpsCoordinates,
-        },
+        titleStatus: null,
+        ownershipVerified: null,
+        coordinateVerified: null,
+        egisLandRecordRef: null,
       };
     });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Due diligence search results",
-      data: {
-        matches: results,
-        total: results.length,
-      },
+      message: null,
+      data: results,
     });
   } catch (error) {
     next(error);
@@ -303,10 +440,12 @@ export const checkPropertyRegistration = async (
   next: NextFunction
 ) => {
   try {
-    const { propertyId } = req.query;
-    if (!propertyId || typeof propertyId !== "string") {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "propertyId is required.");
+    const queryValidation = JoiValidator.validate(checkPropertyQuerySchema, req.query as any);
+    if (!queryValidation.success) {
+      const errorMessage = queryValidation.errors.map((e) => `${e.field}: ${e.message}`).join(", ");
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, errorMessage || "propertyId is required.");
     }
+    const { propertyId } = queryValidation.data!;
 
     const existing = await DB.Models.TransactionRegistration.findOne({
       propertyId,
@@ -315,20 +454,69 @@ export const checkPropertyRegistration = async (
       .select("status transactionType")
       .lean();
 
-    const hasActiveOrCompletedRegistration = !!existing;
-    const warning = hasActiveOrCompletedRegistration
-      ? "This property has an active or completed registered transaction."
-      : undefined;
+    const hasRegistration = !!existing;
+    const warning = hasRegistration
+      ? "Transaction registered – Pending completion."
+      : null;
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
+      hasRegistration,
+      warning,
       data: {
-        propertyId,
-        hasActiveOrCompletedRegistration,
-        warning,
-        registrationStatus: existing?.status ?? null,
-        transactionType: existing?.transactionType ?? null,
+        hasRegistration,
+        warning: hasRegistration ? warning : null,
+        titleStatus: null,
+        ownershipVerified: null,
+        coordinateVerified: null,
+        egisLandRecordRef: null,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /transaction-registration/egis-validate
+ * Optional stub for Lagos State E-GIS title/ownership verification. Query: propertyId, address, or both lat and lng.
+ * Frontend may call for "Validate with E-GIS". Returns placeholder data; can be wired to real E-GIS later.
+ */
+export const egisValidate = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const queryValidation = JoiValidator.validate(egisValidateQuerySchema, req.query as any);
+    if (!queryValidation.success) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        data: null,
+        message: "Provide at least one of: propertyId, address, or both lat and lng.",
+      });
+    }
+    const { propertyId, address, lat, lng } = queryValidation.data!;
+    const hasProp = propertyId && String(propertyId).trim().length > 0;
+    const hasAddr = address && String(address).trim().length > 0;
+    const hasGps = lat != null && lng != null;
+    if (!hasProp && !hasAddr && !hasGps) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        data: null,
+        message: "Provide at least one of: propertyId, address, or both lat and lng.",
+      });
+    }
+    const data = {
+      titleStatus: null as string | null,
+      ownershipVerified: null as boolean | null,
+      coordinateVerified: null as boolean | null,
+      egisLandRecordRef: null as string | null,
+    };
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data,
+      message: null,
     });
   } catch (error) {
     next(error);

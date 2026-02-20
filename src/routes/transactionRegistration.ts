@@ -6,6 +6,7 @@ import {
   registerTransaction,
   publicSearch,
   checkPropertyRegistration,
+  egisValidate,
 } from "../controllers/public/transactionRegistration/transactionRegistrationController";
 
 const TransactionRegistrationRouter = express.Router();
@@ -27,5 +28,8 @@ TransactionRegistrationRouter.get("/search", publicSearch);
 
 /** Check if property has active/completed registration (returns warning, does not block) */
 TransactionRegistrationRouter.get("/check", checkPropertyRegistration);
+
+/** Optional E-GIS validate (stub for title/ownership verification) */
+TransactionRegistrationRouter.get("/egis-validate", egisValidate);
 
 export default TransactionRegistrationRouter;

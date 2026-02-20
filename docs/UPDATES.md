@@ -4,6 +4,32 @@ A simple log of changes made across the app. Add new entries at the top.
 
 ---
 
+## Transaction Registration & DealSite API alignment (public frontend)
+
+**When:** Feb 2025  
+**Where:** Transaction-registration controller, validators, routes; DealSite getData.
+
+**What changed:**  
+APIs consumed by the **agent public access page** (DealSite + transaction registration) were aligned with the frontend contract so that API calls do not return 404 and request/response payloads match.
+
+1. **Deal-site getData** — `GET /deal-site/{publicSlug}/getData` now includes `dealSite: { inspectionSettings }` in the response (with `defaultInspectionFee` when present).
+2. **Transaction types** — `GET /transaction-registration/types` returns `data` as an array of objects with frontend fields: `id`, `name`, `slug`, `label`, `title`, `mandatoryRegistrationThreshold`, `valueBands` (min, max, feeNaira, label), `eligibilityCriteria`, `regulatoryRequirements`.
+3. **Guidelines** — `GET /transaction-registration/guidelines` returns `data` as a flat object: `requiredDocumentation`, `commissionCompliance`, `ownershipVerification`, `titleVerification`, `disputeResolution`, `mandatoryDataDisclosure` (each an array of strings).
+4. **Search** — `GET /transaction-registration/search` returns `data` as an array (not `data.matches`). Each item includes `address`, `lpin`, `lat`, `lng`, `hasRegisteredTransaction`, `registrationStatus` ("Registered" | "Pending"), `propertyStatus`, `soldOrLeasedRegistered`, `inspectionHistoryCount`, and placeholder fields `titleStatus`, `ownershipVerified`, `coordinateVerified`, `egisLandRecordRef`.
+5. **Check** — `GET /transaction-registration/check?propertyId=` returns top-level `hasRegistration`, `warning`, and `data` with `hasRegistration`, `warning`, `titleStatus`, `ownershipVerified`, `coordinateVerified`, `egisLandRecordRef`. Warning text: "Transaction registered – Pending completion." when applicable.
+6. **E-GIS validate** — New `GET /transaction-registration/egis-validate` (query: `propertyId`, `address`, or `lat`+`lng`). Returns stub `data` with `titleStatus`, `ownershipVerified`, `coordinateVerified`, `egisLandRecordRef` (all null); can be wired to Lagos E-GIS later.
+7. **Register** — `POST /transaction-registration/register` now accepts the **frontend payload**: `transactionType` slugs (`rental`, `outright-purchase`, `off-plan`, `joint-venture`, `contract-of-sale`), `propertyIdentification.type` (`land` | `residential` | `commercial` | `duplex`), flat `exactAddress`, `titleNumber`, `ownerName`, `lat`, `lng`, `surveyPlanRef`, `ownerConfirmation`, and optional `paymentReceiptFileName`/`paymentReceiptBase64`. Response: `data.registrationId`, `data.processingFee`; optional `data.paymentUrl` when payment link is implemented. Backend normalizes to internal model (building vs land, our field names) and continues to accept the original backend payload shape.
+
+**In short:**  
+All listed transaction-registration and DealSite getData responses match the public frontend docs; new egis-validate route added; register accepts frontend slugs and property-identification shape.
+
+**Admin – retrieve all registered transactions:**  
+- **GET /api/admin/transaction-registrations** — List all transaction registrations with details. Query: `page`, `limit`, `status` (submitted | pending_completion | completed | rejected), `transactionType` (rental_agreement | outright_sale | off_plan_purchase | joint_venture). Response includes `data` (array with populated `propertyId` and `inspectionId`) and `pagination`.  
+- **GET /api/admin/transaction-registrations/stats** — Counts by status and by transaction type, plus total.  
+- **GET /api/admin/transaction-registrations/:registrationId** — Single registration with full property and inspection details. All routes require admin auth.
+
+---
+
 ## Public Transaction Registration Portal (LASRERA buyer-led compliance)
 
 **When:** Feb 2025  

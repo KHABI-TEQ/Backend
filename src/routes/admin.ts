@@ -44,6 +44,11 @@ import {
   adminGetReportById,
   adminUpdateReport,
 } from "../controllers/Admin/agentRatingReport";
+import {
+  getAllTransactionRegistrations,
+  getTransactionRegistrationStats,
+  getTransactionRegistrationById,
+} from "../controllers/Admin/TransactionRegistration/adminTransactionRegistration";
 
 
 const storage = multer.memoryStorage();
@@ -202,6 +207,11 @@ AdminRouter.get("/transactions/stats", getTransactionStats);
 AdminRouter.get("/transactions/:transactionId", getTransactionById);
 AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
+
+// TRANSACTION REGISTRATION (LASRERA) MANAGEMENT ROUTES
+AdminRouter.get("/transaction-registrations", getAllTransactionRegistrations);
+AdminRouter.get("/transaction-registrations/stats", getTransactionRegistrationStats);
+AdminRouter.get("/transaction-registrations/:registrationId", getTransactionRegistrationById);
 
 // DEAL SITE MANAGEMENT ROUTES
 AdminRouter.get("/deal-sites/getAll", adminGetAllDealSites);

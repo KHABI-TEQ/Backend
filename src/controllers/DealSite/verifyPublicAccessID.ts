@@ -238,9 +238,11 @@ export const getDealSiteBySlug = async (
     //   featuredProperties,
     // };
 
+    const inspectionSettings = (dealSite as any).inspectionSettings ?? { defaultInspectionFee: 5000 };
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: dealSite,
+      dealSite: { inspectionSettings },
     });
   } catch (err) {
     next(err);
