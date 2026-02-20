@@ -48,6 +48,8 @@ export interface ITransactionRegistration {
   paymentReceiptFileName?: string;
   /** Optional base64-encoded receipt (e.g. from frontend register payload). */
   paymentReceiptBase64?: string;
+  /** Paystack transaction ID for the processing fee (set when payment link is generated). */
+  paymentTransactionId?: Types.ObjectId;
 }
 
 export interface ITransactionRegistrationDoc extends ITransactionRegistration, Document {
@@ -102,6 +104,7 @@ export class TransactionRegistration {
         },
         paymentReceiptFileName: { type: String, required: false },
         paymentReceiptBase64: { type: String, required: false },
+        paymentTransactionId: { type: Schema.Types.ObjectId, ref: "newTransaction", required: false },
       },
       { timestamps: true }
     );

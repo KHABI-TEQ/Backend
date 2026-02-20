@@ -95,7 +95,7 @@ export const registerTransactionFrontendSchema = Joi.object({
 
 export const publicSearchSchema = Joi.object({
   address: Joi.string().trim().min(1).optional(),
-  lpin: Joi.string().trim().min(1).optional(),
+  propertyId: Joi.string().trim().min(1).optional(),
   lat: Joi.number().min(-90).max(90).optional(),
   lng: Joi.number().min(-180).max(180).optional(),
 });

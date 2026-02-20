@@ -16,7 +16,8 @@ export type TransactionType =
   | 'subscription'
   | 'inspection'
   | 'shortlet-booking'
-  | 'document-verification';
+  | 'document-verification'
+  | 'transaction-registration';
 
 export interface INewTransaction {
   reference: string;
@@ -87,6 +88,7 @@ export class NewTransaction {
             'inspection',
             'shortlet-booking',
             'document-verification',
+            'transaction-registration',
           ],
           required: true,
         },

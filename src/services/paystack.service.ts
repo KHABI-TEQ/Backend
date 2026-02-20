@@ -309,9 +309,10 @@ export class PaystackService {
    * Triggers side effects based on the transaction type
    */
   static async handleTransactionTypeEffect(tx: INewTransactionDoc) {
-    const { transactionType, status, fromWho, amount } = tx;
+    const { transactionType, status } = tx;
+    if (status !== 'success') return null;
 
-    switch (transactionType) { 
+    switch (transactionType) {
       case 'inspection':
         return await PaystackService.handleInspectionPaymentEffect(tx);
 
@@ -320,15 +321,29 @@ export class PaystackService {
 
       case 'document-verification':
         return await PaystackService.handleDocumentVerificationPayment(tx);
- 
+
       case 'subscription':
         return await PaystackService.handleSubscriptionPayment(tx);
 
-      // Add more transaction types here...
+      case 'transaction-registration':
+        return await PaystackService.handleTransactionRegistrationPaymentEffect(tx);
+
       default:
         console.warn(`Unhandled transaction type: ${transactionType}`);
         return null;
     }
+  }
+
+  /**
+   * When processing fee for a transaction registration is paid, mark registration as pending_completion.
+   */
+  static async handleTransactionRegistrationPaymentEffect(tx: INewTransactionDoc): Promise<null> {
+    const registrationId = tx.meta?.registrationId;
+    if (!registrationId) return null;
+    await DB.Models.TransactionRegistration.findByIdAndUpdate(registrationId, {
+      $set: { status: 'pending_completion' },
+    });
+    return null;
   }
 
   /**

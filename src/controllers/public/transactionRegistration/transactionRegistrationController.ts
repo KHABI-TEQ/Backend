@@ -21,6 +21,7 @@ import {
 } from "../../../config/transactionRegistration.config";
 import type { TransactionRegistrationType } from "../../../models/transactionRegistration";
 import type { IPropertyIdentification } from "../../../models/transactionRegistration";
+import { PaystackService } from "../../../services/paystack.service";
 
 const ACTIVE_OR_COMPLETED_STATUSES = ["submitted", "pending_completion", "completed"] as const;
 
@@ -319,9 +320,36 @@ export const registerTransaction = async (
       registrationId: String(reg._id),
       processingFee: fee,
     };
+
+    if (fee > 0) {
+      const buyerDoc = await DB.Models.Buyer.findOneAndUpdate(
+        { email: buyer.email },
+        { $setOnInsert: { fullName: buyer.fullName, phoneNumber: buyer.phoneNumber, email: buyer.email } },
+        { upsert: true, new: true }
+      );
+      try {
+        const paymentResult = await PaystackService.initializePayment({
+          email: buyer.email,
+          amount: fee,
+          fromWho: { kind: "Buyer", item: buyerDoc._id as mongoose.Types.ObjectId },
+          transactionType: "transaction-registration",
+          metadata: { registrationId: String(reg._id) },
+        });
+        await DB.Models.TransactionRegistration.updateOne(
+          { _id: reg._id },
+          { $set: { paymentTransactionId: paymentResult.transactionId } }
+        );
+        data.paymentUrl = paymentResult.authorization_url;
+      } catch (err) {
+        console.error("[transaction-registration] Paystack init failed:", err);
+      }
+    }
+
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
-      message: "Transaction registered successfully.",
+      message: data.paymentUrl
+        ? "Transaction registered successfully. Complete payment to finalise."
+        : "Transaction registered successfully.",
       data,
     });
   } catch (error) {
@@ -331,7 +359,7 @@ export const registerTransaction = async (
 
 /**
  * GET /transaction-registration/search
- * Public due-diligence search by address, LPIN, or GPS. Returns whether a transaction is registered,
+ * Public check property status search by address, propertyId, or GPS. Returns whether a transaction is registered,
  * sold/leased status, and limited inspection history (e.g. count or existence only).
  */
 export const publicSearch = async (
@@ -345,14 +373,14 @@ export const publicSearch = async (
       const errorMessage = queryValidation.errors.map((e) => `${e.field}: ${e.message}`).join(", ");
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, errorMessage);
     }
-    const { address, lpin, lat, lng } = queryValidation.data!;
+    const { address, propertyId, lat, lng } = queryValidation.data!;
     const hasAddress = address && String(address).trim().length > 0;
-    const hasLpin = lpin && String(lpin).trim().length > 0;
+    const hasPropertyId = propertyId && String(propertyId).trim().length > 0;
     const hasGps = lat != null && lng != null;
-    if (!hasAddress && !hasLpin && !hasGps) {
+    if (!hasAddress && !hasPropertyId && !hasGps) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Provide at least one of: address, lpin, or both lat and lng."
+        "Provide at least one of: address, propertyId, or both lat and lng."
       );
     }
 
@@ -360,8 +388,8 @@ export const publicSearch = async (
     if (hasAddress) {
       conditions.push({ "propertyIdentification.exactAddress": new RegExp(String(address).trim(), "i") });
     }
-    if (hasLpin) {
-      conditions.push({ "propertyIdentification.lpin": String(lpin).trim() });
+    if (hasPropertyId) {
+      conditions.push({ propertyId: new mongoose.Types.ObjectId(String(propertyId).trim()) });
     }
     if (hasGps) {
       conditions.push({
@@ -404,6 +432,7 @@ export const publicSearch = async (
         r.status === "completed" ? "Registered" : r.status === "submitted" || r.status === "pending_completion" ? "Pending" : String(r.status);
       return {
         address: addr,
+        propertyId: propId ?? null,
         lpin: ident?.lpin ?? null,
         lat: gps?.lat ?? null,
         lng: gps?.lng ?? null,
