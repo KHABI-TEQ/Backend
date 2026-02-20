@@ -16,7 +16,6 @@ import {
 import {
   TRANSACTION_TYPE_CONFIGS,
   SAFE_TRANSACTION_GUIDELINES,
-  getProcessingFeeNaira,
   isMandatoryRegistration,
 } from "../../../config/transactionRegistration.config";
 import type { TransactionRegistrationType } from "../../../models/transactionRegistration";
@@ -292,7 +291,7 @@ export const registerTransaction = async (
       );
     }
 
-    const fee = getProcessingFeeNaira(transactionType, transactionValue);
+    const fee = Math.round(transactionValue * 0.03);
 
     const createPayload: any = {
       transactionType,
