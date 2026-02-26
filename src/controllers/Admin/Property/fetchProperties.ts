@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { AppRequest } from "../../../types/express";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionListing.config";
 import { formatPropertyDataForTable } from "../../../utils/propertyFormatters";
 import type { PipelineStage } from "mongoose";
 
@@ -220,7 +221,10 @@ export const getPropertyInspections = async (
     const skip = (page - 1) * limit;
 
     const [inspections, total] = await Promise.all([
-      DB.Models.InspectionBooking.find({ propertyId })
+      DB.Models.InspectionBooking.find({
+        propertyId,
+        status: { $in: INSPECTION_LISTING_ALLOWED_STATUSES },
+      })
         .populate("owner")
         .populate("requestedBy")
         .populate("transaction")
@@ -229,7 +233,10 @@ export const getPropertyInspections = async (
         .limit(limit)
         .lean(),
 
-      DB.Models.InspectionBooking.countDocuments({ propertyId }),
+      DB.Models.InspectionBooking.countDocuments({
+        propertyId,
+        status: { $in: INSPECTION_LISTING_ALLOWED_STATUSES },
+      }),
     ]);
 
     return res.status(HttpStatusCodes.OK).json({

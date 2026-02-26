@@ -8,6 +8,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { BuyerDetailsToSellerTemplate, SellerDetailsToBuyerTemplate } from "../../../common/emailTemplates/inspectionMails";
 import sendEmail from "../../../common/send.email";
 import { sendInspectionRateReportEmailToBuyer } from "../../../services/inspectionWorkflow.service";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionListing.config";
 
 // Fetch all inspections assigned to field agent
 export const fetchAssignedInspections = async (
@@ -29,9 +30,11 @@ export const fetchAssignedInspections = async (
 
     const filter: any = {
       assignedFieldAgent: req.user._id,
+      status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
     };
 
-    if (status) filter.status = status;
+    if (status && INSPECTION_LISTING_ALLOWED_STATUSES.includes(status as any))
+      filter.status = status;
     if (inspectionType) filter.inspectionType = inspectionType;
     if (inspectionMode) filter.inspectionMode = inspectionMode;
     if (inspectionStatus) filter.inspectionStatus = inspectionStatus;
@@ -75,6 +78,7 @@ export const fetchRecentAssignedInspections = async (
   try {
     const filter: any = {
       assignedFieldAgent: req.user._id,
+      status: { $in: INSPECTION_LISTING_ALLOWED_STATUSES },
     };
 
     const inspections = await DB.Models.InspectionBooking.find(filter)

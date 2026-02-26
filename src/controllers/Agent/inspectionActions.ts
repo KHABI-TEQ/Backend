@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../config/inspectionListing.config";
 
 interface Request extends Express.Request {
   user?: any;
@@ -31,10 +32,11 @@ export const getUserInspections = async (req: Request, res: Response, next: Next
 
     const query: any = {
       owner: user._id,
-      status: { $nin: ["pending_transaction", "transaction_failed"] },
+      status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
     };
 
-    if (status) query.status = status;
+    if (status && INSPECTION_LISTING_ALLOWED_STATUSES.includes(status as any))
+      query.status = status;
     if (inspectionType) query.inspectionType = inspectionType;
     if (inspectionStatus) query.inspectionStatus = inspectionStatus;
     if (stage) query.stage = stage;

@@ -16,6 +16,7 @@ import {
   InspectionRemoved,
 } from "../../../common/emailTemplates/fieldAgentMails";
 import { generateUniqueAccountId, generateUniqueReferralCode } from "../../../utils/generateUniqueAccountId";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionListing.config";
 
 /**
  * Creates a new FieldAgent. An admin-only operation.
@@ -645,8 +646,9 @@ export const getSingleFieldAgentProfile = async (
         return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Field Agent record not found"));
     }
 
-    const inspections = await DB.Models.InspectionBooking.find({ 
-        _id: { $in: fieldAgentData.assignedInspections } 
+    const inspections = await DB.Models.InspectionBooking.find({
+        _id: { $in: fieldAgentData.assignedInspections },
+        status: { $in: INSPECTION_LISTING_ALLOWED_STATUSES },
     }).populate("propertyId").lean();
 
     const profileData = {
@@ -806,11 +808,13 @@ export const getFieldAgentAssignedInspections = async (
     }
 
     const inspectionIds = fieldAgent.assignedInspections;
-    const total = inspectionIds.length;
-
-    const inspections = await DB.Models.InspectionBooking.find({
+    const filter = {
       _id: { $in: inspectionIds },
-    })
+      status: { $in: INSPECTION_LISTING_ALLOWED_STATUSES },
+    };
+    const total = await DB.Models.InspectionBooking.countDocuments(filter);
+
+    const inspections = await DB.Models.InspectionBooking.find(filter)
       .skip(skip)
       .limit(safeLimit)
       .lean();

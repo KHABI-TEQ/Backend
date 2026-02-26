@@ -4,6 +4,27 @@ A simple log of changes made across the app. Add new entries at the top.
 
 ---
 
+## Inspection listing: only allowed statuses returned
+
+**When:** Feb 2025  
+**Where:** All inspection listing endpoints; new `src/config/inspectionListing.config.ts`.
+
+**What changed:**  
+All inspection **listing** endpoints now return only inspections whose `status` is one of: **pending_inspection** (stored as `pending_approval` or `pending_transaction`), **inspection_approved**, **inspection_rescheduled**, **inspection_rejected_by_seller** (stored as `agent_rejected`), and **completed**. The allowed set is defined in `INSPECTION_LISTING_ALLOWED_STATUSES` and applied in:
+
+- **Admin:** `GET /admin/inspections` (getAllInspections), `GET /admin/properties/:propertyId/inspections` (getPropertyInspections), agent profile inspections (bookedBy), field agent profile and assigned-inspections list.
+- **Account (agent):** `GET /account/my-inspections/fetchAll` (fetchUserInspections).
+- **Account (field agent):** `GET /account/inspectionsFieldAgent/fetchAll`, fetch recent assigned inspections.
+- **Public:** `GET /inspections/users/:userId` (getUserInspections by role).
+- **Agent:** Agent inspection list (getUserInspections).
+
+Optional `?status=` on listing endpoints is restricted to the same allowed set. Single-inspection (by ID) and non-listing endpoints are unchanged.
+
+**In short:**  
+Listings only show inspections in: pending_inspection (pending_approval/pending_transaction), inspection_approved, inspection_rescheduled, inspection_rejected_by_seller (agent_rejected), completed.
+
+---
+
 ## Transaction Registration & DealSite API alignment (public frontend)
 
 **When:** Feb 2025  

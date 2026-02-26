@@ -1,5 +1,6 @@
 import { DB } from "..";
 import mongoose from "mongoose";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../config/inspectionListing.config";
 import sendEmail from "../../common/send.email";
 import { Request, Response } from "express";
 import { RouteError } from "../../common/classes";
@@ -39,9 +40,12 @@ export class AdminInspectionController {
         isNegotiating,
       } = req.query;
 
-      const query: any = {};
+      const query: any = {
+        status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
+      };
 
-      if (status) query.status = status;
+      if (status && INSPECTION_LISTING_ALLOWED_STATUSES.includes(status as any))
+        query.status = status;
       if (stage) query.stage = stage;
       if (propertyId && mongoose.isValidObjectId(propertyId))
         query.propertyId = propertyId;

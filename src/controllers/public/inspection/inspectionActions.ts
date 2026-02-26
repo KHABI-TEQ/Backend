@@ -11,6 +11,7 @@ import {
 } from "../../../types/inspection.types";
 import { InspectionValidator } from "../../../validators/inspection.validator";
 import { InspectionActionHandler } from "../../../handlers/inspection-action.handler";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionListing.config";
 import { InspectionEmailService } from "../../../services/inspection-email.service";
 import { AppRequest } from "../../../types/express";
 import { PaystackService } from "../../../services/paystack.service";
@@ -344,15 +345,15 @@ class InspectionActionsController {
       const { userId } = req.params;
       const { role } = req.query; // 'buyer' or 'seller'
 
-      let query: any = {};
+      let query: any = {
+        status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
+      };
       if (role === "buyer") {
         query.requestedBy = userId;
       } else if (role === "seller") {
         query.owner = userId;
       } else {
-        query = {
-          $or: [{ requestedBy: userId }, { owner: userId }],
-        };
+        query.$or = [{ requestedBy: userId }, { owner: userId }];
       }
 
       const inspections = await DB.Models.InspectionBooking.find(query)

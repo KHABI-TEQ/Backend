@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AppRequest } from "../../types/express";
 import { DB } from "..";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../config/inspectionListing.config";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
@@ -24,10 +25,11 @@ export const fetchUserInspections = async (
 
     const filter: any = {
       owner: req.user._id,
-      status: { $nin: ["transaction_failed", "cancelled", "agent_rejected"] },
+      status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
     };
 
-    if (status) filter.status = status;
+    if (status && INSPECTION_LISTING_ALLOWED_STATUSES.includes(status as any))
+      filter.status = status;
     if (inspectionType) filter.inspectionType = inspectionType;
     if (inspectionMode) filter.inspectionMode = inspectionMode;
     if (inspectionStatus) filter.inspectionStatus = inspectionStatus;

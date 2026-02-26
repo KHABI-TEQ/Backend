@@ -12,6 +12,7 @@ import { SystemSettingService } from "../../../services/systemSetting.service";
 import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { generateSubscriptionReceiptEmail } from "../../../common/emailTemplates/subscriptionMails";
+import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionListing.config";
 
 
 
@@ -828,7 +829,10 @@ export const getSingleAgentProfile = async (
       "fromWho.item": user._id,
       "fromWho.kind": "User", 
     }).lean();
-    const inspections = await DB.Models.InspectionBooking.find({ bookedBy: user._id }).lean();
+    const inspections = await DB.Models.InspectionBooking.find({
+      bookedBy: user._id,
+      status: { $in: INSPECTION_LISTING_ALLOWED_STATUSES },
+    }).lean();
 
     // Fetch subscriptions
     const subscriptions = await DB.Models.UserSubscriptionSnapshot.find({ user: user._id })
