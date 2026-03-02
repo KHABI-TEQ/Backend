@@ -7,7 +7,7 @@ import { UserSubscriptionSnapshotService } from "../services/userSubscriptionSna
  * @param options
  *  - requireActiveSubscription: boolean → check if user has active subscription
  *  - requiredFeatureKey: string → check if user has access to this feature
- *  - allowedUserTypes: string[] → restrict which userTypes can access (default: ["Agent"])
+ *  - allowedUserTypes: string[] → restrict which userTypes can access (default: ["Agent", "Developer"])
  */
 export const agentSubscriptionFeatureChecker = (options?: {
   requireActiveSubscription?: boolean;
@@ -21,7 +21,7 @@ export const agentSubscriptionFeatureChecker = (options?: {
         return res.status(401).json({ message: "Unauthorized. User not found." });
       }
 
-      const allowedUserTypes = options?.allowedUserTypes ?? ["Agent"];
+      const allowedUserTypes = options?.allowedUserTypes ?? ["Agent", "Developer"];
 
       // Check if user type is allowed
       if (!allowedUserTypes.includes(user.userType)) {
@@ -32,9 +32,9 @@ export const agentSubscriptionFeatureChecker = (options?: {
 
       let snapshot: any = null;
 
-      // Only run subscription/feature check for agents
+      // Run subscription/feature check for Agents and Developers
       if (
-        user.userType === "Agent" &&
+        (user.userType === "Agent" || user.userType === "Developer") &&
         (options?.requireActiveSubscription || options?.requiredFeatureKey)
       ) {
         snapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(user._id);

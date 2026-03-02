@@ -24,16 +24,22 @@ export const createSubscription = async (
   try {
     const { planCode, autoRenewal } = req.body;
     const userId = req.user?._id;
+    const userType = (req.user as any)?.userType;
 
-    // 1. Attempt to locate the agent account for this user
-    const agentAccount = await DB.Models.Agent.findOne({ userId });
-
-    if (!agentAccount) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Only registered agents can create subscriptions.");
+    // Only Agents and Developers can create subscriptions
+    if (userType !== "Agent" && userType !== "Developer") {
+      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only registered agents or developers can create subscriptions.");
     }
 
-    if (agentAccount.kycStatus !== "approved") {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Your agent account must be approved before creating a subscription.");
+    // Agents must have an approved Agent profile; Developers do not have an Agent record
+    if (userType === "Agent") {
+      const agentAccount = await DB.Models.Agent.findOne({ userId });
+      if (!agentAccount) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Only registered agents can create subscriptions.");
+      }
+      if (agentAccount.kycStatus !== "approved") {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Your agent account must be approved before creating a subscription.");
+      }
     }
 
 
