@@ -54,9 +54,19 @@ export const postProperty = async (
       ownerModel
     );
 
-    // ✅ Only check subscription for Agents, NOT for Landowners
+    const userType = (req.user as any)?.userType;
+    if (userType === "Landowners" || userType === "Developer") {
+      if (payload.listingScope === "lasrera_marketplace") {
+        (formatted as any).listingScope = "lasrera_marketplace";
+      }
+    }
+    if (userType === "Agent" && payload.listingScope === "lasrera_marketplace") {
+      (formatted as any).listingScope = "agent_listing";
+    }
+
+    // ✅ Only check subscription for Agents and Developers, NOT for Landowners
     let activeSnapshot = null;
-    if (req.user?.userType === "Agent") {
+    if (req.user?.userType === "Agent" || req.user?.userType === "Developer") {
       activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
       if (!activeSnapshot) {
         throw new RouteError(

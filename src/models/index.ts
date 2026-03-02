@@ -35,3 +35,4 @@ export * from "./role";
 export * from "./agentRating";
 export * from "./agentReport";
 export * from "./transactionRegistration";
+export * from "./requestToMarket";

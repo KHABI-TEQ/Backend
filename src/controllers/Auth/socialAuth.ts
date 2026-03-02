@@ -8,6 +8,8 @@ import { AppRequest } from '../../types/express';
 import { referralService } from '../../services/referral.service';
 import { Types } from 'mongoose';
 import { SystemSettingService } from '../../services/systemSetting.service';
+import { UserSubscriptionSnapshotService } from '../../services/userSubscriptionSnapshot.service';
+import { DealSiteService } from '../../services/dealSite.service';
 import { verifyEmailTemplate } from '../../common/email.template';
 import { generalEmailLayout } from '../../common/emailTemplates/emailLayout';
 import sendEmail from '../../common/send.email';
@@ -72,6 +74,25 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
       data: {
         token,
         user: userWithAgent,
+      }
+    });
+  }
+
+  if (user.userType === 'Developer') {
+    const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(user._id.toString());
+    const dealSite = await DealSiteService.getByAgent(user._id.toString());
+    const userWithDeveloper = {
+      ...userResponse,
+      isAccountApproved: user.accountApproved,
+      activeSubscription: activeSnapshot || null,
+      dealSite: dealSite || null,
+    };
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: userWithDeveloper,
       }
     });
   }
@@ -226,7 +247,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     if (!userType) {
       throw new RouteError(
         HttpStatusCodes.NOT_FOUND,
-        'Account not found. If you are a new user, please register first, specifying your account type (Landowners or Agent).'
+        'Account not found. If you are a new user, please register first, specifying your account type (Landowners, Agent, or Developer).'
       );
     }
 
@@ -358,7 +379,7 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
     if (!userType) {
       throw new RouteError(
         HttpStatusCodes.NOT_FOUND,
-        'Account not found. If you are a new user, please register first, specifying your account type (Landowners or Agent).'
+        'Account not found. If you are a new user, please register first, specifying your account type (Landowners, Agent, or Developer).'
       );
     }
 

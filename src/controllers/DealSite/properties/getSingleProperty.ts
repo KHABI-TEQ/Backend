@@ -43,10 +43,13 @@ export const getSingleDealSiteProperty = async (
       });
     }
 
-    // ✅ Find property (all fields)
+    // ✅ Find property (owned by DealSite creator or marketed by them via Request To Market)
     const property = await DB.Models.Property.findOne({
       _id: propertyId,
-      owner: dealSite.createdBy,
+      $or: [
+        { owner: dealSite.createdBy },
+        { marketedByAgentId: dealSite.createdBy },
+      ],
       isAvailable: true,
       isApproved: true,
       isDeleted: false,

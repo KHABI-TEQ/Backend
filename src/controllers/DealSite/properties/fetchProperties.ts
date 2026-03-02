@@ -65,14 +65,20 @@ export const getDealSiteProperties = async (
       tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
     };
 
-    // 4. Base query: properties by owner
+    // 4. Base query: properties owned by DealSite creator OR marketed by them (Request To Market accepted)
+    const baseCondition = {
+      $or: [
+        { owner: dealSite.createdBy },
+        { marketedByAgentId: dealSite.createdBy },
+      ],
+    };
     const query: any = {
-      owner: dealSite.createdBy,
+      ...baseCondition,
       briefType,
       isApproved: true,
       isDeleted: false,
       isAvailable: true
-    }; 
+    };
 
     if (filters.location) {
       const locationString = filters.location.trim();

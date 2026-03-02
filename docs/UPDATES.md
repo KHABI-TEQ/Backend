@@ -4,6 +4,53 @@ A simple log of changes made across the app. Add new entries at the top.
 
 ---
 
+## Developers, LASRERA Market Place, Request To Market, and transaction registration fee by price
+
+**When:** Feb 2025  
+**Where:** User model, Property model, DealSite, new RequestToMarket model, transaction registration config, account and public routes.
+
+**What changed:**
+
+1. **Developers** — New user type `Developer` added (`User.userType`). Developers can create a **public access page** (DealSite) with the same subscription obligation as Agents (subscription required to create/maintain DealSite and to post properties).
+
+2. **LASRERA Market Place listings** — Landlords and Developers can list properties that are **only visible on the LASRERA Market Place** (no contact shown). Property model now has:
+   - `listingScope`: `"agent_listing"` (default) or `"lasrera_marketplace"`.
+   - `marketedByAgentId`: set when an Agent’s “Request To Market” is accepted; property then appears on that Agent’s public page.
+   - When posting a property, only **Landowners** and **Developer** can set `listingScope: "lasrera_marketplace"`; Agents are forced to `agent_listing`.
+
+3. **Public LASRERA Market Place** — `GET /lasrera-marketplace/properties` returns paginated properties with `listingScope: "lasrera_marketplace"`. No landlord/developer contact is returned. Each property is intended to have an action “Request To Market” (only Agents can use it).
+
+4. **Request To Market** — Only **Agents** can request to market a LASRERA Market Place property. Publisher (Landlord or Developer) receives in-app and **email** notification and can accept or reject.
+   - **POST /account/request-to-market** — Body: `{ propertyId }`. Agent only; creates a pending request, in-app notification, and **email** to the publisher (using `generalEmailLayout`; template: agent name, property summary, respond link, marketing fee amount).
+   - **GET /account/request-to-market** — List requests (query: `role=agent` | `role=publisher`, `status`, `page`, `limit`). Agents see their requests; Publishers see requests for their properties.
+   - **POST /account/request-to-market/:requestId/respond** — Body: `{ action: "accept" | "reject", rejectedReason?: string }`. Publisher only.
+     - **Reject:** In-app notification + **email** to Agent (reason if provided).
+     - **Accept:** Property’s `marketedByAgentId` is set to the Agent (property appears on Agent’s DealSite). In-app + **email** to Agent. **Paystack marketing fee flow:** If the Agent has a DealSite with a Paystack sub-account (`paymentDetails.subAccountCode`), the backend creates a **split payment** (Publisher pays, Agent receives): `PaystackService.initializeSplitPayment` with `transactionType: "request-to-market"`, metadata `requestToMarketId`. Publisher receives an **email** with the payment link. On successful payment (webhook), `handleRequestToMarketPaymentEffect` links the transaction to the request and sends an **email** to the Agent that the marketing fee was received. If the Agent has no sub-account, the request is still accepted but no payment link is generated (response message asks Publisher to arrange payment with the Agent). Response may include `data.paymentUrl` when a link was created.
+
+5. **DealSite properties** — DealSite property list now includes both properties **owned** by the DealSite creator and properties **marketed** by them (`marketedByAgentId = createdBy`), so accepted “Request To Market” properties show on the Agent’s public page.
+
+6. **Subscription for posting** — Agents **and** Developers require an active subscription to post properties; Landowners do not.
+
+7. **Transaction registration processing fee by price** — Processing fee for transaction registration is now determined **only by the property/transaction value** (same bands for all transaction types):
+   - **₦5M – ₦50M** → **₦100,000**
+   - **Above ₦50M** → **₦150,000**
+   Config: `transactionRegistration.config.ts` — `TRANSACTION_REGISTRATION_FEE_BANDS` and `getProcessingFeeNaira()`. Register endpoint uses this instead of a percentage.
+
+**Onboarding (Landlords and Developers):**  
+Landlords (user type **Landowners**) and **Developers** use the same auth flows as Agents to create an account, then log in and publish properties (including to the LASRERA Market Place). For a frontend- and Cursor-agent-oriented API guide covering these flows plus LASRERA Market Place, Request To Market, and transaction registration fees, see **`docs/FRONTEND_API_GUIDE.md`**.
+
+- **Registration:** `POST /auth/register` — Body: `firstName`, `lastName`, `email`, `password`, **`userType`** (`"Landowners"` \| `"Agent"` \| `"FieldAgent"` \| `"Developer"`), `phoneNumber`, `address`, optional `referralCode`. After signup, the user receives an email with a verification link.
+- **Email verification:** User clicks the link; backend marks the account verified and active (`GET /auth/verifyAccount?token=...`). No separate admin approval is required for Landowners or Developers to log in.
+- **Login:** `POST /auth/login` — Body: `email`, `password`. Returns token and user (including `userType`). For **Developers**, the login response also includes `dealSite` and `activeSubscription` (same shape as Agents) so the frontend can show public page and subscription state.
+- **Social sign-up / login:** `POST /auth/googleAuth` and `POST /auth/facebookAuth` — Body: `idToken`, optional **`userType`** (`"Landowners"` \| `"Agent"` \| `"Developer"`), optional `referralCode`. For new users, `userType` is required so the backend can create the correct account type.
+
+Once logged in, a **Landowners** or **Developer** user can create properties via the account property API; when creating a property they may set `listingScope: "lasrera_marketplace"` so the listing appears only on the LASRERA Market Place (no contact shown). Agents cannot set `listingScope` to `lasrera_marketplace`; they use `agent_listing` and can later market marketplace properties via "Request To Market".
+
+**In short:**  
+Developers can have a public page (DealSite) with subscription. Landlords and Developers can list properties on the LASRERA Market Place (no contact). Only Agents can “Request To Market”; Publisher accepts/rejects; on accept the property appears on the Agent’s DealSite and a standard marketing fee applies. Transaction registration fee is ₦100k (5M–50M) or ₦150k (above 50M).
+
+---
+
 ## Inspection listing: only allowed statuses returned
 
 **When:** Feb 2025  

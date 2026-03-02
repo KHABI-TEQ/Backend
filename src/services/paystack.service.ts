@@ -328,6 +328,9 @@ export class PaystackService {
       case 'transaction-registration':
         return await PaystackService.handleTransactionRegistrationPaymentEffect(tx);
 
+      case 'request-to-market':
+        return await PaystackService.handleRequestToMarketPaymentEffect(tx);
+
       default:
         console.warn(`Unhandled transaction type: ${transactionType}`);
         return null;
@@ -343,6 +346,41 @@ export class PaystackService {
     await DB.Models.TransactionRegistration.findByIdAndUpdate(registrationId, {
       $set: { status: 'pending_completion' },
     });
+    return null;
+  }
+
+  /**
+   * When marketing fee for Request To Market is paid by Publisher, link transaction and notify Agent.
+   */
+  static async handleRequestToMarketPaymentEffect(tx: INewTransactionDoc): Promise<null> {
+    const requestToMarketId = tx.meta?.requestToMarketId;
+    if (!requestToMarketId) return null;
+    await DB.Models.RequestToMarket.findByIdAndUpdate(requestToMarketId, {
+      $set: { paymentTransactionId: tx._id },
+    });
+    try {
+      const request = await DB.Models.RequestToMarket.findById(requestToMarketId)
+        .populate('requestedByAgentId', 'email firstName lastName fullName')
+        .populate('propertyId', 'location')
+        .lean();
+      if (request?.requestedByAgentId) {
+        const agent = (request as any).requestedByAgentId;
+        const summary = getPropertyTitleFromLocation((request as any).propertyId?.location) || 'the property';
+        const html = generalEmailLayout(`
+          <p>Hello ${agent?.fullName || agent?.firstName || 'there'},</p>
+          <p>The publisher has completed the marketing fee payment of <strong>₦${(tx.amount || 0).toLocaleString()}</strong> for the property at <strong>${summary}</strong>.</p>
+          <p>The funds will be settled to your account according to your payment settings.</p>
+        `);
+        await sendEmail({
+          to: agent.email,
+          subject: 'Marketing fee received – Request To Market',
+          html,
+          text: `The publisher has paid the marketing fee (₦${(tx.amount || 0).toLocaleString()}) for ${summary}.`,
+        });
+      }
+    } catch (e) {
+      console.warn('[Paystack] handleRequestToMarketPaymentEffect notify agent failed:', e);
+    }
     return null;
   }
 

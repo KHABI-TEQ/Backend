@@ -26,6 +26,7 @@ import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
 import TransactionRegistrationRouter from "./transactionRegistration";
+import { listLasreraMarketplaceProperties } from "../controllers/public/lasreraMarketplace/lasreraMarketplaceController";
 import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
 import { handleWebhook, verifyWebhook } from "../controllers/public/whatsappWebhookController";
 import {
@@ -195,6 +196,9 @@ router.use("/preferences", preferenceRouter);
 
 // Public Transaction Registration Portal (LASRERA buyer-led compliance)
 router.use("/transaction-registration", TransactionRegistrationRouter);
+
+// LASRERA Market Place – properties list (no contact; Request To Market by Agents via /account/request-to-market)
+router.get("/lasrera-marketplace/properties", listLasreraMarketplaceProperties);
 
 // All Inspections Routes
 router.use("/inspections", inspectRouter);

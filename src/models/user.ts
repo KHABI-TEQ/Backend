@@ -19,7 +19,7 @@ export interface IUser {
   isDeleted: boolean;
   accountApproved: boolean;
   accountStatus: "active" | "inactive" | "deleted" | "flagged" | "pending_deletion";
-  userType: "Landowners" | "Agent" | "FieldAgent";
+  userType: "Landowners" | "Agent" | "FieldAgent" | "Developer";
   isFlagged: boolean;
   accountId: string;
   googleId?: string;
@@ -68,7 +68,7 @@ export class User {
         },
         userType: {
           type: String,
-          enum: ["Landowners", "Agent", "FieldAgent"],
+          enum: ["Landowners", "Agent", "FieldAgent", "Developer"],
           required: true,
         },
         isFlagged: { type: Boolean, default: false },

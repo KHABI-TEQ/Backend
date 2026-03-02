@@ -112,14 +112,22 @@ export function getConfigForType(type: TransactionRegistrationType): Transaction
   return TRANSACTION_TYPE_CONFIGS.find((c) => c.type === type);
 }
 
-export function getProcessingFeeNaira(type: TransactionRegistrationType, transactionValueNaira: number): number {
-  const config = getConfigForType(type);
-  if (!config) return 0;
-  const band = config.valueBands.find(
+export function getProcessingFeeNaira(_type: TransactionRegistrationType, transactionValueNaira: number): number {
+  if (transactionValueNaira < TRANSACTION_REGISTRATION_FEE_BANDS[0].minValueNaira) return 0;
+  const band = TRANSACTION_REGISTRATION_FEE_BANDS.find(
     (b) => transactionValueNaira >= b.minValueNaira && transactionValueNaira <= b.maxValueNaira
   );
-  return band ? band.processingFeeNaira : 0;
+  return band ? band.processingFeeNaira : TRANSACTION_REGISTRATION_FEE_BANDS[1].processingFeeNaira;
 }
+
+/**
+ * Transaction registration processing fee by property/transaction value (LASRERA).
+ * 5M – 50M Naira → ₦100,000; above 50M → ₦150,000.
+ */
+export const TRANSACTION_REGISTRATION_FEE_BANDS: ValueBand[] = [
+  { minValueNaira: 5_000_000, maxValueNaira: 50_000_000, processingFeeNaira: 100_000, label: "₦5M – ₦50M" },
+  { minValueNaira: 50_000_001, maxValueNaira: Number.MAX_SAFE_INTEGER, processingFeeNaira: 150_000, label: "Above ₦50M" },
+];
 
 export function isMandatoryRegistration(type: TransactionRegistrationType, transactionValueNaira: number): boolean {
   const config = getConfigForType(type);

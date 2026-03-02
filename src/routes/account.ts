@@ -51,6 +51,7 @@ import { bulkUpdateDealSite, deleteDealSite, disableDealSite, enableDealSite, up
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
 import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
+import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
 
 const AccountRouter = express.Router();
 
@@ -133,6 +134,11 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
+
+// REQUEST TO MARKET (LASRERA Market Place – Agent requests, Publisher accepts/rejects)
+AccountRouter.post("/request-to-market", createRequestToMarket);
+AccountRouter.get("/request-to-market", listRequestToMarket);
+AccountRouter.post("/request-to-market/:requestId/respond", respondToRequestToMarket);
 
 // REFERRAL ROUTES
 AccountRouter.get("/referrals/stats", fetchReferralStats);

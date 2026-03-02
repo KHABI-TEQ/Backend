@@ -98,7 +98,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       accountId: user.accountId,
     };
 
-    // Agent-specific logic
+    // Agent-specific logic (subscription, dealSite)
     if (user.userType === "Agent") {
       const agentData = await DB.Models.Agent.findOne({ userId: user._id });
 
@@ -131,7 +131,29 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
-    // All other users
+    // Developer: same as Agent for public page and subscription (dealSite, activeSubscription)
+    if (user.userType === "Developer") {
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+        user._id.toString()
+      );
+      const dealSite = await DealSiteService.getByAgent(user._id.toString());
+      const userWithDeveloper = {
+        ...userResponse,
+        isAccountApproved: user.accountApproved,
+        activeSubscription: activeSnapshot || null,
+        dealSite: dealSite || null,
+      };
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          token,
+          user: userWithDeveloper,
+        },
+      });
+    }
+
+    // All other users (e.g. Landowners, FieldAgent)
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Login successful",

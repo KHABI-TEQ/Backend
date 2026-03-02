@@ -452,9 +452,12 @@ export class DealSiteService {
         .lean();
     }
 
-    // Auto mode → pick latest running properties by this agent
+    // Auto mode → pick latest properties owned or marketed by this DealSite creator
     return Property.find({
-      createdBy: dealSite.createdBy,
+      $or: [
+        { owner: dealSite.createdBy },
+        { marketedByAgentId: dealSite.createdBy },
+      ],
       isAvailable: true,
       isApproved: true,
       isDeleted: false

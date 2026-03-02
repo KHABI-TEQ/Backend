@@ -107,6 +107,10 @@ export interface IProperty {
   isPremium: boolean;
   /** Inspection fee in Naira. Min ₦1,000, max ₦50,000. */
   inspectionFee?: number;
+  /** Where the property is listed: agent_listing = normal agent/developer listing; lasrera_marketplace = LASRERA Market Place only (no contact, Request To Market by agents). */
+  listingScope?: "agent_listing" | "lasrera_marketplace";
+  /** When set, this property is marketed on this Agent's public page (DealSite) after Request To Market was accepted by the publisher. */
+  marketedByAgentId?: Types.ObjectId;
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
@@ -240,6 +244,8 @@ export class Property {
         briefType: { type: String },
         isPremium: { type: Boolean, default: false },
         inspectionFee: { type: Number, default: 5000, min: 1000, max: 50000 },
+        listingScope: { type: String, enum: ["agent_listing", "lasrera_marketplace"], default: "agent_listing" },
+        marketedByAgentId: { type: Schema.Types.ObjectId, ref: "User", default: null },
         isApproved: { type: Boolean, default: false },
         isRejected: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },
