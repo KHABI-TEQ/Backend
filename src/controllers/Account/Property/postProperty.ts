@@ -40,8 +40,12 @@ export const postProperty = async (
     const createdByRole = "user";
     const ownerModel = "User";
 
+    // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"
+    const isTenanted = (payload.isTenanted ?? "no").toString().toLowerCase();
+
     const propertyData = {
       ...payload,
+      isTenanted,
       status: "approved",
       isApproved: true,
       isAvailable: true,
