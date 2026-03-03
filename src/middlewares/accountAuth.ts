@@ -67,4 +67,38 @@ const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) =
   }
 };
 
-export { accountAuth };
+/**
+ * Optional account auth: sets req.user when a valid Bearer token is present;
+ * otherwise sets req.user = null and continues. Never returns 401/403.
+ * Use for public routes that optionally personalize response for logged-in users (e.g. LASRERA marketplace).
+ */
+const optionalAccountAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
+  try {
+    const rawAuthHeader = req.headers.authorization || req.headers.Authorization;
+    if (!rawAuthHeader || typeof rawAuthHeader !== "string") {
+      req.user = null;
+      return next();
+    }
+    const token = rawAuthHeader.split(" ")[1];
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    } catch {
+      req.user = null;
+      return next();
+    }
+    const user = await DB.Models.User.findById(decoded.id);
+    req.user = user ?? null;
+    next();
+  } catch (error) {
+    console.error("[AUTH] Error in optionalAccountAuth middleware:", error);
+    req.user = null;
+    next();
+  }
+};
+
+export { accountAuth, optionalAccountAuth };

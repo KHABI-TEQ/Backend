@@ -25,12 +25,12 @@ export const TRANSACTION_TYPE_CONFIGS: TransactionTypeConfig[] = [
     description: "Registration of residential or commercial rental/lease agreements.",
     eligibilityCriteria: [
       "Valid lease/rental agreement between landlord and tenant",
-      "Property must be within LASRERA jurisdiction",
+      "Property must be within KHABITEQ jurisdiction",
       "Minimum lease term as per state guidelines",
     ],
     regulatoryRequirements: [
       "Tenancy agreement in writing",
-      "Commission compliance as per LASRERA guidelines",
+      "Commission compliance as per KHABITEQ guidelines",
       "Landlord and tenant identification verification",
     ],
     mandatoryRegistrationThresholdNaira: 1_000_000,
@@ -47,7 +47,7 @@ export const TRANSACTION_TYPE_CONFIGS: TransactionTypeConfig[] = [
     description: "Registration of completed or in-progress outright property sales.",
     eligibilityCriteria: [
       "Sale agreement between buyer and seller",
-      "Property must be within LASRERA jurisdiction",
+      "Property must be within KHABITEQ jurisdiction",
       "Clear title or documented ownership",
     ],
     regulatoryRequirements: [
@@ -69,7 +69,7 @@ export const TRANSACTION_TYPE_CONFIGS: TransactionTypeConfig[] = [
     description: "Registration of off-plan or development purchase agreements.",
     eligibilityCriteria: [
       "Valid off-plan purchase agreement with developer",
-      "Development within LASRERA jurisdiction",
+      "Development within KHABITEQ jurisdiction",
       "Developer registration where applicable",
     ],
     regulatoryRequirements: [
@@ -91,7 +91,7 @@ export const TRANSACTION_TYPE_CONFIGS: TransactionTypeConfig[] = [
     description: "Registration of property-related joint venture or partnership arrangements.",
     eligibilityCriteria: [
       "Written JV agreement between parties",
-      "Property or project within LASRERA jurisdiction",
+      "Property or project within KHABITEQ jurisdiction",
       "Clear roles and contribution terms",
     ],
     regulatoryRequirements: [
@@ -149,7 +149,7 @@ export interface SafeTransactionGuidelines {
 export const SAFE_TRANSACTION_GUIDELINES: SafeTransactionGuidelines = {
   title: "Safe Transaction Guidelines",
   introduction:
-    "Before registering your transaction with LASRERA, please review the following requirements. This ensures regulatory awareness and strengthens consumer protection.",
+    "Before registering your transaction with KHABITEQ, please review the following requirements. This ensures regulatory awareness and strengthens consumer protection.",
   sections: [
     {
       heading: "Required Documentation Checklist",
@@ -165,7 +165,7 @@ export const SAFE_TRANSACTION_GUIDELINES: SafeTransactionGuidelines = {
       heading: "Commission Compliance Rules",
       content: [
         "Commission rates and who bears them must be clearly stated in the agreement.",
-        "LASRERA guidelines on agency commission must be adhered to.",
+        "KHABITEQ guidelines on agency commission must be adhered to.",
         "All commission-related payments must be documented.",
       ],
     },
@@ -188,8 +188,8 @@ export const SAFE_TRANSACTION_GUIDELINES: SafeTransactionGuidelines = {
     {
       heading: "Dispute Resolution Procedures",
       content: [
-        "Parties are encouraged to resolve disputes through LASRERA mediation channels.",
-        "Registered transactions may be referred to LASRERA for dispute resolution.",
+        "Parties are encouraged to resolve disputes through KHABITEQ mediation channels.",
+        "Registered transactions may be referred to KHABITEQ for dispute resolution.",
         "Legal recourse remains available where mediation does not resolve the matter.",
       ],
     },

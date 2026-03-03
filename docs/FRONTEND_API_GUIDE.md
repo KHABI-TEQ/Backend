@@ -5,6 +5,7 @@ This document is for **frontend developers and Cursor agents** working on the fr
 - **Developers** (new user type) and **Landlords** (Landowners)
 - **LASRERA Market Place** (list and publish properties)
 - **Request To Market** (Agent requests; Publisher accepts/rejects)
+- **Inspection flow** (buyer requests; Agent/Developer accepts or rejects; optional inspection fee ₦1,000–₦50,000 and payment link — see **Section 8**)
 - **Transaction registration fee by price** (₦100k / ₦150k bands)
 - **Onboarding**: Registration, email verification, login, social sign-up/login
 
@@ -423,16 +424,64 @@ The **register** endpoint returns `data.processingFee` (in Naira). Use it (and o
 
 These are used by the **public/DealSite** frontend for the transaction registration portal. Base path: **`/transaction-registration`** (relative to API base URL).
 
+### 6.1 Processing fee logic (how the backend determines the fee)
+
+The **processing fee** is determined **only by the transaction value** (in Naira) you send when registering. **Transaction type does not change the fee.** The backend uses a single set of value bands:
+
+| Transaction value (Naira) | Processing fee (Naira) |
+|---------------------------|-------------------------|
+| **Below ₦5,000,000**      | **₦0** (no fee)        |
+| **₦5,000,000 – ₦50,000,000** | **₦100,000**       |
+| **Above ₦50,000,000**    | **₦150,000**           |
+
+- **Do not calculate the fee on the frontend.** Send `transactionValue` in the register request; the backend returns `data.processingFee` in the response.
+- When **`data.processingFee` is 0**: no payment is required; `data.paymentUrl` will not be present.
+- When **`data.processingFee` > 0**: the backend may return `data.paymentUrl` (Paystack). Show the payment link so the user can pay the processing fee; after successful payment, registration moves to the appropriate status (e.g. pending completion).
+
+### 6.2 Endpoints
+
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
-| GET | `/transaction-registration/types` | List transaction types with value bands, eligibility, etc. |
+| GET | `/transaction-registration/types` | List transaction types with labels, eligibility, regulatory requirements, and **display** value bands (for UI only; actual fee at register time uses the bands in 6.1). |
 | GET | `/transaction-registration/guidelines` | Safe transaction guidelines (required docs, commission, ownership, etc.). |
 | GET | `/transaction-registration/search` | Search by `address`, or `propertyId`, or both `lat` and `lng`. |
 | GET | `/transaction-registration/check?propertyId=...` | Check registration status for a property. |
 | GET | `/transaction-registration/egis-validate` | E-GIS validation stub (query: propertyId, address, or lat+lng). |
-| POST | `/transaction-registration/register` | Submit registration; backend returns `processingFee` and optionally `paymentUrl` (Paystack). |
+| POST | `/transaction-registration/register` | Submit registration. Backend computes `processingFee` from `transactionValue` (see 6.1) and returns `data.registrationId`, `data.processingFee`, and when fee > 0 optionally `data.paymentUrl`. |
 
-**Register request body** (summary): includes `transactionType` (slug), `propertyIdentification` (type, exactAddress, titleNumber, ownerName, lat, lng, surveyPlanRef, ownerConfirmation), and optional payment receipt fields. **Processing fee** is computed by the backend from transaction value using the bands in **Section 5**; response includes `data.registrationId`, `data.processingFee`, and when applicable `data.paymentUrl`.
+### 6.3 Register request and response (summary)
+
+**Request body** must include (among other fields):
+
+- **`transactionType`** — slug (e.g. `rental_agreement`, `outright_sale`, `off_plan_purchase`, `joint_venture`).
+- **`transactionValue`** — number (Naira). This is the value used to determine `processingFee` (see 6.1).
+- **`propertyId`** — property ID.
+- **`buyer`** — e.g. `{ email, fullName, phoneNumber }`.
+- **`propertyIdentification`** — type, exactAddress, titleNumber, ownerName, lat, lng, surveyPlanRef, ownerConfirmation, etc., as per schema.
+
+Optional: payment receipt fields (e.g. `paymentReceiptFileName`, `paymentReceiptBase64`) when the user has already paid elsewhere.
+
+**Success response (200):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "registrationId": "...",
+    "processingFee": 100000,
+    "paymentUrl": "https://checkout.paystack.com/..."
+  }
+}
+```
+
+- **`processingFee`** — Always present; 0 when transaction value is below ₦5M, otherwise ₦100,000 or ₦150,000 per the table in 6.1.
+- **`paymentUrl`** — Present when `processingFee` > 0 and the backend generated a Paystack link. Direct the user to this URL to pay the processing fee.
+
+### 6.4 How the frontend should handle it
+
+1. **Before submit:** Collect `transactionValue` (and all other required fields). You can show the user the **possible** fee ranges from Section 5 (or from `/transaction-registration/types` for display), but do **not** compute the final fee yourself.
+2. **On submit:** Send the full register payload including `transactionValue`. Use the response `data.processingFee` and `data.paymentUrl`.
+3. **After submit:** If `data.processingFee === 0`, show a success message (no payment step). If `data.processingFee > 0`, show the amount and, if present, a “Pay now” button/link using `data.paymentUrl`; after payment, the backend will update the registration status via webhook.
 
 Full request/response shapes are documented in `docs/UPDATES.md` (Transaction Registration & DealSite API alignment).
 
@@ -445,13 +494,205 @@ Full request/response shapes are documented in `docs/UPDATES.md` (Transaction Re
 
 ---
 
-## 8. Quick reference — base paths and auth
+## 8. Inspection flow (Agent/Developer & Buyer)
+
+This section describes how the **inspection request** flow works from the frontend’s perspective: how a **buyer** submits a request, how an **Agent or Developer** (property owner) lists and responds to it, and when a **payment link** is sent to the buyer.
+
+### 8.1 Flow overview
+
+| Step | Who | Action |
+|------|-----|--------|
+| 1 | Buyer | Submits an inspection request (main app or DealSite). |
+| 2 | Agent/Developer | Sees the request in “My inspections”, opens it, and **accepts** or **rejects**. |
+| 3a | On **accept** | Optionally sets an **inspection fee** (₦1,000–₦50,000). If set, backend creates a Paystack payment link and emails the buyer; buyer pays to confirm. |
+| 3b | On **reject** | Buyer is notified (email); no payment. |
+
+Inspections can come from:
+
+- **Main app** — buyer uses `POST /inspections/request-inspection` (see your existing inspection docs).
+- **DealSite** — buyer uses `POST /deal-site/:publicSlug/inspections/makeRequest`. No fee is required at request time; the Agent/Developer can set the fee when **accepting**.
+
+The **same respond endpoint** is used for both: `POST /account/my-inspections/:inspectionId/respond`. The backend detects DealSite vs main app from the inspection’s `receiverMode`.
+
+---
+
+### 8.2 Agent/Developer: list and view inspections
+
+**List inspections (paginated)**  
+**Endpoint:** `GET /account/my-inspections/fetchAll`  
+**Auth:** Bearer token (Agent or Developer; must be the property owner).
+
+**Query parameters (optional):**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| page | number | Default `1`. |
+| limit | number | Default `10`. |
+| status | string | Filter by booking status (e.g. `pending_approval`, `inspection_approved`, `pending_transaction`, `agent_rejected`). |
+| inspectionType | string | e.g. `price`, `LOI`. |
+| inspectionMode | string | e.g. `in_person`, `virtual`. |
+| inspectionStatus | string | e.g. `new`, `accepted`, `rejected`. |
+| stage | string | e.g. `inspection`, `negotiation`. |
+| propertyId | string | Filter by property ID. |
+
+**Success response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "...",
+      "propertyId": { ... },
+      "requestedBy": { ... },
+      "owner": "...",
+      "status": "pending_approval",
+      "inspectionDate": "...",
+      "inspectionTime": "...",
+      "inspectionType": "price",
+      "inspectionMode": "in_person",
+      "receiverMode": { "type": "dealSite", "dealSiteID": "..." },
+      "transaction": null,
+      ...
+    }
+  ],
+  "pagination": { "total": 5, "page": 1, "limit": 10, "totalPages": 1 }
+}
+```
+
+Use `receiverMode.type === "dealSite"` to show a “DealSite” badge or to enable the **optional inspection fee** when accepting (see below).
+
+**Get one inspection**  
+**Endpoint:** `GET /account/my-inspections/:inspectionId`  
+**Auth:** Bearer token (must be the owner of the inspection’s property).
+
+**Success response (200):** Single inspection object (with populated `propertyId`, `requestedBy`, `transaction`).
+
+**Inspection stats**  
+**Endpoint:** `GET /account/my-inspections/stats`  
+**Auth:** Bearer token.  
+Returns counts (e.g. pending, completed, cancelled) for dashboard widgets.
+
+---
+
+### 8.3 Agent/Developer: respond (accept or reject)
+
+**Endpoint:** `POST /account/my-inspections/:inspectionId/respond`  
+**Auth:** Bearer token (Agent or Developer; must be the property owner).  
+Only inspections with `status === "pending_approval"` can be responded to.
+
+**Request body (JSON):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| action | string | Yes | `"accept"` or `"reject"`. |
+| note | string | No | Optional message (e.g. shown to buyer on reject). |
+| inspectionFee | number | No | **Accept only.** Inspection fee in Naira. Allowed range: **₦1,000 – ₦50,000**. |
+
+**Inspection fee behaviour:**
+
+- **Main-app inspections:** The property may already have an `inspectionFee`. If the owner sends `inspectionFee` in the request body, it **overrides** that value (must still be 1,000–50,000). Payment link is created and sent to the buyer.
+- **DealSite inspections:** There is no fee at request time. When **accepting**, the owner can **optionally** send `inspectionFee` (1,000–50,000).  
+  - If **inspectionFee is sent and in range** → backend creates a Paystack payment link, saves the transaction on the inspection, and emails the buyer with the payment link.  
+  - If **inspectionFee is omitted or out of range** → acceptance only; buyer gets an “accepted” email with no payment link.
+
+**Reject — success response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Inspection request rejected. The buyer has been notified.",
+  "data": { "status": "agent_rejected" }
+}
+```
+
+**Accept without payment link (e.g. DealSite accept with no fee) — success response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Inspection accepted. The buyer has been notified.",
+  "data": { "status": "inspection_approved" }
+}
+```
+
+**Accept with payment link — success response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Inspection accepted. The buyer has been sent a payment link for the inspection fee.",
+  "data": {
+    "status": "pending_transaction",
+    "paymentUrl": "https://checkout.paystack.com/...",
+    "inspectionFee": 5000
+  }
+}
+```
+
+**Frontend implementation tips:**
+
+- On the “Respond to inspection” screen, show:
+  - **Accept** and **Reject** buttons.
+  - For **Accept**, an optional **“Inspection fee (₦)”** input. Validate: number, 1,000–50,000 (or leave empty for “no fee” on DealSite).
+- For **DealSite** inspections (`receiverMode.type === "dealSite"`), you can show a short note: “You can optionally set an inspection fee (₦1,000–₦50,000). If set, the buyer will receive a payment link.”
+- After a successful accept with `data.paymentUrl`, you can show: “Inspection accepted. A payment link has been sent to the buyer’s email.” Optionally show the link for support/copy.
+
+**Errors:**
+
+- **400** — `action` not `"accept"` or `"reject"`; or inspection not in `pending_approval`; or `inspectionFee` not in 1,000–50,000 when provided.
+- **403** — User is not the property owner.
+- **404** — Inspection not found.
+
+---
+
+### 8.4 Buyer: submission (DealSite)
+
+**Endpoint:** `POST /deal-site/:publicSlug/inspections/makeRequest`  
+**Auth:** None (public).  
+**Path:** `publicSlug` = the DealSite’s public slug (e.g. from the DealSite URL).
+
+**Request body (JSON):** Same shape as the main-app inspection request (see validator): `requestedBy` (fullName, phoneNumber, email, optional whatsAppNumber), `inspectionDetails` (inspectionDate, inspectionTime, inspectionMode), and `properties` array with `propertyId`, `inspectionType`, and optional `negotiationPrice` / `letterOfIntention`.
+
+**Success response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Inspection request submitted. The agent will respond shortly.",
+  "data": {
+    "inspections": [ { "_id": "...", ... } ],
+    "warnings": { "<propertyId>": "This property has an active or completed registered transaction." }
+  }
+}
+```
+
+After submission, the buyer receives emails when the Agent/Developer **accepts** (with or without payment link) or **rejects**. If a payment link is sent, the email subject is “Inspection accepted – complete your payment” and contains the Paystack link.
+
+---
+
+### 8.5 Summary for frontend
+
+| Actor | Endpoint | Purpose |
+|-------|----------|---------|
+| Buyer (DealSite) | `POST /deal-site/:publicSlug/inspections/makeRequest` | Submit inspection request (no auth). |
+| Agent/Developer | `GET /account/my-inspections/fetchAll` | List my inspections (filters: status, etc.). |
+| Agent/Developer | `GET /account/my-inspections/:inspectionId` | Get one inspection details. |
+| Agent/Developer | `POST /account/my-inspections/:inspectionId/respond` | Accept (optional `inspectionFee` 1000–50000) or Reject. |
+
+- **Accept + inspectionFee in range** → Buyer gets email with **payment link**; response includes `paymentUrl` and `inspectionFee`.
+- **Accept + no fee (or fee omitted)** → Buyer gets “accepted” email only; no payment link.
+
+---
+
+## 9. Quick reference — base paths and auth
 
 | Area | Base path | Auth |
 |------|-----------|------|
 | Auth (register, login, verify, social) | `/auth` | None for these endpoints |
-| Account (profile, properties, request-to-market, dealSite, subscriptions) | `/account` | Bearer token (account) |
-| LASRERA Market Place list | `/lasrera-marketplace/properties` | None |
+| Account (profile, properties, my-inspections, request-to-market, dealSite, subscriptions) | `/account` | Bearer token (account) |
+| LASRERA Market Place list | `/lasrera-marketplace/properties` | None (optional Bearer for currentUserHasRequested) |
+| DealSite public (e.g. inspection request) | `/deal-site/:publicSlug/...` | None |
 | Transaction registration (types, guidelines, search, check, register) | `/transaction-registration` | None (public) |
 
 Use this guide together with `docs/UPDATES.md` for full backend context. For admin-only APIs (e.g. transaction registration list), see `docs/ADMIN_API_GUIDE.md`.

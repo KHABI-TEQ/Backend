@@ -43,7 +43,7 @@ export async function notifyPublisherOfRequestToMarket(params: {
 
   const html = generalEmailLayout(`
     <p>Hello ${publisherName || "there"},</p>
-    <p><strong>${agentName}</strong> has requested to market your LASRERA Market Place property.</p>
+    <p><strong>${agentName}</strong> has requested to market your KHABITEQ Market Place property.</p>
     <p>Property: <strong>${propertySummary}</strong></p>
     ${publicPageBlock}
     ${contactBlock}
@@ -84,7 +84,7 @@ export async function notifyAgentRequestToMarketRejected(params: {
     <p>Hello ${agentName || "there"},</p>
     <p>Your request to market the property at <strong>${propertySummary}</strong> was declined by the publisher.</p>
     ${reasonLine}
-    <p>You can request to market other properties from the LASRERA Market Place.</p>
+    <p>You can request to market other properties from the KHABITEQ Market Place.</p>
   `);
   await sendEmail({
     to: agentEmail,

@@ -46,7 +46,7 @@ export const createRequestToMarket = async (
     if ((property as any).listingScope !== "lasrera_marketplace") {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "Only LASRERA Market Place properties can be requested for marketing."
+        "Only KHABITEQ Market Place properties can be requested for marketing."
       );
     }
 
@@ -85,7 +85,7 @@ export const createRequestToMarket = async (
     await notificationService.createNotification({
       user: String(publisherId),
       title: "Request To Market",
-      message: `An Agent has requested to market your LASRERA Market Place property. Accept or reject from your dashboard.`,
+      message: `An Agent has requested to market your KHABITEQ Market Place property. Accept or reject from your dashboard.`,
       meta: { requestToMarketId: String(request._id), propertyId },
     });
 

@@ -118,8 +118,71 @@ export const respondToInspectionRequest = async (
     const receiverMode = (inspection as any).receiverMode;
     const isDealSite = receiverMode?.type === "dealSite" && receiverMode?.dealSiteID;
 
-    // DealSite: no inspection fee, no payment link. Buyer is only notified that request was accepted.
+    // DealSite: Agent/Developer may optionally set inspection fee (₦1,000–₦50,000) when accepting.
+    // If set, create payment link and notify buyer with it; otherwise notify acceptance only (no payment).
     if (isDealSite) {
+      let dealSiteAmount = 0;
+      if (bodyFee !== undefined && bodyFee !== null) {
+        const numFee = Number(bodyFee);
+        if (Number.isFinite(numFee) && numFee >= INSPECTION_FEE_MIN && numFee <= INSPECTION_FEE_MAX) {
+          dealSiteAmount = Math.round(numFee);
+        }
+      }
+
+      if (dealSiteAmount > 0) {
+        // Accept with fee: create payment link, save transaction, email buyer with link
+        const paymentResponse = await PaystackService.initializePayment({
+          email: buyer?.email,
+          amount: dealSiteAmount,
+          fromWho: { kind: "Buyer", item: buyer._id },
+          transactionType: "inspection",
+          metadata: { inspectionId },
+        });
+
+        await DB.Models.InspectionBooking.updateOne(
+          { _id: inspectionId },
+          {
+            $set: {
+              status: "pending_transaction",
+              transaction: paymentResponse.transactionId,
+            },
+          },
+        );
+
+        if (propertyIdStr) {
+          await InspectionLogService.logActivity({
+            inspectionId: inspectionId as string,
+            propertyId: propertyIdStr,
+            senderId: userId.toString(),
+            senderRole: "seller",
+            senderModel: "User",
+            message: `Agent accepted the inspection request. Inspection fee ₦${dealSiteAmount.toLocaleString()}. Payment link sent to buyer.`,
+            status: "pending_transaction",
+            stage: "inspection",
+            meta: { amountCharged: dealSiteAmount },
+          });
+        }
+
+        await notifyBuyerPaymentLink({
+          buyerEmail: buyer?.email,
+          buyerName: buyer?.fullName || buyer?.email,
+          propertyLocation,
+          amount: dealSiteAmount,
+          paymentUrl: paymentResponse.authorization_url,
+        });
+
+        return res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "Inspection accepted. The buyer has been sent a payment link for the inspection fee.",
+          data: {
+            status: "pending_transaction",
+            paymentUrl: paymentResponse.authorization_url,
+            inspectionFee: dealSiteAmount,
+          },
+        });
+      }
+
+      // Accept without fee: notify buyer only (no payment link)
       await DB.Models.InspectionBooking.updateOne(
         { _id: inspectionId },
         { $set: { status: "inspection_approved" } },

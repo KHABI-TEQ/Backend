@@ -2,11 +2,12 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
+import { Types } from "mongoose";
 
 /**
  * GET /lasrera-marketplace/properties
  * Public list of LASRERA Market Place properties. No landlord/developer contact is returned.
- * Each property has an action "Request To Market" (only Agents can use it; requires auth).
+ * Each property includes requestToMarketCount and currentUserHasRequested (when an Agent is logged in).
  */
 export const listLasreraMarketplaceProperties = async (
   req: AppRequest,
@@ -39,7 +40,7 @@ export const listLasreraMarketplaceProperties = async (
     const [properties, total] = await Promise.all([
       DB.Models.Property.find(query)
         .select(
-          "propertyType propertyCategory price location additionalFeatures pictures briefType description createdAt _id"
+          "propertyType propertyCategory price location status additionalFeatures pictures briefType description createdAt _id"
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -48,10 +49,40 @@ export const listLasreraMarketplaceProperties = async (
       DB.Models.Property.countDocuments(query),
     ]);
 
+    const propertyIds = (properties as any[]).map((p) => p._id);
+
+    // Count of agents who have requested to market each property (any status: pending, accepted, rejected)
+    const countAgg = await DB.Models.RequestToMarket.aggregate<{ _id: Types.ObjectId; count: number }>([
+      { $match: { propertyId: { $in: propertyIds } } },
+      { $group: { _id: "$propertyId", count: { $sum: 1 } } },
+    ]);
+    const countByPropertyId = new Map<string, number>();
+    countAgg.forEach((row) => countByPropertyId.set(String(row._id), row.count));
+
+    // When logged-in user is an Agent, which of these properties have they requested (any status)?
+    let currentUserRequestedPropertyIds = new Set<string>();
+    const currentUserId = req.user?._id;
+    const userType = (req.user as any)?.userType;
+    if (currentUserId && userType === "Agent") {
+      const myRequests = await DB.Models.RequestToMarket.find({
+        propertyId: { $in: propertyIds },
+        requestedByAgentId: currentUserId,
+      })
+        .select("propertyId")
+        .lean();
+      myRequests.forEach((r) => currentUserRequestedPropertyIds.add(String((r as any).propertyId)));
+    }
+
+    const data = (properties as any[]).map((p) => ({
+      ...p,
+      requestToMarketCount: countByPropertyId.get(String(p._id)) ?? 0,
+      currentUserHasRequested: currentUserRequestedPropertyIds.has(String(p._id)),
+    }));
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "LASRERA Market Place properties. Contact is not shown; use 'Request To Market' (Agents only).",
-      data: properties,
+      message: "KHABITEQ Market Place properties. Contact is not shown; use 'Request To Market' (Agents only).",
+      data,
       pagination: {
         total,
         page: pageNum,
