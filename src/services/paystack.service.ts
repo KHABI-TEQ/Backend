@@ -350,7 +350,7 @@ export class PaystackService {
   }
 
   /**
-   * When marketing fee for Request To Market is paid by Publisher, link transaction and notify Agent.
+   * When agent commission for Request To Market is paid by Publisher, link transaction and notify Agent.
    */
   static async handleRequestToMarketPaymentEffect(tx: INewTransactionDoc): Promise<null> {
     const requestToMarketId = tx.meta?.requestToMarketId;
@@ -368,14 +368,14 @@ export class PaystackService {
         const summary = getPropertyTitleFromLocation((request as any).propertyId?.location) || 'the property';
         const html = generalEmailLayout(`
           <p>Hello ${agent?.fullName || agent?.firstName || 'there'},</p>
-          <p>The publisher has completed the marketing fee payment of <strong>₦${(tx.amount || 0).toLocaleString()}</strong> for the property at <strong>${summary}</strong>.</p>
+          <p>The publisher has completed the agent commission payment of <strong>₦${(tx.amount || 0).toLocaleString()}</strong> for the property at <strong>${summary}</strong>.</p>
           <p>The funds will be settled to your account according to your payment settings.</p>
         `);
         await sendEmail({
           to: agent.email,
-          subject: 'Marketing fee received – Request To Market',
+          subject: 'Agent commission received – Request To Market',
           html,
-          text: `The publisher has paid the marketing fee (₦${(tx.amount || 0).toLocaleString()}) for ${summary}.`,
+          text: `The publisher has paid the agent commission (₦${(tx.amount || 0).toLocaleString()}) for ${summary}.`,
         });
       }
     } catch (e) {

@@ -139,5 +139,10 @@ export const propertyValidationSchema = Joi.object({
   /** Only Landlords and Developers may set "lasrera_marketplace" (property visible only on LASRERA Market Place, no contact). */
   listingScope: Joi.string().valid("agent_listing", "lasrera_marketplace").default("agent_listing").optional(),
 
+  /** Agent commission: 0–5%. Accepted for Sale, Rent, JV, Shortlet (Landlord/Developer). */
+  agentCommissionPercent: Joi.number().min(0).max(5).optional(),
+  /** Agent commission amount in Naira. Accepted for Sale, Rent, JV, Shortlet (Landlord/Developer). */
+  agentCommissionAmount: Joi.number().min(0).optional(),
+
   createdByRole: Joi.string().valid("user", "admin").optional(),
 });

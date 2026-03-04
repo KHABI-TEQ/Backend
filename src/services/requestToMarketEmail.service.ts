@@ -15,7 +15,7 @@ export async function notifyPublisherOfRequestToMarket(params: {
   agentPublicPageUrl?: string;
   propertySummary: string;
   respondUrl: string;
-  marketingFeeNaira: number;
+  agentCommissionAmount: number;
 }): Promise<void> {
   const {
     publisherEmail,
@@ -26,7 +26,7 @@ export async function notifyPublisherOfRequestToMarket(params: {
     agentPublicPageUrl,
     propertySummary,
     respondUrl,
-    marketingFeeNaira,
+    agentCommissionAmount,
   } = params;
 
   const contactLines: string[] = [];
@@ -47,7 +47,7 @@ export async function notifyPublisherOfRequestToMarket(params: {
     <p>Property: <strong>${propertySummary}</strong></p>
     ${publicPageBlock}
     ${contactBlock}
-    <p>If you accept, the property will appear on the agent's public page and you will pay a marketing fee of <strong>₦${marketingFeeNaira.toLocaleString()}</strong> to the agent.</p>
+    <p>If you accept, the property will appear on the agent's public page and you will pay an agent commission of <strong>₦${agentCommissionAmount.toLocaleString()}</strong> to the agent.</p>
     <p>Please accept or reject this request from your dashboard.</p>
     <p><a href="${respondUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
   `);
@@ -106,7 +106,7 @@ export async function notifyAgentRequestToMarketAccepted(params: {
   const html = generalEmailLayout(`
     <p>Hello ${agentName || "there"},</p>
     <p>Your request to market the property at <strong>${propertySummary}</strong> was accepted by the publisher.</p>
-    <p>The property is now visible on your public page. The publisher will pay the marketing fee to you.</p>
+    <p>The property is now visible on your public page. The publisher will pay the agent commission to you.</p>
   `);
   await sendEmail({
     to: agentEmail,
@@ -125,20 +125,20 @@ export async function notifyPublisherToPayMarketingFee(params: {
   agentName: string;
   propertySummary: string;
   paymentUrl: string;
-  marketingFeeNaira: number;
+  agentCommissionAmount: number;
 }): Promise<void> {
-  const { publisherEmail, publisherName, agentName, propertySummary, paymentUrl, marketingFeeNaira } = params;
+  const { publisherEmail, publisherName, agentName, propertySummary, paymentUrl, agentCommissionAmount } = params;
   const html = generalEmailLayout(`
     <p>Hello ${publisherName || "there"},</p>
     <p>You accepted the request from <strong>${agentName}</strong> to market your property: <strong>${propertySummary}</strong>.</p>
-    <p>Please complete the marketing fee payment of <strong>₦${marketingFeeNaira.toLocaleString()}</strong>. This amount will be paid to the agent.</p>
-    <p><a href="${paymentUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Pay marketing fee</a></p>
+    <p>Please complete the agent commission payment of <strong>₦${agentCommissionAmount.toLocaleString()}</strong>. This amount will be paid to the agent.</p>
+    <p><a href="${paymentUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Pay agent commission</a></p>
     <p>This link may expire after a period of time.</p>
   `);
   await sendEmail({
     to: publisherEmail,
-    subject: "Pay marketing fee – Request To Market",
+    subject: "Pay agent commission – Request To Market",
     html,
-    text: `Pay ₦${marketingFeeNaira.toLocaleString()} to complete the marketing fee: ${paymentUrl}`,
+    text: `Pay ₦${agentCommissionAmount.toLocaleString()} to complete the agent commission: ${paymentUrl}`,
   });
 }

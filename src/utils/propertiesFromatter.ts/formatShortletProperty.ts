@@ -71,6 +71,8 @@ export const formatShortletProperty = (
   status: payload.status || "approved",
   isPremium: false,
   inspectionFee: clampInspectionFee(payload.inspectionFee),
+  ...(payload.agentCommissionPercent != null && { agentCommissionPercent: Math.min(5, Math.max(0, Number(payload.agentCommissionPercent))) }),
+  ...(payload.agentCommissionAmount != null && payload.agentCommissionAmount >= 0 && { agentCommissionAmount: Math.round(Number(payload.agentCommissionAmount)) }),
   isApproved: payload.isApproved ?? true,
   isAvailable: payload.isAvailable ?? true,
   isDeleted: false,

@@ -3,7 +3,6 @@ import { AppRequest } from "../../types/express";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
-import { REQUEST_TO_MARKET_FEE_NAIRA } from "../../config/requestToMarket.config";
 import notificationService from "../../services/notification.service";
 import {
   notifyPublisherOfRequestToMarket,
@@ -73,13 +72,15 @@ export const createRequestToMarket = async (
       throw new RouteError(HttpStatusCodes.CONFLICT, "You already have a pending request for this property.");
     }
 
+    const agentCommissionAmount = Math.max(0, Number((property as any).agentCommissionAmount) || 0);
+
     const request = await DB.Models.RequestToMarket.create({
       propertyId,
       requestedByAgentId: userId,
       publisherId,
       publisherType,
       status: "pending",
-      marketingFeeNaira: REQUEST_TO_MARKET_FEE_NAIRA,
+      agentCommissionAmount,
     });
 
     await notificationService.createNotification({
@@ -117,7 +118,7 @@ export const createRequestToMarket = async (
         agentPublicPageUrl,
         propertySummary,
         respondUrl,
-        marketingFeeNaira: REQUEST_TO_MARKET_FEE_NAIRA,
+        agentCommissionAmount,
       });
     } catch (e) {
       console.warn("[requestToMarket] notifyPublisherOfRequestToMarket email failed:", e);
@@ -130,7 +131,7 @@ export const createRequestToMarket = async (
         requestId: request._id,
         propertyId,
         status: "pending",
-        marketingFeeNaira: REQUEST_TO_MARKET_FEE_NAIRA,
+        agentCommissionAmount,
       },
     });
   } catch (err) {
@@ -177,9 +178,9 @@ export const listRequestToMarket = async (
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10)));
     const skip = (pageNum - 1) * limitNum;
 
-    const [requests, total] = await Promise.all([
+    const [rawRequests, total] = await Promise.all([
       DB.Models.RequestToMarket.find(filter)
-        .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description")
+        .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description agentCommissionAmount")
         .populate("requestedByAgentId", "firstName lastName fullName email")
         .populate("publisherId", "firstName lastName fullName email")
         .sort({ createdAt: -1 })
@@ -188,6 +189,12 @@ export const listRequestToMarket = async (
         .lean(),
       DB.Models.RequestToMarket.countDocuments(filter),
     ]);
+
+    const requests = (rawRequests as any[]).map((r) => ({
+      ...r,
+      agentCommissionAmount: r.agentCommissionAmount ?? r.marketingFeeNaira ?? 0,
+      ...(r.marketingFeeNaira !== undefined && { marketingFeeNaira: undefined }),
+    }));
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -294,7 +301,7 @@ export const respondToRequestToMarket = async (
       { $set: { marketedByAgentId: agentId } }
     );
 
-    const marketingFeeNaira = (request as any).marketingFeeNaira;
+    const agentCommissionAmount = (request as any).agentCommissionAmount ?? (request as any).marketingFeeNaira ?? 0;
     const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName").lean();
     const agent = (request as any).requestedByAgentId;
     const agentName =
@@ -310,14 +317,14 @@ export const respondToRequestToMarket = async (
       .lean();
     const subAccountCode = (dealSite as any)?.paymentDetails?.subAccountCode;
 
-    if (subAccountCode && publisher?.email) {
+    if (subAccountCode && publisher?.email && agentCommissionAmount > 0) {
       try {
         const result = await PaystackService.initializeSplitPayment({
           subAccount: subAccountCode,
           publicPageUrl: process.env.CLIENT_LINK || "https://khabiteq.com",
           amountCharge: 0,
           email: (publisher as any).email,
-          amount: marketingFeeNaira,
+          amount: agentCommissionAmount,
           fromWho: { kind: "User", item: userId as Types.ObjectId },
           transactionType: "request-to-market",
           metadata: { requestToMarketId: requestId },
@@ -369,7 +376,7 @@ export const respondToRequestToMarket = async (
           agentName,
           propertySummary,
           paymentUrl,
-          marketingFeeNaira,
+          agentCommissionAmount,
         });
       } catch (e) {
         console.warn("[requestToMarket] notifyPublisherToPayMarketingFee email failed:", e);
@@ -379,12 +386,12 @@ export const respondToRequestToMarket = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: paymentUrl
-        ? "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the marketing fee to the agent."
-        : "Request accepted. The property is now visible on the agent's public page. Please arrange payment of the marketing fee directly with the agent (payment link could not be generated).",
+        ? "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent."
+        : "Request accepted. The property is now visible on the agent's public page. Please arrange payment of the agent commission directly with the agent (payment link could not be generated).",
       data: {
         status: "accepted",
         propertyId,
-        marketingFeeNaira,
+        agentCommissionAmount,
         paymentUrl: paymentUrl || undefined,
       },
     });

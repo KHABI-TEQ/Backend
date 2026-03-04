@@ -301,7 +301,7 @@ Only **Agents** can create a request. **Publishers** (Landlord or Developer who 
     "requestId": "...",
     "propertyId": "...",
     "status": "pending",
-    "marketingFeeNaira": 50000
+    "agentCommissionAmount": 50000
   }
 }
 ```
@@ -336,11 +336,11 @@ Only **Agents** can create a request. **Publishers** (Landlord or Developer who 
   "data": [
     {
       "_id": "...",
-      "propertyId": { "_id": "...", "location": {...}, "price": ..., "briefType": "...", "pictures": [...], "listingScope": "...", ... },
+      "propertyId": { "_id": "...", "location": {...}, "price": ..., "briefType": "...", "pictures": [...], "listingScope": "...", "agentCommissionAmount": ... },
       "requestedByAgentId": { "firstName": "...", "lastName": "...", "fullName": "...", "email": "..." },
       "publisherId": { "firstName": "...", "lastName": "...", "fullName": "...", "email": "..." },
       "status": "pending" | "accepted" | "rejected",
-      "marketingFeeNaira": 50000,
+      "agentCommissionAmount": 50000,
       "rejectedReason": "...",
       "acceptedAt": "...",
       "rejectedAt": "...",
@@ -387,11 +387,11 @@ When the Agent has a Paystack sub-account, the backend creates a split payment a
 ```json
 {
   "success": true,
-  "message": "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the marketing fee to the agent.",
+  "message": "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent.",
   "data": {
     "status": "accepted",
     "propertyId": "...",
-    "marketingFeeNaira": 50000,
+    "agentCommissionAmount": 50000,
     "paymentUrl": "https://checkout.paystack.com/..."
   }
 }

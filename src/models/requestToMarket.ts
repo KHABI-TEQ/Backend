@@ -8,8 +8,9 @@ export interface IRequestToMarket {
   publisherId: Types.ObjectId;
   publisherType: "Landowners" | "Developer";
   status: RequestToMarketStatus;
-  marketingFeeNaira: number;
-  /** Paystack transaction for marketing fee (Publisher pays Agent). */
+  /** Agent commission amount in Naira (from property.agentCommissionAmount when request was created). */
+  agentCommissionAmount: number;
+  /** Paystack transaction for agent commission (Publisher pays Agent). */
   paymentTransactionId?: Types.ObjectId;
   /** Set when Publisher rejects. */
   rejectedReason?: string;
@@ -37,7 +38,7 @@ const schema = new Schema<IRequestToMarketDoc>(
       default: "pending",
       required: true,
     },
-    marketingFeeNaira: { type: Number, required: true },
+    agentCommissionAmount: { type: Number, required: true },
     paymentTransactionId: { type: Schema.Types.ObjectId, ref: "newTransaction" },
     rejectedReason: { type: String },
     acceptedAt: { type: Date },

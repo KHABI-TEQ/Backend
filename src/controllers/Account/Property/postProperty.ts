@@ -39,17 +39,27 @@ export const postProperty = async (
     const payload = validation.data;
     const createdByRole = "user";
     const ownerModel = "User";
+    const userType = (req.user as any)?.userType;
 
     // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"
     const isTenanted = (payload.isTenanted ?? "no").toString().toLowerCase();
 
+    // Agent commission fields: only persist for Landlord or Developer (Sale, Rent, JV, Shortlet)
+    const allowCommission = userType === "Landowners" || userType === "Developer";
     const propertyData = {
       ...payload,
       isTenanted,
       status: "approved",
       isApproved: true,
       isAvailable: true,
+      ...(allowCommission
+        ? {}
+        : { agentCommissionPercent: undefined, agentCommissionAmount: undefined }),
     };
+    if (!allowCommission) {
+      delete (propertyData as any).agentCommissionPercent;
+      delete (propertyData as any).agentCommissionAmount;
+    }
 
     const formatted = formatPropertyPayload(
       propertyData,
@@ -58,7 +68,6 @@ export const postProperty = async (
       ownerModel
     );
 
-    const userType = (req.user as any)?.userType;
     if (userType === "Landowners" || userType === "Developer") {
       if (payload.listingScope === "lasrera_marketplace") {
         (formatted as any).listingScope = "lasrera_marketplace";
