@@ -40,7 +40,7 @@ export const listLasreraMarketplaceProperties = async (
     const [properties, total] = await Promise.all([
       DB.Models.Property.find(query)
         .select(
-          "propertyType propertyCategory price location status additionalFeatures pictures briefType description createdAt _id"
+          "propertyType propertyCategory price location status additionalFeatures pictures briefType description agentCommissionAmount createdAt _id"
         )
         .sort({ createdAt: -1 })
         .skip(skip)
