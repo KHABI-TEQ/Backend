@@ -406,6 +406,63 @@ If no payment link could be generated (e.g. Agent has no sub-account), `data.pay
 
 ---
 
+### 4.4 Publisher (Landlord/Developer) dashboard: how to show Accept/Reject and payment
+
+After a Landlord or Developer receives the email that an Agent has requested to market their property, they need to see the request in the dashboard and use **Accept** or **Reject**, then pay the agent commission if they accept. The frontend should implement the following flow.
+
+#### Step 1: Show “Request To Market” requests in the dashboard
+
+- **Who:** Logged-in user is **Landowners** or **Developer** (Publisher).
+- **API:** `GET /account/request-to-market?role=publisher&status=pending`  
+  (Optionally omit `status` to show all, or use `status=pending` to show only requests awaiting response.)
+- **Auth:** Bearer token (account auth).
+
+The response `data` array contains one object per request. Each object includes:
+
+- **`_id`** — Request ID (use this for the respond API).
+- **`status`** — e.g. `"pending"`, `"accepted"`, `"rejected"`.
+- **`propertyId`** — Property details (location, price, briefType, pictures, etc.).
+- **`requestedByAgentId`** — Agent details (firstName, lastName, fullName, email).
+- **`agentCommissionAmount`** — Amount in Naira the Publisher will pay the Agent if they accept.
+
+**UI suggestion:** Add a “Request To Market” or “Marketplace requests” section in the Publisher’s dashboard (e.g. under Account or a dedicated “Requests” page). List each **pending** request with property summary, agent name, and **agentCommissionAmount**. For each pending request, show two actions: **Accept** and **Reject**.
+
+#### Step 2: Accept or Reject (where the buttons go)
+
+- **Accept:** Call `POST /account/request-to-market/:requestId/respond` with body `{ "action": "accept" }`. Use the request’s **`_id`** as `requestId` in the URL.
+- **Reject:** Call `POST /account/request-to-market/:requestId/respond` with body `{ "action": "reject", "rejectedReason": "optional reason" }` (same `requestId`).
+
+So the **Accept** and **Reject** buttons are tied to each row/card in the list from Step 1; on click, the frontend calls this respond endpoint with that request’s `_id`.
+
+#### Step 3: After Accept — how the Publisher pays the agent commission
+
+When the Publisher clicks **Accept**, the backend:
+
+- Marks the request as accepted and links the property to the Agent.
+- If **agentCommissionAmount > 0** and the Agent has a Paystack sub-account, it creates a payment link and sends it to the **Publisher’s email** and also returns it in the API response.
+
+**Respond (accept) success response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent.",
+  "data": {
+    "status": "accepted",
+    "propertyId": "...",
+    "agentCommissionAmount": 50000,
+    "paymentUrl": "https://checkout.paystack.com/..."
+  }
+}
+```
+
+- **If `data.paymentUrl` is present:** Show a clear call-to-action on the same screen (or a success modal): e.g. **“Pay agent commission: ₦X”** with a button that opens **`data.paymentUrl`** in the same tab or a new tab. The Publisher completes payment on Paystack’s page; no payment form is needed in your app.
+- **If `data.paymentUrl` is missing** (e.g. Agent has no sub-account): Show the message that they should arrange payment directly with the Agent (and optionally show `data.agentCommissionAmount` and the Agent’s contact from the original request list).
+
+So the Publisher “sees” the accept/reject buttons by listing pending requests (Step 1) and calling the respond API (Step 2); they “make the payment” by using the **paymentUrl** returned when they accept (Step 3), either from the dashboard or from the link in the email.
+
+---
+
 ## 5. Transaction registration fee by price
 
 Processing fee for transaction registration is **no longer a percentage**. It is determined only by **transaction/property value** (same bands for all transaction types):

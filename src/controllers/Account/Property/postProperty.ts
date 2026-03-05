@@ -77,15 +77,22 @@ export const postProperty = async (
       (formatted as any).listingScope = "agent_listing";
     }
 
-    // ✅ Only check subscription for Agents and Developers, NOT for Landowners
+    // ✅ Agents and Developers: first 2 properties are free; from 3rd property onward subscription is required
+    const FREE_PROPERTY_LIMIT = 2;
     let activeSnapshot = null;
     if (req.user?.userType === "Agent" || req.user?.userType === "Developer") {
-      activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
-      if (!activeSnapshot) {
-        throw new RouteError(
-          HttpStatusCodes.FORBIDDEN,
-          "No active subscription. Please subscribe to a plan to post properties."
-        );
+      const existingPropertyCount = await DB.Models.Property.countDocuments({
+        owner: userId,
+        isDeleted: { $ne: true },
+      });
+      if (existingPropertyCount >= FREE_PROPERTY_LIMIT) {
+        activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
+        if (!activeSnapshot) {
+          throw new RouteError(
+            HttpStatusCodes.FORBIDDEN,
+            "You have reached the free limit of 2 properties. Please subscribe to a plan to post more properties."
+          );
+        }
       }
     }
 
