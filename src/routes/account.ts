@@ -52,6 +52,7 @@ import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBooking
 import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
 import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
 import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
+import { suggestPropertyForm } from "../controllers/aiFormFill/aiFormFillController";
 
 const AccountRouter = express.Router();
 
@@ -134,6 +135,9 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
+
+// AI-assisted form fill (property) – Agent, Landlord, Developer
+AccountRouter.post("/ai/suggest-property", suggestPropertyForm);
 
 // REQUEST TO MARKET (LASRERA Market Place – Agent requests, Publisher accepts/rejects)
 AccountRouter.post("/request-to-market", createRequestToMarket);

@@ -8,6 +8,7 @@ This document is for **frontend developers and Cursor agents** working on the fr
 - **Inspection flow** (buyer requests; Agent/Developer accepts or rejects; optional inspection fee ₦1,000–₦50,000 and payment link — see **Section 8**)
 - **Transaction registration fee by price** (₦100k / ₦150k bands)
 - **Onboarding**: Registration, email verification, login, social sign-up/login
+- **AI-assisted form filling**: Optional OpenAI-powered suggestions for **property** and **preference** forms (see **Section 10**)
 
 Use your configured **API base URL** https://khabiteq-realty.onrender.com/api as the prefix for all paths below. Paths are relative to that base.
 
@@ -742,12 +743,54 @@ After submission, the buyer receives emails when the Agent/Developer **accepts**
 
 ---
 
+## 10. AI-assisted form filling (OpenAI)
+
+Users can **optionally** describe what they want in natural language; the backend uses OpenAI to return **suggested form fields** that the frontend can pre-fill. The user should always be able to review and edit the suggestion before submitting. Submission still goes through the normal property or preference APIs and is validated as usual.
+
+### 10.1 When to use
+
+- **Property form** — When an **Agent**, **Landlord**, or **Developer** is posting a property (or brief), offer a "Describe your property" / "Fill with AI" option. They type or speak (speech-to-text on frontend) a short description; the frontend calls the suggest-property endpoint and merges the returned object into the form.
+- **Preference form** — When a **Buyer** (or visitor) is submitting a property preference (buy, rent, shortlet, joint venture), offer a "Describe what you're looking for" / "Fill with AI" option. They describe in natural language; the frontend calls the suggest-preference endpoint and merges the result into the preference form.
+
+### 10.2 Suggest property form (Agent, Landlord, Developer)
+
+**Endpoint:** `POST /account/ai/suggest-property`  
+**Auth:** Bearer token (account).  
+**Allowed user types:** `Agent`, `Landowners`, `Developer`. Others receive `403 Forbidden`.
+
+**Request body (JSON):** `{ "userInput": "string" }` — natural-language description of the property.
+
+**Success response (200):** `{ "success": true, "message": "...", "data": { ... } }`. The `data` object contains suggested fields (e.g. `propertyType`, `propertyCategory`, `location`, `price`, `description`, `features`, etc.). Merge into your form; validation happens on actual submit via `POST /account/properties/create`.
+
+**Errors:** 400 — missing/invalid `userInput`. 403 — user not Agent/Landlord/Developer. 503 — OpenAI not configured.
+
+### 10.3 Suggest preference form (Buyer / Public)
+
+**Endpoint:** `POST /ai/suggest-preference`  
+**Auth:** None (public).
+
+**Request body (JSON):** `{ "userInput": "string" }` — natural-language description of what the buyer is looking for.
+
+**Success response (200):** `{ "success": true, "message": "...", "data": { ... } }`. The `data` object contains suggested preference fields (e.g. `preferenceType`, `preferenceMode`, `location`, `budget`, `propertyDetails`, `features`). Merge into the preference form; user submits via `POST /preferences/submit`.
+
+**Errors:** 400 — missing/invalid `userInput`. 503 — AI service not configured.
+
+### 10.4 Implementation tips
+
+1. **UI** — Add a text area or voice input (browser speech-to-text) and a "Fill with AI" button.
+2. **Flow** — Call the endpoint with the user's description; on success, merge `data` into form state (e.g. only empty fields, or show a "Review AI suggestion" step).
+3. **Errors** — On 503, keep manual form available; do not block the user. On 400, show the error message.
+4. **Backend config** — Backend needs `OPENAI_API_KEY`. Optional: `OPENAI_MODEL` (default `gpt-4o-mini`).
+
+---
+
 ## 9. Quick reference — base paths and auth
 
 | Area | Base path | Auth |
 |------|-----------|------|
 | Auth (register, login, verify, social) | `/auth` | None for these endpoints |
-| Account (profile, properties, my-inspections, request-to-market, dealSite, subscriptions) | `/account` | Bearer token (account) |
+| Account (profile, properties, my-inspections, request-to-market, dealSite, subscriptions, **ai/suggest-property**) | `/account` | Bearer token (account) |
+| **AI suggest preference** | `/ai/suggest-preference` | None (public) |
 | LASRERA Market Place list | `/lasrera-marketplace/properties` | None (optional Bearer for currentUserHasRequested) |
 | DealSite public (e.g. inspection request) | `/deal-site/:publicSlug/...` | None |
 | Transaction registration (types, guidelines, search, check, register) | `/transaction-registration` | None (public) |

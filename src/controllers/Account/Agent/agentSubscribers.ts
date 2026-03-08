@@ -5,7 +5,7 @@ import { RouteError } from "../../../common/classes";
 import { broadcastToSubscribers } from "../../../services/agentSubscriber.service";
 
 /**
- * Agent broadcasts an email to all their subscribers.
+ * Agent or Developer broadcasts an email to all their DealSite subscribers.
  * Subscribers are unauthenticated DealSite guests who subscribed with email
  * (POST /deal-site/:publicSlug/newsletter/subscribe).
  * Body: { subject, body } — body can be HTML.
@@ -20,6 +20,14 @@ export const broadcastToMySubscribers = async (
     if (!userId) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
     }
+    const userType = (req.user as any)?.userType;
+    const allowed = userType === "Agent" || userType === "Developer";
+    if (!allowed) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Only Agents and Developers with a DealSite can send a broadcast to subscribers."
+      );
+    }
     const { subject, body } = req.body;
     if (!subject || !body) {
       throw new RouteError(
@@ -33,7 +41,10 @@ export const broadcastToMySubscribers = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Broadcast sent to subscribers",
-      data: result,
+      data: {
+        emailsSent: result.emailsSent,
+        ...(result.provider && { provider: result.provider }),
+      },
     });
   } catch (err) {
     next(err);

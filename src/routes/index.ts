@@ -34,6 +34,7 @@ import {
   getAgentRatingSummaryPublic,
   getAgentRatingsPublic,
 } from "../controllers/Account/agentRatingReport";
+import { suggestPreferenceForm } from "../controllers/aiFormFill/aiFormFillController";
 
 const router = express.Router();
 
@@ -192,6 +193,9 @@ router.use("/auth", AuthRouter);
 // All Properties Routes
 router.use("/properties", propertyRouter);
  
+// AI-assisted form fill (preference) – public for buyers
+router.post("/ai/suggest-preference", suggestPreferenceForm);
+
 // All Preferences Routes
 router.use("/preferences", preferenceRouter);
 
