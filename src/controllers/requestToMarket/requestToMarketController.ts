@@ -302,7 +302,7 @@ export const respondToRequestToMarket = async (
     );
 
     const agentCommissionAmount = (request as any).agentCommissionAmount ?? (request as any).marketingFeeNaira ?? 0;
-    const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName").lean();
+    const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName phoneNumber").lean();
     const agent = (request as any).requestedByAgentId;
     const agentName =
       agent?.fullName || [agent?.firstName, agent?.lastName].filter(Boolean).join(" ") || "there";
@@ -354,11 +354,20 @@ export const respondToRequestToMarket = async (
       meta: { requestToMarketId: requestId, propertyId },
     });
 
+    const publisherName =
+      (publisher as any)?.fullName ||
+      [((publisher as any)?.firstName || "").trim(), ((publisher as any)?.lastName || "").trim()]
+        .filter(Boolean)
+        .join(" ") ||
+      "";
     try {
       await notifyAgentRequestToMarketAccepted({
         agentEmail: agent?.email,
         agentName,
         propertySummary,
+        publisherName: publisherName || undefined,
+        publisherEmail: (publisher as any)?.email,
+        publisherPhone: (publisher as any)?.phoneNumber,
       });
     } catch (e) {
       console.warn("[requestToMarket] notifyAgentRequestToMarketAccepted email failed:", e);

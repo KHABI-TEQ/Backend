@@ -96,23 +96,43 @@ export async function notifyAgentRequestToMarketRejected(params: {
 
 /**
  * Email to Agent: Publisher accepted their Request To Market; property is now on their public page.
+ * Includes Publisher (Developer/Landlord) name and contact so the Agent can reach them.
  */
 export async function notifyAgentRequestToMarketAccepted(params: {
   agentEmail: string;
   agentName: string;
   propertySummary: string;
+  publisherName?: string;
+  publisherEmail?: string;
+  publisherPhone?: string;
 }): Promise<void> {
-  const { agentEmail, agentName, propertySummary } = params;
+  const { agentEmail, agentName, propertySummary, publisherName, publisherEmail, publisherPhone } = params;
+  const contactLines: string[] = [];
+  if (publisherEmail) contactLines.push(`<strong>Email:</strong> ${publisherEmail}`);
+  if (publisherPhone) contactLines.push(`<strong>Phone:</strong> ${publisherPhone}`);
+  const contactBlock =
+    (publisherName || contactLines.length > 0)
+      ? `<p><strong>Publisher details</strong> (you can contact them to coordinate):</p><p>${publisherName ? `Name: <strong>${publisherName}</strong>` : ""}</p>${contactLines.length > 0 ? `<ul>${contactLines.map((l) => `<li>${l}</li>`).join("")}</ul>` : ""}`
+      : "";
+
   const html = generalEmailLayout(`
     <p>Hello ${agentName || "there"},</p>
     <p>Your request to market the property at <strong>${propertySummary}</strong> was accepted by the publisher.</p>
     <p>The property is now visible on your public page. The publisher will pay the agent commission to you.</p>
+    ${contactBlock}
   `);
+
+  const textParts = [
+    `Your request to market ${propertySummary} was accepted. The property is now on your public page.`,
+    publisherName ? `Publisher: ${publisherName}` : "",
+    publisherEmail ? `Publisher email: ${publisherEmail}` : "",
+    publisherPhone ? `Publisher phone: ${publisherPhone}` : "",
+  ].filter(Boolean);
   await sendEmail({
     to: agentEmail,
     subject: "Request To Market accepted",
     html,
-    text: `Your request to market ${propertySummary} was accepted. The property is now on your public page.`,
+    text: textParts.join("\n"),
   });
 }
 
