@@ -137,7 +137,9 @@ export async function notifyAgentRequestToMarketAccepted(params: {
 }
 
 /**
- * Email to Publisher: Payment link to pay the marketing fee to the Agent (after they accepted).
+ * Email to Publisher (Developer/Landlord): Agent commission payment link.
+ * Sent whenever the Publisher accepts an Agent's Request To Market and a payment link could be generated.
+ * This link is tied to the specific Agent and property so the Publisher can tell it apart from other payment links.
  */
 export async function notifyPublisherToPayMarketingFee(params: {
   publisherEmail: string;
@@ -151,14 +153,16 @@ export async function notifyPublisherToPayMarketingFee(params: {
   const html = generalEmailLayout(`
     <p>Hello ${publisherName || "there"},</p>
     <p>You accepted the request from <strong>${agentName}</strong> to market your property: <strong>${propertySummary}</strong>.</p>
-    <p>Please complete the agent commission payment of <strong>₦${agentCommissionAmount.toLocaleString()}</strong>. This amount will be paid to the agent.</p>
-    <p><a href="${paymentUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Pay agent commission</a></p>
-    <p>This link may expire after a period of time.</p>
+    <p><strong>This payment link is for paying <span style="color:#09391C;">${agentName}</span> only</strong> – the agent you confirmed to market this property. The commission of <strong>₦${agentCommissionAmount.toLocaleString()}</strong> will be paid to them when you complete the payment.</p>
+    <p><a href="${paymentUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Pay ${agentName} – ${propertySummary}</a></p>
+    <p><em>If you have accepted other agents for other properties, you will receive separate emails – each link pays only the agent and property named in that email.</em></p>
+    <p>This payment link may expire after a period of time; complete the payment when ready.</p>
   `);
+  const textSummary = `Pay ₦${agentCommissionAmount.toLocaleString()} to ${agentName} for: ${propertySummary}. This link is for this agent and property only. ${paymentUrl}`;
   await sendEmail({
     to: publisherEmail,
-    subject: "Pay agent commission – Request To Market",
+    subject: `Pay agent commission – ${agentName} – ${propertySummary}`,
     html,
-    text: `Pay ₦${agentCommissionAmount.toLocaleString()} to complete the agent commission: ${paymentUrl}`,
+    text: textSummary,
   });
 }

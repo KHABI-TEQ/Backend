@@ -316,14 +316,16 @@ export const respondToRequestToMarket = async (
       .select("paymentDetails")
       .lean();
     const subAccountCode = (dealSite as any)?.paymentDetails?.subAccountCode;
+    const publisherEmail = (publisher as any)?.email;
 
-    if (subAccountCode && publisher?.email && agentCommissionAmount > 0) {
+    // Prefer split payment (Agent receives directly) when Agent has DealSite with Paystack sub-account
+    if (subAccountCode && publisherEmail && agentCommissionAmount > 0) {
       try {
         const result = await PaystackService.initializeSplitPayment({
           subAccount: subAccountCode,
           publicPageUrl: process.env.CLIENT_LINK || "https://khabiteq.com",
           amountCharge: 0,
-          email: (publisher as any).email,
+          email: publisherEmail,
           amount: agentCommissionAmount,
           fromWho: { kind: "User", item: userId as Types.ObjectId },
           transactionType: "request-to-market",
@@ -333,6 +335,23 @@ export const respondToRequestToMarket = async (
         paymentTransactionId = result.transactionId as Types.ObjectId;
       } catch (payErr) {
         console.warn("[requestToMarket] Paystack initializeSplitPayment failed:", payErr);
+      }
+    }
+
+    // Fallback: when Agent has no sub-account, use platform collect so Publisher always gets a payment link
+    if (!paymentUrl && publisherEmail && agentCommissionAmount > 0) {
+      try {
+        const result = await PaystackService.initializePayment({
+          email: publisherEmail,
+          amount: agentCommissionAmount,
+          fromWho: { kind: "User", item: userId as Types.ObjectId },
+          transactionType: "request-to-market",
+          metadata: { requestToMarketId: requestId },
+        });
+        paymentUrl = result.authorization_url;
+        paymentTransactionId = result.transactionId as Types.ObjectId;
+      } catch (payErr) {
+        console.warn("[requestToMarket] Paystack initializePayment (fallback) failed:", payErr);
       }
     }
 
@@ -373,7 +392,8 @@ export const respondToRequestToMarket = async (
       console.warn("[requestToMarket] notifyAgentRequestToMarketAccepted email failed:", e);
     }
 
-    if (paymentUrl && publisher?.email) {
+    // Send the agent commission payment link to the Publisher by email whenever they accept and a link was generated (payable to the Agent).
+    if (paymentUrl && (publisher as any)?.email) {
       try {
         await notifyPublisherToPayMarketingFee({
           publisherEmail: (publisher as any).email,
@@ -392,11 +412,15 @@ export const respondToRequestToMarket = async (
       }
     }
 
+    const acceptMessage = paymentUrl
+      ? "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent."
+      : agentCommissionAmount === 0
+        ? "Request accepted. The property is now visible on the agent's public page. No commission amount was set for this property; no payment is required."
+        : "Request accepted. The property is now visible on the agent's public page. Please arrange payment of the agent commission directly with the agent (payment link could not be generated).";
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: paymentUrl
-        ? "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent."
-        : "Request accepted. The property is now visible on the agent's public page. Please arrange payment of the agent commission directly with the agent (payment link could not be generated).",
+      message: acceptMessage,
       data: {
         status: "accepted",
         propertyId,
