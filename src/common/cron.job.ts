@@ -6,6 +6,7 @@ import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail
 import sendEmail from './send.email';
 import { PaystackService } from '../services/paystack.service';
 import { kebabToTitleCase } from '../utils/helper';
+import { sendTransactionConfirmationRequestEmails } from '../services/transactionConfirmationCron.service';
 
 // Example DB connect (adjust for your project setup)
 mongoose.connect(process.env.MONGO_URI as string);
@@ -387,6 +388,17 @@ cron.schedule('0 1 * * *', () => {
 cron.schedule('30 0 * * *', () => {
   console.log('[CRON] Auto-renew subscriptions job running...');
   autoRenewSubscriptionsCronJob();
+});
+
+// Run every day at 02:00 AM – send transaction confirmation request emails to buyers 3 days after accepted inspection date
+cron.schedule('0 2 * * *', async () => {
+  try {
+    console.log('[CRON] Transaction confirmation request emails (3 days after inspection)...');
+    const sent = await sendTransactionConfirmationRequestEmails();
+    if (sent > 0) console.log(`[CRON] Sent ${sent} transaction confirmation request email(s).`);
+  } catch (err) {
+    console.error('[CRON] Transaction confirmation request emails error:', err);
+  }
 });
 
 export default {};

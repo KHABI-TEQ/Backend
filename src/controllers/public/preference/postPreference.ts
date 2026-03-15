@@ -8,13 +8,14 @@ import { preferenceValidationSchema } from "../../../validators/preference.valid
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";
- 
+import { matchPreferenceAgainstProperties } from "../../../services/preferenceMatching.service";
+
 export const postPreference = async (
   req: AppRequest,
   res: Response,
   next: NextFunction,
 ) => {
-  try { 
+  try {
     // Validate payload
     const payload = await preferenceValidationSchema.validateAsync(req.body, {
       abortEarly: false,
@@ -32,7 +33,6 @@ export const postPreference = async (
       cacRegistrationNumber,
     } = rawContactInfo;
 
-    
     // Ensure required fields for Buyer model
     const normalizedBuyerPayload: {
       fullName: string;
@@ -65,7 +65,7 @@ export const postPreference = async (
       buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
     }
 
-    // Prepare preference data
+    // Prepare preference data (initially pending; we auto-approve below)
     const preferenceData = {
       ...payload,
       contactInfo: normalizedBuyerPayload,
@@ -75,8 +75,19 @@ export const postPreference = async (
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
 
-    // Send email
-    const userMailBody = preferenceMail(preferenceData);
+    // §10.4: After save, (1) match against existing briefs, (2) auto-approve so it appears on Agent Marketplace.
+    const preferenceObj = createdPreference.toObject ? createdPreference.toObject() : createdPreference;
+    try {
+      await matchPreferenceAgainstProperties(preferenceObj as any);
+    } catch (matchErr) {
+      console.warn("[postPreference] Matching step failed (non-fatal):", matchErr);
+    }
+
+    createdPreference.status = "approved";
+    await createdPreference.save();
+
+    // Send email (with approved status)
+    const userMailBody = preferenceMail({ ...preferenceData, status: "approved" });
     const userGeneralMail = generalEmailLayout(userMailBody);
 
     await sendEmail({

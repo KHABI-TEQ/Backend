@@ -68,6 +68,11 @@ export interface IInspectionBooking {
   };
 
   meta?: Record<string, any>;
+
+  /** Set when the 3-day-after inspection cron sends the transaction confirmation request email. */
+  transactionConfirmationRequestSentAt?: Date;
+  /** Set when the buyer clicks the confirm button in that email. */
+  buyerConfirmedTransactionAt?: Date;
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
@@ -190,6 +195,8 @@ export class InspectionBooking {
           dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
         meta: { type: Schema.Types.Mixed, default: {} },
+        transactionConfirmationRequestSentAt: { type: Date },
+        buyerConfirmedTransactionAt: { type: Date },
       },
       {
         timestamps: true,

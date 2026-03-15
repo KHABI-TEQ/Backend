@@ -1,5 +1,6 @@
 // General/marketplace: no publicSlug, receiverMode.general → payment to company
 import { submitInspectionRequest as submitGeneralInspectionRequest } from "../controllers/public/inspection/inspectionRequest";
+import { confirmTransaction } from "../controllers/public/inspection/confirmTransaction";
 import { authenticateBookingCode, getBookingByBookingCode } from "../controllers/Account/fetchBookings";
 import BookingController from "../controllers/public/inspection/bookingActions";
 import InspectionActionsController from "../controllers/public/inspection/inspectionActions";
@@ -13,6 +14,9 @@ const inspectRouter = Router();
 
 // Inspection request from main site (marketplace / home) → general flow
 inspectRouter.post("/request-inspection", submitGeneralInspectionRequest);
+
+// Buyer clicks "Confirm transaction took place" in email (3 days after inspection) → mark confirmed, send follow-up email
+inspectRouter.get("/confirm-transaction", confirmTransaction);
 
 // Buyer rate/report agent after completed inspection (no auth; buyer identified by email in body)
 inspectRouter.post("/:inspectionId/rate", submitInspectionRatingPublic);

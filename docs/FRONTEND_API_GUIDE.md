@@ -462,6 +462,19 @@ When the Publisher clicks **Accept**, the backend:
 
 So the Publisher “sees” the accept/reject buttons by listing pending requests (Step 1) and calling the respond API (Step 2); they “make the payment” by using the **paymentUrl** returned when they accept (Step 3), either from the dashboard or from the link in the email.
 
+### 4.5 Agent: verify property address on map (frontend-only)
+
+Before requesting to market a publisher property, the **Agent** can confirm the property address on a map to ensure it exists and is correct.
+
+**Implementation (current):**
+
+- **Purely frontend.** On the KHABITEQ Market Place page (`/lasrera-marketplace`), each property card shows a **"Verify address on map"** link. Clicking it opens a modal with the property location displayed in an **embedded Google Map** (iframe with `maps.google.com?q=<address>`). No Google Places or Geocoding API key is required for this; the address string (state, LGA, area, street if available) from the listing is passed to the map embed.
+- The agent can close the modal or, after confirming the location, click **"Request To Market"** in the same modal to submit the request.
+
+**Optional backend enhancement:**
+
+- If you want **server-side address validation** (e.g. ensure the address resolves to a real place via Google Geocoding API), that would be a **backend** integration: the backend would call the Geocoding API and optionally store normalized coordinates or a validation flag. The frontend would continue to show the map; any "verified" badge or stricter validation would come from the backend response.
+
 ---
 
 ## 5. Transaction registration fee by price
@@ -764,6 +777,8 @@ Users can **optionally** describe what they want in natural language; the backen
 
 **Errors:** 400 — missing/invalid `userInput`. 403 — user not Agent/Landlord/Developer. 503 — OpenAI not configured.
 
+**Note:** If the backend returns **404 Not Found**, the endpoint is not yet implemented. The frontend shows: *"AI suggestions are not available yet. Please fill in the form manually."* Backend should implement `POST /account/ai/suggest-property` (e.g. under the `/account` router) so "Fill with AI" works.
+
 ### 10.3 Suggest preference form (Buyer / Public)
 
 **Endpoint:** `POST /ai/suggest-preference`  
@@ -775,7 +790,20 @@ Users can **optionally** describe what they want in natural language; the backen
 
 **Errors:** 400 — missing/invalid `userInput`. 503 — AI service not configured.
 
-### 10.4 Implementation tips
+### 10.4 Preference submission and Agent Marketplace visibility
+
+- **Submit:** The frontend submits preferences via `POST /preferences/submit`. On success, the user sees a success modal.
+- **Agent Marketplace:** The `/agent-marketplace` page lists buyer preferences for agents. It fetches **only approved preferences** via `GET /preferences/getApprovedForAgent?page=1&limit=12` (with optional `search`, `preferenceMode`, `documentType`, `propertyCondition`).
+
+**Backend instructions (preference approval and matching):**
+
+1. **On `POST /preferences/submit`:** After saving the new preference, the backend should:
+   - **Match** the preference against existing **submitted briefs** (property listings) from **Agents**, **Landlords**, or **Developers** (e.g. by `preferenceType`/listing type, location, budget range, property details, and/or features).
+   - **Auto-approve** the preference so that it is returned by `GET /preferences/getApprovedForAgent` and appears on the Agent Marketplace for agents to see and respond to.
+2. Matching criteria are at the backend’s discretion (e.g. same state/LGA, overlapping budget, same property type). The frontend does not perform matching; it only displays preferences returned as approved and allows agents to submit matching properties via the existing flow.
+3. If the backend does not auto-approve, newly submitted preferences will **not** appear on the Agent Marketplace until they are approved by some other process; the frontend success message already states that the preference “will appear for agents once it has been approved.”
+
+### 10.5 Implementation tips
 
 1. **UI** — Add a text area or voice input (browser speech-to-text) and a "Fill with AI" button.
 2. **Flow** — Call the endpoint with the user's description; on success, merge `data` into form state (e.g. only empty fields, or show a "Review AI suggestion" step).
