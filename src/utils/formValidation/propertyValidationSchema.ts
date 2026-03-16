@@ -4,14 +4,15 @@ export const propertyValidationSchema = Joi.object({
   propertyType: Joi.string().valid("sell", "rent", "shortlet", "jv").required(),
   propertyCategory: Joi.string().required(),
 
+  // Required only for Residential and Commercial; not required for Land
   propertyCondition: Joi.string().when("propertyCategory", {
-    is: Joi.not("Land"),
+    is: Joi.string().valid("Residential", "Commercial"),
     then: Joi.required(),
     otherwise: Joi.optional(),
   }),
 
   typeOfBuilding: Joi.string().when("propertyCategory", {
-    is: Joi.not("Land"),
+    is: Joi.string().valid("Residential", "Commercial"),
     then: Joi.required(),
     otherwise: Joi.optional(),
   }),
