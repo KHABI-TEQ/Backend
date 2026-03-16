@@ -74,11 +74,14 @@ export const getDealSiteProperties = async (
     };
     const query: any = {
       ...baseCondition,
-      briefType,
       isApproved: true,
       isDeleted: false,
       isAvailable: true
     };
+    // Only filter by briefType when provided; omit so all properties (owned + marketed) show
+    if (briefType && String(briefType).trim()) {
+      query.briefType = String(briefType).trim();
+    }
 
     if (filters.location) {
       const locationString = filters.location.trim();
