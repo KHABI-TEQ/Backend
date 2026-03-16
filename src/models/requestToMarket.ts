@@ -17,6 +17,12 @@ export interface IRequestToMarket {
   /** Set when Publisher accepts (for audit). */
   acceptedAt?: Date;
   rejectedAt?: Date;
+  /** Actual sale price in Naira, set when Publisher registers the sale (register-sale endpoint). */
+  actualSalePriceNaira?: number;
+  /** Commission percentage (1–5). Landlord: 5; Developer: 1–5. Used to compute agent commission from actualSalePriceNaira. */
+  commissionPercent?: number;
+  /** When the Publisher registered the sale (actual price + commission %). */
+  saleRegisteredAt?: Date;
 }
 
 export interface IRequestToMarketDoc extends IRequestToMarket, Document {
@@ -43,6 +49,9 @@ const schema = new Schema<IRequestToMarketDoc>(
     rejectedReason: { type: String },
     acceptedAt: { type: Date },
     rejectedAt: { type: Date },
+    actualSalePriceNaira: { type: Number },
+    commissionPercent: { type: Number },
+    saleRegisteredAt: { type: Date },
   },
   { timestamps: true }
 );

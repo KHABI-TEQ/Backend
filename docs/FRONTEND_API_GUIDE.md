@@ -383,22 +383,20 @@ Only **Agents** can create a request. **Publishers** (Landlord or Developer who 
 
 **Success response (200) — accept:**
 
-When the Agent has a Paystack sub-account, the backend creates a split payment and may return a payment URL and send the payment link by email to the Publisher.
+No payment link is generated at accept time. The Publisher receives an email explaining that agent commission is based on the **actual sale price** and must be registered on the dashboard after the transaction is complete.
 
 ```json
 {
   "success": true,
-  "message": "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent.",
+  "message": "Request accepted. The property is now visible on the agent's public page. After the transaction is complete, register the actual sale price on your dashboard to calculate and pay the agent commission.",
   "data": {
     "status": "accepted",
-    "propertyId": "...",
-    "agentCommissionAmount": 50000,
-    "paymentUrl": "https://checkout.paystack.com/..."
+    "propertyId": "..."
   }
 }
 ```
 
-If no payment link could be generated (e.g. Agent has no sub-account), `data.paymentUrl` may be undefined and the message will ask the Publisher to arrange payment directly with the Agent.
+To pay the agent commission, the Publisher must later call **`POST /account/request-to-market/:requestId/register-sale`** (see 4.3.1) with the actual sale price and commission percentage.
 
 **Errors:**
 
@@ -407,60 +405,212 @@ If no payment link could be generated (e.g. Agent has no sub-account), `data.pay
 
 ---
 
-### 4.4 Publisher (Landlord/Developer) dashboard: how to show Accept/Reject and payment
+### 4.3.1 Register sale and get payment link (Publisher only)
 
-After a Landlord or Developer receives the email that an Agent has requested to market their property, they need to see the request in the dashboard and use **Accept** or **Reject**, then pay the agent commission if they accept. The frontend should implement the following flow.
+After the Publisher has accepted a request and the property is sold, they register the **actual sale price** and (for Developer) the **commission percentage**. The backend computes the agent commission and returns a Paystack payment link for display on the frontend.
 
-#### Step 1: Show “Request To Market” requests in the dashboard
+**Endpoint:** `POST /account/request-to-market/:requestId/register-sale`  
+**Auth:** Bearer token (must be the Publisher of the property).
 
-- **Who:** Logged-in user is **Landowners** or **Developer** (Publisher).
-- **API:** `GET /account/request-to-market?role=publisher&status=pending`  
-  (Optionally omit `status` to show all, or use `status=pending` to show only requests awaiting response.)
-- **Auth:** Bearer token (account auth).
+**Request body (JSON):**
 
-The response `data` array contains one object per request. Each object includes:
+| Field                | Type   | Required | Description |
+|----------------------|--------|----------|-------------|
+| actualSalePriceNaira | number | Yes      | Actual price in Naira at which the property was sold. |
+| commissionPercent    | number | For Developer only | Commission percentage (1–5). **Landlord:** always 5% (omit or ignored). **Developer:** required, 1–5. |
 
-- **`_id`** — Request ID (use this for the respond API).
-- **`status`** — e.g. `"pending"`, `"accepted"`, `"rejected"`.
-- **`propertyId`** — Property details (location, price, briefType, pictures, etc.).
-- **`requestedByAgentId`** — Agent details (firstName, lastName, fullName, email).
-- **`agentCommissionAmount`** — Amount in Naira the Publisher will pay the Agent if they accept.
-
-**UI suggestion:** Add a “Request To Market” or “Marketplace requests” section in the Publisher’s dashboard (e.g. under Account or a dedicated “Requests” page). List each **pending** request with property summary, agent name, and **agentCommissionAmount**. For each pending request, show two actions: **Accept** and **Reject**.
-
-#### Step 2: Accept or Reject (where the buttons go)
-
-- **Accept:** Call `POST /account/request-to-market/:requestId/respond` with body `{ "action": "accept" }`. Use the request’s **`_id`** as `requestId` in the URL.
-- **Reject:** Call `POST /account/request-to-market/:requestId/respond` with body `{ "action": "reject", "rejectedReason": "optional reason" }` (same `requestId`).
-
-So the **Accept** and **Reject** buttons are tied to each row/card in the list from Step 1; on click, the frontend calls this respond endpoint with that request’s `_id`.
-
-#### Step 3: After Accept — how the Publisher pays the agent commission
-
-When the Publisher clicks **Accept**, the backend:
-
-- Marks the request as accepted and links the property to the Agent.
-- If **agentCommissionAmount > 0** and the Agent has a Paystack sub-account, it creates a payment link and sends it to the **Publisher’s email** and also returns it in the API response.
-
-**Respond (accept) success response (200):**
+**Success response (200):**
 
 ```json
 {
   "success": true,
-  "message": "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent.",
+  "message": "Sale registered. Use the payment link below to pay the agent commission.",
   "data": {
-    "status": "accepted",
-    "propertyId": "...",
-    "agentCommissionAmount": 50000,
-    "paymentUrl": "https://checkout.paystack.com/..."
+    "paymentUrl": "https://checkout.paystack.com/...",
+    "agentCommissionAmount": 4000000,
+    "commissionPercent": 5,
+    "actualSalePriceNaira": 80000000,
+    "agent": {
+      "name": "Agent Name",
+      "email": "agent@example.com",
+      "phoneNumber": "..."
+    }
   }
 }
 ```
 
-- **If `data.paymentUrl` is present:** Show a clear call-to-action on the same screen (or a success modal): e.g. **“Pay agent commission: ₦X”** with a button that opens **`data.paymentUrl`** in the same tab or a new tab. The Publisher completes payment on Paystack’s page; no payment form is needed in your app.
-- **If `data.paymentUrl` is missing** (e.g. Agent has no sub-account): Show the message that they should arrange payment directly with the Agent (and optionally show `data.agentCommissionAmount` and the Agent’s contact from the original request list).
+- **paymentUrl** — Show this on the frontend (e.g. “Pay agent commission: ₦X” button). The Publisher completes payment on Paystack.
+- **agentCommissionAmount** — Computed as `actualSalePriceNaira × (commissionPercent / 100)` (e.g. 5% of ₦80,000,000 = ₦4,000,000).
+- **agent** — Agent details for display.
 
-So the Publisher “sees” the accept/reject buttons by listing pending requests (Step 1) and calling the respond API (Step 2); they “make the payment” by using the **paymentUrl** returned when they accept (Step 3), either from the dashboard or from the link in the email.
+**Errors:**
+
+- 400 — `actualSalePriceNaira` missing/invalid; or (Developer) `commissionPercent` missing or not 1–5; or sale already registered for this request.
+- 403 — Only the property publisher can register the sale.
+- 404 — Request not found.
+
+---
+
+### 4.4 Publisher (Landlord/Developer) dashboard: list requests, Accept/Reject, Register sale, and payment
+
+The endpoint that returns Request To Market data to the **Publisher** includes **Agent details** for each request so the frontend can show the Agent and attach a **“Register sale”** button for accepted requests. Implement the flow below with the exact APIs listed.
+
+---
+
+#### API 1: List requests (Publisher view — includes Agent details)
+
+**Method and URL:** `GET /account/request-to-market?role=publisher&status={pending|accepted|rejected}`  
+**Auth:** Bearer token (account auth). User must be Landlord or Developer (Publisher).
+
+**Query params:**
+
+| Param   | Required | Description |
+|---------|----------|-------------|
+| role    | Yes (for Publisher view) | `publisher` |
+| status  | No       | `pending` \| `accepted` \| `rejected`. Omit to return all. |
+| page    | No       | Default `1` |
+| limit   | No       | Default `20` |
+
+**Success response (200):**
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "requestId",
+      "status": "pending",
+      "propertyId": { "location": {...}, "price": 50000000, "briefType": "sell", "pictures": [], ... },
+      "requestedByAgentId": {
+        "firstName": "John",
+        "lastName": "Doe",
+        "fullName": "John Doe",
+        "email": "agent@example.com",
+        "phoneNumber": "+234..."
+      },
+      "agentCommissionAmount": 0,
+      "publisherId": {...},
+      "acceptedAt": null,
+      "actualSalePriceNaira": null,
+      "commissionPercent": null,
+      "saleRegisteredAt": null
+    }
+  ],
+  "pagination": { "total": 10, "page": 1, "limit": 20, "totalPages": 1 }
+}
+```
+
+**Fields to use on the frontend:**
+
+- **`_id`** — Request ID. Use as `requestId` in respond and register-sale APIs.
+- **`status`** — `"pending"` \| `"accepted"` \| `"rejected"`.
+- **`propertyId`** — Property summary (location, price, briefType, pictures, etc.) for display.
+- **`requestedByAgentId`** — **Agent details** (firstName, lastName, fullName, email, phoneNumber). Show Agent name and contact on each request card/row.
+- **`agentCommissionAmount`** — From listing (may be 0); commission at pay time is based on actual sale (see Register sale).
+- **`saleRegisteredAt`** — If set, sale is already registered for this request; show “Sale registered” / “Pay commission” instead of “Register sale”.
+
+**UI:** For each request, show property summary + **Agent details** (name, email, phone). For **pending**: show **Accept** and **Reject**. For **accepted** and not yet registered: show **“Register sale”** (see Step 3).
+
+---
+
+#### API 2: Accept or Reject a request
+
+**Accept**  
+**Method and URL:** `POST /account/request-to-market/:requestId/respond`  
+**Body:** `{ "action": "accept" }`  
+Use the request’s **`_id`** as **`requestId`** in the URL.
+
+**Reject**  
+**Method and URL:** `POST /account/request-to-market/:requestId/respond`  
+**Body:** `{ "action": "reject", "rejectedReason": "optional reason" }`  
+Same **`requestId`**.
+
+**Success (200) — accept:** No payment link. Message tells Publisher to register actual sale after transaction.
+
+```json
+{
+  "success": true,
+  "message": "Request accepted. The property is now visible on the agent's public page. After the transaction is complete, register the actual sale price on your dashboard to calculate and pay the agent commission.",
+  "data": { "status": "accepted", "propertyId": "..." }
+}
+```
+
+**UI:** “Accept” / “Reject” on each row/card; on success, refresh the list or update that request’s status.
+
+---
+
+#### Step 3: “Register sale” button and modal (accepted requests only)
+
+When the property is sold, the Publisher must register the actual sale and get a payment link. The **list response already includes Agent details** and request `_id`, so the frontend can attach a **“Register sale”** action per **accepted** request (and hide it if `saleRegisteredAt` is set).
+
+**UI flow:**
+
+1. For each **accepted** request with **no** `saleRegisteredAt`, show a **“Register sale”** button (same row/card as the request, with Agent details).
+2. **On click:** open a **modal** (sale registration form).
+3. **Form fields:**
+   - **Actual sale price (Naira)** — number, required. Label e.g. “Actual price at which the property was sold (₦)”.
+   - **Commission %** — only if user is **Developer**: number 1–5, required. If user is **Landlord**, do not show this field (backend uses 5%).
+4. **Modal actions:** “Cancel” (close modal), **“Submit”** (submit registration).
+5. **On Submit:** call **API 3** with the form values and the request’s `_id`.
+6. **On success:** close modal (or keep it) and show the returned **payment link** and **Agent details** to the Publisher (e.g. “Pay agent commission: ₦X” button + Agent name, email, phone). Optionally store or show the payment link in the same request card.
+
+---
+
+#### API 3: Register sale and get payment link
+
+**Method and URL:** `POST /account/request-to-market/:requestId/register-sale`  
+**Auth:** Bearer token (Publisher).  
+Use the request’s **`_id`** as **`requestId`** in the URL.
+
+**Request body (JSON):**
+
+| Field                | Type   | Required | Description |
+|----------------------|--------|----------|-------------|
+| actualSalePriceNaira | number | Yes      | Actual price in Naira at which the property was sold. |
+| commissionPercent    | number | Developer only | 1–5. **Landlord:** omit (backend uses 5%). |
+
+**Success response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Sale registered. Use the payment link below to pay the agent commission.",
+  "data": {
+    "paymentUrl": "https://checkout.paystack.com/...",
+    "agentCommissionAmount": 4000000,
+    "commissionPercent": 5,
+    "actualSalePriceNaira": 80000000,
+    "agent": {
+      "name": "John Doe",
+      "email": "agent@example.com",
+      "phoneNumber": "+234..."
+    }
+  }
+}
+```
+
+**Frontend handling:**
+
+- Show **`data.paymentUrl`** as a clear call-to-action (e.g. button “Pay agent commission: ₦X” with `data.agentCommissionAmount` formatted).
+- Show **`data.agent`** (name, email, phoneNumber) so the Publisher sees who they are paying.
+- Opening `data.paymentUrl` in the same or new tab completes payment on Paystack.
+
+**Errors:**
+
+- **400** — `actualSalePriceNaira` missing/invalid; (Developer) `commissionPercent` missing or not 1–5; or sale already registered for this request.
+- **403** — Only the property publisher can register the sale.
+- **404** — Request not found.
+
+---
+
+#### Summary: APIs to consume for Publisher Request To Market
+
+| Action            | Method | URL | Body / notes |
+|-------------------|--------|-----|--------------|
+| List requests     | GET    | `/account/request-to-market?role=publisher&status=pending` (or `accepted` / omit) | Returns requests + **Agent details** (`requestedByAgentId`), `saleRegisteredAt`. |
+| Accept request    | POST   | `/account/request-to-market/:requestId/respond` | `{ "action": "accept" }` |
+| Reject request    | POST   | `/account/request-to-market/:requestId/respond` | `{ "action": "reject", "rejectedReason": "..." }` |
+| Register sale     | POST   | `/account/request-to-market/:requestId/register-sale` | `{ "actualSalePriceNaira": number, "commissionPercent": number }` (commissionPercent only for Developer). Returns **paymentUrl** and **agent** details. |
 
 ### 4.5 Agent: verify property address on map (frontend-only)
 

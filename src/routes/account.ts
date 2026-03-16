@@ -51,7 +51,7 @@ import { bulkUpdateDealSite, deleteDealSite, disableDealSite, enableDealSite, up
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
 import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
-import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
+import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket, registerSaleForRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
 import { suggestPropertyForm } from "../controllers/aiFormFill/aiFormFillController";
 
 const AccountRouter = express.Router();
@@ -143,6 +143,7 @@ AccountRouter.post("/ai/suggest-property", suggestPropertyForm);
 AccountRouter.post("/request-to-market", createRequestToMarket);
 AccountRouter.get("/request-to-market", listRequestToMarket);
 AccountRouter.post("/request-to-market/:requestId/respond", respondToRequestToMarket);
+AccountRouter.post("/request-to-market/:requestId/register-sale", registerSaleForRequestToMarket);
 
 // REFERRAL ROUTES
 AccountRouter.get("/referrals/stats", fetchReferralStats);

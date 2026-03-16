@@ -8,7 +8,7 @@ import {
   notifyPublisherOfRequestToMarket,
   notifyAgentRequestToMarketRejected,
   notifyAgentRequestToMarketAccepted,
-  notifyPublisherToPayMarketingFee,
+  notifyPublisherRequestAccepted,
 } from "../../services/requestToMarketEmail.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { PaystackService } from "../../services/paystack.service";
@@ -181,7 +181,7 @@ export const listRequestToMarket = async (
     const [rawRequests, total] = await Promise.all([
       DB.Models.RequestToMarket.find(filter)
         .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description agentCommissionAmount")
-        .populate("requestedByAgentId", "firstName lastName fullName email")
+        .populate("requestedByAgentId", "firstName lastName fullName email phoneNumber")
         .populate("publisherId", "firstName lastName fullName email")
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -301,7 +301,6 @@ export const respondToRequestToMarket = async (
       { $set: { marketedByAgentId: agentId } }
     );
 
-    const agentCommissionAmount = (request as any).agentCommissionAmount ?? (request as any).marketingFeeNaira ?? 0;
     const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName phoneNumber").lean();
     const agent = (request as any).requestedByAgentId;
     const agentName =
@@ -309,59 +308,13 @@ export const respondToRequestToMarket = async (
     const propertySummary =
       getPropertyTitleFromLocation((request as any).propertyId?.location) || "the property";
 
-    let paymentUrl: string | undefined;
-    let paymentTransactionId: Types.ObjectId | undefined;
-
-    const dealSite = await DB.Models.DealSite.findOne({ createdBy: agentId })
-      .select("paymentDetails")
-      .lean();
-    const subAccountCode = (dealSite as any)?.paymentDetails?.subAccountCode;
-    const publisherEmail = (publisher as any)?.email;
-
-    // Prefer split payment (Agent receives directly) when Agent has DealSite with Paystack sub-account
-    if (subAccountCode && publisherEmail && agentCommissionAmount > 0) {
-      try {
-        const result = await PaystackService.initializeSplitPayment({
-          subAccount: subAccountCode,
-          publicPageUrl: process.env.CLIENT_LINK || "https://khabiteq.com",
-          amountCharge: 0,
-          email: publisherEmail,
-          amount: agentCommissionAmount,
-          fromWho: { kind: "User", item: userId as Types.ObjectId },
-          transactionType: "request-to-market",
-          metadata: { requestToMarketId: requestId },
-        });
-        paymentUrl = result.authorization_url;
-        paymentTransactionId = result.transactionId as Types.ObjectId;
-      } catch (payErr) {
-        console.warn("[requestToMarket] Paystack initializeSplitPayment failed:", payErr);
-      }
-    }
-
-    // Fallback: when Agent has no sub-account, use platform collect so Publisher always gets a payment link
-    if (!paymentUrl && publisherEmail && agentCommissionAmount > 0) {
-      try {
-        const result = await PaystackService.initializePayment({
-          email: publisherEmail,
-          amount: agentCommissionAmount,
-          fromWho: { kind: "User", item: userId as Types.ObjectId },
-          transactionType: "request-to-market",
-          metadata: { requestToMarketId: requestId },
-        });
-        paymentUrl = result.authorization_url;
-        paymentTransactionId = result.transactionId as Types.ObjectId;
-      } catch (payErr) {
-        console.warn("[requestToMarket] Paystack initializePayment (fallback) failed:", payErr);
-      }
-    }
-
+    // No payment link at accept; Publisher registers actual sale later via register-sale endpoint
     await DB.Models.RequestToMarket.updateOne(
       { _id: requestId },
       {
         $set: {
           status: "accepted",
           acceptedAt: new Date(),
-          ...(paymentTransactionId && { paymentTransactionId }),
         },
       }
     );
@@ -392,10 +345,10 @@ export const respondToRequestToMarket = async (
       console.warn("[requestToMarket] notifyAgentRequestToMarketAccepted email failed:", e);
     }
 
-    // Send the agent commission payment link to the Publisher by email whenever they accept and a link was generated (payable to the Agent).
-    if (paymentUrl && (publisher as any)?.email) {
+    // Email Publisher: request accepted; commission will be based on actual sale price, register on dashboard after transaction.
+    if ((publisher as any)?.email) {
       try {
-        await notifyPublisherToPayMarketingFee({
+        await notifyPublisherRequestAccepted({
           publisherEmail: (publisher as any).email,
           publisherName:
             (publisher as any).fullName ||
@@ -404,28 +357,162 @@ export const respondToRequestToMarket = async (
               .join(" ") || "there",
           agentName,
           propertySummary,
-          paymentUrl,
-          agentCommissionAmount,
         });
       } catch (e) {
-        console.warn("[requestToMarket] notifyPublisherToPayMarketingFee email failed:", e);
+        console.warn("[requestToMarket] notifyPublisherRequestAccepted email failed:", e);
       }
     }
 
-    const acceptMessage = paymentUrl
-      ? "Request accepted. The property is now visible on the agent's public page. A payment link has been sent to your email to pay the agent commission to the agent."
-      : agentCommissionAmount === 0
-        ? "Request accepted. The property is now visible on the agent's public page. No commission amount was set for this property; no payment is required."
-        : "Request accepted. The property is now visible on the agent's public page. Please arrange payment of the agent commission directly with the agent (payment link could not be generated).";
-
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: acceptMessage,
+      message:
+        "Request accepted. The property is now visible on the agent's public page. After the transaction is complete, register the actual sale price on your dashboard to calculate and pay the agent commission.",
       data: {
         status: "accepted",
         propertyId,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /account/request-to-market/:requestId/register-sale
+ * Publisher registers the actual sale price and commission %; backend computes agent commission and returns a Paystack payment link.
+ * Body: { actualSalePriceNaira: number, commissionPercent?: number }
+ * - Landlord: commissionPercent is automatically 5.
+ * - Developer: commissionPercent 1–5 (required in body).
+ */
+export const registerSaleForRequestToMarket = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
+
+    const { requestId } = req.params;
+    const { actualSalePriceNaira, commissionPercent: bodyCommissionPercent } = req.body as {
+      actualSalePriceNaira?: number;
+      commissionPercent?: number;
+    };
+
+    const actualPrice = Number(actualSalePriceNaira);
+    if (!Number.isFinite(actualPrice) || actualPrice <= 0) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "actualSalePriceNaira is required and must be a positive number.");
+    }
+
+    const request = await DB.Models.RequestToMarket.findById(requestId)
+      .populate("propertyId", "location")
+      .populate("requestedByAgentId", "firstName lastName fullName email phoneNumber")
+      .lean();
+
+    if (!request) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Request not found.");
+    }
+
+    if (String((request as any).publisherId) !== String(userId)) {
+      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only the property publisher can register the sale for this request.");
+    }
+
+    if ((request as any).status !== "accepted") {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Only accepted requests can have a sale registered.");
+    }
+
+    if ((request as any).saleRegisteredAt != null) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Sale has already been registered for this request.");
+    }
+
+    const publisherType = (request as any).publisherType as "Landowners" | "Developer";
+    let commissionPercent: number;
+    if (publisherType === "Landowners") {
+      commissionPercent = 5;
+    } else {
+      const percent = Number(bodyCommissionPercent);
+      if (!Number.isFinite(percent) || percent < 1 || percent > 5) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "commissionPercent is required for Developer and must be between 1 and 5.");
+      }
+      commissionPercent = percent;
+    }
+
+    const agentCommissionAmount = Math.round((actualPrice * commissionPercent) / 100);
+    if (agentCommissionAmount <= 0) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Computed agent commission is zero; ensure actualSalePriceNaira and commissionPercent are valid.");
+    }
+
+    const publisher = await DB.Models.User.findById(userId).select("email").lean();
+    const publisherEmail = (publisher as any)?.email;
+    if (!publisherEmail) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Publisher email is required to generate the payment link.");
+    }
+
+    const agentId = (request as any).requestedByAgentId._id;
+    const dealSite = await DB.Models.DealSite.findOne({ createdBy: agentId })
+      .select("paymentDetails")
+      .lean();
+    const subAccountCode = (dealSite as any)?.paymentDetails?.subAccountCode;
+
+    let paymentUrl: string;
+    let paymentTransactionId: Types.ObjectId;
+
+    if (subAccountCode) {
+      const result = await PaystackService.initializeSplitPayment({
+        subAccount: subAccountCode,
+        publicPageUrl: process.env.CLIENT_LINK || "https://khabiteq.com",
+        amountCharge: 0,
+        email: publisherEmail,
+        amount: agentCommissionAmount,
+        fromWho: { kind: "User", item: userId as Types.ObjectId },
+        transactionType: "request-to-market",
+        metadata: { requestToMarketId: requestId },
+      });
+      paymentUrl = result.authorization_url;
+      paymentTransactionId = result.transactionId as Types.ObjectId;
+    } else {
+      const result = await PaystackService.initializePayment({
+        email: publisherEmail,
+        amount: agentCommissionAmount,
+        fromWho: { kind: "User", item: userId as Types.ObjectId },
+        transactionType: "request-to-market",
+        metadata: { requestToMarketId: requestId },
+      });
+      paymentUrl = result.authorization_url;
+      paymentTransactionId = result.transactionId as Types.ObjectId;
+    }
+
+    await DB.Models.RequestToMarket.updateOne(
+      { _id: requestId },
+      {
+        $set: {
+          actualSalePriceNaira: actualPrice,
+          commissionPercent,
+          saleRegisteredAt: new Date(),
+          paymentTransactionId,
+        },
+      }
+    );
+
+    const agent = (request as any).requestedByAgentId;
+    const agentName =
+      agent?.fullName ||
+      [agent?.firstName, agent?.lastName].filter(Boolean).join(" ") ||
+      "Agent";
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Sale registered. Use the payment link below to pay the agent commission.",
+      data: {
+        paymentUrl,
         agentCommissionAmount,
-        paymentUrl: paymentUrl || undefined,
+        commissionPercent,
+        actualSalePriceNaira: actualPrice,
+        agent: {
+          name: agentName,
+          email: agent?.email,
+          phoneNumber: agent?.phoneNumber,
+        },
       },
     });
   } catch (err) {

@@ -137,9 +137,36 @@ export async function notifyAgentRequestToMarketAccepted(params: {
 }
 
 /**
+ * Email to Publisher (Developer/Landlord): Request accepted – no payment link.
+ * Sent when the Publisher accepts an Agent's Request To Market. Informs that agent commission
+ * is based on the actual sale price and must be registered on the dashboard after the transaction.
+ */
+export async function notifyPublisherRequestAccepted(params: {
+  publisherEmail: string;
+  publisherName: string;
+  agentName: string;
+  propertySummary: string;
+}): Promise<void> {
+  const { publisherEmail, publisherName, agentName, propertySummary } = params;
+  const html = generalEmailLayout(`
+    <p>Hello ${publisherName || "there"},</p>
+    <p>You have accepted the request from <strong>${agentName}</strong> to market your property: <strong>${propertySummary}</strong>.</p>
+    <p>The property is now visible on the agent's public page.</p>
+    <p><strong>Agent commission</strong> is based on the <strong>actual price at which the property is sold</strong>, not the listing price. After the transaction is complete, please go to your dashboard and register the actual sale price so that the agent commission can be calculated and paid. You will then receive a payment link to pay the agent their commission.</p>
+    <p>Thank you for using KHABITEQ.</p>
+  `);
+  const textSummary = `You accepted ${agentName} to market ${propertySummary}. Agent commission is based on the actual sale price; register the sale on your dashboard after the transaction is complete to generate the commission payment.`;
+  await sendEmail({
+    to: publisherEmail,
+    subject: `Request accepted – ${agentName} – ${propertySummary}`,
+    html,
+    text: textSummary,
+  });
+}
+
+/**
  * Email to Publisher (Developer/Landlord): Agent commission payment link.
- * Sent whenever the Publisher accepts an Agent's Request To Market and a payment link could be generated.
- * This link is tied to the specific Agent and property so the Publisher can tell it apart from other payment links.
+ * Used when Publisher registers the actual sale and a payment link is generated (register-sale endpoint).
  */
 export async function notifyPublisherToPayMarketingFee(params: {
   publisherEmail: string;
