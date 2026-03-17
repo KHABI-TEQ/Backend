@@ -43,12 +43,13 @@ export const getSingleDealSiteProperty = async (
       });
     }
 
-    // ✅ Find property (owned by DealSite creator or marketed by them via Request To Market)
+    // Find property (owned by DealSite creator or marketed by them via Request To Market; multiple agents can market the same property)
     const property = await DB.Models.Property.findOne({
       _id: propertyId,
       $or: [
         { owner: dealSite.createdBy },
-        { marketedByAgentId: dealSite.createdBy },
+        { marketedByAgentIds: dealSite.createdBy },
+        { marketedByAgentId: dealSite.createdBy }, // legacy single field
       ],
       isAvailable: true,
       isApproved: true,

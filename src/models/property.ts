@@ -115,6 +115,8 @@ export interface IProperty {
   listingScope?: "agent_listing" | "lasrera_marketplace";
   /** When set, this property is marketed on this Agent's public page (DealSite) after Request To Market was accepted by the publisher. */
   marketedByAgentId?: Types.ObjectId;
+  /** Multiple agents can market the same property; array of Agent (User) IDs accepted by the Publisher. */
+  marketedByAgentIds?: Types.ObjectId[];
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
@@ -252,6 +254,7 @@ export class Property {
         agentCommissionAmount: { type: Number, min: 0 },
         listingScope: { type: String, enum: ["agent_listing", "lasrera_marketplace"], default: "agent_listing" },
         marketedByAgentId: { type: Schema.Types.ObjectId, ref: "User", default: null },
+        marketedByAgentIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
         isApproved: { type: Boolean, default: false },
         isRejected: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },

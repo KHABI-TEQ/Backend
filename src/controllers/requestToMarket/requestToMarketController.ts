@@ -293,12 +293,12 @@ export const respondToRequestToMarket = async (
       });
     }
 
-    // Accept: set property.marketedByAgentId so it appears on Agent's DealSite
+    // Accept: add this Agent to property's marketedByAgentIds so it appears on their DealSite (multiple agents can market the same property)
     const propertyId = (request as any).propertyId._id;
     const agentId = (request as any).requestedByAgentId._id;
     await DB.Models.Property.updateOne(
       { _id: propertyId },
-      { $set: { marketedByAgentId: agentId } }
+      { $addToSet: { marketedByAgentIds: agentId } }
     );
 
     const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName phoneNumber").lean();

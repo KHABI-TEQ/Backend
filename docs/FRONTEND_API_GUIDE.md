@@ -627,6 +627,107 @@ Before requesting to market a publisher property, the **Agent** can confirm the 
 
 ---
 
+### 4.6 Public access page (DealSite): ensuring accepted Request To Market properties are visible
+
+When a **Publisher (Landlord or Developer)** accepts an **Agent’s Request To Market**, the backend adds that Agent to the property’s **`marketedByAgentIds`** array (multiple agents can market the same property). The property must then appear on:
+
+1. **The Agent’s public access page (DealSite)** — so visitors see both properties the Agent owns and properties they are marketing (accepted by the Publisher).
+2. **The Publisher’s public access page (DealSite), when the marketplace is opened** — those properties are still owned by the Publisher, so they appear under the Publisher’s DealSite as well.
+
+The **public access page application** must use the correct API and query params so that both **owned** and **marketed-by-agent** properties are returned. If the property does not show on the Agent’s DealSite, the usual cause is calling the wrong endpoint or sending a **briefType** (or other) filter that excludes it.
+
+#### API the public access page must use
+
+**Endpoint:** `GET /deal-site/:publicSlug/properties`  
+**Auth:** None (public).  
+**Base URL:** Your API base (e.g. `https://api.khabiteq.com` or `https://khabiteq-realty.onrender.com/api`). So the full URL is: `{API_BASE}/deal-site/:publicSlug/properties`.
+
+- **`:publicSlug`** — The DealSite’s public slug (e.g. from the page URL when a visitor is on the Agent’s or Publisher’s public page, e.g. `john-doe-properties`).
+
+**What the backend returns:**
+
+- Properties where **owner** = DealSite creator (User who owns the DealSite), **or**
+- Properties where **marketedByAgentIds** contains the DealSite creator (Request To Market accepted for this Agent; same property can be marketed by multiple agents).
+
+So a **single** call to this endpoint returns both “my listings” and “properties I’m marketing for others” for that DealSite. No second API is needed.
+
+#### Query parameters (optional)
+
+| Param       | Type   | Description |
+|------------|--------|-------------|
+| page       | string | Default `1`. |
+| limit      | string | Default `10`. |
+| briefType  | string | **Only send when the user has chosen a specific type** (e.g. `sell`, `rent`). **Do not send** when showing “All” or on initial load — otherwise the backend filters by that type and marketed properties with a different type can disappear. |
+| location   | string | e.g. state, LGA, area (comma-separated). |
+| priceRange | string | JSON string, e.g. `{"min":1000000,"max":50000000}`. |
+| type       | string | Property category (e.g. Residential, Commercial, Land). |
+| bedroom    | string | Number(s). |
+| bathroom   | string | Number(s). |
+| landSize   | string | Number. |
+| documentType | string | Comma-separated. |
+| desireFeature | string | Comma-separated. |
+| tenantCriteria | string | Comma-separated. |
+
+**Critical for visibility:**
+
+- **Omit `briefType`** (or do not add it to the request) when the page is showing “All” properties. The backend only filters by `briefType` when it is present and non-empty. If the frontend sends `briefType` (e.g. from a dropdown default), marketed properties may be excluded.
+- Use the **same** endpoint for both the **Agent’s** public page and the **Publisher’s** public page: only `publicSlug` changes (Agent’s slug vs Publisher’s slug).
+
+#### Success response (200)
+
+```json
+{
+  "success": true,
+  "dealSite": { "inspectionSettings": { ... } },
+  "data": [
+    {
+      "_id": "propertyId",
+      "propertyType": "sell",
+      "propertyCategory": "Residential",
+      "propertyCondition": "New",
+      "price": 50000000,
+      "location": { "state": "...", "localGovernment": "...", "area": "..." },
+      "additionalFeatures": { "noOfBedroom": 3, ... },
+      "pictures": ["..."],
+      "isAvailable": true,
+      "shortletDetails": null,
+      "bookedPeriods": [],
+      "status": "active",
+      "briefType": "sell",
+      "isPremium": false,
+      "isApproved": true
+    }
+  ],
+  "pagination": {
+    "total": 15,
+    "currentPage": 1,
+    "totalPages": 2,
+    "perPage": 10
+  }
+}
+```
+
+Render the **data** array as the property list. No distinction in the response between “owned” and “marketed”; both are included whenever they match the filters.
+
+#### Single property (detail page)
+
+**Endpoint:** `GET /deal-site/:publicSlug/properties/:propertyId`  
+**Auth:** None (public).
+
+Same `publicSlug` as the list. The backend allows access if the property is either owned by the DealSite creator or has the DealSite creator in **marketedByAgentIds** (or legacy **marketedByAgentId**). Use this for the property detail page on the public access site.
+
+#### Summary: how the public access page should handle the APIs
+
+1. **Resolve `publicSlug`** from the current page (e.g. Agent’s or Publisher’s DealSite URL).
+2. **List properties:** `GET {API_BASE}/deal-site/:publicSlug/properties` with **no `briefType`** (and no other filters) on initial load or when “All” is selected, so that both owned and marketed properties appear.
+3. **Optional filters:** When the user selects a type (e.g. “For Sale”), add `briefType=sell`; when they select location/price/etc., add the corresponding query params. Avoid defaulting `briefType` to a value when you intend to show all.
+4. **Detail page:** `GET {API_BASE}/deal-site/:publicSlug/properties/:propertyId` for a single property.
+5. **Featured properties:** If the page shows a “Featured” section, use `GET {API_BASE}/deal-site/:publicSlug/featuredProperties`. The backend already includes both owned and marketed properties in featured when applicable.
+
+Following this ensures that when a Publisher accepts an Agent’s Request To Market, the property appears on the Agent’s public access page (and remains visible on the Publisher’s public page when the marketplace is opened).
+
+---
+
 ## 5. Transaction registration fee by price
 
 Processing fee for transaction registration is **no longer a percentage**. It is determined only by **transaction/property value** (same bands for all transaction types):
@@ -712,6 +813,8 @@ Full request/response shapes are documented in `docs/UPDATES.md` (Transaction Re
 
 - **Developers** can create and manage a **DealSite** (public access page) and have the same **subscription** obligation as Agents (required to create/maintain DealSite and to post properties).
 - DealSite and subscription APIs are under **`/account`** (e.g. `/account/dealSite/setUp`, `/account/subscriptions/...`). Same as for Agents; use `user.dealSite` and `user.activeSubscription` from login (and verify) to drive UI (e.g. show DealSite link, subscription status, or prompt to subscribe).
+
+**Public access page (no auth):** To show properties on an Agent’s or Publisher’s DealSite (including properties that appear after a Request To Market is accepted), the frontend must call **`GET /deal-site/:publicSlug/properties`**. Do **not** send **`briefType`** when showing “All” properties, or marketed properties may not appear. See **Section 4.6** for full details and query parameters.
 
 ---
 
@@ -970,7 +1073,8 @@ Users can **optionally** describe what they want in natural language; the backen
 | Account (profile, properties, my-inspections, request-to-market, dealSite, subscriptions, **ai/suggest-property**) | `/account` | Bearer token (account) |
 | **AI suggest preference** | `/ai/suggest-preference` | None (public) |
 | LASRERA Market Place list | `/lasrera-marketplace/properties` | None (optional Bearer for currentUserHasRequested) |
-| DealSite public (e.g. inspection request) | `/deal-site/:publicSlug/...` | None |
+| **DealSite public — properties list** (owned + marketed; see 4.6) | `GET /deal-site/:publicSlug/properties` | None |
+| DealSite public (inspection request, featured, etc.) | `/deal-site/:publicSlug/...` | None |
 | Transaction registration (types, guidelines, search, check, register) | `/transaction-registration` | None (public) |
 
 Use this guide together with `docs/UPDATES.md` for full backend context. For admin-only APIs (e.g. transaction registration list), see `docs/ADMIN_API_GUIDE.md`.

@@ -65,17 +65,18 @@ export const getDealSiteProperties = async (
       tenantCriteria: tenantCriteria ? tenantCriteria.split(",") : undefined,
     };
 
-    // 4. Base query: properties owned by DealSite creator OR marketed by them (Request To Market accepted)
+    // 4. Base query: properties owned by DealSite creator OR marketed by them (Request To Market accepted; multiple agents can market the same property)
     const baseCondition = {
       $or: [
         { owner: dealSite.createdBy },
-        { marketedByAgentId: dealSite.createdBy },
+        { marketedByAgentIds: dealSite.createdBy },
+        { marketedByAgentId: dealSite.createdBy }, // legacy single field
       ],
     };
     const query: any = {
       ...baseCondition,
       isApproved: true,
-      isDeleted: false,
+      isDeleted: { $ne: true }, // include false or undefined (not explicitly deleted)
       isAvailable: true
     };
     // Only filter by briefType when provided; omit so all properties (owned + marketed) show
@@ -108,8 +109,10 @@ export const getDealSiteProperties = async (
       }
 
       // ✅ Attach OR query only if there’s something to match
+      // Require (owner OR marketedByAgentIds/marketedByAgentId) AND (location match)
       if (locationQueries.length > 0) {
-        query.$or = [...(query.$or || []), ...locationQueries];
+        query.$and = [baseCondition, { $or: locationQueries }];
+        delete query.$or;
       }
     }
 
