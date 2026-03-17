@@ -38,6 +38,12 @@ export const fetchSingleProperty = async (
   }
 };
 
+/**
+ * GET /account/properties/fetchAll
+ * Returns the authenticated user's properties. Filter by owner (same as request-to-market:
+ * property.owner is the user). When no status or isApproved filter is sent, returns all
+ * of the user's properties (no default "approved only").
+ */
 export const fetchAllProperties = async (
   req: AppRequest,
   res: Response,
@@ -58,26 +64,28 @@ export const fetchAllProperties = async (
       isApproved,
     } = req.query;
 
+    // Filter by owner (same concept as request-to-market: Publisher = property owner)
     const filter: any = {
       owner: req.user._id,
+      isDeleted: false,
     };
 
-    filter.isDeleted = false;
+    // Only apply status/isApproved when explicitly sent; no default "approved only"
+    if (status != null && status !== "") filter.status = status;
+    if (isApproved !== undefined && isApproved !== "") filter.isApproved = isApproved === "true";
 
-    if (status) filter.status = status;
     if (propertyType) filter.propertyType = propertyType;
     if (propertyCategory) filter.propertyCategory = propertyCategory;
     if (state) filter["location.state"] = state;
     if (localGovernment) filter["location.localGovernment"] = localGovernment;
     if (area) filter["location.area"] = area;
-    if (isApproved !== undefined) filter.isApproved = isApproved === "true";
 
     if (priceMin || priceMax) {
       filter.price = {};
       if (priceMin) filter.price.$gte = Number(priceMin);
       if (priceMax) filter.price.$lte = Number(priceMax);
     }
- 
+
     const properties = await DB.Models.Property.find(filter)
       .populate("owner")
       .skip((Number(page) - 1) * Number(limit))
