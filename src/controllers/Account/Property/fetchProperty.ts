@@ -1,4 +1,5 @@
 import { Response, NextFunction } from "express";
+import { Types } from "mongoose";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
@@ -40,9 +41,10 @@ export const fetchSingleProperty = async (
 
 /**
  * GET /account/properties/fetchAll
- * Returns the authenticated user's properties. Filter by owner (same as request-to-market:
- * property.owner is the user). When no status or isApproved filter is sent, returns all
- * of the user's properties (no default "approved only").
+ * Returns the authenticated user's properties. Uses the same "owner" as request-to-market
+ * (Publisher = property.owner). When no status or isApproved filter is sent, returns ALL
+ * of the user's properties with no default "approved only". isDeleted excludes only
+ * explicitly deleted properties (same inclusive behaviour as request-to-market list).
  */
 export const fetchAllProperties = async (
   req: AppRequest,
@@ -50,6 +52,11 @@ export const fetchAllProperties = async (
   next: NextFunction,
 ) => {
   try {
+    const userId = req.user?._id;
+    if (!userId) {
+      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
+    }
+
     const {
       page = 1,
       limit = 10,
@@ -64,10 +71,11 @@ export const fetchAllProperties = async (
       isApproved,
     } = req.query;
 
-    // Filter by owner (same concept as request-to-market: Publisher = property owner)
+    // Same "owner" as request-to-market: property.owner = Publisher (user). Use ObjectId for reliable match.
+    const ownerId = Types.ObjectId.isValid(userId) ? (userId as Types.ObjectId) : new Types.ObjectId(String(userId));
     const filter: any = {
-      owner: req.user._id,
-      isDeleted: false,
+      owner: ownerId,
+      isDeleted: { $ne: true }, // include false or undefined; only exclude explicitly deleted
     };
 
     // Only apply status/isApproved when explicitly sent; no default "approved only"
