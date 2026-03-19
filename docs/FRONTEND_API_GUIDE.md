@@ -396,7 +396,7 @@ No payment link is generated at accept time. The Publisher receives an email exp
 }
 ```
 
-To pay the agent commission, the Publisher must later call **`POST /account/request-to-market/:requestId/register-sale`** (see 4.3.1) with the actual sale price and commission percentage.
+To record the sale and optional proof of payment to the Agent, the Publisher must later call **`POST /account/request-to-market/:requestId/register-sale`** (see 4.3.1) with the actual sale price, commission percentage, and optionally a receipt URL. Payment to the Agent happens outside the app.
 
 **Errors:**
 
@@ -405,31 +405,34 @@ To pay the agent commission, the Publisher must later call **`POST /account/requ
 
 ---
 
-### 4.3.1 Register sale and get payment link (Publisher only)
+### 4.3.1 Register sale (Publisher only) — no in-app payment link
 
-After the Publisher has accepted a request and the property is sold, they register the **actual sale price** and (for Developer) the **commission percentage**. The backend computes the agent commission and returns a Paystack payment link for display on the frontend.
+After the Publisher has accepted a request and the property is sold, they register the **actual sale price** and (for Developer) the **commission percentage**. The backend computes the agent commission. **Payment to the Agent is made outside the app** (e.g. bank transfer, cash); the Publisher may optionally upload a **receipt** (proof of payment) so that admin can verify the developer/landlord has paid the Agent.
 
 **Endpoint:** `POST /account/request-to-market/:requestId/register-sale`  
 **Auth:** Bearer token (must be the Publisher of the property).
 
 **Request body (JSON):**
 
-| Field                | Type   | Required | Description |
-|----------------------|--------|----------|-------------|
-| actualSalePriceNaira | number | Yes      | Actual price in Naira at which the property was sold. |
-| commissionPercent    | number | For Developer only | Commission percentage (1–5). **Landlord:** always 5% (omit or ignored). **Developer:** required, 1–5. |
+| Field                  | Type   | Required | Description |
+|------------------------|--------|----------|-------------|
+| actualSalePriceNaira   | number | Yes      | Actual price in Naira at which the property was sold. |
+| commissionPercent      | number | For Developer only | Commission percentage (1–5). **Landlord:** always 5% (omit or ignored). **Developer:** required, 1–5. |
+| commissionReceiptUrl   | string | No       | Optional. URL of uploaded receipt/proof of payment (e.g. from your upload endpoint). Used for admin verification that the Publisher paid the Agent. |
+
+**Receipt upload flow:** If the frontend supports receipt upload, first call your file upload endpoint (e.g. `POST /upload-single-file` with `file` and optionally `for: "default"` or a dedicated type), then send the returned URL in **`commissionReceiptUrl`** when calling register-sale.
 
 **Success response (200):**
 
 ```json
 {
   "success": true,
-  "message": "Sale registered. Use the payment link below to pay the agent commission.",
+  "message": "Sale registered. Pay the agent commission outside the app; receipt URL saved for admin verification when provided.",
   "data": {
-    "paymentUrl": "https://checkout.paystack.com/...",
     "agentCommissionAmount": 4000000,
     "commissionPercent": 5,
     "actualSalePriceNaira": 80000000,
+    "commissionReceiptUrl": "https://...",
     "agent": {
       "name": "Agent Name",
       "email": "agent@example.com",
@@ -439,9 +442,11 @@ After the Publisher has accepted a request and the property is sold, they regist
 }
 ```
 
-- **paymentUrl** — Show this on the frontend (e.g. “Pay agent commission: ₦X” button). The Publisher completes payment on Paystack.
-- **agentCommissionAmount** — Computed as `actualSalePriceNaira × (commissionPercent / 100)` (e.g. 5% of ₦80,000,000 = ₦4,000,000).
-- **agent** — Agent details for display.
+- **agentCommissionAmount** — Computed as `actualSalePriceNaira × (commissionPercent / 100)` (e.g. 5% of ₦80,000,000 = ₦4,000,000). Show this to the Publisher so they know how much to pay the Agent.
+- **agent** — Agent details (name, email, phoneNumber) so the Publisher can pay the Agent outside the app.
+- **commissionReceiptUrl** — Echo of the saved receipt URL when provided; otherwise `null`. Admin can retrieve this from the request-to-market list to confirm payment.
+
+**Agent confirmation email:** When the sale is registered successfully, the **Agent** receives a confirmation email with the actual sale price, commission rate, and commission amount registered. This allows the Agent to verify that the Publisher recorded the correct data for the transaction that took place outside the app.
 
 **Errors:**
 
@@ -507,7 +512,8 @@ The endpoint that returns Request To Market data to the **Publisher** includes *
 - **`propertyId`** — Property summary (location, price, briefType, pictures, etc.) for display.
 - **`requestedByAgentId`** — **Agent details** (firstName, lastName, fullName, email, phoneNumber). Show Agent name and contact on each request card/row.
 - **`agentCommissionAmount`** — From listing (may be 0); commission at pay time is based on actual sale (see Register sale).
-- **`saleRegisteredAt`** — If set, sale is already registered for this request; show “Sale registered” / “Pay commission” instead of “Register sale”.
+- **`saleRegisteredAt`** — If set, sale is already registered for this request; show "Sale registered" instead of "Register sale".
+- **`commissionReceiptUrl`** — When present (after register sale with receipt), the URL of the uploaded receipt. **Admin** can use this (e.g. when listing requests) to confirm the Publisher has paid the Agent.
 
 **UI:** For each request, show property summary + **Agent details** (name, email, phone). For **pending**: show **Accept** and **Reject**. For **accepted** and not yet registered: show **“Register sale”** (see Step 3).
 
@@ -541,7 +547,7 @@ Same **`requestId`**.
 
 #### Step 3: “Register sale” button and modal (accepted requests only)
 
-When the property is sold, the Publisher must register the actual sale and get a payment link. The **list response already includes Agent details** and request `_id`, so the frontend can attach a **“Register sale”** action per **accepted** request (and hide it if `saleRegisteredAt` is set).
+When the property is sold, the Publisher registers the actual sale in the app. **No payment link is generated** — payment to the Agent happens outside the app (e.g. bank transfer). The Publisher may optionally upload a **receipt** (proof of payment) so admin can verify the Agent was paid. The **list response already includes Agent details** and request `_id`, so the frontend can attach a **“Register sale”** action per **accepted** request (and hide it if `saleRegisteredAt` is set).
 
 **UI flow:**
 
@@ -550,13 +556,14 @@ When the property is sold, the Publisher must register the actual sale and get a
 3. **Form fields:**
    - **Actual sale price (Naira)** — number, required. Label e.g. “Actual price at which the property was sold (₦)”.
    - **Commission %** — only if user is **Developer**: number 1–5, required. If user is **Landlord**, do not show this field (backend uses 5%).
+   - **Receipt (proof of payment)** — optional. File upload; after upload use the returned URL as `commissionReceiptUrl` in API 3. Lets admin confirm the Publisher has paid the Agent.
 4. **Modal actions:** “Cancel” (close modal), **“Submit”** (submit registration).
 5. **On Submit:** call **API 3** with the form values and the request’s `_id`.
-6. **On success:** close modal (or keep it) and show the returned **payment link** and **Agent details** to the Publisher (e.g. “Pay agent commission: ₦X” button + Agent name, email, phone). Optionally store or show the payment link in the same request card.
+6. **On success:** close modal and show that the sale was registered. Optionally show **Agent details** and **commission amount** so the Publisher knows who to pay and how much (payment is done outside the app).
 
 ---
 
-#### API 3: Register sale and get payment link
+#### API 3: Register sale (no payment link; optional receipt)
 
 **Method and URL:** `POST /account/request-to-market/:requestId/register-sale`  
 **Auth:** Bearer token (Publisher).  
@@ -568,18 +575,19 @@ Use the request’s **`_id`** as **`requestId`** in the URL.
 |----------------------|--------|----------|-------------|
 | actualSalePriceNaira | number | Yes      | Actual price in Naira at which the property was sold. |
 | commissionPercent    | number | Developer only | 1–5. **Landlord:** omit (backend uses 5%). |
+| commissionReceiptUrl | string | No             | Optional. URL from upload endpoint (receipt/proof of payment). Visible to admin. |
 
 **Success response (200):**
 
 ```json
 {
   "success": true,
-  "message": "Sale registered. Use the payment link below to pay the agent commission.",
+  "message": "Sale registered. Pay the agent commission outside the app; receipt URL saved for admin verification when provided.",
   "data": {
-    "paymentUrl": "https://checkout.paystack.com/...",
     "agentCommissionAmount": 4000000,
     "commissionPercent": 5,
     "actualSalePriceNaira": 80000000,
+    "commissionReceiptUrl": "https://...",
     "agent": {
       "name": "John Doe",
       "email": "agent@example.com",
@@ -591,9 +599,10 @@ Use the request’s **`_id`** as **`requestId`** in the URL.
 
 **Frontend handling:**
 
-- Show **`data.paymentUrl`** as a clear call-to-action (e.g. button “Pay agent commission: ₦X” with `data.agentCommissionAmount` formatted).
-- Show **`data.agent`** (name, email, phoneNumber) so the Publisher sees who they are paying.
-- Opening `data.paymentUrl` in the same or new tab completes payment on Paystack.
+- No **paymentUrl** is returned. Payment to the Agent is done **outside the app** (e.g. bank transfer).
+- Show **`data.agentCommissionAmount`** and **`data.agent`** (name, email, phoneNumber) so the Publisher knows how much to pay and who to pay.
+- **`commissionReceiptUrl`** is returned when one was submitted; admin can use it (e.g. from the request list) to confirm the Publisher paid the Agent.
+
 
 **Errors:**
 
@@ -610,7 +619,7 @@ Use the request’s **`_id`** as **`requestId`** in the URL.
 | List requests     | GET    | `/account/request-to-market?role=publisher&status=pending` (or `accepted` / omit) | Returns requests + **Agent details** (`requestedByAgentId`), `saleRegisteredAt`. |
 | Accept request    | POST   | `/account/request-to-market/:requestId/respond` | `{ "action": "accept" }` |
 | Reject request    | POST   | `/account/request-to-market/:requestId/respond` | `{ "action": "reject", "rejectedReason": "..." }` |
-| Register sale     | POST   | `/account/request-to-market/:requestId/register-sale` | `{ "actualSalePriceNaira": number, "commissionPercent": number }` (commissionPercent only for Developer). Returns **paymentUrl** and **agent** details. |
+| Register sale     | POST   | `/account/request-to-market/:requestId/register-sale` | `{ "actualSalePriceNaira": number, "commissionPercent": number, "commissionReceiptUrl": string? }`. No payment link; optional receipt for admin verification. Returns **agent** details and **agentCommissionAmount**. |
 
 ### 4.5 Agent: verify property address on map (frontend-only)
 

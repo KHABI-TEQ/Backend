@@ -23,6 +23,8 @@ export interface IRequestToMarket {
   commissionPercent?: number;
   /** When the Publisher registered the sale (actual price + commission %). */
   saleRegisteredAt?: Date;
+  /** Optional URL to receipt/proof of payment to Agent (uploaded by Publisher when registering sale). Used for admin verification. */
+  commissionReceiptUrl?: string;
 }
 
 export interface IRequestToMarketDoc extends IRequestToMarket, Document {
@@ -52,6 +54,7 @@ const schema = new Schema<IRequestToMarketDoc>(
     actualSalePriceNaira: { type: Number },
     commissionPercent: { type: Number },
     saleRegisteredAt: { type: Date },
+    commissionReceiptUrl: { type: String },
   },
   { timestamps: true }
 );

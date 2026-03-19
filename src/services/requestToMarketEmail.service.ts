@@ -165,6 +165,50 @@ export async function notifyPublisherRequestAccepted(params: {
 }
 
 /**
+ * Email to Agent: Publisher has registered the sale. Confirms the actual sale price and commission
+ * fee registered so the Agent can verify the data matches what was transacted outside the app.
+ */
+export async function notifyAgentSaleRegistered(params: {
+  agentEmail: string;
+  agentName: string;
+  propertySummary: string;
+  actualSalePriceNaira: number;
+  commissionPercent: number;
+  agentCommissionAmount: number;
+}): Promise<void> {
+  const {
+    agentEmail,
+    agentName,
+    propertySummary,
+    actualSalePriceNaira,
+    commissionPercent,
+    agentCommissionAmount,
+  } = params;
+
+  const html = generalEmailLayout(`
+    <p>Hello ${agentName || "there"},</p>
+    <p>The publisher has <strong>registered the sale</strong> for the property you marketed: <strong>${propertySummary}</strong>.</p>
+    <p>Please confirm that the details below match what was agreed and transacted:</p>
+    <ul>
+      <li><strong>Actual sale price (registered):</strong> ₦${actualSalePriceNaira.toLocaleString()}</li>
+      <li><strong>Commission rate:</strong> ${commissionPercent}%</li>
+      <li><strong>Your commission (registered):</strong> ₦${agentCommissionAmount.toLocaleString()}</li>
+    </ul>
+    <p>If any of these figures are incorrect, please contact the publisher to have them corrected.</p>
+    <p>Thank you for using KHABITEQ.</p>
+  `);
+
+  const textSummary = `Sale registered for ${propertySummary}. Actual sale price: ₦${actualSalePriceNaira.toLocaleString()}. Commission: ${commissionPercent}% = ₦${agentCommissionAmount.toLocaleString()}. Please confirm these match your transaction.`;
+
+  await sendEmail({
+    to: agentEmail,
+    subject: `Sale registered – ${propertySummary} – confirm details`,
+    html,
+    text: textSummary,
+  });
+}
+
+/**
  * Email to Publisher (Developer/Landlord): Agent commission payment link.
  * Used when Publisher registers the actual sale and a payment link is generated (register-sale endpoint).
  */

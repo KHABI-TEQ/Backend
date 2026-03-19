@@ -9,10 +9,9 @@ import {
   notifyAgentRequestToMarketRejected,
   notifyAgentRequestToMarketAccepted,
   notifyPublisherRequestAccepted,
+  notifyAgentSaleRegistered,
 } from "../../services/requestToMarketEmail.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
-import { PaystackService } from "../../services/paystack.service";
-import { Types } from "mongoose";
 
 /**
  * POST /account/request-to-market
@@ -379,10 +378,12 @@ export const respondToRequestToMarket = async (
 
 /**
  * POST /account/request-to-market/:requestId/register-sale
- * Publisher registers the actual sale price and commission %; backend computes agent commission and returns a Paystack payment link.
- * Body: { actualSalePriceNaira: number, commissionPercent?: number }
+ * Publisher registers the actual sale price and commission %. Payment to the Agent happens outside the app;
+ * optional receipt URL can be uploaded (via existing upload endpoint) and sent here for admin verification.
+ * Body: { actualSalePriceNaira: number, commissionPercent?: number, commissionReceiptUrl?: string }
  * - Landlord: commissionPercent is automatically 5.
  * - Developer: commissionPercent 1–5 (required in body).
+ * - commissionReceiptUrl: optional; use URL from upload-single-file (or similar) to confirm payment to Agent.
  */
 export const registerSaleForRequestToMarket = async (
   req: AppRequest,
@@ -394,9 +395,14 @@ export const registerSaleForRequestToMarket = async (
     if (!userId) throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
 
     const { requestId } = req.params;
-    const { actualSalePriceNaira, commissionPercent: bodyCommissionPercent } = req.body as {
+    const {
+      actualSalePriceNaira,
+      commissionPercent: bodyCommissionPercent,
+      commissionReceiptUrl,
+    } = req.body as {
       actualSalePriceNaira?: number;
       commissionPercent?: number;
+      commissionReceiptUrl?: string;
     };
 
     const actualPrice = Number(actualSalePriceNaira);
@@ -442,56 +448,18 @@ export const registerSaleForRequestToMarket = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Computed agent commission is zero; ensure actualSalePriceNaira and commissionPercent are valid.");
     }
 
-    const publisher = await DB.Models.User.findById(userId).select("email").lean();
-    const publisherEmail = (publisher as any)?.email;
-    if (!publisherEmail) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Publisher email is required to generate the payment link.");
-    }
-
-    const agentId = (request as any).requestedByAgentId._id;
-    const dealSite = await DB.Models.DealSite.findOne({ createdBy: agentId })
-      .select("paymentDetails")
-      .lean();
-    const subAccountCode = (dealSite as any)?.paymentDetails?.subAccountCode;
-
-    let paymentUrl: string;
-    let paymentTransactionId: Types.ObjectId;
-
-    if (subAccountCode) {
-      const result = await PaystackService.initializeSplitPayment({
-        subAccount: subAccountCode,
-        publicPageUrl: process.env.CLIENT_LINK || "https://khabiteq.com",
-        amountCharge: 0,
-        email: publisherEmail,
-        amount: agentCommissionAmount,
-        fromWho: { kind: "User", item: userId as Types.ObjectId },
-        transactionType: "request-to-market",
-        metadata: { requestToMarketId: requestId },
-      });
-      paymentUrl = result.authorization_url;
-      paymentTransactionId = result.transactionId as Types.ObjectId;
-    } else {
-      const result = await PaystackService.initializePayment({
-        email: publisherEmail,
-        amount: agentCommissionAmount,
-        fromWho: { kind: "User", item: userId as Types.ObjectId },
-        transactionType: "request-to-market",
-        metadata: { requestToMarketId: requestId },
-      });
-      paymentUrl = result.authorization_url;
-      paymentTransactionId = result.transactionId as Types.ObjectId;
+    const updatePayload: Record<string, unknown> = {
+      actualSalePriceNaira: actualPrice,
+      commissionPercent,
+      saleRegisteredAt: new Date(),
+    };
+    if (commissionReceiptUrl && typeof commissionReceiptUrl === "string" && commissionReceiptUrl.trim()) {
+      updatePayload.commissionReceiptUrl = commissionReceiptUrl.trim();
     }
 
     await DB.Models.RequestToMarket.updateOne(
       { _id: requestId },
-      {
-        $set: {
-          actualSalePriceNaira: actualPrice,
-          commissionPercent,
-          saleRegisteredAt: new Date(),
-          paymentTransactionId,
-        },
-      }
+      { $set: updatePayload }
     );
 
     const agent = (request as any).requestedByAgentId;
@@ -499,15 +467,30 @@ export const registerSaleForRequestToMarket = async (
       agent?.fullName ||
       [agent?.firstName, agent?.lastName].filter(Boolean).join(" ") ||
       "Agent";
+    const propertySummary = getPropertyTitleFromLocation((request as any).propertyId?.location) || "the property";
+    if (agent?.email) {
+      try {
+        await notifyAgentSaleRegistered({
+          agentEmail: agent.email,
+          agentName,
+          propertySummary,
+          actualSalePriceNaira: actualPrice,
+          commissionPercent,
+          agentCommissionAmount,
+        });
+      } catch (e) {
+        console.warn("[requestToMarket] notifyAgentSaleRegistered email failed:", e);
+      }
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Sale registered. Use the payment link below to pay the agent commission.",
+      message: "Sale registered. Pay the agent commission outside the app; receipt URL saved for admin verification when provided.",
       data: {
-        paymentUrl,
         agentCommissionAmount,
         commissionPercent,
         actualSalePriceNaira: actualPrice,
+        commissionReceiptUrl: updatePayload.commissionReceiptUrl ?? null,
         agent: {
           name: agentName,
           email: agent?.email,
