@@ -4,6 +4,7 @@ import { RouteError } from "../common/classes";
 import { IDealSite, IDealSiteDoc } from "../models";
 import { Types } from "mongoose";
 import { PaystackService } from "./paystack.service";
+import { resolveLeanRefToObjectId } from "../utils/mongooseId";
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
 
@@ -453,11 +454,15 @@ export class DealSiteService {
     }
 
     // Auto mode → pick latest properties owned or marketed by this DealSite creator (multiple agents can market the same property)
+    const creatorId = resolveLeanRefToObjectId(dealSite.createdBy);
+    if (!creatorId) {
+      return [];
+    }
     return Property.find({
       $or: [
-        { owner: dealSite.createdBy },
-        { marketedByAgentIds: dealSite.createdBy },
-        { marketedByAgentId: dealSite.createdBy }, // legacy single field
+        { owner: creatorId },
+        { marketedByAgentIds: creatorId },
+        { marketedByAgentId: creatorId }, // legacy single field
       ],
       isAvailable: true,
       isApproved: true,

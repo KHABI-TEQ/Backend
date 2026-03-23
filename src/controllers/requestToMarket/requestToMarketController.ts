@@ -12,6 +12,7 @@ import {
   notifyAgentSaleRegistered,
 } from "../../services/requestToMarketEmail.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
+import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 
 /**
  * POST /account/request-to-market
@@ -293,11 +294,17 @@ export const respondToRequestToMarket = async (
     }
 
     // Accept: add this Agent to property's marketedByAgentIds so it appears on their DealSite (multiple agents can market the same property)
-    const propertyId = (request as any).propertyId._id;
-    const agentId = (request as any).requestedByAgentId._id;
+    const propertyOid = resolveLeanRefToObjectId((request as any).propertyId);
+    const agentOid = resolveLeanRefToObjectId((request as any).requestedByAgentId);
+    if (!propertyOid || !agentOid) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Could not resolve property or agent id for this request (invalid or missing references)."
+      );
+    }
     await DB.Models.Property.updateOne(
-      { _id: propertyId },
-      { $addToSet: { marketedByAgentIds: agentId } }
+      { _id: propertyOid },
+      { $addToSet: { marketedByAgentIds: agentOid } }
     );
 
     const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName phoneNumber").lean();
@@ -319,10 +326,10 @@ export const respondToRequestToMarket = async (
     );
 
     await notificationService.createNotification({
-      user: String(agentId),
+      user: String(agentOid),
       title: "Request To Market Accepted",
       message: "Your request to market the property was accepted. The property is now visible on your public page.",
-      meta: { requestToMarketId: requestId, propertyId },
+      meta: { requestToMarketId: requestId, propertyId: String(propertyOid) },
     });
 
     const publisherName =
@@ -368,7 +375,7 @@ export const respondToRequestToMarket = async (
         "Request accepted. The property is now visible on the agent's public page. After the transaction is complete, register the actual sale price on your dashboard to calculate and pay the agent commission.",
       data: {
         status: "accepted",
-        propertyId,
+        propertyId: propertyOid,
       },
     });
   } catch (err) {

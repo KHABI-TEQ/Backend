@@ -3,6 +3,7 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { ignoreWords } from "../../../utils/ignoreWords";
+import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
  
 export const getDealSiteProperties = async (
   req: AppRequest,
@@ -66,11 +67,20 @@ export const getDealSiteProperties = async (
     };
 
     // 4. Base query: properties owned by DealSite creator OR marketed by them (Request To Market accepted; multiple agents can market the same property)
+    const creatorId = resolveLeanRefToObjectId(dealSite.createdBy);
+    if (!creatorId) {
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        errorCode: "DEALSITE_INVALID_OWNER",
+        message: "DealSite owner reference is invalid.",
+        data: null,
+      });
+    }
     const baseCondition = {
       $or: [
-        { owner: dealSite.createdBy },
-        { marketedByAgentIds: dealSite.createdBy },
-        { marketedByAgentId: dealSite.createdBy }, // legacy single field
+        { owner: creatorId },
+        { marketedByAgentIds: creatorId },
+        { marketedByAgentId: creatorId }, // legacy single field
       ],
     };
     const query: any = {
