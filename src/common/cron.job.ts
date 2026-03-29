@@ -7,6 +7,8 @@ import sendEmail from './send.email';
 import { PaystackService } from '../services/paystack.service';
 import { kebabToTitleCase } from '../utils/helper';
 import { sendTransactionConfirmationRequestEmails } from '../services/transactionConfirmationCron.service';
+import { getClientDashboardUrl } from '../utils/clientAppUrl';
+import { processInspectionReminders } from '../services/inspectionReminderCron.service';
 
 // Example DB connect (adjust for your project setup)
 mongoose.connect(process.env.MONGO_URI as string);
@@ -166,7 +168,7 @@ const notifyExpiringSubscriptions = async () => {
       );
  
       // create public link
-      const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
+      const publicAccessCompleteLink = getClientDashboardUrl();
 
       const emailHtml = generalEmailLayout(
         generateSubscriptionExpiringSoonEmail({
@@ -315,7 +317,7 @@ const autoRenewSubscriptionsCronJob = async () => {
         );
 
         // create public link
-        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
+        const publicAccessCompleteLink = getClientDashboardUrl();
 
         const { html, text } = generateAutoRenewReceiptEmail({
           fullName: user.fullName || `${user.firstName} ${user.lastName}`,
@@ -349,7 +351,7 @@ const autoRenewSubscriptionsCronJob = async () => {
             planName: appliedPlanName,
             amount: price,
             transactionRef: paymentResult.transaction?.reference || "N/A",
-            subscriptionPlansLink: `${process.env.CLIENT_LINK}/agent-subscriptions`,
+            subscriptionPlansLink: getClientDashboardUrl(),
           })
         );
 
@@ -398,6 +400,21 @@ cron.schedule('0 2 * * *', async () => {
     if (sent > 0) console.log(`[CRON] Sent ${sent} transaction confirmation request email(s).`);
   } catch (err) {
     console.error('[CRON] Transaction confirmation request emails error:', err);
+  }
+});
+
+// Every 10 minutes – inspection reminders (24h / 3h / 1h before): buyer email; seller email + in-app
+cron.schedule('*/10 * * * *', async () => {
+  try {
+    const { sent24h, sent3h, sent1h } = await processInspectionReminders();
+    const total = sent24h + sent3h + sent1h;
+    if (total > 0) {
+      console.log(
+        `[CRON] Inspection reminders: ${sent24h} (24h), ${sent3h} (3h), ${sent1h} (1h) — ${total} booking(s) notified`
+      );
+    }
+  } catch (err) {
+    console.error('[CRON] Inspection reminders error:', err);
   }
 });
 

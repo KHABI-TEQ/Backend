@@ -12,6 +12,7 @@ import {
   notifyAgentSaleRegistered,
 } from "../../services/requestToMarketEmail.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
+import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 
 /**
@@ -95,7 +96,7 @@ export const createRequestToMarket = async (
       [((user as any).firstName || "").trim(), ((user as any).lastName || "").trim()].filter(Boolean).join(" ") ||
       "An agent";
     const propertySummary = getPropertyTitleFromLocation((property as any).location) || "your property";
-    const respondUrl = (process.env.CLIENT_LINK || "") + "/account/request-to-market";
+    const respondUrl = getClientDashboardUrl();
 
     let agentPublicPageUrl: string | undefined;
     const dealSite = await DB.Models.DealSite.findOne({ createdBy: userId })

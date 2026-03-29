@@ -3,6 +3,7 @@ import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import notificationService from "./notification.service";
 import { getPropertyTitleFromLocation } from "../utils/helper";
+import { getClientDashboardUrl } from "../utils/clientAppUrl";
 
 /**
  * Notify agent (property owner) that a buyer submitted an inspection request.
@@ -18,9 +19,8 @@ export async function notifyAgentOfInspectionRequest(params: {
   inspectionDate: Date;
   inspectionTime: string;
   amount: number;
-  respondUrl?: string;
 }): Promise<void> {
-  const { inspectionId, propertyId, ownerId, buyerName, inspectionDate, inspectionTime, amount, respondUrl } = params;
+  const { inspectionId, propertyId, ownerId, buyerName, inspectionDate, inspectionTime, amount } = params;
   const property = await DB.Models.Property.findById(propertyId).select("location").lean();
   const owner = await DB.Models.User.findById(ownerId).select("email firstName lastName").lean();
   if (!owner) return;
@@ -42,7 +42,7 @@ export async function notifyAgentOfInspectionRequest(params: {
     meta: { inspectionId, propertyId: propertyId?.toString?.() ?? "", status: "pending_approval" },
   });
 
-  const link = respondUrl || `${process.env.CLIENT_LINK}/account/inspections`;
+  const link = getClientDashboardUrl();
   const feeLine = hasFee ? `<p>Inspection fee: ₦${amount.toLocaleString()}</p>` : "";
   const acceptLine = hasFee
     ? "<p>Please accept or reject this request. If you accept, the buyer will receive a payment link.</p>"

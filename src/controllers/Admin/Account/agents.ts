@@ -13,6 +13,7 @@ import { SubscriptionPlanService } from "../../../services/subscriptionPlan.serv
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { generateSubscriptionReceiptEmail } from "../../../common/emailTemplates/subscriptionMails";
 import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionListing.config";
+import { getClientDashboardUrl } from "../../../utils/clientAppUrl";
 
 
 
@@ -690,7 +691,7 @@ export const approveAgentKYCData = async (
           });
 
           // Send subscription receipt email
-          const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
+          const publicAccessCompleteLink = getClientDashboardUrl();
           const successMailBody = generalEmailLayout(
             generateSubscriptionReceiptEmail({
               fullName: userAcct.firstName,

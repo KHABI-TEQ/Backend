@@ -19,6 +19,7 @@ import { BookingLogService } from './bookingLog.service';
 import { generateSuccessfulBookingReceiptForBuyer, generateSuccessfulBookingReceiptForSeller } from '../common/emailTemplates/bookingMails';
 import { Url } from 'url';
 import WhatsAppNotificationService from './whatsAppNotification.service';
+import { getClientDashboardUrl } from '../utils/clientAppUrl';
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -954,8 +955,8 @@ export class PaystackService {
         }
 
         // create public link
-        const publicAccessCompleteLink = `${process.env.CLIENT_LINK}/public-access-page`;
- 
+        const publicAccessCompleteLink = getClientDashboardUrl();
+
         const successMailBody = generalEmailLayout(
           generateSubscriptionReceiptEmail({
             fullName,
@@ -981,7 +982,7 @@ export class PaystackService {
             planName: plan.name,
             amount: transaction.amount,
             transactionRef: transaction.reference,
-            subscriptionPlansLink: `${process.env.CLIENT_LINK}/agent-subscriptions`,
+            subscriptionPlansLink: getClientDashboardUrl(),
           })
         );
 

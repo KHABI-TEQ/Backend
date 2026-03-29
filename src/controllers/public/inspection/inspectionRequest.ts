@@ -70,8 +70,6 @@ export const submitInspectionRequest = async (
 
       const savedInspections = [];
       const propertyMap = new Map((propertiesList as any[]).map((p: any) => [p._id.toString(), p]));
-      const respondUrl = `${process.env.CLIENT_LINK}/account/inspections`;
-
       for (const prop of properties) {
         const property = propertyMap.get(prop.propertyId);
         if (!property) {
@@ -141,7 +139,6 @@ export const submitInspectionRequest = async (
             inspectionDate: inspection.inspectionDate,
             inspectionTime: inspection.inspectionTime,
             amount: propertyAmount,
-            respondUrl: `${respondUrl}/${inspection._id}`,
           });
         } catch (e) {
           console.warn("[public inspection] Notify agent failed:", e);

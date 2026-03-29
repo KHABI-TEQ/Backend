@@ -90,8 +90,6 @@ export const submitInspectionRequest = async (
 
     const savedInspections = [];
     const propertyMap = new Map((propertiesList as any[]).map((p: any) => [p._id.toString(), p]));
-    const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
-    const respondUrl = `${process.env.CLIENT_LINK}/account/inspections`;
 
     for (const prop of properties) {
       const property = propertyMap.get(prop.propertyId);
@@ -179,7 +177,6 @@ export const submitInspectionRequest = async (
           inspectionDate: inspection.inspectionDate,
           inspectionTime: inspection.inspectionTime,
           amount: 0,
-          respondUrl: `${respondUrl}/${inspection._id}`,
         });
       } catch (e) {
         console.warn("[DealSite inspection] Notify agent failed:", e);

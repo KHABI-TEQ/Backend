@@ -18,6 +18,7 @@ import { sendInspectionRateReportEmailToBuyer } from "../../services/inspectionW
 import { AppRequest } from "../../types/express";
 import { FieldAgentAssignmentTemplate, FieldAgentRemovalTemplate, InspectionLoiRejectionTemplate } from "../../common/emailTemplates/inspectionMails";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
+import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 
 export class AdminInspectionController {
   /**
@@ -336,7 +337,7 @@ export class AdminInspectionController {
         owner.fullName || owner.firstName,
         {
           ...emailData,
-          responseLink: `${process.env.CLIENT_LINK}/secure-seller-response/${owner._id}/${inspection._id.toString()}`,
+          responseLink: getClientDashboardUrl(),
         },
       );
 

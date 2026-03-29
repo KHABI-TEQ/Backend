@@ -12,6 +12,7 @@ import { generateBookingCode, generatePassCode, getPropertyTitleFromLocation } f
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import sendEmail from "../../../common/send.email";
 import { duration } from "moment";
+import { getClientDashboardUrl } from "../../../utils/clientAppUrl";
 
 export class BookingController {
 
@@ -199,7 +200,7 @@ export class BookingController {
 
                 const ownerData = property.owner as any;
 
-                const sellerPagelink = `${process.env.CLIENT_LINK}/my-inspection-requests?tab=booking`;
+                const sellerPagelink = getClientDashboardUrl();
 
                 const buyerEmail = generateBookingRequestAcknowledgementForBuyer({
                     buyerName: bookedBy.fullName,

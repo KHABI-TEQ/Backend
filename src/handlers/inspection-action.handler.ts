@@ -13,13 +13,14 @@ export class InspectionActionHandler {
     buyerId: string,
     ownerId: string,
   ) {
-    const clientLink = process.env.CLIENT_LINK || "http://localhost:3000";
+    const clientLink = (process.env.CLIENT_LINK || "http://localhost:3000").replace(/\/$/, "");
+    const dashboardLink = clientLink ? `${clientLink}/dashboard` : "#";
     const inspectionIdStr = inspectionId.toString();
 
     return {
-      sellerResponseLink: `${clientLink}/secure-seller-response/${ownerId}/${inspectionIdStr}`,
+      sellerResponseLink: dashboardLink,
       buyerResponseLink: `${clientLink}/secure-buyer-response/${buyerId}/${inspectionIdStr}`,
-      negotiationResponseLink: `${clientLink}/secure-seller-response/${ownerId}/${inspectionIdStr}`,
+      negotiationResponseLink: dashboardLink,
       checkLink: `${clientLink}/secure-buyer-response/${buyerId}/${inspectionIdStr}/check`,
       browseLink: `${clientLink}/market-place`,
       rejectLink: `${clientLink}/secure-buyer-response/${buyerId}/${inspectionIdStr}/reject`,

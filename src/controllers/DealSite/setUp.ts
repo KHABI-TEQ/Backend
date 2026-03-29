@@ -5,7 +5,7 @@ import { DealSiteService } from "../../services/dealSite.service";
 import { PaystackService } from "../../services/paystack.service";
 import { dealSiteActivityService } from "../../services/dealSiteActivity.service";
 /**
- * Create a new DealSite for an agent
+ * Create a new DealSite (public access page) for an Agent or Developer.
  */
 export const createDealSite = async (
   req: AppRequest,

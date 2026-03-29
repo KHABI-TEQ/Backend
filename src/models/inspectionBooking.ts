@@ -73,6 +73,15 @@ export interface IInspectionBooking {
   transactionConfirmationRequestSentAt?: Date;
   /** Set when the buyer clicks the confirm button in that email. */
   buyerConfirmedTransactionAt?: Date;
+
+  /** Parsed inspection start used to detect reschedule (reset reminder flags when this changes). */
+  reminderSlotAt?: Date;
+  /** Cron: 24h-before inspection reminder sent at. */
+  reminder24hSentAt?: Date;
+  /** Cron: 3h-before inspection reminder sent at. */
+  reminder3hSentAt?: Date;
+  /** Cron: 1h-before inspection reminder sent at. */
+  reminder1hSentAt?: Date;
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
@@ -197,6 +206,10 @@ export class InspectionBooking {
         meta: { type: Schema.Types.Mixed, default: {} },
         transactionConfirmationRequestSentAt: { type: Date },
         buyerConfirmedTransactionAt: { type: Date },
+        reminderSlotAt: { type: Date },
+        reminder24hSentAt: { type: Date },
+        reminder3hSentAt: { type: Date },
+        reminder1hSentAt: { type: Date },
       },
       {
         timestamps: true,

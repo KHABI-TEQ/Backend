@@ -29,21 +29,26 @@ export class DealSiteService {
   }
 
   /**
-   * Sets up a DealSite for an agent
+   * Sets up a DealSite (public access page) for an Agent or Developer.
    * - Ensures uniqueness of publicSlug
-   * - Ensures an agent cannot create multiple DealSites
+   * - Ensures the user cannot create multiple DealSites
    * - Persists the DealSite with defaults and relations
    */
-  /**
- * Sets up a DealSite for an agent
- * - Ensures uniqueness of publicSlug
- * - Ensures an agent cannot create multiple DealSites
- * - Persists the DealSite with defaults and relations
- */ 
   static async setUpPublicAccess(
     userId: string,
     payload: Partial<IDealSite>
   ): Promise<IDealSiteDoc> {
+    const owner = await DB.Models.User.findById(userId).select("userType").lean();
+    if (!owner) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
+    }
+    if (owner.userType !== "Agent" && owner.userType !== "Developer") {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Only agents and developers can set up a public access page."
+      );
+    }
+
     await this.ensureActiveSubscription(userId);
 
     // Ensure publicSlug is unique
@@ -58,7 +63,7 @@ export class DealSiteService {
       );
     }
 
-    // Ensure the agent doesn’t already have a DealSite
+    // Ensure the user doesn’t already have a DealSite
     const existingUserSite = await DB.Models.DealSite.findOne({
       createdBy: userId,
     });
@@ -141,7 +146,7 @@ export class DealSiteService {
 
 
   /**
-   * Fetch DealSites for a specific agent
+   * Fetch DealSites for a specific user (Agent or Developer public page owner).
    */
   static async getByAgent(
     userId: string,

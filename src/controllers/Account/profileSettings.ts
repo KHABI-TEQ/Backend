@@ -10,6 +10,7 @@ import { DealSiteService } from "../../services/dealSite.service";
 import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
+import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 
 // Fetch Profile
 export const getProfile = async (
@@ -132,7 +133,7 @@ export const updateProfile = async (
       generateAccountUpdatedEmail({
         fullName: `${updatedUser.firstName || ""} ${updatedUser.lastName || ""}`.trim() || "User",
         updatedFields: updatedFieldsList,
-        settingsLink: `${process.env.CLIENT_LINK}/profile-settings`,
+        settingsLink: getClientDashboardUrl(),
       })
     );
 
@@ -184,7 +185,7 @@ export const updateProfilePicture = async (
       generateAccountUpdatedEmail({
         fullName: updatedUser.fullName || "User",
         updatedFields: ["Profile Picture"],
-        settingsLink: `${process.env.CLIENT_LINK}/profile-settings`,
+        settingsLink: getClientDashboardUrl(),
       })
     );
 
@@ -245,7 +246,7 @@ export const changeEmail = async (
       generateAccountUpdatedEmail({
         fullName: `${updatedUser.firstName || ""} ${updatedUser.lastName || ""}`.trim() || "User",
         updatedFields: ["Email Address"],
-        settingsLink: `${process.env.CLIENT_LINK}/profile-settings`,
+        settingsLink: getClientDashboardUrl(),
       })
     );
 
@@ -304,7 +305,7 @@ export const changePassword = async (
       generateAccountUpdatedEmail({
         fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "User",
         updatedFields: ["Password"],
-        settingsLink: `${process.env.CLIENT_LINK}/profile-settings?tab=password`,
+        settingsLink: getClientDashboardUrl(),
       })
     );
 

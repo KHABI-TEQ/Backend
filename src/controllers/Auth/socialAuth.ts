@@ -80,12 +80,13 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
 
   if (user.userType === 'Developer') {
     const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(user._id.toString());
-    const dealSite = await DealSiteService.getByAgent(user._id.toString());
+    const dealSites = await DealSiteService.getByAgent(user._id.toString());
+    const dealSite = dealSites?.[0] ?? null;
     const userWithDeveloper = {
       ...userResponse,
       isAccountApproved: user.accountApproved,
       activeSubscription: activeSnapshot || null,
-      dealSite: dealSite || null,
+      dealSite,
     };
     return res.status(HttpStatusCodes.OK).json({
       success: true,

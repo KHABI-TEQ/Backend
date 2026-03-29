@@ -107,9 +107,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
           user._id.toString()
         );
 
-       // get the agent deal site page if found
-        const dealSite = await DealSiteService.getByAgent(user._id.toString());
-      
+       // get the agent public access page if found (single DealSite per user)
+        const dealSites = await DealSiteService.getByAgent(user._id.toString());
+        const dealSite = dealSites?.[0] ?? null;
 
       const userWithAgent = agentData?.agentType
         ? {
@@ -117,7 +117,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             agentData,
             isAccountApproved: user.accountApproved,
             activeSubscription: activeSnapshot || null,
-            dealSite: dealSite || null
+            dealSite,
           }
         : userResponse;
 
@@ -136,12 +136,13 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
         user._id.toString()
       );
-      const dealSite = await DealSiteService.getByAgent(user._id.toString());
+      const dealSites = await DealSiteService.getByAgent(user._id.toString());
+      const dealSite = dealSites?.[0] ?? null;
       const userWithDeveloper = {
         ...userResponse,
         isAccountApproved: user.accountApproved,
         activeSubscription: activeSnapshot || null,
-        dealSite: dealSite || null,
+        dealSite,
       };
       return res.status(HttpStatusCodes.OK).json({
         success: true,

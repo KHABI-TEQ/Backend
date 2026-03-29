@@ -123,7 +123,8 @@ export const getDealSiteDetailsByUser = async (
  
     const userId = req.user?._id;
   
-    const dealSite = await DealSiteService.getByAgent(userId);
+    const dealSites = await DealSiteService.getByAgent(userId);
+    const dealSite = dealSites?.[0];
 
     if (!dealSite) {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found"));
@@ -192,7 +193,7 @@ export const getDealSiteBySlug = async (
         success: false,
         errorCode: "SUBSCRIPTION_INVALID",
         message:
-          "The agent’s subscription has expired or is missing. Some features may be unavailable.",
+          "This page owner’s subscription has expired or is missing. Some features may be unavailable.",
         data: null,
       });
     }
