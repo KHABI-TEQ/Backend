@@ -8,6 +8,22 @@ import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
 import { notifyAgentOfInspectionRequest } from "../../../services/inspectionWorkflow.service";
 
+/** Public DealSite may only book inspection for properties this site’s operator owns or markets (RTM). */
+function propertyAllowedOnDealSite(property: any, dealSiteCreatedBy: unknown): boolean {
+  if (dealSiteCreatedBy == null) return false;
+  const agent = String(dealSiteCreatedBy);
+  const owner = property?.owner != null ? String(property.owner) : "";
+  if (owner === agent) return true;
+  const ids = Array.isArray(property?.marketedByAgentIds)
+    ? property.marketedByAgentIds.map((x: unknown) => String(x))
+    : [];
+  if (ids.includes(agent)) return true;
+  if (property?.marketedByAgentId != null && String(property.marketedByAgentId) === agent) {
+    return true;
+  }
+  return false;
+}
+
 export const submitInspectionRequest = async (
   req: AppRequest,
   res: Response,
@@ -48,6 +64,17 @@ export const submitInspectionRequest = async (
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
         message: "This DealSite is not currently active.",
+        data: null,
+      });
+      return;
+    }
+
+    const dealSiteOwnerId = dealSite.createdBy as Types.ObjectId;
+    if (!dealSiteOwnerId) {
+      res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        errorCode: "DEALSITE_INVALID",
+        message: "DealSite is missing owner information.",
         data: null,
       });
       return;
@@ -114,6 +141,16 @@ export const submitInspectionRequest = async (
         return;
       }
 
+      if (!propertyAllowedOnDealSite(property, dealSiteOwnerId)) {
+        res.status(HttpStatusCodes.FORBIDDEN).json({
+          success: false,
+          errorCode: "PROPERTY_NOT_ON_DEALSITE",
+          message: "This property is not listed on this DealSite.",
+          data: null,
+        });
+        return;
+      }
+
       const isNegotiating =
         typeof prop.negotiationPrice === "number" && prop.negotiationPrice > 0;
       const isLOI = !!prop.letterOfIntention;
@@ -137,7 +174,7 @@ export const submitInspectionRequest = async (
         inspectionStatus: "new",
         negotiationPrice: prop.negotiationPrice || 0,
         letterOfIntention: prop.letterOfIntention || null,
-        owner: property.owner,
+        owner: dealSiteOwnerId,
         pendingResponseFrom: "seller",
         stage,
         receiverMode: {
@@ -171,7 +208,7 @@ export const submitInspectionRequest = async (
         await notifyAgentOfInspectionRequest({
           inspectionId: inspection._id.toString(),
           propertyId: property._id,
-          ownerId: (property as any).owner?.toString?.() ?? (property as any).owner,
+          ownerId: dealSiteOwnerId.toString(),
           buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
           buyerEmail: buyer.email,
           inspectionDate: inspection.inspectionDate,
