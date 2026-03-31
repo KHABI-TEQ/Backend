@@ -8,7 +8,7 @@ import { preferenceValidationSchema } from "../../../validators/preference.valid
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";
-import { matchPreferenceAgainstProperties } from "../../../services/preferenceMatching.service";
+import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.service";
 
 export const postPreference = async (
   req: AppRequest,
@@ -75,14 +75,6 @@ export const postPreference = async (
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
 
-    // §10.4: After save, (1) match against existing briefs, (2) auto-approve so it appears on Agent Marketplace.
-    const preferenceObj = createdPreference.toObject ? createdPreference.toObject() : createdPreference;
-    try {
-      await matchPreferenceAgainstProperties(preferenceObj as any);
-    } catch (matchErr) {
-      console.warn("[postPreference] Matching step failed (non-fatal):", matchErr);
-    }
-
     createdPreference.status = "approved";
     await createdPreference.save();
 
@@ -96,6 +88,12 @@ export const postPreference = async (
       text: userGeneralMail,
       html: userGeneralMail,
     });
+
+    try {
+      await autoPairPreferenceById(createdPreference._id.toString());
+    } catch (matchErr) {
+      console.warn("[postPreference] Auto pairing failed (non-fatal):", matchErr);
+    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

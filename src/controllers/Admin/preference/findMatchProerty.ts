@@ -298,7 +298,8 @@ export const findMatchedProperties = async (
  * Results are sorted by score in descending order (highest match first)
  * ============================================================================
  */
-function calculateDetailedMatchScore(property: any, preference: any): number {
+/** Shared by admin ranked search and automatic preference pairing after submit. */
+export function calculateDetailedMatchScore(property: any, preference: any): number {
   let score = 50; // Base score for passing must-match requirements
 
   // ============================================================================

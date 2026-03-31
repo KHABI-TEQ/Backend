@@ -8,6 +8,7 @@ import { preferenceValidationSchema } from "../../validators/preference.validato
 import sendEmail from "../../common/send.email";
 import { preferenceMail } from "../../common/emailTemplates/preference";
 import { generalTemplate } from "../../common/email.template";
+import { autoPairPreferenceById } from "../../services/autoPreferencePairing.service";
  
 // ✅ Controller: Submit Preference from a DealSite
 export const sendPreferenceRequest = async (
@@ -104,9 +105,12 @@ export const sendPreferenceRequest = async (
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
-    
+
+    createdPreference.status = "approved";
+    await createdPreference.save();
+
     // Send email
-    const userMailBody = preferenceMail(preferenceData);
+    const userMailBody = preferenceMail({ ...preferenceData, status: "approved" });
 
     const userGeneralMail = generalTemplate(userMailBody, {
         companyName: dealSiteName,
@@ -126,6 +130,12 @@ export const sendPreferenceRequest = async (
       text: userGeneralMail,
       html: userGeneralMail,
     });
+
+    try {
+      await autoPairPreferenceById(createdPreference._id.toString());
+    } catch (matchErr) {
+      console.warn("[DealSite preference] Auto pairing failed (non-fatal):", matchErr);
+    }
 
     res.status(HttpStatusCodes.CREATED).json({
       success: true,

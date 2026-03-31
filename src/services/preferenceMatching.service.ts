@@ -64,9 +64,8 @@ function buildMatchQuery(preference: {
 }
 
 /**
- * Runs matching of a preference against existing property briefs (Agents, Landlords, Developers).
- * Matching criteria: same property type, state (and LGA if provided), and price within budget.
- * Does not create or update MatchedPreferenceProperty; that is done by admin when submitting matches.
+ * Counts briefs that meet strict type/location/budget (legacy helper).
+ * For persisted pairing + buyer email, use `autoPairPreferenceById` in autoPreferencePairing.service.
  */
 export async function matchPreferenceAgainstProperties(preference: {
   preferenceType?: string;
