@@ -4,6 +4,10 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { formatPropertyDataForTable } from "../../../utils/propertyFormatters";
+import {
+  preferencePhysicalTypeMatches,
+  getPreferencePhysicalPropertyType,
+} from "../../../utils/preferencePhysicalTypeMatch";
 
 interface PropertyDocument {
   docName: string;
@@ -18,10 +22,11 @@ interface PropertyDocument {
  * MATCHING HIERARCHY:
  * 
  * === MUST MATCH (Hard Requirements - Filtered at DB Level) ===
- * 1. Property Type (preference type → property propertyType mapping) - REQUIRED
- * 2. Location State - REQUIRED (MUST match exactly)
- * 3. Location LGA - REQUIRED (MUST match exactly)
- * 4. Price Range - REQUIRED (MUST be within budget)
+ * 1. Brief listing kind (preferenceType → property.propertyType: sell/jv/rent/shortlet) - REQUIRED
+ * 2. Physical property type (propertyDetails/bookingDetails.propertyType vs propertyCategory, when buyer specified) - REQUIRED
+ * 3. Location State - REQUIRED (MUST match exactly)
+ * 4. Location LGA - REQUIRED (MUST match exactly)
+ * 5. Price Range - REQUIRED (MUST be within budget)
  * 
  * === OPTIONAL (Bonus Scoring - Not Filtered at DB) ===
  * 5. Location Area (within LGA - bonus points if matches)
@@ -147,8 +152,11 @@ export const findMatchedProperties = async (
     // ============================================================================
     
     const rawMatches = await DB.Models.Property.find(baseQuery).lean();
+    const physicalTypeMatches = rawMatches.filter((p) =>
+      preferencePhysicalTypeMatches(preference, p),
+    );
 
-    if (rawMatches.length === 0) {
+    if (physicalTypeMatches.length === 0) {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "No properties match the required criteria",
@@ -171,6 +179,7 @@ export const findMatchedProperties = async (
             min: preference.budget?.minPrice,
             max: preference.budget?.maxPrice,
           },
+          physicalPropertyTypeRequired: getPreferencePhysicalPropertyType(preference) ?? null,
         },
       });
     }
@@ -179,7 +188,7 @@ export const findMatchedProperties = async (
     // CALCULATE MATCH SCORES
     // ============================================================================
     
-    const withScore = rawMatches.map((property) => {
+    const withScore = physicalTypeMatches.map((property) => {
       const matchScore = calculateDetailedMatchScore(property, preference);
       const formatted = formatPropertyDataForTable(property);
       return {
@@ -220,6 +229,7 @@ export const findMatchedProperties = async (
       matchingCriteria: {
         mustMatch: {
           propertyType: expectedBriefType,
+          physicalPropertyType: getPreferencePhysicalPropertyType(preference) ?? null,
           state: preference.location.state,
           lgas: preference.location.localGovernmentAreas,
           priceRange: {

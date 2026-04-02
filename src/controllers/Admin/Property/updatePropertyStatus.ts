@@ -6,6 +6,10 @@ import { RouteError } from "../../../common/classes";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { PropertyApprovedOrDisapprovedTemplate } from "../../../common/emailTemplates/property";
 import sendEmail from "../../../common/send.email";
+import {
+  autoPairPreferencesForNewProperty,
+  isPropertyListedAndMatchable,
+} from "../../../services/autoPreferencePairing.service";
 
 export const updatePropertyStatusAsAdmin = async (
   req: AppRequest,
@@ -75,6 +79,15 @@ export const updatePropertyStatusAsAdmin = async (
     }
 
     await property.save();
+
+    const propLean = await DB.Models.Property.findById(propertyId).lean();
+    if (propLean && isPropertyListedAndMatchable(propLean)) {
+      try {
+        await autoPairPreferencesForNewProperty(propertyId);
+      } catch (e) {
+        console.warn("[updatePropertyStatusAsAdmin] autoPairPreferencesForNewProperty failed:", e);
+      }
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

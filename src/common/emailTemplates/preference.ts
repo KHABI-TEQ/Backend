@@ -269,3 +269,46 @@ export const rejectedPreferenceMail = (mailData: {
     </div>
   `;
 };
+
+/** Sent when automatic pairing finds no eligible listings for an otherwise valid preference. */
+export const noMatchesPreferenceFeedbackMail = (mailData: {
+  buyerName: string;
+  submitPreferenceUrl?: string;
+}): string => {
+  const { buyerName, submitPreferenceUrl } = mailData;
+  const browseOrSubmit = submitPreferenceUrl
+    ? `<p style="font-size: 16px;">You can <strong>submit a new or updated preference</strong> (for example, a wider location or budget) using our form:</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${submitPreferenceUrl}" style="background-color: #007B55; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+          Submit a preference
+        </a>
+      </div>`
+    : `<p style="font-size: 16px;">You can <strong>submit a new or updated preference</strong> anytime from our website (for example, a wider location or budget) to run another search.</p>`;
+
+  return `
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
+
+      <p style="font-size: 16px;">
+        Thank you again for sharing your preferences with <strong>Khabi-Teq Realty</strong>.
+      </p>
+
+      <p style="font-size: 16px;">
+        We searched our current <strong>approved, available listings</strong> against your criteria and <strong>did not find a match</strong> at this time.
+      </p>
+
+      ${browseOrSubmit}
+
+      <p style="font-size: 16px;">
+        Alternatively, you can <strong>wait</strong>: when new properties are listed that fit your preference, we will try to match them automatically and email you if listings are found.
+      </p>
+
+      <p style="font-size: 16px;">
+        If you have questions, reply to our support channels or visit your dashboard.
+      </p>
+
+      <p style="font-size: 16px;">Best regards,<br/>
+      <strong>The Khabi-Teq Realty Team</strong></p>
+    </div>
+  `;
+};

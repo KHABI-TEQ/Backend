@@ -13,6 +13,7 @@ import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import mongoose from "mongoose";
+import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
 
 export const postProperty = async (
   req: AppRequest,
@@ -165,6 +166,12 @@ export const postProperty = async (
       }
     } catch (emailErr) {
       console.warn("[EMAIL] Failed to send admin email:", emailErr);
+    }
+
+    try {
+      await autoPairPreferencesForNewProperty(createdProperty._id.toString());
+    } catch (pairErr) {
+      console.warn("[postProperty] autoPairPreferencesForNewProperty failed:", pairErr);
     }
 
     return res.status(HttpStatusCodes.CREATED).json({

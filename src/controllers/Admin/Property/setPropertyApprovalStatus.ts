@@ -6,6 +6,10 @@ import { AppRequest } from "../../../types/express";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import sendEmail from "../../../common/send.email";
 import { PropertyApprovedOrDisapprovedTemplate } from "../../../common/emailTemplates/property";
+import {
+  autoPairPreferencesForNewProperty,
+  isPropertyListedAndMatchable,
+} from "../../../services/autoPreferencePairing.service";
 
 export const setPropertyApprovalStatus = async (
   req: AppRequest,
@@ -74,6 +78,17 @@ export const setPropertyApprovalStatus = async (
         html: mailBody,
         text: mailBody,
       });
+    }
+
+    if (action === "approve") {
+      const pLean = await DB.Models.Property.findById(propertyId).lean();
+      if (pLean && isPropertyListedAndMatchable(pLean)) {
+        try {
+          await autoPairPreferencesForNewProperty(propertyId);
+        } catch (e) {
+          console.warn("[setPropertyApprovalStatus] autoPairPreferencesForNewProperty failed:", e);
+        }
+      }
     }
 
     const message =
