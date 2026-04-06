@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import sendEmail from "../common/send.email";
 import { matchedPropertiesMail } from "../common/emailTemplates/preference";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
+import { resolveMatchedPropertiesEmailBaseUrl } from "../utils/matchedPropertiesDealSiteUrl";
 
 /**
  * Create or merge MatchedPreferenceProperty and optionally notify the buyer (same behavior as admin submit-matches).
@@ -103,7 +104,16 @@ export async function persistMatchedPreferenceProperties(params: {
       : "N/A",
   };
 
-  const matchLink = `${process.env.CLIENT_LINK}/matched-properties/${matchedRecord._id}/${preferenceId}`;
+  const idsOrdered = (matchedRecord.matchedProperties || []).map((id: Types.ObjectId) => id);
+  const propertyDocs = idsOrdered.length
+    ? await DB.Models.Property.find({ _id: { $in: idsOrdered } }).lean()
+    : [];
+  const byId = new Map(propertyDocs.map((p: any) => [String(p._id), p]));
+  const propertiesOrdered = idsOrdered
+    .map((id: Types.ObjectId) => byId.get(String(id)))
+    .filter(Boolean) as any[];
+  const matchBaseUrl = await resolveMatchedPropertiesEmailBaseUrl(propertiesOrdered);
+  const matchLink = `${matchBaseUrl}/matched-properties/${matchedRecord._id}/${preferenceId}`;
 
   const notifyCount = forceSendMatchEmail
     ? matchedPropertyIds.length
