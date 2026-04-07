@@ -26,7 +26,7 @@ export function kycVerificationAdminNotification(
       <p>If the button above doesn’t work, copy and paste this link into your browser:</p>
       <p>${reviewLink}</p>
       <br />
-      <p>Best regards,<br/>Khabi-Teq Realty System</p>
+      <p>Best regards,<br/>Khabi-Teq System</p>
     </div>
   `;
 }
@@ -42,7 +42,7 @@ export const adminAccountCreated = (
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <p>Dear <strong>${name}</strong>,</p>
 
-      <p>Welcome to <strong>Khabi-Teq Realty</strong>! 🎉</p>
+      <p>Welcome to <strong>Khabi-Teq</strong>! 🎉</p>
 
       <p>Your new admin account has been successfully created. You can now access the admin dashboard using the credentials below:</p>
 
@@ -67,7 +67,7 @@ export const adminAccountCreated = (
       <p>We’re excited to have you on board!</p>
 
       <p>Sincerely,</p>
-      <p><strong>The Khabi-Teq Realty Team</strong></p>
+      <p><strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };

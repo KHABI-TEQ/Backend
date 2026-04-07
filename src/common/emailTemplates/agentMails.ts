@@ -3,7 +3,7 @@ export const accountApproved = (name: string): string => {
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <p>Dear <strong>${name}</strong>,</p>
 
-      <p>Congratulations! 🎉 Your application has been <strong style="color:green;">approved</strong> and your agent account with <strong>Khabi-Teq Realty</strong> is now active.</p>
+      <p>Congratulations! 🎉 Your application has been <strong style="color:green;">approved</strong> and your agent account with <strong>Khabi-Teq</strong> is now active.</p>
 
       <p>As part of our network, you now have access to:</p>
       <ul>
@@ -23,7 +23,7 @@ export const accountApproved = (name: string): string => {
       <p>We are thrilled to have you onboard and can’t wait to see the value you’ll bring to our marketplace.</p>
 
       <p>Warm regards,</p>
-      <p><strong>The Khabi-Teq Realty Team</strong></p>
+      <p><strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };
@@ -34,7 +34,7 @@ export const accountDisapproved = (name: string, reason?: string): string => {
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <p>Dear <strong>${name}</strong>,</p>
 
-      <p>Thank you for your interest in joining <strong>Khabi-Teq Realty</strong>. After carefully reviewing your application, we regret to inform you that your account has been 
+      <p>Thank you for your interest in joining <strong>Khabi-Teq</strong>. After carefully reviewing your application, we regret to inform you that your account has been 
       <strong style="color:red;">not approved</strong> at this time.</p>
 
       ${
@@ -57,7 +57,7 @@ export const accountDisapproved = (name: string, reason?: string): string => {
       <p>We appreciate your interest in working with us and encourage you to apply again in the future.</p>
 
       <p>Sincerely,</p>
-      <p><strong>The Khabi-Teq Realty Team</strong></p>
+      <p><strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };
@@ -65,14 +65,14 @@ export const accountDisapproved = (name: string, reason?: string): string => {
 export const accountUpgradeApprovedTemplate = (name: string): string => {
 	return `
     <p>Dear ${name},</p>
-    <p>Congratulations! Your upgrade request with Khabi-Teq Realty has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
+    <p>Congratulations! Your upgrade request with Khabi-Teq has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
     `;
 };
 
 export const accountUpgradeDisapprovedTemplate = (name: string): string => {
 	return `
     <p>Dear ${name},</p>
-    <p>Thank you for your recent upgrade request with Khabi-Teq Realty. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
+    <p>Thank you for your recent upgrade request with Khabi-Teq. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
     `;
 };
 
@@ -119,10 +119,10 @@ export function DeactivateOrActivateAgent(
 export const kycSubmissionAcknowledgement = (name: string): string => {
   return `
     <p>Dear ${name},</p>
-    <p>Thank you for submitting your KYC verification request with <strong>Khabi-Teq Realty</strong>.</p>
+    <p>Thank you for submitting your KYC verification request with <strong>Khabi-Teq</strong>.</p>
     <p>We have successfully received your request and our team will process it shortly. 
     You can expect a wonderful feedback once the review has been completed.</p>
     <p>We appreciate your patience and cooperation as we ensure compliance and the highest standards for all our agents.</p>
-    <p>Best regards,<br/>The Khabi-Teq Realty Team</p>
+    <p>Best regards,<br/>The Khabi-Teq Team</p>
   `;
 };

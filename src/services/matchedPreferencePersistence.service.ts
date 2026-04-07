@@ -1,7 +1,10 @@
 import { DB } from "../controllers";
 import { Types } from "mongoose";
 import sendEmail from "../common/send.email";
-import { matchedPropertiesMail } from "../common/emailTemplates/preference";
+import {
+  matchedPropertiesMail,
+  buildPreferenceLandSizeEmailLine,
+} from "../common/emailTemplates/preference";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { resolveMatchedPropertiesEmailBaseUrl } from "../utils/matchedPropertiesDealSiteUrl";
 
@@ -15,8 +18,20 @@ export async function persistMatchedPreferenceProperties(params: {
   sendMatchEmail: boolean;
   /** When true (admin submit-matches), notify even if no new property IDs were merged. */
   forceSendMatchEmail?: boolean;
+  /**
+   * When set (e.g. agent-initiated match from marketplace), match email CTA uses this origin
+   * (e.g. https://slug.khabiteq.com) instead of resolving from listing owner/marketer.
+   */
+  matchEmailBaseUrlOverride?: string;
 }): Promise<{ matchedRecord: any; wasUpdated: boolean } | null> {
-  const { preferenceId, matchedPropertyIds, notes, sendMatchEmail, forceSendMatchEmail } = params;
+  const {
+    preferenceId,
+    matchedPropertyIds,
+    notes,
+    sendMatchEmail,
+    forceSendMatchEmail,
+    matchEmailBaseUrlOverride,
+  } = params;
 
   if (!matchedPropertyIds.length) return null;
 
@@ -99,9 +114,11 @@ export async function persistMatchedPreferenceProperties(params: {
     propertyFeatures:
       [...(preference.features.baseFeatures || []), ...(preference.features.premiumFeatures || [])].join(", ") ||
       "Not specified",
-    landSize: summaryData.landSize
-      ? `${summaryData.landSize} ${summaryData.measurementUnit || ""}`
-      : "N/A",
+    landSize: buildPreferenceLandSizeEmailLine({
+      propertyDetails: preference.propertyDetails,
+      developmentDetails: preference.developmentDetails,
+      bookingDetails: preference.bookingDetails,
+    }),
   };
 
   const idsOrdered = (matchedRecord.matchedProperties || []).map((id: Types.ObjectId) => id);
@@ -112,7 +129,10 @@ export async function persistMatchedPreferenceProperties(params: {
   const propertiesOrdered = idsOrdered
     .map((id: Types.ObjectId) => byId.get(String(id)))
     .filter(Boolean) as any[];
-  const matchBaseUrl = await resolveMatchedPropertiesEmailBaseUrl(propertiesOrdered);
+  const trimmedOverride = matchEmailBaseUrlOverride?.replace(/\/$/, "").trim();
+  const matchBaseUrl = trimmedOverride
+    ? trimmedOverride
+    : await resolveMatchedPropertiesEmailBaseUrl(propertiesOrdered);
   const matchLink = `${matchBaseUrl}/matched-properties/${matchedRecord._id}/${preferenceId}`;
 
   const notifyCount = forceSendMatchEmail

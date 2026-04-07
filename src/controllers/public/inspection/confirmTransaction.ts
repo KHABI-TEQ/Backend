@@ -89,7 +89,7 @@ export const confirmTransaction = async (
           <p>We have recorded your confirmation that the transaction took place.</p>
           <p>We have sent you an email with a link to register your transaction and information about the benefits of registration. Please check your inbox (and spam folder).</p>
           <p>You can also ${registerLink} at any time.</p>
-          <p>Best regards,<br/><strong>Khabiteq Realty</strong></p>
+          <p>Best regards,<br/><strong>Khabi-Teq</strong></p>
         </body>
       </html>
     `);

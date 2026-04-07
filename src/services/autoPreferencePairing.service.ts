@@ -224,7 +224,7 @@ async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void>
 
   await sendEmail({
     to: email,
-    subject: "No matching listings yet – Khabi-Teq Realty",
+    subject: "No matching listings yet – Khabi-Teq",
     html,
     text,
   });
@@ -237,7 +237,14 @@ async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void>
  */
 export async function autoPairPreferenceById(
   preferenceId: string,
-  options?: { sendMatchEmail?: boolean; sendNoMatchEmail?: boolean },
+  options?: {
+    sendMatchEmail?: boolean;
+    sendNoMatchEmail?: boolean;
+    /** Base URL for the “view matches” link in the buyer email (agent DealSite). */
+    matchEmailBaseUrlOverride?: string;
+    /** Optional note stored on MatchedPreferenceProperty (e.g. agent-initiated). */
+    matchNotes?: string;
+  },
 ): Promise<{ matchedCount: number }> {
   const sendMatchEmail = options?.sendMatchEmail !== false;
   const sendNoMatchEmail = options?.sendNoMatchEmail !== false;
@@ -251,8 +258,9 @@ export async function autoPairPreferenceById(
     await persistMatchedPreferenceProperties({
       preferenceId,
       matchedPropertyIds: ids,
-      notes: "Automatically matched from your preference (LGA, submitted areas, ±10% price band, and fit score).",
+      notes: options?.matchNotes ?? "Automatically matched from your preference (LGA, submitted areas, ±10% price band, and fit score).",
       sendMatchEmail,
+      matchEmailBaseUrlOverride: options?.matchEmailBaseUrlOverride,
     });
     return { matchedCount: ids.length };
   }

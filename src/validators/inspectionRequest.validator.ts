@@ -1,5 +1,15 @@
 import Joi from "joi";
 
+/** Rejects UI labels (e.g. "Type|Location|Price") mistaken for Mongo ids — prevents cast errors on TransactionRegistration queries. */
+const propertyObjectId = Joi.string()
+  .trim()
+  .pattern(/^[a-fA-F0-9]{24}$/)
+  .required()
+  .messages({
+    "string.pattern.base":
+      "propertyId must be the listing's id (24 hex characters), not a display label or summary.",
+  });
+
 export const submitInspectionSchema = Joi.object({
   requestedBy: Joi.object({
     fullName: Joi.string().trim().min(2).max(100).required(),
@@ -20,7 +30,7 @@ export const submitInspectionSchema = Joi.object({
   properties: Joi.array()
     .items(
       Joi.object({
-        propertyId: Joi.string().required(),
+        propertyId: propertyObjectId,
         inspectionType: Joi.string().valid("price", "LOI").required(),
         negotiationPrice: Joi.number().positive().optional().allow(null, ""),
         letterOfIntention: Joi.any().optional().allow(null, ""),

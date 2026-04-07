@@ -1,9 +1,40 @@
+/**
+ * Buyer-facing label for land units: legacy hectare-style values show as "acres";
+ * plot, sqm, and acres stay readable.
+ */
+export function formatPreferenceMeasurementUnitForEmail(
+  unit: string | undefined | null,
+): string {
+  const u = String(unit ?? "").trim().toLowerCase();
+  if (!u) return "";
+  if (u === "hectares" || u === "hectare" || u === "ha") return "acres";
+  if (u === "sqm") return "sqm";
+  if (u === "plot") return "plot";
+  if (u === "acres") return "acres";
+  return String(unit ?? "").trim();
+}
+
+/** Single line for "Land Size" in preference emails (buy / rent / JV / shortlet). */
+export function buildPreferenceLandSizeEmailLine(payload: {
+  propertyDetails?: { landSize?: string; measurementUnit?: string };
+  developmentDetails?: { minLandSize?: string; measurementUnit?: string };
+  bookingDetails?: { landSize?: string; measurementUnit?: string };
+}): string {
+  const pd = payload.propertyDetails;
+  const dd = payload.developmentDetails;
+  const bd = payload.bookingDetails;
+  const size = pd?.landSize || dd?.minLandSize || bd?.landSize || "";
+  const unitRaw = pd?.measurementUnit || dd?.measurementUnit || bd?.measurementUnit;
+  const unit = formatPreferenceMeasurementUnitForEmail(unitRaw);
+  if (!size) return "N/A";
+  return [size, unit].filter(Boolean).join(" ");
+}
+
 export const preferenceMail = (mailData: any): string => {
   const {
     contactInfo,
     location,
     budget,
-    preferenceType,
     preferenceMode,
     propertyDetails,
     developmentDetails,
@@ -46,23 +77,17 @@ export const preferenceMail = (mailData: any): string => {
     ? features.baseFeatures.join(", ")
     : "Not specified";
 
-  const landSize =
-    propertyDetails?.landSize ||
-    developmentDetails?.minLandSize ||
-    bookingDetails?.landSize ||
-    "N/A";
-
-  const measurementUnit =
-    propertyDetails?.measurementUnit ||
-    developmentDetails?.measurementUnit ||
-    bookingDetails?.measurementUnit ||
-    "";
+  const landSizeLine = buildPreferenceLandSizeEmailLine({
+    propertyDetails,
+    developmentDetails,
+    bookingDetails,
+  });
 
   return `
     <div style="font-family: Arial, sans-serif; background-color: white; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
-      <p style="font-size: 16px;">Thank you for sharing your preferences with <strong>Khabi-Teq Realty</strong>!<br>
+      <p style="font-size: 16px;">Thank you for sharing your preferences with <strong>Khabi-Teq</strong>!<br>
       We'll match you with property briefs tailored to your needs.</p>
 
       <div style="background-color: #e9f3ee; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -74,15 +99,15 @@ export const preferenceMail = (mailData: any): string => {
           <li style="margin-bottom: 8px;">Price Range: <strong>${priceRange}</strong></li>
           <li style="margin-bottom: 8px;">Usage Options: <strong>${usageOption}</strong></li>
           <li style="margin-bottom: 8px;">Property Features: <strong>${propertyFeatures}</strong></li>
-          <li style="margin-bottom: 0;">Land Size: <strong>${landSize} ${measurementUnit}</strong></li>
+          <li style="margin-bottom: 0;">Land Size: <strong>${landSizeLine}</strong></li>
         </ul>
       </div>
 
       <p style="font-size: 16px;">Our team will get back to you with the necessary feedback.<br>
-      Thank you for trusting <strong>Khabi-Teq Realty</strong> with your property listing.</p>
+      Thank you for trusting <strong>Khabi-Teq</strong> with your property listing.</p>
 
       <p style="font-size: 16px;">Best regards,<br>
-      <strong>The Khabi-Teq Realty Team</strong></p>
+      <strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };
@@ -128,7 +153,7 @@ export const matchedPropertiesMail = (mailData: {
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
-        Great news! We’ve found <strong>${matchCount}</strong> property match${matchCount === 1 ? "" : "es"} based on your submitted preferences on <strong>Khabi-Teq Realty</strong>.
+        Great news! We’ve found <strong>${matchCount}</strong> property match${matchCount === 1 ? "" : "es"} based on your submitted preferences on <strong>Khabi-Teq</strong>.
       </p>
 
       <div style="background-color: #f0f8f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -154,7 +179,7 @@ export const matchedPropertiesMail = (mailData: {
       <p style="font-size: 16px;">If these matches don’t meet your expectations, feel free to update your preferences or reach out for assistance.</p>
 
       <p style="font-size: 16px;">Best regards,<br>
-      <strong>The Khabi-Teq Realty Team</strong></p>
+      <strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };
@@ -209,7 +234,7 @@ export const rejectedPreferenceMail = (mailData: {
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
-        Thank you for submitting your property preference on <strong>Khabi-Teq Realty</strong>.
+        Thank you for submitting your property preference on <strong>Khabi-Teq</strong>.
         After reviewing your request, we’re unable to proceed with this preference at this time.
       </p>
 
@@ -264,7 +289,7 @@ export const rejectedPreferenceMail = (mailData: {
 
       <p style="font-size: 16px;">
         Best regards,<br/>
-        <strong>The Khabi-Teq Realty Team</strong>
+        <strong>The Khabi-Teq Team</strong>
       </p>
     </div>
   `;
@@ -290,7 +315,7 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
-        Thank you again for sharing your preferences with <strong>Khabi-Teq Realty</strong>.
+        Thank you again for sharing your preferences with <strong>Khabi-Teq</strong>.
       </p>
 
       <p style="font-size: 16px;">
@@ -308,7 +333,7 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
       </p>
 
       <p style="font-size: 16px;">Best regards,<br/>
-      <strong>The Khabi-Teq Realty Team</strong></p>
+      <strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };

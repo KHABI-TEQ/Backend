@@ -4,7 +4,7 @@ This document lists **actual email body copy** used by the backend. **Dynamic va
 
 **Wrappers (not repeated on every entry):**
 
-- **`generalEmailLayout(body)`** — Wraps the inner HTML in a branded layout: logo, main white card, inner `body`, then “Best regards,” / “**Khabiteq Realty**”, social icons, copyright “Copyright © \<CurrentYear> Khabiteq Realty Limited…”, address Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.  
+- **`generalEmailLayout(body)`** — Wraps the inner HTML in a branded layout: logo, main white card, inner `body`, then “Best regards,” / “**Khabi-Teq**”, social icons, copyright “Copyright © \<CurrentYear> Khabi-Teq Limited…”, address Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.  
 - **`generalTemplate(body, dealSiteBranding?)`** — Alternate wrapper used for some flows (e.g. user registration, Deal Site–styled messages): partner logo, company name, footer links.
 
 Unless stated **“Inner HTML only”**, entries below are the **inner** fragment; production email is typically **layout + inner**.
@@ -22,7 +22,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
 
 ```html
 <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; line-height: 1.6;">
-  <h2 style="color: #0F52BA;">Welcome to Khabi-Teq Realty, <FirstName> 👋</h2>
+  <h2 style="color: #0F52BA;">Welcome to Khabi-Teq, <FirstName> 👋</h2>
 
   <p>We're excited to have you on board. To secure your account and complete your registration, please verify your email address:</p>
 
@@ -58,7 +58,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
   <p>You requested to reset your password. Please click the link below to reset your password:</p>
   <p>🔗 <a href="<ResetLink>">Reset Password</a></p>
   <p>Best regards,<br/>
-  Khabi-Teq Realty</p>
+  Khabi-Teq</p>
 </div>
 ```
 
@@ -195,7 +195,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
 <div style="font-family: Arial, sans-serif; background-color: white; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
   <p style="font-size: 16px;">Hi <strong><BuyerDisplayName></strong>,</p>
 
-  <p style="font-size: 16px;">Thank you for sharing your preferences with <strong>Khabi-Teq Realty</strong>!<br>
+  <p style="font-size: 16px;">Thank you for sharing your preferences with <strong>Khabi-Teq</strong>!<br>
   We'll match you with property briefs tailored to your needs.</p>
 
   <div style="background-color: #e9f3ee; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -212,10 +212,10 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
   </div>
 
   <p style="font-size: 16px;">Our team will get back to you with the necessary feedback.<br>
-  Thank you for trusting <strong>Khabi-Teq Realty</strong> with your property listing.</p>
+  Thank you for trusting <strong>Khabi-Teq</strong> with your property listing.</p>
 
   <p style="font-size: 16px;">Best regards,<br>
-  <strong>The Khabi-Teq Realty Team</strong></p>
+  <strong>The Khabi-Teq Team</strong></p>
 </div>
 ```
 
@@ -231,7 +231,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
   <p style="font-size: 16px;">Hi <strong><BuyerDisplayName></strong>,</p>
 
   <p style="font-size: 16px;">
-    Great news! We’ve found <strong><MatchCount></strong> property match(es) based on your submitted preferences on <strong>Khabi-Teq Realty</strong>.
+    Great news! We’ve found <strong><MatchCount></strong> property match(es) based on your submitted preferences on <strong>Khabi-Teq</strong>.
   </p>
 
   <div style="background-color: #f0f8f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -258,7 +258,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
   <p style="font-size: 16px;">If these matches don’t meet your expectations, feel free to update your preferences or reach out for assistance.</p>
 
   <p style="font-size: 16px;">Best regards,<br>
-  <strong>The Khabi-Teq Realty Team</strong></p>
+  <strong>The Khabi-Teq Team</strong></p>
 </div>
 ```
 
@@ -274,7 +274,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
   <p style="font-size: 16px;">Hi <strong><BuyerDisplayName></strong>,</p>
 
   <p style="font-size: 16px;">
-    Thank you for submitting your property preference on <strong>Khabi-Teq Realty</strong>.
+    Thank you for submitting your property preference on <strong>Khabi-Teq</strong>.
     After reviewing your request, we’re unable to proceed with this preference at this time.
   </p>
 
@@ -313,7 +313,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
   <!-- Optional: Update Preference button if link provided -->
   <p style="font-size: 16px;">
     Best regards,<br/>
-    <strong>The Khabi-Teq Realty Team</strong>
+    <strong>The Khabi-Teq Team</strong>
   </p>
 </div>
 ```
@@ -329,7 +329,7 @@ Unless stated **“Inner HTML only”**, entries below are the **inner** fragmen
 
 ```html
 <p>Hi <OwnerFirstName>,</p>
-<p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+<p>Thank you for submitting your property brief to Khabi-Teq. We have received your brief with the following details:</p>
 <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
   <!-- Conditional lines, e.g.: -->
   <p><strong>Brief Type:</strong> <BriefType></p>
@@ -922,23 +922,23 @@ Full verbatim copy in `subscriptionMails.ts` for:
 
 ### 13.1 KYC submitted — agent
 
-**Subject:** `KYC Verification Request Received – Khabi-Teq Realty`  
+**Subject:** `KYC Verification Request Received – Khabi-Teq`  
 **Template:** `kycSubmissionAcknowledgement` + `generalEmailLayout`
 
 ```html
 <p>Dear <Name>,</p>
-<p>Thank you for submitting your KYC verification request with <strong>Khabi-Teq Realty</strong>.</p>
+<p>Thank you for submitting your KYC verification request with <strong>Khabi-Teq</strong>.</p>
 <p>We have successfully received your request and our team will process it shortly. 
 You can expect a wonderful feedback once the review has been completed.</p>
 <p>We appreciate your patience and cooperation as we ensure compliance and the highest standards for all our agents.</p>
-<p>Best regards,<br/>The Khabi-Teq Realty Team</p>
+<p>Best regards,<br/>The Khabi-Teq Team</p>
 ```
 
 ---
 
 ### 13.2 KYC submitted — admin queue
 
-**Subject:** `New KYC Verification Request Pending – Khabi-Teq Realty`  
+**Subject:** `New KYC Verification Request Pending – Khabi-Teq`  
 (Separate recipient; body from onboarding controller / template.)
 
 ---
@@ -946,8 +946,8 @@ You can expect a wonderful feedback once the review has been completed.</p>
 ### 13.3 Agent approved / not approved
 
 **Subjects:**  
-`Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!`  
-`Update on Your KhabiTeqRealty KYC Application`  
+`Welcome to Khabi-Teq – Your Partnership Opportunity Awaits!`  
+`Update on Your Khabi-Teq KYC Application`  
 **Templates:** `accountApproved` / `accountDisapproved` from `agentMails.ts` (long HTML with bullet lists and next steps, or rejection with reason and support email).
 
 ---

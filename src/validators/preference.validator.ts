@@ -1,5 +1,24 @@
 import Joi from "joi";
 
+/** Allowed land measurement units for preferences (lowercased on validate). Legacy hectare values kept for stored data; emails map them to "acres". */
+export const PREFERENCE_MEASUREMENT_UNIT_VALUES = [
+  "plot",
+  "sqm",
+  "acres",
+  "hectares",
+  "hectare",
+  "ha",
+] as const;
+
+const preferenceMeasurementUnit = Joi.string()
+  .trim()
+  .lowercase()
+  .valid(...PREFERENCE_MEASUREMENT_UNIT_VALUES, "")
+  .messages({
+    "any.only":
+      "measurementUnit must be one of: plot, sqm, acres (or legacy hectares / hectare / ha)",
+  });
+
 export const preferenceValidationSchema = Joi.object({
   preferenceType: Joi.string()
     .valid("buy", "rent", "joint-venture", "shortlet")
@@ -41,7 +60,7 @@ export const preferenceValidationSchema = Joi.object({
     landSize: Joi.string().allow(""),
     minLandSize: Joi.string().allow(""), // For SQM range
     maxLandSize: Joi.string().allow(""), // For SQM range
-    measurementUnit: Joi.string().allow(""),
+    measurementUnit: preferenceMeasurementUnit,
     documentTypes: Joi.array().items(Joi.string()).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
   }).optional(),
@@ -68,7 +87,7 @@ export const preferenceValidationSchema = Joi.object({
   developmentDetails: Joi.object({
     minLandSize: Joi.string().trim(),
     maxLandSize: Joi.string().trim(),
-    measurementUnit: Joi.string().trim(),
+    measurementUnit: preferenceMeasurementUnit,
     developmentTypes: Joi.array()
       .items(
         Joi.string().valid(
@@ -115,7 +134,7 @@ export const preferenceValidationSchema = Joi.object({
     landSize: Joi.string().allow(""),
     minLandSize: Joi.string().allow(""), // For SQM range
     maxLandSize: Joi.string().allow(""), // For SQM range
-    measurementUnit: Joi.string().allow(""),
+    measurementUnit: preferenceMeasurementUnit,
     documentTypes: Joi.array().items(Joi.string()).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
   }).optional(),

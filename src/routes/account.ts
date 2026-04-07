@@ -51,6 +51,8 @@ import { bulkUpdateDealSite, deleteDealSite, disableDealSite, enableDealSite, up
 import { fetchUserBookings, getBookingStats, getOneUserBooking, respondToBookingRequest } from "../controllers/Account/fetchBookings";
 import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptionFeatureChecker";
 import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
+import { fetchGeneralMarketplacePreferences } from "../controllers/Account/Preference/fetchGeneralMarketplacePreferences";
+import { agentInitiatePreferenceMatch } from "../controllers/Account/Preference/agentInitiatePreferenceMatch";
 import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket, registerSaleForRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
 import { suggestPropertyForm } from "../controllers/aiFormFill/aiFormFillController";
 
@@ -189,6 +191,10 @@ AccountRouter.post("/inspectionsFieldAgent/:inspectionId/sendDetails", sendInspe
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/submitReport", submitInspectionReport);
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/startInspection", startInspection);
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/stopInspection", completeInspection);
+
+// MARKETPLACE — general (main-site) preferences for agent dashboard + agent-initiated matching
+AccountRouter.get("/marketplace/general-preferences", fetchGeneralMarketplacePreferences);
+AccountRouter.post("/marketplace/preferences/:preferenceId/match", agentInitiatePreferenceMatch);
 
 // PREFERENCES ROUTES
 AccountRouter.get("/my-preferences/fetchAll", getMatchedPreferencesForOwner);

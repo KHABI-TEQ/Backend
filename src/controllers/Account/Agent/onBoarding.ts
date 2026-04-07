@@ -155,7 +155,7 @@ export const completeAgentKYC = async (
 
     await sendEmail({
       to: authUser?.email,
-      subject: "KYC Verification Request Received – Khabi-Teq Realty",
+      subject: "KYC Verification Request Received – Khabi-Teq",
       html: emailBody,
       text: emailBody,
     });
@@ -168,7 +168,7 @@ export const completeAgentKYC = async (
 
     await sendEmail({
       to: companyEmailData?.value || process.env.ADMIN_EMAIL,
-      subject: "New KYC Verification Request Pending – Khabi-Teq Realty",
+      subject: "New KYC Verification Request Pending – Khabi-Teq",
       html: adminEmailBody,
       text: adminEmailBody,
     });

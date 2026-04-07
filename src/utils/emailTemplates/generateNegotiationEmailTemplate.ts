@@ -665,7 +665,7 @@ function LOINegotiationAcceptedTemplate(
     ? `<p style="margin-top: 15px;">If you have any questions, feel free to contact us.</p>`
     : `
       <p style="margin-top: 15px;">Our team will follow up with you shortly to ensure a smooth inspection process.</p>
-      <p style="margin-top: 15px;">Thank you for using Khabi-Teq Realty. We're committed to helping you close your deal faster.</p>
+      <p style="margin-top: 15px;">Thank you for using Khabi-Teq. We're committed to helping you close your deal faster.</p>
       <p style="margin-top: 15px;">You'll receive a reminder before the inspection. If you have any questions, feel free to reach out.</p>
       <p style="margin-top: 15px;">We look forward to seeing you then. If you need to reschedule, please let us know.</p>`;
 

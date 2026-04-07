@@ -170,7 +170,7 @@ export const createAdmin = async (
     const fullName = `${firstName} ${lastName}`;
     const loginUrl = process.env.ADMIN_LOGIN_URL || "https://admin.khabiteqrealty.com/login";
 
-    const subject = "Welcome to Khabi-Teq Realty – Your Admin Account Has Been Created";
+    const subject = "Welcome to Khabi-Teq – Your Admin Account Has Been Created";
     const emailBody = generalEmailLayout(
       adminAccountCreated(fullName, normalizedEmail, generatedPassword, loginUrl)
     );

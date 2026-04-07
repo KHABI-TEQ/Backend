@@ -8,7 +8,6 @@ import { preferenceValidationSchema } from "../../../validators/preference.valid
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";
-import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.service";
 
 export const postPreference = async (
   req: AppRequest,
@@ -71,6 +70,7 @@ export const postPreference = async (
       contactInfo: normalizedBuyerPayload,
       buyer: buyer._id,
       status: payload.status || "pending",
+      receiverMode: { type: "general" as const },
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
@@ -88,12 +88,6 @@ export const postPreference = async (
       text: userGeneralMail,
       html: userGeneralMail,
     });
-
-    try {
-      await autoPairPreferenceById(createdPreference._id.toString());
-    } catch (matchErr) {
-      console.warn("[postPreference] Auto pairing failed (non-fatal):", matchErr);
-    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

@@ -277,7 +277,7 @@ export const toggleLandlordAccountStatus = async (
     // Placeholder for email sending - you might need a specific template
     const statusMessage = isInactive ? "deactivated" : "activated";
     const mailBody = generalEmailLayout(
-      `Your KhabiTeqRealty account has been ${statusMessage}. Reason: ${reason || 'N/A'}.`
+      `Your Khabi-Teq account has been ${statusMessage}. Reason: ${reason || 'N/A'}.`
     );
 
     await sendEmail({

@@ -125,7 +125,7 @@ export const generalTemplate___old = (body: string): string => {
                       <!-- Header Logo -->
                       <tr>
                           <td align="start" style="padding: 50px 0px 0 100px;">
-                              <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-teq Realty Logo" width="150">
+                              <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
                           </td>
                       </tr>
                       <td align="center" style="padding: 30px;">
@@ -138,7 +138,7 @@ export const generalTemplate___old = (body: string): string => {
                                   <td style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
                                       ${body}
                                       <p>Best regards,</p>
-                                      <p><strong>Khabiteq Realty</strong></p>
+                                      <p><strong>Khabi-Teq</strong></p>
                                   </td>
                               </tr>
                           </table>
@@ -169,9 +169,9 @@ export const generalTemplate___old = (body: string): string => {
                         <!-- Copyright Section -->
                         <tr>
                             <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-teq Realty Logo" width="120"><br><br>
+                                <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
                                 
-                                <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} Khabiteq Realty Limited.<br>
+                                <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} Khabi-Teq Limited.<br>
                                 Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                             </td>
                         </tr>
@@ -202,7 +202,7 @@ export const verificationGeneralTemplate = (body: string): string => {
             <!-- Header Logo -->
             <tr>
                 <td align="start" style="padding: 50px 0px 0 100px;">
-                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-teq Realty Logo" width="150">
+                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
                 </td>
             </tr>
             <td align="center" style="padding: 30px;">
@@ -218,7 +218,7 @@ export const verificationGeneralTemplate = (body: string): string => {
 
                               <div style="background-color: #f4f4f4; padding: 15px; border-radius: 6px; margin-top: 20px;">
                                 <p style="margin: 0 0 5px 0;"><strong>Verification Desk</strong></p>
-                                <p style="margin: 0 0 5px 0;">Khabiteq Realty</p>
+                                <p style="margin: 0 0 5px 0;">Khabi-Teq</p>
                                 <p style="margin: 0 0 5px 0;">📧 <a href="mailto:info@Khabiteqrealty.com">info@Khabiteqrealty.com</a></p>
                                 <p style="margin: 0 0 5px 0;">📞 02013306352</p>
                                 <p style="margin: 0;">🌐 <a href="https://www.khabiteqrealty.com" target="_blank">www.khabiteqrealty.com</a></p>
@@ -254,9 +254,9 @@ export const verificationGeneralTemplate = (body: string): string => {
                                 <!-- Copyright Section -->
                                 <tr>
                                     <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-teq Realty Logo" width="120"><br><br>
+                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
                                         
-                                        <p style="margin-top: 20px;">Copyright © 2020 Khabiteq Realty Limited.<br>
+                                        <p style="margin-top: 20px;">Copyright © 2020 Khabi-Teq Limited.<br>
                                         Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                                     </td>
                                 </tr>
@@ -280,7 +280,7 @@ export const propertyRequestTemplate = (
                         <p>Thank you for your interest in inspecting the property at ${propertyAddress}. We are currently
                         confirming availability and will update you shortly with the next steps.</p>
                         <p>Best regards,<br/>
-                        Khabi-Teq Realty</p> 
+                        Khabi-Teq</p> 
                 </body>
                 </html>
         `;
@@ -314,7 +314,7 @@ export const propertyAvailableTemplate = (
                         Please select a convenient date and time using the link below:</p>
                         <p>📅 <a href="${calendlyLink}">Schedule Inspection</a></p>
                         <p>Best regards,<br/>
-                        Khabi-Teq Realty</p>
+                        Khabi-Teq</p>
                 </body>
                 </html>
         `;
@@ -332,7 +332,7 @@ export const propertyNotAvailableTemplate = (
                         have similar properties that match your criteria. Please let us know if you’d like to
                         explore them.</p>
                         <p>Best regards,<br/>
-                        Khabi-Teq Realty</p>
+                        Khabi-Teq</p>
                 </body>
                 </html>
         `;
@@ -349,7 +349,7 @@ export const inspectionScheduledTemplate = (
           <p>The inspection for ${propertyAddress} has been scheduled for ${dateTime}. Please
           ensure you are available to meet the buyer. Contact us if any issues arise.</p>
           <p>Best regards,<br/>
-          Khabi-Teq Realty</p>
+          Khabi-Teq</p>
       </div>
                                 `;
 };
@@ -357,7 +357,7 @@ export const inspectionScheduledTemplate = (
 export const verifyEmailTemplate = (name: string, verificationLink: string): string => {
   return `
     <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; line-height: 1.6;">
-      <h2 style="color: #0F52BA;">Welcome to Khabi-Teq Realty, ${name} 👋</h2>
+      <h2 style="color: #0F52BA;">Welcome to Khabi-Teq, ${name} 👋</h2>
 
       <p>We're excited to have you on board. To secure your account and complete your registration, please verify your email address:</p>
 
@@ -383,35 +383,35 @@ export const verifyEmailTemplate = (name: string, verificationLink: string): str
 export const accountUnderReviewTemplate = (name: string): string => {
 	return `
         <p>Hi ${name},</p>
-        <p>Thank you for registering with Khabi-Teq Realty. Your agent account is currently <strong>under review</strong>. We are verifying your submitted documents and details. You will receive a confirmation email once your account is approved. If we require any additional information, we will reach out to you.</p>
+        <p>Thank you for registering with Khabi-Teq. Your agent account is currently <strong>under review</strong>. We are verifying your submitted documents and details. You will receive a confirmation email once your account is approved. If we require any additional information, we will reach out to you.</p>
         `;
 };
 
 export const accountUpgradeTemplate = (name: string): string => {
 	return `
                 <p>Hi ${name},</p>
-                <p>Thank you for your recent upgrade request with Khabi-Teq Realty. Your request is currently under review. We will notify you once the review is complete.</p>
+                <p>Thank you for your recent upgrade request with Khabi-Teq. Your request is currently under review. We will notify you once the review is complete.</p>
                 `;
 };
 
 export const accountUpgradeApprovedTemplate = (name: string): string => {
 	return `
                         <p>Dear ${name},</p>
-                        <p>Congratulations! Your upgrade request with Khabi-Teq Realty has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
+                        <p>Congratulations! Your upgrade request with Khabi-Teq has been approved. You now have access to enhanced features and benefits. We are excited to support your growth in the real estate market.</p>
                         `;
 };
 
 export const accountUpgradeDisapprovedTemplate = (name: string): string => {
 	return `
                                 <p>Dear ${name},</p>
-                                <p>Thank you for your recent upgrade request with Khabi-Teq Realty. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
+                                <p>Thank you for your recent upgrade request with Khabi-Teq. After careful consideration, we regret to inform you that your request has not been approved at this time. If you have any questions or would like to discuss further, please feel free to reach out.</p>
                                 `;
 };
 
 export const accountApproved = (name: string): string => {
 	return `
                 <p>Dear ${name},</p>
-                <p>Welcome to Khabi-Teq Realty! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
+                <p>Welcome to Khabi-Teq! We are excited to have you join our exclusive network of partner agents. Our platform is designed to empower you with direct access to buyer preferences, streamlined transaction processes, and advanced tools to boost your business.</p>
                 <p>Get ready to unlock new opportunities and grow your real estate career with us.</p>
         `;
 }; 
@@ -421,7 +421,7 @@ export const accountDisaapproved = (name: string): string => {
         <p>
         Dear ${name},
 
-        Thank you for your interest in joining Khabi-Teq Realty. After reviewing your application, we regret to inform you that your account has not been approved at this time.
+        Thank you for your interest in joining Khabi-Teq. After reviewing your application, we regret to inform you that your account has not been approved at this time.
 
         If you have any questions or wish to provide additional information, please feel free to contact us at agent.support@khabiteqrealty.com.
         </p>
@@ -652,7 +652,7 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
 
 	return `
       <p>Hi ${ownerName},</p>
-      <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+      <p>Thank you for submitting your property brief to Khabi-Teq. We have received your brief with the following details:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
         ${details}
         ${
@@ -712,7 +712,7 @@ if (data.budgetMin && data.budgetMax)
 		
 	return `
       <p>Hi ${fullName},</p>
-      <p>Thank you for sharing your preferences with Khabi-Teq Realty! We'll match you with property briefs tailored to your needs:</p>
+      <p>Thank you for sharing your preferences with Khabi-Teq! We'll match you with property briefs tailored to your needs:</p>
       <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
       <p><strong>Submitted Preference: </strong></p>
         ${details}
@@ -720,7 +720,7 @@ if (data.budgetMin && data.budgetMax)
       
       </ul>
       <p>Our team will get back to you with the necessary feedback.</p>
-      <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+      <p>Thank you for trusting Khabi-Teq with your property listing.</p>
   `;
 }
 
@@ -768,7 +768,7 @@ export function propertySellPreferenceTemplate(data: any) {
                 
                                         </ul>
                         <p>Our team will review your submission and contact you if any additional information is needed or once your preference is approved.</p>
-                        <p>Thank you for trusting Khabi-Teq Realty with your property needs.</p>
+                        <p>Thank you for trusting Khabi-Teq with your property needs.</p>
                         `;
 }
 
@@ -813,14 +813,14 @@ export function propertyRentPreferenceTemplate(data: any) {
                 
                                         </ul>
                         <p>Our team will review your submission and contact you if any additional information is needed or once your preference is approved.</p>
-                        <p>Thank you for trusting Khabi-Teq Realty with your property needs.</p>
+                        <p>Thank you for trusting Khabi-Teq with your property needs.</p>
                         `;
 }
 
 export function buyerPropertyRentPreferenceTemplate(data: any) {
 	return `
                         <p>Hi ${data.fullName},</p>
-                        <p>Thank you for submitting your property rent preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
+                        <p>Thank you for submitting your property rent preference to Khabi-Teq. We have received your preference with the following details:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Preference: </p>
@@ -858,14 +858,14 @@ export function buyerPropertyRentPreferenceTemplate(data: any) {
                 
                                         </ul>
                         <p>Our team will review your submission and contact you if any additional information is needed or once your preference is approved.</p>
-                        <p>Thank you for trusting Khabi-Teq Realty with your property needs.</p>
+                        <p>Thank you for trusting Khabi-Teq with your property needs.</p>
                         `;
 }
 
 export function buyerPropertySellPreferenceTemplate(data: any) {
 	return `
                         <p>Hi ${data.fullName},</p>
-                        <p>Thank you for submitting your property preference to Khabi-Teq Realty. We have received your preference with the following details:</p>
+                        <p>Thank you for submitting your property preference to Khabi-Teq. We have received your preference with the following details:</p>
                 
                         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
                                 <p>Submitted Brief: </p>
@@ -906,7 +906,7 @@ export function buyerPropertySellPreferenceTemplate(data: any) {
                 
                                         </ul>
                         <p>Our team will review your submission and contact you if any additional information is needed or once your a preference is found.</p>
-                        <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+                        <p>Thank you for trusting Khabi-Teq with your property listing.</p>
                         `;
 }
 
@@ -920,7 +920,7 @@ export function ForgotPasswordVerificationTemplate(
                                 <p>You requested to reset your password. Please click the link below to reset your password:</p>
                                 <p>🔗 <a href="${verificationLink}">Reset Password</a></p>
                                 <p>Best regards,<br/>
-                                Khabi-Teq Realty</p>
+                                Khabi-Teq</p>
                         </div>
                       
                 `;
@@ -1068,7 +1068,7 @@ export function PropertyReceivedTemplate(
 ): string {
 	return ` 
         <p>Hi ${ownerName},</p>
-        <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+        <p>Thank you for submitting your property brief to Khabi-Teq. We have received your brief with the following details:</p>
       
         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
           <p>Submitted Brief: </p>
@@ -1093,7 +1093,7 @@ export function PropertyReceivedTemplate(
       
             </ul>
         <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
-        <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+        <p>Thank you for trusting Khabi-Teq with your property listing.</p>
             `;
 }
 
@@ -1103,7 +1103,7 @@ export function PropertyRentReceivedTemplate(
 ): string {
 	return `
         <p>Hi ${ownerName},</p>
-        <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+        <p>Thank you for submitting your property brief to Khabi-Teq. We have received your brief with the following details:</p>
       
         <ul class="" style="background-color: #E4EFE7; padding-top: 25px; padding-right: 20px; padding-bottom: 25px; padding-left: 20px; gap: 10px; border-radius: 10px;">
           <p>Submitted Brief: </p>
@@ -1130,7 +1130,7 @@ export function PropertyRentReceivedTemplate(
       
             </ul>
         <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
-        <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+        <p>Thank you for trusting Khabi-Teq with your property listing.</p>
         `;
 }
 
@@ -2410,7 +2410,7 @@ export function LOINegotiationAcceptedTemplate(
     </ul>
 
     <p style="margin-top: 15px;">
-      Our team will follow up with you shortly to ensure a smooth inspection process. <br/><br/>Thank you for using Khabi-Teq Realty. We’re committed to helping you close your deal faster.
+      Our team will follow up with you shortly to ensure a smooth inspection process. <br/><br/>Thank you for using Khabi-Teq. We’re committed to helping you close your deal faster.
     </p>
 
     <p style="margin-top: 15px;">You’ll receive a reminder before the inspection. If you have any questions, feel free to reach out.</p>
@@ -2540,7 +2540,7 @@ export const preferenceMatchingTemplate = (body: string): string =>{
             <!-- Header Logo -->
             <tr>
                 <td align="start" style="padding: 50px 0px 0 100px;">
-                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-teq Realty Logo" width="150">
+                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
                 </td>
             </tr>
             <td align="center" style="padding: 30px;">
@@ -2553,7 +2553,7 @@ export const preferenceMatchingTemplate = (body: string): string =>{
                         <td style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
                             ${body}
                             <p>Best regards,</p>
-                            <p><strong>Khabiteq Realty</strong></p>
+                            <p><strong>Khabi-Teq</strong></p>
                         </td>
                     </tr>
                 </table>
@@ -2584,9 +2584,9 @@ export const preferenceMatchingTemplate = (body: string): string =>{
                                 <!-- Copyright Section -->
                                 <tr>
                                     <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-teq Realty Logo" width="120"><br><br>
+                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
                                         
-                                        <p style="margin-top: 20px;">Copyright © 2020 Khabiteq Realty Limited.<br>
+                                        <p style="margin-top: 20px;">Copyright © 2020 Khabi-Teq Limited.<br>
                                         Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                                     </td>
                                 </tr>
@@ -2612,7 +2612,7 @@ export function briefSubmissionAcknowledgementTemplate(agentName: string, data: 
   return `
     <p>Hi ${agentName},</p>
 
-    <p>Thank you for submitting your property brief to Khabi-Teq Realty. We have received your brief with the following details:</p>
+    <p>Thank you for submitting your property brief to Khabi-Teq. We have received your brief with the following details:</p>
 
     <ul>
       ${data.propertyType ? `<li><strong>Property Type:</strong> ${data.propertyType}</li>` : ''}
@@ -2636,6 +2636,6 @@ export function briefSubmissionAcknowledgementTemplate(agentName: string, data: 
 
     <p>Our team will review your submission and contact you if any additional information is needed or once your brief is approved.</p>
 
-    <p>Thank you for trusting Khabi-Teq Realty with your property listing.</p>
+    <p>Thank you for trusting Khabi-Teq with your property listing.</p>
   `;
 }

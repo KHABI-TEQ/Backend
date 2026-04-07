@@ -5,7 +5,10 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
-import { rejectedPreferenceMail } from "../../../common/emailTemplates/preference";
+import {
+  rejectedPreferenceMail,
+  buildPreferenceLandSizeEmailLine,
+} from "../../../common/emailTemplates/preference";
 
 export const rejectPreference = async (
   req: Request,
@@ -86,11 +89,11 @@ export const rejectPreference = async (
         ? preference.features.baseFeatures.join(", ")
         : "Not specified",
 
-      landSize:
-        preference.propertyDetails?.landSize ||
-        preference.developmentDetails?.minLandSize ||
-        preference.bookingDetails?.landSize ||
-        "N/A",
+      landSize: buildPreferenceLandSizeEmailLine({
+        propertyDetails: preference.propertyDetails,
+        developmentDetails: preference.developmentDetails,
+        bookingDetails: preference.bookingDetails,
+      }),
     };
 
     // -------------------------------

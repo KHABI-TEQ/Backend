@@ -714,8 +714,8 @@ export const approveAgentKYCData = async (
 
     // Email subject & body
     const subject = approved
-      ? "Welcome to KhabiTeqRealty – Your Partnership Opportunity Awaits!"
-      : "Update on Your KhabiTeqRealty KYC Application";
+      ? "Welcome to Khabi-Teq – Your Partnership Opportunity Awaits!"
+      : "Update on Your Khabi-Teq KYC Application";
 
     const emailBody = generalEmailLayout(
       approved ? accountApproved(userAcct.firstName) : accountDisapproved(userAcct.firstName, note)
@@ -983,7 +983,7 @@ export const approveAgentUpgradeRequestStatus = async (
 
     await sendEmail({
       to: user.email,
-      subject: "Update on Your KhabiTeqRealty Application",
+      subject: "Update on Your Khabi-Teq Application",
       text: mailBody,
       html: mailBody,
     });
