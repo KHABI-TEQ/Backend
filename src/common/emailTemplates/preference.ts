@@ -16,18 +16,37 @@ export function formatPreferenceMeasurementUnitForEmail(
 
 /** Single line for "Land Size" in preference emails (buy / rent / JV / shortlet). */
 export function buildPreferenceLandSizeEmailLine(payload: {
-  propertyDetails?: { landSize?: string; measurementUnit?: string };
-  developmentDetails?: { minLandSize?: string; measurementUnit?: string };
-  bookingDetails?: { landSize?: string; measurementUnit?: string };
+  propertyDetails?: {
+    landSize?: string;
+    minLandSize?: string;
+    maxLandSize?: string;
+    measurementUnit?: string;
+  };
+  developmentDetails?: { minLandSize?: string; maxLandSize?: string; measurementUnit?: string };
+  bookingDetails?: {
+    landSize?: string;
+    minLandSize?: string;
+    maxLandSize?: string;
+    measurementUnit?: string;
+  };
 }): string {
   const pd = payload.propertyDetails;
   const dd = payload.developmentDetails;
   const bd = payload.bookingDetails;
-  const size = pd?.landSize || dd?.minLandSize || bd?.landSize || "";
+  const explicitSize = pd?.landSize || bd?.landSize || "";
+  const minSize = pd?.minLandSize || dd?.minLandSize || bd?.minLandSize || "";
+  const maxSize = pd?.maxLandSize || dd?.maxLandSize || bd?.maxLandSize || "";
+  const size = explicitSize || (minSize && maxSize ? `${minSize} - ${maxSize}` : minSize || maxSize);
   const unitRaw = pd?.measurementUnit || dd?.measurementUnit || bd?.measurementUnit;
   const unit = formatPreferenceMeasurementUnitForEmail(unitRaw);
   if (!size) return "N/A";
   return [size, unit].filter(Boolean).join(" ");
+}
+
+function formatMoneyForEmail(value: unknown): string {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "0";
+  return n.toLocaleString("en-US");
 }
 
 export const preferenceMail = (mailData: any): string => {
@@ -68,14 +87,16 @@ export const preferenceMail = (mailData: any): string => {
 
 
   const priceRange = budget
-    ? `${budget.minPrice || 0} - ${budget.maxPrice || 0} ${budget.currency || "NGN"}`
+    ? `${formatMoneyForEmail(budget.minPrice)} - ${formatMoneyForEmail(budget.maxPrice)} ${budget.currency || "NGN"}`
     : "N/A";
 
   const usageOption = preferenceMode ? preferenceMode : "N/A";
 
-  const propertyFeatures = features?.baseFeatures?.length
-    ? features.baseFeatures.join(", ")
-    : "Not specified";
+  const allFeatures = [
+    ...(Array.isArray(features?.baseFeatures) ? features.baseFeatures : []),
+    ...(Array.isArray(features?.premiumFeatures) ? features.premiumFeatures : []),
+  ].filter(Boolean);
+  const propertyFeatures = allFeatures.length ? allFeatures.join(", ") : "Not specified";
 
   const landSizeLine = buildPreferenceLandSizeEmailLine({
     propertyDetails,
