@@ -211,6 +211,37 @@ Let's find your dream home! 🏡`,
       requiresApproval: false
     });
 
+    this.templates.set('admin_provisioned_account', {
+      template: `🏠 *Khabi-Teq — your account is ready*
+
+Hi {{firstName}},
+
+An administrator created your *{{userType}}* account.
+
+📧 Email: {{email}}
+🔗 Sign in: {{loginUrl}}
+
+You must *change your password* after first sign-in. Your temporary password was sent by email.
+
+_If you did not expect this message, contact support._`,
+      category: 'system',
+      requiresApproval: false
+    });
+
+    this.templates.set('property_created_by_admin', {
+      template: `📋 *New listing on your account*
+
+Hi {{firstName}},
+
+An administrator added a property listing for you on Khabi-Teq.
+
+{{summaryLine}}
+
+Open the app to review details.`,
+      category: 'system',
+      requiresApproval: false
+    });
+
     this.templates.set('maintenance_notice', {
       template: `🔧 *System Maintenance*
 

@@ -14,8 +14,8 @@ The platform serves **multiple user types** and **administrators**. Each has dis
 
 - **Visitors / Public** — Not logged in; browse, search, submit forms, use public pages.
 - **Landowners (Landlords)** — Own properties; list for sale, rent, shortlet, or joint venture; no subscription required.
-- **Developers** — Similar to Landlords plus public page (DealSite), subscription, and inspection flows; first 2 properties free, then subscription required.
-- **Agents** — List properties, manage DealSite, subscriptions, inspections, and “Request To Market”; first 2 properties free, then subscription required.
+- **Developers** — Similar to Landlords plus public page (DealSite), subscription, and inspection flows; first **5** properties free, then subscription required.
+- **Agents** — List properties, manage DealSite, subscriptions, inspections, and “Request To Market”; first **5** properties free, then subscription required.
 - **Buyers / Tenants / End users** — Submit preferences, request inspections, complete bookings, register transactions (often via DealSite or main site as visitors or identified by email).
 - **Admin** — Full oversight: users, properties, inspections, ratings, reports, transaction registrations, DealSites, subscriptions, content, and settings.
 
@@ -89,12 +89,12 @@ Developers have an account with **userType: Developer**. They combine **property
 - **Create and manage properties** — Same as Landlords: Sale, Rent, Shortlet, Joint Venture; full details, photos, documents. When posting a property or brief, they can **optionally use AI (OpenAI)** to fill the form by describing the property in natural language; the platform suggests form fields they can review and edit before posting.
 - **Publish to KHABITEQ Market Place** — Can set `listingScope` to Market Place only so the listing appears only there (no contact shown).
 - **Set agent commission** — For Sale, Rent, JV, or Shortlet, set agent commission percentage (0–5%) and amount (Naira); used when an Agent “Requests To Market” and the Developer accepts.
-- **First 2 properties free** — The first two properties can be posted without a subscription. From the **third** property onward, an **active subscription** is required; otherwise the system blocks the post and asks them to subscribe.
+- **First property free** — The first property can be posted without a subscription. From the **second** property onward, an **active subscription** is required (and for **Agents**, **KYC approved**); otherwise the system blocks the post.
 - Edit, update status, delete, and list their properties.
 
 **Subscription**
 
-- **Subscribe to a plan** — To post beyond 2 properties and to create/maintain a DealSite, they need an active subscription. They can view plans, subscribe, view their subscriptions, cancel or toggle auto-renewal, and see transaction history related to subscriptions.
+- **Subscribe to a plan** — To post beyond the first property and to create/maintain a DealSite (user flow), they need an active subscription. They can view plans, subscribe, view their subscriptions, cancel or toggle auto-renewal, and see transaction history related to subscriptions.
 
 **DealSite (public page)**
 
@@ -123,7 +123,7 @@ Developers have an account with **userType: Developer**. They combine **property
 
 ## 5. Agents
 
-Agents have **userType: Agent**. They list properties, run a public DealSite, and use “Request To Market” to market Landlords’/Developers’ Market Place properties. They need a subscription for the **third** property onward and for DealSite.
+Agents have **userType: Agent**. They list properties, run a public DealSite, and use “Request To Market” to market Landlords’/Developers’ Market Place properties. They need a subscription for the **second** property onward (and **approved KYC** for a second listing) and for DealSite in the normal user flow.
 
 **Account and profile**
 
@@ -133,12 +133,12 @@ Agents have **userType: Agent**. They list properties, run a public DealSite, an
 **Properties**
 
 - **Create and manage properties** — Post Sale, Rent, Shortlet, or Joint Venture (same structure as Landlords/Developers). Properties are listed under their account and, when applicable, on their DealSite. When posting a property or brief, they can **optionally use AI (OpenAI)** to fill the form by describing the property in natural language; the platform suggests form fields they can review and edit before posting.
-- **First 2 properties free** — First two properties can be posted without a subscription. From the **third** property, an **active subscription** is required.
+- **First property free** — The first property can be posted without a subscription. From the **second** property, an **active subscription** is required.
 - Edit, update status, delete, and list their properties. They **cannot** set `listingScope` to “Market Place only”; that is only for Landlords and Developers.
 
 **Subscription**
 
-- **Subscribe to a plan** — Required for posting beyond 2 properties and for DealSite. View plans, subscribe, view/cancel/toggle subscriptions, see subscription-related transactions.
+- **Subscribe to a plan** — Required for posting beyond the first property and for DealSite. View plans, subscribe, view/cancel/toggle subscriptions, see subscription-related transactions.
 
 **DealSite (public page)**
 
@@ -319,7 +319,7 @@ Administrators have a dedicated admin dashboard and APIs. They oversee the entir
 ## 10. Fees and Limits (Quick Reference)
 
 - **Landlords:** No subscription; unlimited property posts; can set agent commission (0–5%, and/or amount in Naira) for Market Place listings.
-- **Agents & Developers:** First **2 properties free**; from **3rd** property, **subscription required**. Can set inspection fee on accept (₦1,000–₦50,000). Agent commission for Request To Market is set by the Publisher (Landlord/Developer) on the property.
+- **Agents & Developers:** First **1 property** free; from the **2nd** property, **subscription required**; **Agents** also need **KYC approved** for a second listing. **Landlords:** no listing limit; subscription not required for posting. Can set inspection fee on accept (₦1,000–₦50,000). Agent commission for Request To Market is set by the Publisher (Landlord/Developer) on the property.
 - **Transaction registration processing fee:** Below ₦5M: ₦0; ₦5M–₦50M: ₦100,000; above ₦50M: ₦150,000 (by transaction value).
 - **Request To Market:** Publisher pays the **agent commission amount** (set on the property) to the Agent when they accept; payment via link when Agent has payment set up.
 

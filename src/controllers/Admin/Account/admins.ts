@@ -5,6 +5,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import bcrypt from "bcryptjs";
 import sendEmail from "../../../common/send.email";
+import { generateRandomPassword } from "../../../utils/generatePassword";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { adminAccountCreated } from "../../../common/emailTemplates/adminMails";
 
@@ -70,15 +71,6 @@ export const getAdmins = async (
     next(err);
   }
 };
-
-function generateRandomPassword(length = 10): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let password = "";
-  for (let i = 0; i < length; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
 
 // Get Single Admin by ID
 export const getSingleAdmin = async (

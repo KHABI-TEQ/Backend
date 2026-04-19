@@ -29,6 +29,8 @@ export interface IUser {
   referredBy?: string;
   deletionRequestedAt?: Date;
   deletionGracePeriodDays?: number;
+  /** When true (e.g. admin-provisioned account), client should force password change; cleared after successful change. */
+  mustChangePassword?: boolean;
 }
  
 export interface IUserDoc extends IUser, Document {
@@ -81,6 +83,7 @@ export class User {
         referredBy: { type: String },
         deletionRequestedAt: { type: Date },
         deletionGracePeriodDays: { type: Number, default: 7 },
+        mustChangePassword: { type: Boolean, default: false },
       },
       {
         timestamps: true,

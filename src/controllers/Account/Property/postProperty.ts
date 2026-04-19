@@ -11,6 +11,7 @@ import {
 import sendEmail from "../../../common/send.email";
 import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
+import { assertPropertyListingAllowedForOwner } from "../../../services/propertyListingEligibility.service";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import mongoose from "mongoose";
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
@@ -78,23 +79,14 @@ export const postProperty = async (
       (formatted as any).listingScope = "agent_listing";
     }
 
-    // ✅ Agents and Developers: first 2 properties are free; from 3rd property onward subscription is required
-    const FREE_PROPERTY_LIMIT = 2;
+    // ✅ Agents and Developers: first 1 property free; beyond that subscription (+ Agent KYC) required
     let activeSnapshot = null;
     if (req.user?.userType === "Agent" || req.user?.userType === "Developer") {
-      const existingPropertyCount = await DB.Models.Property.countDocuments({
-        owner: userId,
-        isDeleted: { $ne: true },
+      const { activeSnapshot: snap } = await assertPropertyListingAllowedForOwner({
+        ownerId: userId,
+        userType: req.user.userType as string,
       });
-      if (existingPropertyCount >= FREE_PROPERTY_LIMIT) {
-        activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
-        if (!activeSnapshot) {
-          throw new RouteError(
-            HttpStatusCodes.FORBIDDEN,
-            "You have reached the free limit of 2 properties. Please subscribe to a plan to post more properties."
-          );
-        }
-      }
+      activeSnapshot = snap;
     }
 
     // ✅ Create property first (inside session)

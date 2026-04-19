@@ -36,7 +36,8 @@ export class DealSiteService {
    */
   static async setUpPublicAccess(
     userId: string,
-    payload: Partial<IDealSite>
+    payload: Partial<IDealSite>,
+    options?: { bypassSubscriptionCheck?: boolean }
   ): Promise<IDealSiteDoc> {
     const owner = await DB.Models.User.findById(userId).select("userType").lean();
     if (!owner) {
@@ -49,7 +50,9 @@ export class DealSiteService {
       );
     }
 
-    await this.ensureActiveSubscription(userId);
+    if (!options?.bypassSubscriptionCheck) {
+      await this.ensureActiveSubscription(userId);
+    }
 
     // Ensure publicSlug is unique
     const existingSlug = await DB.Models.DealSite.findOne({

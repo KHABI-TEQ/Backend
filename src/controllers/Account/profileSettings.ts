@@ -298,6 +298,9 @@ export const changePassword = async (
 
     // ✅ Hash and save new password
     user.password = await bcrypt.hash(newPassword, 10);
+    if (user.mustChangePassword) {
+      user.mustChangePassword = false;
+    }
     await user.save();
 
     // --- Send confirmation email ---

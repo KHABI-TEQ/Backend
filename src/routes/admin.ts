@@ -7,6 +7,12 @@ import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../con
 import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
 import { approveAgentKYCData, deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
+import {
+  deleteDeveloperAccount,
+  getAllDeveloperProperties,
+  getAllDevelopers,
+  getSingleDeveloper,
+} from "../controllers/Admin/Account/developers";
 import { getPreferenceModeStats, getPreferencesByMode, getSinglePreference } from "../controllers/Admin/preference/fetchPreference";
 import { findMatchedProperties } from "../controllers/Admin/preference/findMatchProerty";
 import { selectMatchedPreferenceProperties } from "../controllers/Admin/preference/submitMatchedProperties";
@@ -49,6 +55,10 @@ import {
   getTransactionRegistrationStats,
   getTransactionRegistrationById,
 } from "../controllers/Admin/TransactionRegistration/adminTransactionRegistration";
+import { registerUserByAdmin } from "../controllers/Admin/Account/registerUserByAdmin";
+import { adminSetupDealSiteForUser } from "../controllers/Admin/Account/adminDealSiteSetup";
+import { postPropertyAsAdmin } from "../controllers/Admin/Property/postProperty";
+import { adminSuggestPropertyForUser } from "../controllers/Admin/ai/adminSuggestProperty";
 
 
 const storage = multer.memoryStorage();
@@ -146,8 +156,13 @@ AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount
 AdminRouter.delete("/landowners/:userId/delete", deleteLandlordAction);
 AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
 AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
- 
- 
+
+// DEVELOPERS MANAGEMENT ROUTES (User records with userType Developer)
+AdminRouter.get("/developers", getAllDevelopers);
+AdminRouter.get("/developers/:userId/allProperties", getAllDeveloperProperties);
+AdminRouter.delete("/developers/:userId", deleteDeveloperAccount);
+AdminRouter.get("/developers/:userId", getSingleDeveloper);
+
 AdminRouter.get("/field-agents", getAllFieldAgents);
 AdminRouter.get("/field-agents/dashboard", getFieldAgentDashboardStatistics);
 AdminRouter.post("/field-agents/assignInspection", assignInspectionToFieldAgent);
@@ -172,7 +187,13 @@ AdminRouter.delete("/preferences/:preferenceId/delete", deletePreference);
 AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties);
  
 
+// USER ONBOARDING (admin-provisioned accounts & DealSite / AI on behalf)
+AdminRouter.post("/users/register", registerUserByAdmin);
+AdminRouter.post("/users/:userId/deal-site/setup", adminSetupDealSiteForUser);
+AdminRouter.post("/users/:userId/ai/suggest-property", adminSuggestPropertyForUser);
+
 // PROPERTY MANAGEMENT ROUTES
+AdminRouter.post("/properties/create", postPropertyAsAdmin);
 AdminRouter.get("/properties/", getAllProperties);
 AdminRouter.get("/properties/stats", getPropertyStats);
 AdminRouter.get("/properties/:propertyId/getOne", getSinglePropertyDetails);

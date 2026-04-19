@@ -96,6 +96,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       accountStatus: user.accountStatus,
       isFlagged: user.isFlagged,
       accountId: user.accountId,
+      mustChangePassword: Boolean(user.mustChangePassword),
     };
 
     // Agent-specific logic (subscription, dealSite)
