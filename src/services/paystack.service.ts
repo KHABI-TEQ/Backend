@@ -1159,7 +1159,8 @@ export class PaystackService {
         },
         {
           headers: {
-            Authorization: `Bearer ${paystackSK?.value}`,
+            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            // Authorization: `Bearer ${paystackSK?.value}`,
             'Content-Type': 'application/json',
           },
         }
