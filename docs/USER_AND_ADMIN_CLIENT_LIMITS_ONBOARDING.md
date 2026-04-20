@@ -201,15 +201,17 @@ Body: `{ "userInput": string }`
 
 **`GET /api/admin/developers/:userId/allProperties`** — that user’s listings (non-deleted), paginated with **`page`**, **`limit`** (same defaults/cap as above).
 
-**`DELETE /api/admin/developers/:userId`** — soft-delete the developer (same idea as agent delete):
+**`DELETE /api/admin/developers/:userId`** — soft-delete the developer (aligned with agent soft-delete, plus DealSite cleanup):
 
 - Sets **`isDeleted: true`**, **`accountStatus: "deleted"`**, **`isInActive: true`**, **`accountApproved: false`**.
 - Sets any **DealSite** with **`createdBy`** = this user to **`status: "deleted"`**.
-- Sends a **closure email** to the user (optional **`reason`** in JSON body).
+- Sends a **closure email** to the user including the admin **`reason`**.
 
-Body (optional): `{ "reason": "string" }`
+**Body (JSON, required):** `{ "reason": "Non-empty string explaining the deletion" }`  
+*(Some HTTP clients omit bodies on `DELETE`; if yours does, use a client that sends a JSON body or add a `POST`-alias route later.)*
 
-**200:** `{ "success": true, "message": "Developer account deleted successfully" }`  
+**200:** `{ "success": true, "message": "Developer account deleted successfully." }`  
+**400:** Missing or empty `reason`.  
 **404:** Developer not found or already deleted.
 
 ### Create DealSite (public page) on behalf of Agent / Developer
@@ -219,6 +221,12 @@ Body (optional): `{ "reason": "string" }`
 - **`:userId`** — Mongo id of the **Agent** or **Developer** user who will **own** the DealSite (`createdBy` is set to this id).
 - **Subscription** — not required for this route (admin path bypasses the user DealSite subscription check).
 - **Server-side rules** — `publicSlug` must be **globally unique**; the target user must **not** already have a DealSite; the server calls **Paystack** to create a **subaccount**, then persists the DealSite with **`status: "paused"`** (same as user self-service create).
+
+#### Paystack bank list (admin console)
+
+**`GET /api/admin/deal-sites/bank-list`** — **`Authorization: Bearer <adminJwt>`**. Returns the same Paystack settlement bank list as **`GET /api/account/dealSite/bankList`** (user JWT).
+
+**200:** `{ "success": true, "data": <Paystack bank list> }` — use each bank’s code as **`paymentDetails.sortCode`** when calling **`POST /api/admin/users/:userId/deal-site/setup`**.
 
 #### Request body (JSON)
 
@@ -235,7 +243,7 @@ Send one JSON object. Fields below match what **`DealSiteService.setUpPublicAcce
 
 **`paymentDetails` (required nested fields — input only)**
 
-These six are read from `paymentDetails` and passed to **`PaystackService.createSubaccount`**. Use the same **bank `sortCode`** values as **`GET /api/account/dealSite/bankList`** (Paystack settlement bank code).
+These six are read from `paymentDetails` and passed to **`PaystackService.createSubaccount`**. Use the same **bank `sortCode`** values as the Paystack bank list from **`GET /api/account/dealSite/bankList`** (user JWT) or **`GET /api/admin/deal-sites/bank-list`** (admin JWT); both return the same `data` shape.
 
 | Field | Type | Description |
 |-------|------|-------------|

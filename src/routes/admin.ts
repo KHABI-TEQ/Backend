@@ -36,7 +36,7 @@ import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSe
 import { createPlanFeature, createSubscriptionPlan, deletePlanFeature, deleteSubscriptionPlan, getAllPlanFeatures, getAllSubscriptionPlans, getPlanFeature, getSubscriptionPlan, updatePlanFeature, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 import { deletePreference } from "../controllers/Admin/preference/deletePreference";
-import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteActivities, adminGetDealSiteBySlug, adminGetDealSiteReports, adminGetDealSiteStats, adminPauseDealSite, adminPutOnHoldDealSite } from "../controllers/Admin/DealSite/adminDealSite";
+import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteActivities, adminGetDealSiteBankList, adminGetDealSiteBySlug, adminGetDealSiteReports, adminGetDealSiteStats, adminPauseDealSite, adminPutOnHoldDealSite } from "../controllers/Admin/DealSite/adminDealSite";
 import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats, updateReferral } from "../controllers/Admin/ExtralPages/referralLogs";
 import { adminAddSubscription, adminChangeSubscriptionStatus, adminDeleteSubscription, adminGetAllSubscriptions } from "../controllers/Admin/Settings/emailSubscriptionActionController";
 import { adminCreatePromotion, adminDeletePromotion, adminGetPromotionAnalytics, adminGetPromotionById, adminListPromotions, adminUpdatePromotion, adminUpdatePromotionStatus } from "../controllers/Admin/Campaign/adminPromotionController";
@@ -237,6 +237,7 @@ AdminRouter.get("/transaction-registrations/:registrationId", getTransactionRegi
 // DEAL SITE MANAGEMENT ROUTES
 AdminRouter.get("/deal-sites/getAll", adminGetAllDealSites);
 AdminRouter.get("/deal-sites/stats", adminGetDealSiteStats);
+AdminRouter.get("/deal-sites/bank-list", adminGetDealSiteBankList);
 AdminRouter.get("/deal-sites/:publicSlug", adminGetDealSiteBySlug);
 AdminRouter.get("/deal-sites/:publicSlug/reports", adminGetDealSiteReports);
 AdminRouter.get("/deal-sites/:publicSlug/logs", adminGetDealSiteActivities);

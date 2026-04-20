@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { dealSiteActivityService } from "../../../services/dealSiteActivity.service";
+import { PaystackService } from "../../../services/paystack.service";
 
 
 /**
@@ -390,3 +391,22 @@ export const adminGetDealSiteActivities = async (
   }
 };
 
+/**
+ * GET /admin/deal-sites/bank-list
+ * Paystack settlement bank list for DealSite subaccount setup (admin JWT; same payload as GET /account/dealSite/bankList).
+ */
+export const adminGetDealSiteBankList = async (
+  _req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const result = await PaystackService.getBankList();
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

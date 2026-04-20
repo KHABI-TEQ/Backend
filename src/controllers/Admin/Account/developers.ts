@@ -6,7 +6,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
-import { DeleteDeveloper } from "../../../common/emailTemplates/developerMails";
+import { deleteDeveloperMail } from "../../../common/emailTemplates/developerMails";
 
 const ALLOWED_SORT_FIELDS = new Set([
   "createdAt",
@@ -194,7 +194,8 @@ export const getAllDeveloperProperties = async (
 
 /**
  * DELETE /admin/developers/:userId
- * Soft-deletes the developer user (same pattern as agent delete). Optional reason in body.
+ * Soft-deletes the developer (User.isDeleted), sets accountStatus deleted, marks DealSites deleted, emails user.
+ * Body: { "reason": string } — required for audit trail.
  */
 export const deleteDeveloperAccount = async (
   req: AppRequest,
@@ -207,6 +208,13 @@ export const deleteDeveloperAccount = async (
 
     if (!mongoose.isValidObjectId(userId)) {
       return next(new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid user id"));
+    }
+
+    if (!reason || typeof reason !== "string" || !reason.trim()) {
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: "Reason for deletion is required.",
+      });
     }
 
     const user = await DB.Models.User.findOneAndUpdate(
@@ -237,16 +245,13 @@ export const deleteDeveloperAccount = async (
     ).exec();
 
     const mailBody = generalEmailLayout(
-      DeleteDeveloper(
-        user.firstName || user.lastName || user.email,
-        reason
-      )
+      deleteDeveloperMail(user.firstName || "Developer", reason.trim())
     );
 
     try {
       await sendEmail({
         to: user.email,
-        subject: "Developer account closed",
+        subject: "Your developer account has been closed",
         text: mailBody,
         html: mailBody,
       });
@@ -256,7 +261,7 @@ export const deleteDeveloperAccount = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Developer account deleted successfully",
+      message: "Developer account deleted successfully.",
     });
   } catch (err) {
     next(err);
