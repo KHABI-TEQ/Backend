@@ -97,12 +97,34 @@ export const getAllDevelopers = async (
       .limit(safeLimit)
       .lean();
 
+    const userIds = developers.map((d) => d._id);
+    const slugByUserId = new Map<string, string | null>();
+    if (userIds.length > 0) {
+      const dealSites = await DB.Models.DealSite.find({
+        createdBy: { $in: userIds },
+      })
+        .sort({ createdAt: -1 })
+        .select("createdBy publicSlug")
+        .lean();
+      for (const row of dealSites) {
+        const uid = String(row.createdBy);
+        if (!slugByUserId.has(uid)) {
+          slugByUserId.set(uid, row.publicSlug ?? null);
+        }
+      }
+    }
+
+    const data = developers.map((d) => ({
+      ...d,
+      publicSlug: slugByUserId.get(String(d._id)) ?? null,
+    }));
+
     const total = await DB.Models.User.countDocuments(query);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Developers fetched successfully",
-      data: developers,
+      data,
       pagination: {
         page: safePage,
         limit: safeLimit,

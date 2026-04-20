@@ -303,6 +303,28 @@ export const getAgentsByType = async (
       });
     }
 
+    // Public DealSite slug for this agent (owner userId → DealSite.createdBy); latest if multiple
+    pipeline.push({
+      $lookup: {
+        from: "dealsites",
+        let: { ownerId: "$userId" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$createdBy", "$$ownerId"] } } },
+          { $sort: { createdAt: -1 } },
+          { $limit: 1 },
+          { $project: { publicSlug: 1, _id: 0 } },
+        ],
+        as: "_dealSiteSlugArr",
+      },
+    });
+    pipeline.push({
+      $addFields: {
+        publicSlug: {
+          $ifNull: [{ $arrayElemAt: ["$_dealSiteSlugArr.publicSlug", 0] }, null],
+        },
+      },
+    });
+
     pipeline.push({
       $project: {
         // Agent fields
@@ -311,6 +333,7 @@ export const getAgentsByType = async (
         userId: 1,
         kycStatus: 1,
         companyAgent: 1,
+        publicSlug: 1,
 
         // ✅ include kycData when type = kycRequest
         ...(type === "kycRequest" ? { kycData: 1 } : {}),
@@ -1066,7 +1089,7 @@ export const getAllAgents = async (
     const sort: any = {};
     sort[sortBy.toString()] = sortOrder === "asc" ? 1 : -1;
 
-    const pipeline = [
+    const pipeline: any[] = [
       { $match: match },
       {
         $lookup: {
@@ -1078,12 +1101,33 @@ export const getAllAgents = async (
       },
       { $unwind: { path: "$agentProfile", preserveNullAndEmptyArrays: true } },
       {
+        $lookup: {
+          from: "dealsites",
+          let: { ownerId: "$_id" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$createdBy", "$$ownerId"] } } },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            { $project: { publicSlug: 1, _id: 0 } },
+          ],
+          as: "_dealSiteSlugArr",
+        },
+      },
+      {
+        $addFields: {
+          publicSlug: {
+            $ifNull: [{ $arrayElemAt: ["$_dealSiteSlugArr.publicSlug", 0] }, null],
+          },
+        },
+      },
+      {
         $project: {
           password: 0,
           googleId: 0,
           facebookId: 0,
           __v: 0,
           "agentProfile.__v": 0,
+          _dealSiteSlugArr: 0,
         },
       },
       { $sort: sort },
