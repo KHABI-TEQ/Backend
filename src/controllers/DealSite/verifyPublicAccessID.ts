@@ -4,7 +4,35 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DealSiteService } from "../../services/dealSite.service";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
- 
+import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
+
+/** After DealSite exists and is running: require owner subscription when they own 2+ listings. */
+async function applyPublicDealSiteSubscriptionGate(
+  res: Response,
+  dealSite: { createdBy?: unknown }
+): Promise<boolean> {
+  const ownerId = resolveLeanRefToObjectId(dealSite.createdBy);
+  if (!ownerId) {
+    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      errorCode: "DEALSITE_INVALID_OWNER",
+      message: "Public access page owner reference is invalid.",
+      data: null,
+    });
+    return false;
+  }
+  const gate = await DealSiteService.getPublicDealSiteSubscriptionGate(ownerId.toString());
+  if (gate.ok === false) {
+    res.status(HttpStatusCodes.OK).json({
+      success: false,
+      errorCode: gate.errorCode,
+      message: gate.message,
+      data: null,
+    });
+    return false;
+  }
+  return true;
+}
 
 // Allowed keys from DealSite
 const allowedSections = [
@@ -142,9 +170,9 @@ export const getDealSiteDetailsByUser = async (
 
 
 /**
- * Get DealSite by publicSlug
+ * Get DealSite by publicSlug (public visitor).
  * - Ensures DealSite exists and is running
- * - If subscription expired/missing → success=false with errorCode
+ * - If the owner has 2+ non-deleted owned listings, requires an active subscription snapshot on the owner
  */
 export const getDealSiteBySlug = async (
   req: AppRequest,
@@ -180,22 +208,10 @@ export const getDealSiteBySlug = async (
         data: null,
       });
     }
- 
-    // Check subscription of the owner of this DealSite
-    const activeSubscription = await DB.Models.UserSubscriptionSnapshot.findOne({
-      user: dealSite.createdBy,
-      status: "active",
-      expiresAt: { $gt: new Date() },
-    });
 
-    if (!activeSubscription) {
-      return res.status(HttpStatusCodes.OK).json({
-        success: false,
-        errorCode: "SUBSCRIPTION_INVALID",
-        message:
-          "This page owner’s subscription has expired or is missing. Some features may be unavailable.",
-        data: null,
-      });
+    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
+    if (!subscriptionOk) {
+      return;
     }
 
     // --- Handle featured properties ---
@@ -290,6 +306,11 @@ export const getDealSiteSection = async (
       });
     }
 
+    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
+    if (!subscriptionOk) {
+      return;
+    }
+
     // Supported sections
     const myAllowedSections = [
       "theme",
@@ -380,6 +401,11 @@ export const getFeaturedProperties = async (
         message: "This Public access page is not currently active.",
         data: null,
       });
+    }
+
+    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
+    if (!subscriptionOk) {
+      return;
     }
 
     const featured = await DealSiteService.getFeaturedProperties(dealSite);

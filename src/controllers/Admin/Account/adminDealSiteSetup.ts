@@ -9,7 +9,7 @@ import { dealSiteActivityService } from "../../../services/dealSiteActivity.serv
 
 /**
  * POST /admin/users/:userId/deal-site/setup
- * Same payload as user POST /account/dealSite/setUp; subscription check is bypassed for admin-assisted onboarding.
+ * Same payload as user POST /account/dealSite/setUp (DealSite setup does not require a subscription).
  */
 export const adminSetupDealSiteForUser = async (
   req: AppRequest,
@@ -33,9 +33,7 @@ export const adminSetupDealSiteForUser = async (
       );
     }
 
-    const dealSite = await DealSiteService.setUpPublicAccess(userId, req.body, {
-      bypassSubscriptionCheck: true,
-    });
+    const dealSite = await DealSiteService.setUpPublicAccess(userId, req.body);
 
     const adminActor = (req as AppRequest & { admin?: { _id: mongoose.Types.ObjectId } }).admin;
     await dealSiteActivityService.logActivity({

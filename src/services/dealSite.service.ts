@@ -4,6 +4,7 @@ import { RouteError } from "../common/classes";
 import { IDealSite, IDealSiteDoc } from "../models";
 import { Types } from "mongoose";
 import { PaystackService } from "./paystack.service";
+import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import { resolveLeanRefToObjectId } from "../utils/mongooseId";
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
@@ -11,33 +12,15 @@ const confidentialFields = "-paymentDetails -createdBy -__v";
 export class DealSiteService {
 
   /**
-   * Ensure the user has an active subscription
-   */
-  private static async ensureActiveSubscription(userId: string) {
-    const activeSubscription = await DB.Models.UserSubscriptionSnapshot.findOne({
-      user: userId,
-      status: "active",
-      expiresAt: { $gt: new Date() },
-    });
-
-    if (!activeSubscription) {
-      throw new RouteError(
-        HttpStatusCodes.NOT_FOUND,
-        "You don't have any valid active subscription. Please purchase a subscription plan to continue."
-      );
-    }
-  }
-
-  /**
    * Sets up a DealSite (public access page) for an Agent or Developer.
    * - Ensures uniqueness of publicSlug
    * - Ensures the user cannot create multiple DealSites
    * - Persists the DealSite with defaults and relations
+   * - Does not require an active subscription (subscription is enforced for property listing tiers, not DealSite).
    */
   static async setUpPublicAccess(
     userId: string,
-    payload: Partial<IDealSite>,
-    options?: { bypassSubscriptionCheck?: boolean }
+    payload: Partial<IDealSite>
   ): Promise<IDealSiteDoc> {
     const owner = await DB.Models.User.findById(userId).select("userType").lean();
     if (!owner) {
@@ -48,10 +31,6 @@ export class DealSiteService {
         HttpStatusCodes.FORBIDDEN,
         "Only agents and developers can set up a public access page."
       );
-    }
-
-    if (!options?.bypassSubscriptionCheck) {
-      await this.ensureActiveSubscription(userId);
     }
 
     // Ensure publicSlug is unique
@@ -175,8 +154,6 @@ export class DealSiteService {
     publicSlug: string
   ): Promise<IDealSiteDoc> {
 
-    await this.ensureActiveSubscription(userId);
-
     const dealSite = await DB.Models.DealSite.findOne({
       publicSlug,
       createdBy: userId,
@@ -207,8 +184,6 @@ export class DealSiteService {
     userId: string,
     publicSlug: string
   ): Promise<IDealSiteDoc> {
-
-    await this.ensureActiveSubscription(userId);
 
     const dealSite = await DB.Models.DealSite.findOne({
       publicSlug,
@@ -241,8 +216,6 @@ export class DealSiteService {
     publicSlug: string,
     updates: Partial<IDealSite>
   ): Promise<IDealSiteDoc> {
-
-    await this.ensureActiveSubscription(userId);
 
     const dealSite = await DB.Models.DealSite.findOne({
       publicSlug,
@@ -282,8 +255,6 @@ export class DealSiteService {
     sectionName: string,
     updates: Record<string, any>
   ): Promise<IDealSiteDoc> {
-    await this.ensureActiveSubscription(userId);
-
     const dealSite = await DB.Models.DealSite.findOne({
       publicSlug,
       createdBy: userId,
@@ -375,9 +346,6 @@ export class DealSiteService {
     userId: string,
     publicSlug: string
   ): Promise<{ success: boolean; message: string }> {
-
-    await this.ensureActiveSubscription(userId);
-    
     const dealSite = await DB.Models.DealSite.findOne({
       publicSlug,
       createdBy: userId,
@@ -479,6 +447,35 @@ export class DealSiteService {
       .sort({ createdAt: -1 })
       .limit(6)
       .lean();
+  }
+
+  /**
+   * Public DealSite (visitor): if the page owner has 2+ non-deleted properties they own,
+   * the owner must have an active subscription snapshot. One owned listing does not gate the public page.
+   */
+  static async getPublicDealSiteSubscriptionGate(
+    ownerUserId: string
+  ): Promise<
+    | { readonly ok: true }
+    | { readonly ok: false; readonly errorCode: string; readonly message: string }
+  > {
+    const count = await DB.Models.Property.countDocuments({
+      owner: ownerUserId,
+      isDeleted: { $ne: true },
+    });
+    if (count < 2) {
+      return { ok: true } as const;
+    }
+    const active = await UserSubscriptionSnapshotService.getActiveSnapshot(ownerUserId);
+    if (active) {
+      return { ok: true } as const;
+    }
+    return {
+      ok: false,
+      errorCode: "SUBSCRIPTION_INVALID",
+      message:
+        "This public page requires an active subscription from the owner because they have two or more property listings.",
+    } as const;
   }
 
 

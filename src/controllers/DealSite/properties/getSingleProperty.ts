@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
+import { DealSiteService } from "../../../services/dealSite.service";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import mongoose from "mongoose";
 import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
@@ -50,6 +51,16 @@ export const getSingleDealSiteProperty = async (
         success: false,
         errorCode: "DEALSITE_INVALID_OWNER",
         message: "DealSite owner reference is invalid.",
+        data: null,
+      });
+    }
+
+    const gate = await DealSiteService.getPublicDealSiteSubscriptionGate(creatorId.toString());
+    if (gate.ok === false) {
+      return res.status(HttpStatusCodes.OK).json({
+        success: false,
+        errorCode: gate.errorCode,
+        message: gate.message,
         data: null,
       });
     }

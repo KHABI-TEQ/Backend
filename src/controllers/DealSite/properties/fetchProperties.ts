@@ -1,6 +1,7 @@
 import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
+import { DealSiteService } from "../../../services/dealSite.service";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { ignoreWords } from "../../../utils/ignoreWords";
 import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
@@ -76,6 +77,17 @@ export const getDealSiteProperties = async (
         data: null,
       });
     }
+
+    const gate = await DealSiteService.getPublicDealSiteSubscriptionGate(creatorId.toString());
+    if (gate.ok === false) {
+      return res.status(HttpStatusCodes.OK).json({
+        success: false,
+        errorCode: gate.errorCode,
+        message: gate.message,
+        data: null,
+      });
+    }
+
     const baseCondition = {
       $or: [
         { owner: creatorId },

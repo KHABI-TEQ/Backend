@@ -11,9 +11,9 @@ export const FREE_PROPERTY_LIMIT_AGENT_DEVELOPER = 1;
 export type ActiveSnapshot = IUserSubscriptionSnapshotDoc | null;
 
 /**
- * Enforces: Landowners — unlimited (no snapshot).
- * Agent/Developer — first {@link FREE_PROPERTY_LIMIT_AGENT_DEVELOPER} free; beyond that requires active subscription.
- * Agent — beyond free tier also requires KYC approved.
+ * Landowners — unlimited (no snapshot).
+ * Agent/Developer — first {@link FREE_PROPERTY_LIMIT_AGENT_DEVELOPER} listing(s): no subscription check.
+ * From the next listing onward: active subscription required; Agents also need KYC `approved` before any 2nd+ listing.
  */
 export async function assertPropertyListingAllowedForOwner(params: {
   ownerId: Types.ObjectId | string;

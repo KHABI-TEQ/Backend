@@ -83,9 +83,9 @@ Body: `{ "userInput": string }`
 
 **200:** `{ "success": true, "message": "...", "data": <suggested fields object> }`
 
-### DealSite (self-service, unchanged)
+### DealSite (self-service)
 
-**`POST /api/account/dealSite/setUp`** — still requires the target user’s **active subscription** (unless admin sets up on their behalf; see below).
+**`POST /api/account/dealSite/setUp`** — does **not** require an active subscription (same as admin-assisted create below). **Public visitor** endpoints for a running DealSite (`getData`, settings sections, featured, property list/detail) require the owner’s **active subscription** only when the owner has **two or more** non-deleted properties they **own** (`Property.owner`); a single owned listing does not trigger that gate.
 
 ---
 
@@ -219,7 +219,7 @@ Body: `{ "userInput": string }`
 **`POST /api/admin/users/:userId/deal-site/setup`**
 
 - **`:userId`** — Mongo id of the **Agent** or **Developer** user who will **own** the DealSite (`createdBy` is set to this id).
-- **Subscription** — not required for this route (admin path bypasses the user DealSite subscription check).
+- **Subscription** — not required for DealSite setup (user or admin); listing limits use subscription separately on property create.
 - **Server-side rules** — `publicSlug` must be **globally unique**; the target user must **not** already have a DealSite; the server calls **Paystack** to create a **subaccount**, then persists the DealSite with **`status: "paused"`** (same as user self-service create).
 
 #### Paystack bank list (admin console)

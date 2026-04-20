@@ -30,7 +30,7 @@ Anyone can do the following without creating an account or logging in:
 - **Register** — Create an account as Landowner, Agent, or Developer (email/password or social sign-in). They receive a verification email and must verify before full access.
 - **Log in** — Email/password or Google/Facebook (where enabled).
 - **Browse KHABITEQ Market Place** — View a paginated list of properties published to the Market Place (no contact details shown). Filter by type, state, price range. If an Agent is logged in, the list can show which properties they have already requested to market.
-- **Browse and use DealSites** — Visit an Agent’s or Developer’s public page (e.g. `slug.khabiteq.com`) to see their profile, listed properties, and contact options.
+- **Browse and use DealSites** — Visit an Agent’s or Developer’s public page (e.g. `slug.khabiteq.com`) to see their profile, listed properties, and contact options. If the page owner has **two or more** non-deleted properties they **own**, the public APIs require that owner to have an **active subscription**; with only **one** owned listing, visitors can open the page without that check.
 - **Request an inspection from a DealSite** — From a DealSite property page, submit an inspection request (name, email, phone, preferred date/time, mode). No login required. The Agent/Developer can then accept or reject and optionally set an inspection fee (₦1,000–₦50,000); if set, the buyer receives a payment link by email.
 - **Use the Transaction Registration portal** — View transaction types (rental, outright sale, off-plan, joint venture), read safe-transaction guidelines, search by address/property, check if a property is already registered, and submit a new registration with buyer and property details. Processing fee is determined by transaction value (below ₦5M: no fee; ₦5M–₦50M: ₦100,000; above ₦50M: ₦150,000). When a fee applies, the user can pay via a link returned by the system.
 - **Submit contact form** — Send messages via the site’s contact form.
@@ -94,7 +94,7 @@ Developers have an account with **userType: Developer**. They combine **property
 
 **Subscription**
 
-- **Subscribe to a plan** — To post beyond the first property and to create/maintain a DealSite (user flow), they need an active subscription. They can view plans, subscribe, view their subscriptions, cancel or toggle auto-renewal, and see transaction history related to subscriptions.
+- **Subscribe to a plan** — To post beyond the first property they need an active subscription. DealSite setup and public viewing do not require a subscription. They can view plans, subscribe, view their subscriptions, cancel or toggle auto-renewal, and see transaction history related to subscriptions.
 
 **DealSite (public page)**
 
@@ -123,7 +123,7 @@ Developers have an account with **userType: Developer**. They combine **property
 
 ## 5. Agents
 
-Agents have **userType: Agent**. They list properties, run a public DealSite, and use “Request To Market” to market Landlords’/Developers’ Market Place properties. They need a subscription for the **second** property onward (and **approved KYC** for a second listing) and for DealSite in the normal user flow.
+Agents have **userType: Agent**. They list properties, run a public DealSite, and use “Request To Market” to market Landlords’/Developers’ Market Place properties. They need a subscription for the **second** property onward and **approved KYC** before any second listing; DealSite setup and public page access do not require a subscription.
 
 **Account and profile**
 
@@ -138,7 +138,7 @@ Agents have **userType: Agent**. They list properties, run a public DealSite, an
 
 **Subscription**
 
-- **Subscribe to a plan** — Required for posting beyond the first property and for DealSite. View plans, subscribe, view/cancel/toggle subscriptions, see subscription-related transactions.
+- **Subscribe to a plan** — Required for posting beyond the first property (not for creating or running a DealSite). View plans, subscribe, view/cancel/toggle subscriptions, see subscription-related transactions.
 
 **DealSite (public page)**
 
