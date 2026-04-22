@@ -13,6 +13,11 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
   try {
     const { email, password } = req.body;
     const normalizedEmail = String(email || "").toLowerCase().trim();
+    const passwordInput = String(password ?? "").trim();
+
+    if (!passwordInput) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Password is required.");
+    }
 
     const user = await DB.Models.User.findOne({ email: normalizedEmail });
 
@@ -27,7 +32,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       );
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(passwordInput, user.password);
     if (!isMatch) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid password.");
     }

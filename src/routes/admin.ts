@@ -59,6 +59,7 @@ import { registerUserByAdmin } from "../controllers/Admin/Account/registerUserBy
 import { adminSetupDealSiteForUser } from "../controllers/Admin/Account/adminDealSiteSetup";
 import { postPropertyAsAdmin } from "../controllers/Admin/Property/postProperty";
 import { adminSuggestPropertyForUser } from "../controllers/Admin/ai/adminSuggestProperty";
+import { getAdminUserProperties } from "../controllers/Admin/Account/userProperties";
 
 
 const storage = multer.memoryStorage();
@@ -189,6 +190,7 @@ AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties
 
 // USER ONBOARDING (admin-provisioned accounts & DealSite / AI on behalf)
 AdminRouter.post("/users/register", registerUserByAdmin);
+AdminRouter.get("/users/:userId/properties", getAdminUserProperties);
 AdminRouter.post("/users/:userId/deal-site/setup", adminSetupDealSiteForUser);
 AdminRouter.post("/users/:userId/ai/suggest-property", adminSuggestPropertyForUser);
 
