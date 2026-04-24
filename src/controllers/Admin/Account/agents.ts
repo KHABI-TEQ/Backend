@@ -218,6 +218,7 @@ export const getAgentsByType = async (
     const currentPage = Math.max(1, parseInt(page as any, 10) || 1);
     const perPage = Math.max(1, parseInt(limit as any, 10) || 20);
     const skip = (currentPage - 1) * perPage;
+    const direction = sortOrder === "asc" ? 1 : -1;
 
     const searchRegex = q ? new RegExp(q, "i") : null;
 
@@ -322,6 +323,8 @@ export const getAgentsByType = async (
         publicSlug: {
           $ifNull: [{ $arrayElemAt: ["$_dealSiteSlugArr.publicSlug", 0] }, null],
         },
+        // Sort timestamp should default to the User creation date.
+        createdAt: { $ifNull: ["$user.createdAt", "$createdAt"] },
       },
     });
 
@@ -334,6 +337,7 @@ export const getAgentsByType = async (
         kycStatus: 1,
         companyAgent: 1,
         publicSlug: 1,
+        createdAt: 1,
 
         // ✅ include kycData when type = kycRequest
         ...(type === "kycRequest" ? { kycData: 1 } : {}),
@@ -352,6 +356,7 @@ export const getAgentsByType = async (
         "user.isInActive": 1,
         "user.userType": 1,
         "user.accountId": 1,
+        "user.createdAt": 1,
 
         // Add subscription info only for subscriber type
         ...(type === "subscriber"
@@ -366,11 +371,24 @@ export const getAgentsByType = async (
       },
     });
 
+    const sortFieldMap: Record<string, string> = {
+      createdAt: "createdAt",
+      email: "user.email",
+      firstName: "user.firstName",
+      lastName: "user.lastName",
+      accountStatus: "user.accountStatus",
+      accountApproved: "user.accountApproved",
+      isAccountVerified: "user.isAccountVerified",
+      kycStatus: "kycStatus",
+    };
+    const safeSortField = sortFieldMap[sortBy] || "createdAt";
+
     // Add facet for pagination + total
     pipeline.push({
       $facet: {
         data: [
-          { $sort: { [sortBy]: sortOrder === "asc" ? 1 : -1 } },
+          // Stable sorting to keep newest/oldest deterministic across pagination
+          { $sort: { [safeSortField]: direction, _id: direction } },
           { $skip: skip },
           { $limit: perPage },
         ],
