@@ -11,6 +11,8 @@ export interface WhatsAppConfig {
  
 export interface MessageOptions {
   preview_url?: boolean;
+  templateName?: string;
+  languageCode?: string;
 }
 
 export interface MessageResult {
@@ -211,10 +213,23 @@ export interface NotificationResults {
 export interface WhatsAppMessage {
   messaging_product: 'whatsapp';
   to: string;
-  type: 'text' | 'image' | 'document' | 'video' | 'audio';
+  type: 'text' | 'template' | 'image' | 'document' | 'video' | 'audio';
   text?: {
     body: string;
     preview_url?: boolean;
+  };
+  template?: {
+    name: string;
+    language: {
+      code: string;
+    };
+    components?: Array<{
+      type: 'body';
+      parameters: Array<{
+        type: 'text';
+        text: string;
+      }>;
+    }>;
   };
   image?: {
     link: string;
@@ -245,6 +260,8 @@ class WhatsAppNotificationService {
   private whatsappApiUrl: string;
   private accessToken: string;
   private phoneNumberId: string;
+  private templateLanguageCode: string;
+  private defaultCountryCode: string;
   private templates: WhatsAppMessageTemplates;
   private analytics: {
     messagesSent: number;
@@ -256,6 +273,8 @@ class WhatsAppNotificationService {
     this.whatsappApiUrl = config.whatsappApiUrl || 'https://graph.facebook.com/v22.0';
     this.accessToken = config.accessToken;
     this.phoneNumberId = config.phoneNumberId;
+    this.templateLanguageCode = process.env.WHATSAPP_TEMPLATE_LANGUAGE || "en";
+    this.defaultCountryCode = (process.env.WHATSAPP_DEFAULT_COUNTRY_CODE || "234").replace(/\D/g, "");
     
     // Initialize components
     this.templates = new WhatsAppMessageTemplates();
@@ -277,26 +296,56 @@ class WhatsAppNotificationService {
     variables: Record<string, any> = {}, 
     options: MessageOptions = {}
   ): Promise<MessageResult> {
+    let formattedPhone = phoneNumber;
     try {
       this.analytics.totalCalls++;
       
       // Format phone number
-      const formattedPhone = this.formatPhoneNumber(phoneNumber);
+      formattedPhone = this.formatPhoneNumber(phoneNumber);
       
-      // Generate message from template
-      const messageContent = this.templates.generateMessage(templateKey, variables);
-      if (!messageContent) {
+      if (!this.templates.hasTemplate(templateKey)) {
         throw new Error(`Template ${templateKey} not found`);
       }
 
-      // Prepare WhatsApp API payload
+      const variableKeys = this.getTemplateVariables(templateKey);
+      const missingVariables = variableKeys.filter((key) => {
+        const value = variables[key];
+        return value === undefined || value === null || String(value).trim() === "";
+      });
+
+      if (missingVariables.length > 0) {
+        throw new Error(
+          `Missing WhatsApp template variables for "${templateKey}": ${missingVariables.join(", ")}`
+        );
+      }
+
+      const templateParams = variableKeys.map((key) => ({
+        type: "text" as const,
+        text: this.sanitizeTemplateValue(variables[key]),
+      }));
+
+      const templateName = (options.templateName || templateKey).toLowerCase();
+
+      // Prepare WhatsApp Cloud API template payload
       const payload: WhatsAppMessage = {
         messaging_product: "whatsapp",
         to: formattedPhone,
-        type: "text",
-        text: {
-          body: messageContent,
-          preview_url: options.preview_url || false
+        type: "template",
+        template: {
+          name: templateName,
+          language: {
+            code: options.languageCode || this.templateLanguageCode,
+          },
+          ...(templateParams.length > 0
+            ? {
+                components: [
+                  {
+                    type: "body",
+                    parameters: templateParams,
+                  },
+                ],
+              }
+            : {}),
         }
       };
 
@@ -319,16 +368,21 @@ class WhatsAppNotificationService {
         success: true,
         messageId: response.data.messages[0].id,
         phoneNumber: formattedPhone,
-        template: templateKey
+        template: templateName
       };
 
     } catch (error: any) {
       this.analytics.messagesFailed++;
+      const errorInfo = this.getGraphApiErrorDetails(error);
+      console.error(
+        `[WhatsApp] failed to send template "${templateKey}" to "${formattedPhone}"`,
+        errorInfo.logData
+      );
       
       return {
         success: false,
-        error: error.message,
-        phoneNumber,
+        error: errorInfo.message,
+        phoneNumber: formattedPhone,
         template: templateKey
       };
     }
@@ -373,7 +427,9 @@ class WhatsAppNotificationService {
 
     } catch (error: any) {
       this.analytics.messagesFailed++;
-      return { success: false, error: error.message };
+      const errorInfo = this.getGraphApiErrorDetails(error);
+      console.error("[WhatsApp] failed to send media message", errorInfo.logData);
+      return { success: false, error: errorInfo.message };
     }
   }
 
@@ -744,11 +800,102 @@ class WhatsAppNotificationService {
   // ==================== UTILITY METHODS ====================
 
   private formatPhoneNumber(phone: string): string {
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-      return `1${cleaned}`;
+    const input = String(phone || "").trim();
+    if (!input) {
+      throw new Error("Phone number is required");
     }
-    return cleaned;
+
+    const digits = input.replace(/\D/g, "");
+    if (!digits) {
+      throw new Error(`Invalid phone number: "${phone}"`);
+    }
+
+    // E.164 uses country code + national number (without plus in Graph API payload).
+    if (input.startsWith("+")) {
+      return input.slice(1).replace(/\D/g, "");
+    }
+
+    if (input.startsWith("00")) {
+      return input.slice(2).replace(/\D/g, "");
+    }
+
+    if (digits.startsWith(this.defaultCountryCode)) {
+      return digits;
+    }
+
+    // Convert local formats like 080... -> 23480...
+    if (digits.startsWith("0")) {
+      return `${this.defaultCountryCode}${digits.slice(1)}`;
+    }
+
+    // If country code is omitted and number looks local-ish, prepend default country code.
+    if (digits.length <= 10) {
+      return `${this.defaultCountryCode}${digits}`;
+    }
+
+    return digits;
+  }
+
+  private sanitizeTemplateValue(value: unknown): string {
+    return String(value ?? "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  private getTemplateVariables(templateKey: string): string[] {
+    const template = this.templates.getTemplate(templateKey);
+    if (!template) {
+      return [];
+    }
+
+    const variables: string[] = [];
+    const seen = new Set<string>();
+    const regex = /{{(\w+)}}/g;
+    let match: RegExpExecArray | null = null;
+    while ((match = regex.exec(template.template)) !== null) {
+      const key = match[1];
+      if (!seen.has(key)) {
+        variables.push(key);
+        seen.add(key);
+      }
+    }
+
+    return variables;
+  }
+
+  private getGraphApiErrorDetails(error: unknown): {
+    message: string;
+    logData: Record<string, unknown>;
+  } {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const data = error.response?.data as
+        | { error?: { message?: string; code?: number; type?: string; error_data?: unknown } }
+        | undefined;
+
+      const graphMessage = data?.error?.message;
+      const message = graphMessage
+        ? `WhatsApp Graph API error (${status ?? "no-status"}): ${graphMessage}`
+        : `WhatsApp request failed: ${error.message}`;
+
+      return {
+        message,
+        logData: {
+          status,
+          code: data?.error?.code,
+          type: data?.error?.type,
+          graphMessage,
+          graphErrorData: data?.error?.error_data,
+          responseData: error.response?.data,
+        },
+      };
+    }
+
+    if (error instanceof Error) {
+      return { message: error.message, logData: { message: error.message } };
+    }
+
+    return { message: "Unknown WhatsApp send error", logData: { error } };
   }
 
   private formatDate(date: Date | string): string {

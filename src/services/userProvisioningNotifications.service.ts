@@ -40,12 +40,15 @@ export async function notifyUserAdminProvisioned(params: {
         accessToken: token,
         phoneNumberId: phoneId,
       });
-      await wa.sendMessage(phone, "admin_provisioned_account", {
+      const result = await wa.sendMessage(phone, "admin_provisioned_account", {
         firstName: params.firstName,
         email: params.email,
         loginUrl,
         userType: params.userType,
       });
+      if (!result.success) {
+        console.warn("[WhatsApp] admin_provisioned_account failed:", result.error);
+      }
     } catch (e) {
       console.warn("[WhatsApp] admin_provisioned_account failed:", e);
     }
@@ -67,10 +70,13 @@ export async function notifyUserPropertyCreatedByAdmin(params: {
         accessToken: token,
         phoneNumberId: phoneId,
       });
-      await wa.sendMessage(phone, "property_created_by_admin", {
+      const result = await wa.sendMessage(phone, "property_created_by_admin", {
         firstName: params.firstName,
         summaryLine: params.summaryLine,
       });
+      if (!result.success) {
+        console.warn("[WhatsApp] property_created_by_admin failed:", result.error);
+      }
     } catch (e) {
       console.warn("[WhatsApp] property_created_by_admin failed:", e);
     }
