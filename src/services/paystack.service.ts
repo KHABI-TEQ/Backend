@@ -21,10 +21,27 @@ import { Url } from 'url';
 import WhatsAppNotificationService from './whatsAppNotification.service';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 export class PaystackService {
+  /**
+   * Single source of truth: DB `paystack_secret_key` when set, else `PAYSTACK_SECRET_KEY`.
+   * `initializePayment` and `verifyPayment` must use the same key or verification always fails.
+   */
+  static async getPaystackSecretKey(): Promise<string> {
+    const envVal = process.env.PAYSTACK_SECRET_KEY?.trim() || "";
+    const fromDb = await SystemSettingService.getSetting("paystack_secret_key");
+    const dbVal = typeof fromDb?.value === "string" ? fromDb.value.trim() : "";
+   
+    const key = envVal || dbVal;
+    if (!key) {
+      throw new Error(
+        "Paystack secret key missing: set PAYSTACK_SECRET_KEY in environment and/or system setting paystack_secret_key."
+      );
+    }
+    return key;
+  }
+
   /**
    * Initialize a Paystack transaction and store it as pending in DB.
    */
@@ -60,7 +77,7 @@ export class PaystackService {
       meta: metadata,
     });
  
-    const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+    const paystackKey = await PaystackService.getPaystackSecretKey();
 
     // Initialize Paystack payment
     const response = await axios.post(
@@ -79,7 +96,7 @@ export class PaystackService {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+          Authorization: `Bearer ${paystackKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -135,7 +152,7 @@ export class PaystackService {
       meta: metadata,
     });
  
-    const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+    const paystackKey = await PaystackService.getPaystackSecretKey();
 
     // Initialize Paystack payment
     const response = await axios.post(
@@ -156,7 +173,7 @@ export class PaystackService {
       },
       {
         headers: {
-          Authorization: `Bearer ${paystackSK?.value}`,
+          Authorization: `Bearer ${paystackKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -207,6 +224,7 @@ export class PaystackService {
       });
 
       // Charge via Paystack using saved authorization code
+      const paystackKey = await PaystackService.getPaystackSecretKey();
       const response = await axios.post(
         `${PAYSTACK_BASE_URL}/transaction/charge_authorization`,
         {
@@ -218,7 +236,7 @@ export class PaystackService {
         },
         {
           headers: {
-            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+            Authorization: `Bearer ${paystackKey}`,
             'Content-Type': 'application/json',
           },
         }
@@ -259,13 +277,13 @@ export class PaystackService {
   static async verifyPayment(reference: string) {
     try {
 
-      const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+      const paystackKey = await PaystackService.getPaystackSecretKey();
 
       const response = await axios.get(
         `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`,
         {
           headers: {
-            Authorization: `Bearer ${paystackSK?.value}`,
+            Authorization: `Bearer ${paystackKey}`,
           },
         }
       ); 
@@ -291,8 +309,16 @@ export class PaystackService {
         { new: true }
       );
 
-      // Execute type-specific logic (send mail, etc.)
-      const dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
+      // Side effects (subscription activation, emails) must not flip verification to "failed" if Paystack already succeeded
+      let dynamicResponse: unknown = null;
+      try {
+        dynamicResponse = await PaystackService.handleTransactionTypeEffect(updatedTx);
+      } catch (effectErr: any) {
+        console.error(
+          "[Paystack] post-verification effect failed (transaction already updated; user paid if status is success):",
+          effectErr?.message || effectErr
+        );
+      }
  
       return {
         verified: data.status === 'success',
@@ -301,7 +327,10 @@ export class PaystackService {
         reason: data.status !== 'success' ? data.gateway_response : undefined,
       };
     } catch (error: any) {
-      console.error('Paystack verification error:', error?.response?.data || error.message);
+      console.error(
+        "Paystack verification error:",
+        error?.response?.data ?? error?.message ?? error
+      );
       return { verified: false, reason: 'verification_failed' };
     }
   }
@@ -904,19 +933,31 @@ export class PaystackService {
 
         // create auto renewal authorization
         if (snapshot.autoRenew) {
-          await PaymentMethodService.createPaymentMethod({
-            userId: user._id,
-            type: transaction.paymentMode,
-            authorizationCode: transaction.paymentDetails.authorization.authorization_code,
-            last4: transaction.paymentDetails.authorization.last4,
-            expMonth: transaction.paymentDetails.authorization.exp_month,
-            expYear: transaction.paymentDetails.authorization.exp_year,
-            brand: transaction.paymentDetails.authorization.card_type,
-            bank: transaction.paymentDetails.authorization.bank,
-            reusable: transaction.paymentDetails.authorization.reusable,
-            customerCode: transaction.paymentDetails.customer.customer_code,
-            isDefault: true,
-          });
+          const auth = transaction.paymentDetails?.authorization;
+          const customer = transaction.paymentDetails?.customer;
+          if (auth?.authorization_code && customer?.customer_code) {
+            try {
+              await PaymentMethodService.createPaymentMethod({
+                userId: user._id,
+                type: transaction.paymentMode,
+                authorizationCode: auth.authorization_code,
+                last4: auth.last4,
+                expMonth: auth.exp_month,
+                expYear: auth.exp_year,
+                brand: auth.card_type,
+                bank: auth.bank,
+                reusable: auth.reusable,
+                customerCode: customer.customer_code,
+                isDefault: true,
+              });
+            } catch (pmErr) {
+              console.error("[Paystack] createPaymentMethod after subscription failed:", pmErr);
+            }
+          } else {
+            console.warn(
+              "[Paystack] autoRenew is true but Paystack did not return reusable card authorization; skipping saved payment method. user may use non-card channel or missing permissions."
+            );
+          }
         }
         
         // Check if user has ANY past subscription (active or expired), excluding current pending one
@@ -1098,13 +1139,13 @@ export class PaystackService {
  */
   static async getBankList(country = 'Nigeria') {
     try {
-      const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+      const paystackKey = await PaystackService.getPaystackSecretKey();
 
       const response = await axios.get(
         `https://api.paystack.co/bank?country=${country}`,
         {
           headers: {
-            Authorization: `Bearer ${paystackSK?.value}`,
+            Authorization: `Bearer ${paystackKey}`,
           },
         }
       );
@@ -1144,7 +1185,7 @@ export class PaystackService {
     primaryContactPhone?: string;
   }) {
     try {
-      const paystackSK = await SystemSettingService.getSetting("paystack_secret_key");
+      const paystackKey = await PaystackService.getPaystackSecretKey();
 
       const response = await axios.post(
         'https://api.paystack.co/subaccount',
@@ -1159,8 +1200,7 @@ export class PaystackService {
         },
         {
           headers: {
-            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-            // Authorization: `Bearer ${paystackSK?.value}`,
+            Authorization: `Bearer ${paystackKey}`,
             'Content-Type': 'application/json',
           },
         }
