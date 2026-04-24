@@ -33,7 +33,9 @@ export const adminSetupDealSiteForUser = async (
       );
     }
 
-    const dealSite = await DealSiteService.setUpPublicAccess(userId, req.body);
+    const dealSite = await DealSiteService.setUpPublicAccess(userId, req.body, {
+      skipPaymentDetails: true,
+    });
 
     const adminActor = (req as AppRequest & { admin?: { _id: mongoose.Types.ObjectId } }).admin;
     await dealSiteActivityService.logActivity({

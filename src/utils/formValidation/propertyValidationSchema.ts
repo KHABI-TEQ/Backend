@@ -146,4 +146,17 @@ export const propertyValidationSchema = Joi.object({
   agentCommissionAmount: Joi.number().min(0).optional(),
 
   createdByRole: Joi.string().valid("user", "admin").optional(),
+}).custom((value, helpers) => {
+  const pictures = Array.isArray(value.pictures) ? value.pictures.filter(Boolean) : [];
+  const videos = Array.isArray(value.videos) ? value.videos.filter(Boolean) : [];
+
+  if (pictures.length === 0 && videos.length === 0) {
+    return helpers.error("any.custom", {
+      message: "At least one media is required: provide at least one image or one video.",
+    });
+  }
+
+  return value;
+}, "property media presence validation").messages({
+  "any.custom": "{{#message}}",
 });

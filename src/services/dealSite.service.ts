@@ -20,7 +20,8 @@ export class DealSiteService {
    */
   static async setUpPublicAccess(
     userId: string,
-    payload: Partial<IDealSite>
+    payload: Partial<IDealSite>,
+    options?: { skipPaymentDetails?: boolean }
   ): Promise<IDealSiteDoc> {
     const owner = await DB.Models.User.findById(userId).select("userType").lean();
     if (!owner) {
@@ -57,47 +58,19 @@ export class DealSiteService {
       );
     }
 
-    if (!payload.paymentDetails) {
+    const skipPaymentDetails = options?.skipPaymentDetails === true;
+    if (!payload.paymentDetails && !skipPaymentDetails) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         "Bank details are required to set up a Public access page"
       );
     }
 
-    const {
-      businessName,
-      sortCode,
-      accountNumber,
-      primaryContactEmail,
-      primaryContactName,
-      primaryContactPhone,
-    } = payload.paymentDetails;
-
-    // Call Paystack Subaccount API
-    const subAccountResponse = await PaystackService.createSubaccount({
-      businessName: businessName,
-      settlementBank: sortCode,
-      accountNumber: accountNumber,
-      percentageCharge: 15, // or fetch from config if needed
-      primaryContactEmail: primaryContactEmail,
-      primaryContactName: primaryContactName,
-      primaryContactPhone: primaryContactPhone,
-    });
-
-    // Replace bankDetails with Paystack response
-    payload.paymentDetails = {
-      subAccountCode: subAccountResponse.subAccountCode,
-      accountNumber: subAccountResponse.accountNumber,
-      accountName: subAccountResponse.accountName,
-      accountBankName: subAccountResponse.accountBankName,
-      sortCode: sortCode,
-      percentageCharge: subAccountResponse.percentageCharge,
-      isVerified: subAccountResponse.isVerified,
-      active: subAccountResponse.active,
-      primaryContactEmail: primaryContactEmail || null,
-      primaryContactName: primaryContactName || null,
-      primaryContactPhone: primaryContactPhone || null,
-    };
+    if (payload.paymentDetails) {
+      payload.paymentDetails = await DealSiteService.buildSubAccountPaymentDetails(
+        payload.paymentDetails
+      );
+    }
 
     // Save the DealSite with status "paused" (newly created pages start paused)
     const dealSite = await DB.Models.DealSite.create({
@@ -306,35 +279,84 @@ export class DealSiteService {
     }
 
     // ✅ Handle grouped flat fields (branding-seo)
-  if (sectionName === "brandingSeo") {
-    const brandingFields = [
-      "title",
-      "keywords",
-      "description",
-      "logoUrl",
-    ];
+    if (sectionName === "brandingSeo") {
+      const brandingFields = [
+        "title",
+        "keywords",
+        "description",
+        "logoUrl",
+      ];
 
-    for (const key of Object.keys(updates)) {
-      if (!brandingFields.includes(key)) {
-        throw new RouteError(
-          HttpStatusCodes.BAD_REQUEST,
-          `Invalid field '${key}' for branding seo section. Allowed: ${brandingFields.join(", ")}`
-        );
+      for (const key of Object.keys(updates)) {
+        if (!brandingFields.includes(key)) {
+          throw new RouteError(
+            HttpStatusCodes.BAD_REQUEST,
+            `Invalid field '${key}' for branding seo section. Allowed: ${brandingFields.join(", ")}`
+          );
+        }
+
+        // directly update flat field
+        (dealSite as any)[key] = updates[key];
       }
-
-      // directly update flat field
-      (dealSite as any)[key] = updates[key];
+    } else if (sectionName === "paymentDetails") {
+      const mergedPaymentDetails = {
+        ...(dealSite as any).paymentDetails,
+        ...updates,
+      };
+      (dealSite as any).paymentDetails =
+        await DealSiteService.buildSubAccountPaymentDetails(mergedPaymentDetails);
+    } else {
+      // ✅ For nested/grouped sections, merge the updates
+      (dealSite as any)[sectionName] = {
+        ...(dealSite as any)[sectionName],
+        ...updates,
+      };
     }
-  } else {
-    // ✅ For nested/grouped sections, merge the updates
-    (dealSite as any)[sectionName] = {
-      ...(dealSite as any)[sectionName],
-      ...updates,
-    };
-  }
 
     await dealSite.save();
     return dealSite;
+  }
+
+  private static async buildSubAccountPaymentDetails(paymentDetails: any) {
+    const businessName = String(paymentDetails?.businessName || "").trim();
+    const sortCode = String(paymentDetails?.sortCode || "").trim();
+    const accountNumber = String(paymentDetails?.accountNumber || "").trim();
+    const primaryContactEmail = paymentDetails?.primaryContactEmail || null;
+    const primaryContactName = paymentDetails?.primaryContactName || null;
+    const primaryContactPhone = paymentDetails?.primaryContactPhone || null;
+
+    if (!businessName || !sortCode || !accountNumber) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "paymentDetails.businessName, paymentDetails.sortCode and paymentDetails.accountNumber are required"
+      );
+    }
+
+    const subAccountResponse = await PaystackService.createSubaccount({
+      businessName,
+      settlementBank: sortCode,
+      accountNumber,
+      percentageCharge: 15,
+      primaryContactEmail: primaryContactEmail || undefined,
+      primaryContactName: primaryContactName || undefined,
+      primaryContactPhone: primaryContactPhone || undefined,
+    });
+
+    return {
+      ...paymentDetails,
+      subAccountCode: subAccountResponse.subAccountCode,
+      accountNumber: subAccountResponse.accountNumber,
+      businessName,
+      accountName: subAccountResponse.accountName,
+      accountBankName: subAccountResponse.accountBankName,
+      sortCode,
+      percentageCharge: subAccountResponse.percentageCharge,
+      isVerified: subAccountResponse.isVerified,
+      active: subAccountResponse.active,
+      primaryContactEmail,
+      primaryContactName,
+      primaryContactPhone,
+    };
   }
 
 
