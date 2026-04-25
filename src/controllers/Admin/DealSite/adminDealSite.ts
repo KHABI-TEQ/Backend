@@ -5,6 +5,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { dealSiteActivityService } from "../../../services/dealSiteActivity.service";
 import { PaystackService } from "../../../services/paystack.service";
+import { reconcileRunningDealSitesWithoutActiveSubscription } from "../../../services/dealSiteReconciliation.service";
 
 
 /**
@@ -404,6 +405,26 @@ export const adminGetDealSiteBankList = async (
     const result = await PaystackService.getBankList();
     return res.status(HttpStatusCodes.OK).json({
       success: true,
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Admin - Run DealSite subscription reconciliation immediately
+ */
+export const adminRunDealSiteSubscriptionReconciliation = async (
+  _req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const result = await reconcileRunningDealSitesWithoutActiveSubscription();
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Practitioner Page subscription reconciliation completed successfully",
       data: result,
     });
   } catch (err) {

@@ -36,7 +36,7 @@ import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSe
 import { createPlanFeature, createSubscriptionPlan, deletePlanFeature, deleteSubscriptionPlan, getAllPlanFeatures, getAllSubscriptionPlans, getPlanFeature, getSubscriptionPlan, updatePlanFeature, updateSubscriptionPlan } from "../controllers/Admin/Settings/subscriptionPlansActionController";
 import { cancelSubscription, fetchUserSubscriptions, getSubscriptionDetails, updateSubscription } from "../controllers/Admin/Settings/subscriptionActionController";
 import { deletePreference } from "../controllers/Admin/preference/deletePreference";
-import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteActivities, adminGetDealSiteBankList, adminGetDealSiteBySlug, adminGetDealSiteReports, adminGetDealSiteStats, adminPauseDealSite, adminPutOnHoldDealSite } from "../controllers/Admin/DealSite/adminDealSite";
+import { adminActivateDealSite, adminGetAllDealSites, adminGetDealSiteActivities, adminGetDealSiteBankList, adminGetDealSiteBySlug, adminGetDealSiteReports, adminGetDealSiteStats, adminPauseDealSite, adminPutOnHoldDealSite, adminRunDealSiteSubscriptionReconciliation } from "../controllers/Admin/DealSite/adminDealSite";
 import { deleteReferral, fetchAllReferrals, getReferralDetails, getReferralStats, updateReferral } from "../controllers/Admin/ExtralPages/referralLogs";
 import { adminAddSubscription, adminChangeSubscriptionStatus, adminDeleteSubscription, adminGetAllSubscriptions } from "../controllers/Admin/Settings/emailSubscriptionActionController";
 import { adminCreatePromotion, adminDeletePromotion, adminGetPromotionAnalytics, adminGetPromotionById, adminListPromotions, adminUpdatePromotion, adminUpdatePromotionStatus } from "../controllers/Admin/Campaign/adminPromotionController";
@@ -55,7 +55,12 @@ import {
   getTransactionRegistrationStats,
   getTransactionRegistrationById,
 } from "../controllers/Admin/TransactionRegistration/adminTransactionRegistration";
-import { registerUserByAdmin } from "../controllers/Admin/Account/registerUserByAdmin";
+import {
+  bulkRegisterAgentsByAdmin,
+  bulkRegisterDevelopersByAdmin,
+  bulkRegisterLandlordsByAdmin,
+  registerUserByAdmin
+} from "../controllers/Admin/Account/registerUserByAdmin";
 import { adminSetupDealSiteForUser } from "../controllers/Admin/Account/adminDealSiteSetup";
 import { postPropertyAsAdmin } from "../controllers/Admin/Property/postProperty";
 import { adminSuggestPropertyForUser } from "../controllers/Admin/ai/adminSuggestProperty";
@@ -190,6 +195,9 @@ AdminRouter.post("/preferences/submitMatched", selectMatchedPreferenceProperties
 
 // USER ONBOARDING (admin-provisioned accounts & DealSite / AI on behalf)
 AdminRouter.post("/users/register", registerUserByAdmin);
+AdminRouter.post("/users/bulk-register/agents", upload.single("file"), bulkRegisterAgentsByAdmin);
+AdminRouter.post("/users/bulk-register/developers", upload.single("file"), bulkRegisterDevelopersByAdmin);
+AdminRouter.post("/users/bulk-register/landowners", upload.single("file"), bulkRegisterLandlordsByAdmin);
 AdminRouter.get("/users/:userId/properties", getAdminUserProperties);
 AdminRouter.post("/users/:userId/deal-site/setup", adminSetupDealSiteForUser);
 AdminRouter.post("/users/:userId/ai/suggest-property", adminSuggestPropertyForUser);
@@ -240,6 +248,7 @@ AdminRouter.get("/transaction-registrations/:registrationId", getTransactionRegi
 AdminRouter.get("/deal-sites/getAll", adminGetAllDealSites);
 AdminRouter.get("/deal-sites/stats", adminGetDealSiteStats);
 AdminRouter.get("/deal-sites/bank-list", adminGetDealSiteBankList);
+AdminRouter.post("/deal-sites/reconcile-subscriptions", adminRunDealSiteSubscriptionReconciliation);
 AdminRouter.get("/deal-sites/:publicSlug", adminGetDealSiteBySlug);
 AdminRouter.get("/deal-sites/:publicSlug/reports", adminGetDealSiteReports);
 AdminRouter.get("/deal-sites/:publicSlug/logs", adminGetDealSiteActivities);

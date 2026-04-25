@@ -65,6 +65,70 @@ export async function notifyAgentOfInspectionRequest(params: {
 }
 
 /**
+ * CC the true property owner when an Agent DealSite receives an inspection request
+ * for a property marketed on behalf of another owner.
+ */
+export async function notifyTrueOwnerCcOfInspectionRequest(params: {
+  inspectionId: string;
+  propertyId: any;
+  trueOwnerId: string;
+  marketerName: string;
+  buyerName: string;
+  inspectionDate: Date;
+  inspectionTime: string;
+}): Promise<void> {
+  const {
+    inspectionId,
+    propertyId,
+    trueOwnerId,
+    marketerName,
+    buyerName,
+    inspectionDate,
+    inspectionTime,
+  } = params;
+  const property = await DB.Models.Property.findById(propertyId).select("location").lean();
+  const owner = await DB.Models.User.findById(trueOwnerId).select("email firstName lastName").lean();
+  if (!owner?.email) return;
+
+  const location = property
+    ? getPropertyTitleFromLocation(property.location) || "Property"
+    : "Property";
+
+  const title = "Inspection request update (CC)";
+  const message = `${buyerName} requested an inspection for ${location} via ${marketerName}'s DealSite.`;
+
+  await notificationService.createNotification({
+    user: trueOwnerId,
+    title,
+    message,
+    type: "inspection",
+    meta: {
+      inspectionId,
+      propertyId: propertyId?.toString?.() ?? "",
+      status: "pending_approval",
+      role: "true_owner_cc",
+    },
+  });
+
+  const link = getClientDashboardUrl();
+  const html = generalEmailLayout(`
+    <p>Hello ${(owner as any).firstName || (owner as any).lastName || "there"},</p>
+    <p>This is to inform you that <strong>${buyerName}</strong> requested an inspection for your property at <strong>${location}</strong>.</p>
+    <p>The request was submitted through <strong>${marketerName}</strong>'s DealSite (accepted marketer).</p>
+    <p>Preferred date: ${inspectionDate} at ${inspectionTime}</p>
+    <p>You are copied for visibility while the marketer handles buyer-facing communication.</p>
+    <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Open dashboard</a></p>
+  `);
+
+  await sendEmail({
+    to: owner.email,
+    subject: "Inspection request update for your property",
+    html,
+    text: message,
+  });
+}
+
+/**
  * Notify buyer that agent accepted the request and send payment link.
  */
 export async function notifyBuyerPaymentLink(params: {

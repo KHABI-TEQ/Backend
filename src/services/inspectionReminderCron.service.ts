@@ -90,6 +90,10 @@ async function sendReminderPair(params: {
   sellerEmail: string;
   sellerName: string;
   sellerUserId: string;
+  ccOwnerEmail?: string;
+  ccOwnerName?: string;
+  ccOwnerUserId?: string;
+  marketerName?: string;
   propertySummary: string;
   inspectionMode: string;
   field: "reminder24hSentAt" | "reminder3hSentAt" | "reminder1hSentAt";
@@ -103,6 +107,10 @@ async function sendReminderPair(params: {
     sellerEmail,
     sellerName,
     sellerUserId,
+    ccOwnerEmail,
+    ccOwnerName,
+    ccOwnerUserId,
+    marketerName,
     propertySummary,
     inspectionMode,
     field,
@@ -166,6 +174,44 @@ async function sendReminderPair(params: {
       type: "inspection",
       meta: { inspectionId, reminderType: `${hoursBefore}h` },
     });
+
+    if (ccOwnerEmail && ccOwnerUserId) {
+      const ccName = ccOwnerName || "there";
+      const sellerLabel = marketerName || sellerName;
+      const ownerHtml = generalEmailLayout(`
+        <p>Hello ${ccName},</p>
+        <p>This is a CC reminder for an inspection on your property.</p>
+        <ul>
+          <li><strong>Property:</strong> ${propertySummary}</li>
+          <li><strong>Buyer:</strong> ${buyerName}</li>
+          <li><strong>When:</strong> ${whenLabel}</li>
+          <li><strong>Mode:</strong> ${modeLabel}</li>
+          <li><strong>Marketed by:</strong> ${sellerLabel}</li>
+        </ul>
+      `);
+      await sendEmail({
+        to: ccOwnerEmail,
+        subject:
+          hoursBefore === 24
+            ? `CC reminder: upcoming inspection tomorrow — ${propertySummary}`
+            : `CC reminder: inspection in ${hoursBefore} hour(s) — ${propertySummary}`,
+        html: ownerHtml,
+        text: `CC inspection reminder (${hoursBefore}h): ${propertySummary} with ${buyerName} at ${whenLabel}.`,
+      });
+
+      await notificationService.createNotification({
+        user: ccOwnerUserId,
+        title:
+          hoursBefore === 24
+            ? "Inspection reminder (CC) — 24 hours"
+            : hoursBefore === 3
+              ? "Inspection reminder (CC) — 3 hours"
+              : "Inspection reminder (CC) — 1 hour",
+        message: `${buyerName} — ${propertySummary} — ${whenLabel} (${modeLabel}). Marketed by ${sellerLabel}.`,
+        type: "inspection",
+        meta: { inspectionId, reminderType: `${hoursBefore}h`, role: "true_owner_cc" },
+      });
+    }
   } catch (err) {
     await rollbackReminderSlot(inspectionId, field);
     throw err;
@@ -192,7 +238,7 @@ export async function processInspectionReminders(): Promise<{
   })
     .populate("requestedBy", "email fullName")
     .populate("owner", "email firstName lastName fullName")
-    .populate("propertyId", "location")
+    .populate("propertyId", "location owner ownerModel")
     .lean();
 
   let sent24h = 0;
@@ -229,6 +275,27 @@ export async function processInspectionReminders(): Promise<{
         seller.email ||
         "there";
       const sellerUserId = String(seller._id ?? inv.owner);
+      const sellerIdStr = String(seller._id ?? inv.owner);
+      const propertyOwnerId =
+        inv.propertyId?.owner != null ? String(inv.propertyId.owner) : "";
+      let ccOwnerEmail: string | undefined;
+      let ccOwnerName: string | undefined;
+      let ccOwnerUserId: string | undefined;
+      if (propertyOwnerId && propertyOwnerId !== sellerIdStr) {
+        const trueOwner = await DB.Models.User.findById(propertyOwnerId)
+          .select("email fullName firstName lastName")
+          .lean();
+        if (trueOwner?.email) {
+          ccOwnerEmail = trueOwner.email;
+          ccOwnerName =
+            (trueOwner as any).fullName ||
+            [(trueOwner as any).firstName, (trueOwner as any).lastName]
+              .filter(Boolean)
+              .join(" ") ||
+            trueOwner.email;
+          ccOwnerUserId = propertyOwnerId;
+        }
+      }
       const propertySummary =
         getPropertyTitleFromLocation(inv.propertyId?.location) || "Your property";
 
@@ -245,6 +312,10 @@ export async function processInspectionReminders(): Promise<{
           sellerEmail: seller.email,
           sellerName,
           sellerUserId,
+          ccOwnerEmail,
+          ccOwnerName,
+          ccOwnerUserId,
+          marketerName: sellerName,
           propertySummary,
           inspectionMode: inv.inspectionMode || "in_person",
           field: "reminder24hSentAt",
@@ -263,6 +334,10 @@ export async function processInspectionReminders(): Promise<{
           sellerEmail: seller.email,
           sellerName,
           sellerUserId,
+          ccOwnerEmail,
+          ccOwnerName,
+          ccOwnerUserId,
+          marketerName: sellerName,
           propertySummary,
           inspectionMode: inv.inspectionMode || "in_person",
           field: "reminder3hSentAt",
@@ -281,6 +356,10 @@ export async function processInspectionReminders(): Promise<{
           sellerEmail: seller.email,
           sellerName,
           sellerUserId,
+          ccOwnerEmail,
+          ccOwnerName,
+          ccOwnerUserId,
+          marketerName: sellerName,
           propertySummary,
           inspectionMode: inv.inspectionMode || "in_person",
           field: "reminder1hSentAt",

@@ -9,6 +9,7 @@ import { kebabToTitleCase } from '../utils/helper';
 import { sendTransactionConfirmationRequestEmails } from '../services/transactionConfirmationCron.service';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
+import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
 
 // Example DB connect (adjust for your project setup)
 mongoose.connect(process.env.MONGO_URI as string);
@@ -133,6 +134,18 @@ const expireSubscriptions = async () => {
     console.log('[CRON] Expire subscription job completed');
   } catch (err) {
     console.error('[CRON] Error expiring subscriptions:', err);
+  }
+};
+
+// 2b. Reconcile running DealSites without active subscription
+const reconcileDealSiteSubscriptionState = async () => {
+  try {
+    const result = await reconcileRunningDealSitesWithoutActiveSubscription();
+    console.log(
+      `[CRON] DealSite reconciliation completed: scanned=${result.scanned}, paused=${result.paused}, skippedNoOwner=${result.skippedNoOwner}, skippedBelowPropertyThreshold=${result.skippedBelowPropertyThreshold}, skippedHasActiveSubscription=${result.skippedHasActiveSubscription}`
+    );
+  } catch (err) {
+    console.error('[CRON] Error reconciling DealSite subscription state:', err);
   }
 };
 
@@ -377,6 +390,7 @@ const autoRenewSubscriptionsCronJob = async () => {
 cron.schedule('0 0 * * *', () => {
   console.log('[CRON] Midnight job running...');
   expireSubscriptions();
+  reconcileDealSiteSubscriptionState();
   notifyExpiringSubscriptions();
 });
 

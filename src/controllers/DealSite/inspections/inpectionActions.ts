@@ -6,7 +6,10 @@ import { Types } from "mongoose";
 import { InspectionLogService } from "../../../services/inspectionLog.service";
 import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
-import { notifyAgentOfInspectionRequest } from "../../../services/inspectionWorkflow.service";
+import {
+  notifyAgentOfInspectionRequest,
+  notifyTrueOwnerCcOfInspectionRequest,
+} from "../../../services/inspectionWorkflow.service";
 
 /** Public DealSite may only book inspection for properties this site’s operator owns or markets (RTM). */
 function propertyAllowedOnDealSite(property: any, dealSiteCreatedBy: unknown): boolean {
@@ -205,6 +208,11 @@ export const submitInspectionRequest = async (
       });
 
       try {
+        const marketerName =
+          (dealSite as any).title ||
+          (dealSite as any).publicSlug ||
+          "the marketer";
+
         await notifyAgentOfInspectionRequest({
           inspectionId: inspection._id.toString(),
           propertyId: property._id,
@@ -215,6 +223,21 @@ export const submitInspectionRequest = async (
           inspectionTime: inspection.inspectionTime,
           amount: 0,
         });
+
+        const trueOwnerId =
+          property?.owner != null ? String(property.owner) : "";
+        const dealSiteOwnerIdStr = dealSiteOwnerId.toString();
+        if (trueOwnerId && trueOwnerId !== dealSiteOwnerIdStr) {
+          await notifyTrueOwnerCcOfInspectionRequest({
+            inspectionId: inspection._id.toString(),
+            propertyId: property._id,
+            trueOwnerId,
+            marketerName,
+            buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
+            inspectionDate: inspection.inspectionDate,
+            inspectionTime: inspection.inspectionTime,
+          });
+        }
       } catch (e) {
         console.warn("[DealSite inspection] Notify agent failed:", e);
       }
