@@ -1,6 +1,5 @@
 import cron from 'node-cron';
 import { DB } from '../controllers';
-import mongoose from 'mongoose';
 import { generalEmailLayout } from './emailTemplates/emailLayout';
 import { generateSubscriptionExpiredEmail, generateSubscriptionExpiringSoonEmail, generateSubscriptionFailureEmail, generateAutoRenewReceiptEmail } from './emailTemplates/subscriptionMails';
 import sendEmail from './send.email';
@@ -10,10 +9,6 @@ import { sendTransactionConfirmationRequestEmails } from '../services/transactio
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
 import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
-
-// Example DB connect (adjust for your project setup)
-mongoose.connect(process.env.MONGO_URI as string);
-
 
 // ───────────────────────────────
 // 1. DELETE OLD PENDING ITEMS
