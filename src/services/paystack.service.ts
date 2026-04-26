@@ -18,8 +18,8 @@ import { getPropertyTitleFromLocation } from '../utils/helper';
 import { BookingLogService } from './bookingLog.service';
 import { generateSuccessfulBookingReceiptForBuyer, generateSuccessfulBookingReceiptForSeller } from '../common/emailTemplates/bookingMails';
 import { Url } from 'url';
-import WhatsAppNotificationService from './whatsAppNotification.service';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from './whatsappClient.service';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -483,15 +483,6 @@ export class PaystackService {
 
           if (transaction.status === "success") {
 
-            // 1. Configuration for the service
-            const whatsappConfig = {
-              accessToken: process.env.WHATSAPP_ACCESS_TOKEN,
-              phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID
-            };
-
-            // 2. Instantiate the service
-            const whatsappService = new WhatsAppNotificationService(whatsappConfig);
-
             // mark the property as unavailable
             const propertyId = bookingRequest.propertyId._id;
 
@@ -544,33 +535,35 @@ export class PaystackService {
                 meta: { propertyTitle, bookedPrice },
             });
 
-             const bookingData = {
-                booking: {
-                  id: bookingRequest._id.toString(),
-                  dateTime: bookingRequest.bookingDetails.checkInDateTime
-                },
-                user: {
-                  name: buyer.fullName,
-                  phone: buyer.whatsAppNumber,
-                },
-                agent: {
-                  name: ownerData.firstName,
-                  phone: buyer.phoneNumber,
-                },
-                property: {
-                  name: propertyTitle,
-                  address: propertyTitle
-                },
-              };
-               
-            // const result = await whatsappService.sendBookingConfirmation(bookingData);
-            // if (result.success) {
-            //   console.log('Booking confirmation sent successfully!');
-            //   result.results.forEach(r => console.log(`  Type: ${r.type}, Success: ${r.success}, Message ID: ${r.messageId}`));
-            // } else {
-            //   console.error(`Failed to send booking confirmation: ${result.error}`);
-            //   result.results.forEach(r => console.error(`  Type: ${r.type}, Error: ${r.error}`));
-            // }
+            const propertyAddress =
+              [property?.location?.streetAddress, property?.location?.area, property?.location?.state]
+                .filter(Boolean)
+                .join(", ") || propertyTitle;
+            const buyerLine = (buyer.whatsAppNumber || buyer.phoneNumber || "") as string;
+            const ownerLine = (ownerData.phoneNumber || "") as string;
+            if (
+              isLikelyE164CapableLocalPhone(buyerLine) &&
+              isLikelyE164CapableLocalPhone(ownerLine)
+            ) {
+              void runWhatsapp("shortlet_booking_confirmation", async (wa) => {
+                const agentName = [ownerData.firstName, ownerData.lastName].filter(Boolean).join(" ") || "Host";
+                await wa.sendBookingConfirmation({
+                  booking: {
+                    id: String(bookingRequest._id),
+                    dateTime: bookingRequest.bookingDetails.checkInDateTime,
+                    userPreferences: "",
+                    propertyName: propertyTitle,
+                  } as any,
+                  user: {
+                    name: buyer.fullName,
+                    phone: buyerLine,
+                    id: String(buyer._id),
+                  },
+                  agent: { name: agentName, phone: ownerLine, id: String(ownerData._id) },
+                  property: { name: propertyTitle, address: propertyAddress },
+                });
+              });
+            }
 
             const buyerEmailHtml = generateSuccessfulBookingReceiptForBuyer({
                 buyerName: buyer.fullName,

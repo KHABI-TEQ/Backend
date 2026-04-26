@@ -8,6 +8,8 @@ import { preferenceValidationSchema } from "../../../validators/preference.valid
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
+import { preferencePayloadToUserPreferences } from "../../../utils/preferenceUserPreferencesForWhatsapp";
 
 export const postPreference = async (
   req: AppRequest,
@@ -88,6 +90,28 @@ export const postPreference = async (
       text: userGeneralMail,
       html: userGeneralMail,
     });
+
+    const contactPhone = (
+      (buyer as any).whatsAppNumber ||
+      (buyer as any).phoneNumber ||
+      phoneNumber ||
+      ""
+    )
+      .toString()
+      .replace(/\s/g, "");
+    if (isLikelyE164CapableLocalPhone(contactPhone)) {
+      void runWhatsapp("preference_submitted_whatsapp", async (wa) => {
+        const prefs = preferencePayloadToUserPreferences(preferenceData as any);
+        await wa.sendPreferencesSaved({
+          user: {
+            name: (buyer as any).fullName || "there",
+            phone: contactPhone,
+            id: String(buyer._id),
+          },
+          preferences: prefs,
+        });
+      });
+    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

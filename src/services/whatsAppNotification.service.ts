@@ -110,6 +110,17 @@ export interface ReminderData {
   property: Property;
 }
 
+export interface InspectionTimeReminderData {
+  user: User;
+  propertyName: string;
+  whenLabel: string;
+  modeLabel: string;
+  /** e.g. "24 hours", "3 hours", "1 hour" */
+  timeUntil: string;
+  otherPartyName: string;
+  otherPartyPhone: string;
+}
+
 // ==================== PROPERTY INTERFACES ====================
 
 export interface UserPreferences {
@@ -152,6 +163,12 @@ export interface PriceDropData {
 export interface PreferencesData {
   user: User;
   preferences: UserPreferences;
+}
+
+export interface NoMatchesPreferenceData {
+  user: User;
+  /** Link line for the app or site (e.g. https://… or short label if URL missing). */
+  appLink: string;
 }
 
 // ==================== AGENT & COMMUNICATION INTERFACES ====================
@@ -548,18 +565,44 @@ class WhatsAppNotificationService {
     const templateKey = reminderType === '2h' ? 'viewing_reminder_2h' : 'viewing_reminder_24h';
     
     try {
-      const result = await this.sendMessage(user.phone, templateKey, {
+      const time = this.formatTime(booking.dateTime);
+      const baseVars: Record<string, string> = {
         userName: user.name,
         propertyName: property.name,
-        propertyAddress: property.address,
-        date: this.formatDate(booking.dateTime),
-        time: this.formatTime(booking.dateTime),
+        time,
         agentName: agent.name,
         agentPhone: agent.phone
-      });
+      };
+      if (reminderType === "24h") {
+        (baseVars as any).propertyAddress = property.address || property.name;
+      }
+      const result = await this.sendMessage(user.phone, templateKey, baseVars as any);
 
       return result;
 
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Property inspection: 24h / 3h / 1h before scheduled time (same window as email cron).
+   */
+  async sendInspectionTimeReminder(
+    data: InspectionTimeReminderData
+  ): Promise<MessageResult> {
+    const { user, propertyName, whenLabel, modeLabel, timeUntil, otherPartyName, otherPartyPhone } =
+      data;
+    try {
+      return await this.sendMessage(user.phone, "inspection_time_reminder", {
+        userName: user.name,
+        propertyName,
+        whenLabel,
+        modeLabel,
+        timeUntil,
+        otherPartyName,
+        otherPartyPhone,
+      });
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -682,6 +725,21 @@ class WhatsAppNotificationService {
 
       return result;
 
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * When automatic matching finds no properties (mirrors the no-match email).
+   */
+  async sendPreferenceNoMatchesYet(data: NoMatchesPreferenceData): Promise<MessageResult> {
+    const { user, appLink } = data;
+    try {
+      return await this.sendMessage(user.phone, "no_matches_yet", {
+        userName: user.name,
+        appLink: appLink || "Khabi-Teq app or website",
+      });
     } catch (error: any) {
       return { success: false, error: error.message };
     }

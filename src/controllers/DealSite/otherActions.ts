@@ -8,6 +8,7 @@ import { generateDealSiteContactOwnerMail, generateDealSiteContactUserMail } fro
 import sendEmail from "../../common/send.email";
 import { generalTemplate } from "../../common/email.template";
 import { RouteError } from "../../common/classes";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
 
 /**
  * Bulk update a DealSite (handles multiple sections in one request)
@@ -229,7 +230,7 @@ export const createDealSiteContactUs = async (
 
     // fetch the owner email and name
     const ownerDetails = await DB.Models.User.findById(dealSite.createdBy)
-      .select("firstName lastName email")
+      .select("firstName lastName email phoneNumber")
       .lean();
 
     if (!ownerDetails) {
@@ -324,6 +325,21 @@ export const createDealSiteContactUs = async (
         html: sellerEmail,
         text: sellerEmail,
     });
+
+    const inquirerLine = (whatsAppNumber || phoneNumber || "").toString().replace(/\s/g, "");
+    const ownerLine = (ownerDetails.phoneNumber || "").toString().replace(/\s/g, "");
+    if (isLikelyE164CapableLocalPhone(inquirerLine) && isLikelyE164CapableLocalPhone(ownerLine)) {
+      void runWhatsapp("dealsite_contact_inquiry", async (wa) => {
+        await wa.sendMessage(ownerLine, "property_inquiry", {
+          agentName: ownerDetails.firstName || "there",
+          userName: name,
+          userPhone: inquirerLine,
+          propertyName: subject || "Contact form",
+          propertyLocation: companyName,
+          inquiryMessage: message,
+        });
+      });
+    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

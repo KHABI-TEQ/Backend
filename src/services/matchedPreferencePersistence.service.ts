@@ -7,6 +7,9 @@ import {
 } from "../common/emailTemplates/preference";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { resolveMatchedPropertiesEmailBaseUrl } from "../utils/matchedPropertiesDealSiteUrl";
+import { calculateDetailedMatchScore } from "../controllers/Admin/preference/findMatchProerty";
+import { getPropertyTitleFromLocation } from "../utils/helper";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 
 /**
  * Create or merge MatchedPreferenceProperty and optionally notify the buyer (same behavior as admin submit-matches).
@@ -41,6 +44,7 @@ export async function persistMatchedPreferenceProperties(params: {
   let matchedRecord: any;
   let wasUpdated = false;
   let addedCountForEmail = matchedPropertyIds.length;
+  let newIdsThisRun: Types.ObjectId[] = [];
 
   const existingRecord = await DB.Models.MatchedPreferenceProperty.findOne({
     preference: preferenceId,
@@ -52,6 +56,7 @@ export async function persistMatchedPreferenceProperties(params: {
       (id) =>
         !existingRecord.matchedProperties.some((existingId) => existingId.equals(id)),
     );
+    newIdsThisRun = newUniqueIds;
 
     addedCountForEmail = newUniqueIds.length;
 
@@ -70,6 +75,7 @@ export async function persistMatchedPreferenceProperties(params: {
       matchedProperties: matchedPropertyIds,
       notes: notes || "",
     });
+    newIdsThisRun = [...matchedPropertyIds];
   }
 
   const shouldEmail =
@@ -156,6 +162,63 @@ export async function persistMatchedPreferenceProperties(params: {
     html: mailBody,
     text: mailBody,
   });
+
+  // WhatsApp (optional): new listing(s) for this run
+  try {
+    const phone = String((preference.contactInfo as any)?.phoneNumber || "").replace(/\s/g, "");
+    if (isLikelyE164CapableLocalPhone(phone) && newIdsThisRun.length > 0) {
+      const pre = preference as any;
+      const userName = (pre.contactInfo as any)?.fullName || (pre.contactInfo as any)?.contactPerson || "there";
+      const newPropDocs = newIdsThisRun
+        .map((id) => byId.get(String(id)))
+        .filter(Boolean) as any[];
+      const client = (process.env.CLIENT_LINK || process.env.APP_URL || "https://app.khabiteq.com").replace(/\/$/, "");
+      const bookingLink = matchLink;
+
+      await runWhatsapp("preference_match_whatsapp", async (wa) => {
+        if (newIdsThisRun.length === 1 && newPropDocs[0]) {
+          const p = newPropDocs[0];
+          const title = getPropertyTitleFromLocation(p.location) || p.propertyType || "Property";
+          const loc =
+            p.location
+              ? [p.location.localGovernment, p.location.state].filter(Boolean).join(", ")
+              : "Nigeria";
+          const score = Math.round(calculateDetailedMatchScore(p, pre) * 100) / 100;
+          await wa.sendNewListingAlert({
+            user: { name: userName, phone, id: String(preference.buyer) },
+            property: {
+              id: String(p._id),
+              name: title,
+              location: loc,
+              price: p.price,
+              bedrooms: p.additionalFeatures?.noOfBedroom,
+              bathrooms: p.additionalFeatures?.noOfBathroom,
+            } as any,
+            matchScore: Math.min(100, Math.max(50, score)),
+          });
+        } else {
+          const list = newPropDocs.slice(0, 3).map((p: any) => ({
+            name: getPropertyTitleFromLocation(p.location) || p.propertyType || "Property",
+            location: p.location
+              ? [p.location.localGovernment, p.location.state].filter(Boolean).join(", ")
+              : "Nigeria",
+            price: p.price,
+            bedrooms: p.additionalFeatures?.noOfBedroom,
+            bathrooms: p.additionalFeatures?.noOfBathroom,
+            matchScore: calculateDetailedMatchScore(p, pre) / 100,
+          }));
+          if (list.length) {
+            await wa.sendPropertyMatches({
+              user: { name: userName, phone, id: String(preference.buyer) },
+              matchedProperties: list,
+            });
+          }
+        }
+      });
+    }
+  } catch (e) {
+    console.warn("[matchedPreference] WhatsApp match notify failed:", e);
+  }
 
   return { matchedRecord, wasUpdated };
 }

@@ -6,6 +6,7 @@ import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { noMatchesPreferenceFeedbackMail } from "../common/emailTemplates/preference";
 import { preferencePhysicalTypeMatches } from "../utils/preferencePhysicalTypeMatch";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 
 const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
   buy: "sell",
@@ -210,7 +211,8 @@ async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void>
     (preference.contactInfo as any)?.contactPerson ||
     "there";
 
-  const clientBase = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
+  const clientBase = (process.env.CLIENT_LINK || process.env.APP_URL || "")
+    .replace(/\/$/, "");
   const submitPreferenceUrl = clientBase ? `${clientBase}/preferences/submit` : undefined;
 
   const inner = noMatchesPreferenceFeedbackMail({
@@ -228,6 +230,28 @@ async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void>
     html,
     text,
   });
+
+  let phone: string | undefined = (preference.contactInfo as any)?.phoneNumber;
+  if (!phone && preference.buyer) {
+    const b = await DB.Models.Buyer.findById(preference.buyer)
+      .select("phoneNumber whatsAppNumber")
+      .lean();
+    phone = (b as any)?.whatsAppNumber || (b as any)?.phoneNumber;
+  }
+  const phoneLine = String(phone || "").replace(/\s/g, "");
+  const appLink = clientBase || "Khabi-Teq app or website";
+
+  if (isLikelyE164CapableLocalPhone(phoneLine)) {
+    void runWhatsapp("preference_no_match", async (wa) => {
+      const r = await wa.sendPreferenceNoMatchesYet({
+        user: { name: buyerName, phone: phoneLine, id: String(preference.buyer || "") },
+        appLink,
+      });
+      if (!r.success) {
+        console.warn("[autoPairPreference] no-match WhatsApp failed:", r.error);
+      }
+    });
+  }
 }
 
 /**

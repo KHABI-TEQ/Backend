@@ -4,6 +4,7 @@ import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import notificationService from "./notification.service";
 import { getPropertyTitleFromLocation } from "../utils/helper";
 import { getClientDashboardUrl } from "../utils/clientAppUrl";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 
 /**
  * Notify agent (property owner) that a buyer submitted an inspection request.
@@ -357,8 +358,9 @@ export async function getInspectionFrontendBaseUrl(inspection: {
  */
 export async function sendInspectionRateReportEmailToBuyer(inspectionId: string): Promise<void> {
   const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
-    .populate("requestedBy")
-    .populate("propertyId")
+    .populate("requestedBy", "fullName email phoneNumber whatsAppNumber")
+    .populate("propertyId", "title location")
+    .populate("owner", "firstName lastName fullName email phoneNumber")
     .lean();
   if (!inspection) return;
   const inv = inspection as any;
@@ -371,6 +373,10 @@ export async function sendInspectionRateReportEmailToBuyer(inspectionId: string)
   const rateLink = `${baseUrl}/inspection/rate?inspectionId=${inspectionId}`;
   const reportLink = `${baseUrl}/report-agent?inspectionId=${inspectionId}`;
   const buyerName = buyer.fullName || buyer.email || "there";
+  const property = inv.propertyId;
+  const propertyName =
+    property?.title || getPropertyTitleFromLocation(property?.location) || "the property";
+  const owner = inv.owner;
 
   const html = generalEmailLayout(`
     <p>Hello ${buyerName},</p>
@@ -386,4 +392,28 @@ export async function sendInspectionRateReportEmailToBuyer(inspectionId: string)
     html,
     text: `Rate your experience: ${rateLink}\nTo report the agent: ${reportLink}`,
   });
+
+  const buyerLine = String(buyer.whatsAppNumber || buyer.phoneNumber || "").replace(
+    /\s/g,
+    ""
+  );
+  const agentPhone = String((owner as any)?.phoneNumber || "").replace(/\s/g, "");
+  if (
+    isLikelyE164CapableLocalPhone(buyerLine) &&
+    isLikelyE164CapableLocalPhone(agentPhone) &&
+    owner
+  ) {
+    const agentName =
+      [owner.firstName, owner.lastName].filter(Boolean).join(" ") ||
+      owner.fullName ||
+      "your agent";
+    void runWhatsapp("inspection_viewing_completed", async (wa) => {
+      await wa.sendMessage(buyerLine, "viewing_completed", {
+        userName: buyerName,
+        propertyName,
+        agentName,
+        agentPhone,
+      });
+    });
+  }
 }

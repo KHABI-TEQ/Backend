@@ -10,7 +10,8 @@ import { generateBookingRequestReviewedForBuyer } from "../../common/emailTempla
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
- 
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
+
 export const fetchUserBookings = async (
   req: AppRequest,
   res: Response,
@@ -219,7 +220,7 @@ export const respondToBookingRequest = async (
 
     const buyer = booking.bookedBy as any;
     const property = booking.propertyId as any;
-    const onwerData = property.owner as any;
+    const ownerData = property.owner as any;
     const expectedAmount = booking.meta.totalPrice;
     const propertyTitle: any = getPropertyTitleFromLocation(property.location);
    
@@ -310,6 +311,27 @@ export const respondToBookingRequest = async (
         html: generalEmailLayout(buyerEmail),
         text: generalEmailLayout(buyerEmail),
     });
+
+    if (response === "unavailable" && ownerData) {
+      const buyerLine = (buyer.whatsAppNumber || buyer.phoneNumber || "") as string;
+      const ownerLine = (ownerData.phoneNumber || "") as string;
+      if (isLikelyE164CapableLocalPhone(buyerLine) && isLikelyE164CapableLocalPhone(ownerLine)) {
+        void runWhatsapp("shortlet_booking_decline_whatsapp", async (wa) => {
+          const agentName =
+            [ownerData.firstName, ownerData.lastName].filter(Boolean).join(" ") || "Host";
+          await wa.sendBookingCancellation({
+            booking: {
+              id: String(booking._id),
+              dateTime: booking.bookingDetails.checkInDateTime,
+              propertyName: String(propertyTitle),
+            } as any,
+            user: { name: buyer.fullName, phone: buyerLine, id: String(buyer._id) },
+            agent: { name: agentName, phone: ownerLine, id: String(ownerData._id) },
+            reason: note || "The host is not available for these dates",
+          });
+        });
+      }
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

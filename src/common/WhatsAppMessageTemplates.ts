@@ -690,6 +690,23 @@ See you soon! 🎯`,
       requiresApproval: false
     });
 
+    this.templates.set('inspection_time_reminder', {
+      template: `🔍 *Inspection Reminder* (in {{timeUntil}})
+
+Hi {{userName}},
+
+Your scheduled inspection is coming up:
+
+🏠 *Property:* {{propertyName}}
+🕐 *When:* {{whenLabel}}
+📱 *Mode:* {{modeLabel}}
+
+*Contact:* {{otherPartyName}}
+📞 {{otherPartyPhone}}`,
+      category: 'reminder',
+      requiresApproval: false
+    });
+
     this.templates.set('booking_cancelled', {
       template: `❌ *Booking Cancelled*
 
@@ -757,6 +774,20 @@ Your property preferences have been saved:
 We'll notify you immediately when matching properties become available!
 
 You can update your preferences anytime through our app. 📱`,
+      category: 'agent',
+      requiresApproval: false
+    });
+
+    this.templates.set('no_matches_yet', {
+      template: `🔍 *No matching listings yet*
+
+Hi {{userName}},
+
+We did not find matching approved listings for your preferences yet.
+
+You can update your search or wait for new listings—we will email you when matches are found.
+
+🔗 {{appLink}}`,
       category: 'agent',
       requiresApproval: false
     });

@@ -8,6 +8,10 @@ import {
 import notificationService from "./notification.service";
 import { parseInspectionScheduledAt } from "../utils/inspectionSchedule";
 import { getPropertyTitleFromLocation } from "../utils/helper";
+import {
+  getWhatsAppServiceIfConfigured,
+  isLikelyE164CapableLocalPhone,
+} from "./whatsappClient.service";
 
 /** Inspections with a confirmed schedule worth reminding. */
 const REMINDER_ELIGIBLE_STATUSES = [
@@ -81,6 +85,109 @@ async function rollbackReminderSlot(
   await DB.Models.InspectionBooking.updateOne({ _id: inspectionId }, { $unset: { [field]: "" } });
 }
 
+function formatTimeUntilLabel(hours: 24 | 3 | 1): string {
+  if (hours === 24) return "24 hours";
+  if (hours === 3) return "3 hours";
+  return "1 hour";
+}
+
+function bestBuyerPhone(whatsAppNumber?: string, phoneNumber?: string): string {
+  return String(whatsAppNumber || phoneNumber || "").replace(/\s/g, "");
+}
+
+const OTHER_PARTY_PHONE_PLACEHOLDER = "Not on file";
+
+/**
+ * Best-effort WhatsApp; does not affect email / in-app success.
+ */
+async function trySendInspectionReminderWhatsapp(args: {
+  hoursBefore: 24 | 3 | 1;
+  scheduledAt: Date;
+  propertySummary: string;
+  inspectionMode: string;
+  buyerName: string;
+  sellerName: string;
+  buyer: {
+    fullName?: string;
+    email: string;
+    phoneNumber?: string;
+    whatsAppNumber?: string;
+  };
+  seller: {
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    email: string;
+    phoneNumber?: string;
+    _id?: unknown;
+  };
+  ccTrueOwner?: { name?: string; email: string; userId: string; phoneNumber?: string };
+}): Promise<void> {
+  const wa = getWhatsAppServiceIfConfigured();
+  if (!wa) return;
+
+  const whenLabel = formatWhenLabel(args.scheduledAt);
+  const modeLabel = args.inspectionMode === "virtual" ? "Virtual" : "In person";
+  const timeUntil = formatTimeUntilLabel(args.hoursBefore);
+  const propertyName = args.propertySummary;
+  const buyerLine = bestBuyerPhone(args.buyer.whatsAppNumber, args.buyer.phoneNumber);
+  const sellerLine = String(args.seller.phoneNumber || "").replace(/\s/g, "");
+
+  if (isLikelyE164CapableLocalPhone(buyerLine)) {
+    const r = await wa.sendInspectionTimeReminder({
+      user: { name: args.buyerName, phone: buyerLine, id: "" },
+      propertyName,
+      whenLabel,
+      modeLabel,
+      timeUntil,
+      otherPartyName: args.sellerName,
+      otherPartyPhone: isLikelyE164CapableLocalPhone(sellerLine)
+        ? sellerLine
+        : OTHER_PARTY_PHONE_PLACEHOLDER,
+    });
+    if (!r.success) {
+      console.warn("[inspectionReminderCron] WhatsApp to buyer failed:", r.error);
+    }
+  }
+
+  if (isLikelyE164CapableLocalPhone(sellerLine)) {
+    const r = await wa.sendInspectionTimeReminder({
+      user: { name: args.sellerName, phone: sellerLine, id: String(args.seller._id ?? "") },
+      propertyName,
+      whenLabel,
+      modeLabel,
+      timeUntil,
+      otherPartyName: args.buyerName,
+      otherPartyPhone: isLikelyE164CapableLocalPhone(buyerLine)
+        ? buyerLine
+        : OTHER_PARTY_PHONE_PLACEHOLDER,
+    });
+    if (!r.success) {
+      console.warn("[inspectionReminderCron] WhatsApp to seller failed:", r.error);
+    }
+  }
+
+  if (args.ccTrueOwner) {
+    const ccLine = String(args.ccTrueOwner.phoneNumber || "").replace(/\s/g, "");
+    if (isLikelyE164CapableLocalPhone(ccLine)) {
+      const r = await wa.sendInspectionTimeReminder({
+        user: { name: args.ccTrueOwner.name || "there", phone: ccLine, id: args.ccTrueOwner.userId },
+        propertyName,
+        whenLabel,
+        modeLabel,
+        timeUntil,
+        otherPartyName: args.buyerName,
+        otherPartyPhone: isLikelyE164CapableLocalPhone(buyerLine)
+          ? buyerLine
+          : OTHER_PARTY_PHONE_PLACEHOLDER,
+      });
+      if (!r.success) {
+        console.warn("[inspectionReminderCron] WhatsApp to CC true owner failed:", r.error);
+      }
+    }
+  }
+}
+
 async function sendReminderPair(params: {
   inspectionId: string;
   hoursBefore: 24 | 3 | 1;
@@ -97,6 +204,21 @@ async function sendReminderPair(params: {
   propertySummary: string;
   inspectionMode: string;
   field: "reminder24hSentAt" | "reminder3hSentAt" | "reminder1hSentAt";
+  buyer: {
+    fullName?: string;
+    email: string;
+    phoneNumber?: string;
+    whatsAppNumber?: string;
+  };
+  seller: {
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    email: string;
+    phoneNumber?: string;
+    _id?: unknown;
+  };
+  ccTrueOwner?: { name?: string; email: string; userId: string; phoneNumber?: string };
 }): Promise<boolean> {
   const {
     inspectionId,
@@ -114,6 +236,9 @@ async function sendReminderPair(params: {
     propertySummary,
     inspectionMode,
     field,
+    buyer,
+    seller,
+    ccTrueOwner,
   } = params;
 
   const claimed = await claimReminderSlot(inspectionId, field);
@@ -212,6 +337,18 @@ async function sendReminderPair(params: {
         meta: { inspectionId, reminderType: `${hoursBefore}h`, role: "true_owner_cc" },
       });
     }
+
+    await trySendInspectionReminderWhatsapp({
+      hoursBefore,
+      scheduledAt,
+      propertySummary,
+      inspectionMode,
+      buyerName,
+      sellerName,
+      buyer,
+      seller,
+      ccTrueOwner,
+    });
   } catch (err) {
     await rollbackReminderSlot(inspectionId, field);
     throw err;
@@ -220,7 +357,10 @@ async function sendReminderPair(params: {
 }
 
 /**
- * Send 24h / 3h / 1h inspection reminders (buyer: email only; seller: email + in-app).
+ * Send 24h / 3h / 1h inspection reminders: buyer and seller (email);
+ * seller: in-app notification; true owner: CC email when owner ≠ listing marketer.
+ * Also sends WhatsApp `inspection_time_reminder` to buyer / seller (and true owner when
+ * a phone is on file) if WHATSAPP_* is configured.
  * Safe to run every 5–10 minutes.
  */
 export async function processInspectionReminders(): Promise<{
@@ -236,8 +376,8 @@ export async function processInspectionReminders(): Promise<{
     status: { $in: [...REMINDER_ELIGIBLE_STATUSES] },
     inspectionDate: { $gte: lookback, $lte: lookahead },
   })
-    .populate("requestedBy", "email fullName")
-    .populate("owner", "email firstName lastName fullName")
+    .populate("requestedBy", "email fullName phoneNumber whatsAppNumber")
+    .populate("owner", "email firstName lastName fullName phoneNumber")
     .populate("propertyId", "location owner ownerModel")
     .lean();
 
@@ -281,9 +421,12 @@ export async function processInspectionReminders(): Promise<{
       let ccOwnerEmail: string | undefined;
       let ccOwnerName: string | undefined;
       let ccOwnerUserId: string | undefined;
+      let ccTrueOwner:
+        | { name?: string; email: string; userId: string; phoneNumber?: string }
+        | undefined;
       if (propertyOwnerId && propertyOwnerId !== sellerIdStr) {
         const trueOwner = await DB.Models.User.findById(propertyOwnerId)
-          .select("email fullName firstName lastName")
+          .select("email fullName firstName lastName phoneNumber")
           .lean();
         if (trueOwner?.email) {
           ccOwnerEmail = trueOwner.email;
@@ -294,10 +437,31 @@ export async function processInspectionReminders(): Promise<{
               .join(" ") ||
             trueOwner.email;
           ccOwnerUserId = propertyOwnerId;
+          ccTrueOwner = {
+            name: ccOwnerName,
+            email: trueOwner.email,
+            userId: propertyOwnerId,
+            phoneNumber: (trueOwner as any).phoneNumber,
+          };
         }
       }
       const propertySummary =
         getPropertyTitleFromLocation(inv.propertyId?.location) || "Your property";
+
+      const buyerForReminders = {
+        email: buyer.email,
+        fullName: buyer.fullName,
+        phoneNumber: buyer.phoneNumber,
+        whatsAppNumber: (buyer as any).whatsAppNumber,
+      };
+      const sellerForReminders = {
+        email: seller.email,
+        firstName: seller.firstName,
+        lastName: seller.lastName,
+        fullName: seller.fullName,
+        phoneNumber: (seller as any).phoneNumber,
+        _id: seller._id,
+      };
 
       const scheduledMs = scheduledAt.getTime();
       const inspectionId = String(inv._id);
@@ -319,6 +483,9 @@ export async function processInspectionReminders(): Promise<{
           propertySummary,
           inspectionMode: inv.inspectionMode || "in_person",
           field: "reminder24hSentAt",
+          buyer: buyerForReminders,
+          seller: sellerForReminders,
+          ccTrueOwner,
         });
         if (ok) sent24h += 1;
         continue;
@@ -341,6 +508,9 @@ export async function processInspectionReminders(): Promise<{
           propertySummary,
           inspectionMode: inv.inspectionMode || "in_person",
           field: "reminder3hSentAt",
+          buyer: buyerForReminders,
+          seller: sellerForReminders,
+          ccTrueOwner,
         });
         if (ok) sent3h += 1;
         continue;
@@ -363,6 +533,9 @@ export async function processInspectionReminders(): Promise<{
           propertySummary,
           inspectionMode: inv.inspectionMode || "in_person",
           field: "reminder1hSentAt",
+          buyer: buyerForReminders,
+          seller: sellerForReminders,
+          ccTrueOwner,
         });
         if (ok) sent1h += 1;
       }

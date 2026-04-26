@@ -5,6 +5,8 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { propertyValidationSchema } from "../../../utils/formValidation/propertyValidationSchema";
 import { notifySubscribersOfPropertyUpdate } from "../../../services/agentSubscriber.service";
+import { Types } from "mongoose";
+import { notifyPriceDropToMatchedPreferences } from "../../../services/whatsappPropertyPrice.service";
 
 export const editProperty = async (
   req: AppRequest,
@@ -36,11 +38,25 @@ export const editProperty = async (
       );
     }
 
+    const oldPrice = Number((property as any).price);
     // Merge and save updates
     Object.assign(property, payload);
     property.status = payload.status || property.status;
 
     await property.save();
+
+    const newPrice = Number((property as any).price);
+    if (
+      Number.isFinite(oldPrice) &&
+      Number.isFinite(newPrice) &&
+      newPrice < oldPrice
+    ) {
+      void notifyPriceDropToMatchedPreferences({
+        propertyId: property._id as Types.ObjectId,
+        oldPrice,
+        newPrice,
+      });
+    }
 
     // Notify agent's subscribers (email + in-app)
     try {

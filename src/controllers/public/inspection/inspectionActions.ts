@@ -16,6 +16,9 @@ import { InspectionEmailService } from "../../../services/inspection-email.servi
 import { AppRequest } from "../../../types/express";
 import { PaystackService } from "../../../services/paystack.service";
 import { Types } from "mongoose";
+import { parseInspectionScheduledAt } from "../../../utils/inspectionSchedule";
+import { getPropertyTitleFromLocation } from "../../../utils/helper";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
 
 class InspectionActionsController {
 
@@ -68,8 +71,8 @@ class InspectionActionsController {
         "propertyId",
         "title location price propertyType briefType pictures",
       )
-      .populate("owner", "fullName email firstName lastName")
-      .populate("requestedBy", "fullName email firstName lastName");
+      .populate("owner", "fullName email firstName lastName phoneNumber")
+      .populate("requestedBy", "fullName email firstName lastName phoneNumber whatsAppNumber");
 
     if (!inspection) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
@@ -199,6 +202,61 @@ class InspectionActionsController {
         inspectionType: actionData.inspectionType,
       },
     });
+
+    if (dateTimeChanged) {
+      const propertyObj = inspection.propertyId as any;
+      const propertyName =
+        propertyObj?.title ||
+        getPropertyTitleFromLocation(propertyObj?.location) ||
+        "the property";
+      const buyerLine = String(
+        (buyerData as any).whatsAppNumber || (buyerData as any).phoneNumber || ""
+      ).replace(/\s/g, "");
+      const ownerLine = String((sellerData as any).phoneNumber || "").replace(
+        /\s/g,
+        ""
+      );
+      const oldSlot = parseInspectionScheduledAt(
+        inspection.inspectionDate,
+        inspection.inspectionTime
+      );
+      const newDate = actionData.inspectionDate
+        ? new Date(actionData.inspectionDate)
+        : inspection.inspectionDate;
+      const newTime = actionData.inspectionTime ?? inspection.inspectionTime;
+      const newSlot =
+        parseInspectionScheduledAt(newDate, newTime) || newDate;
+      const oldForMs = oldSlot || inspection.inspectionDate;
+      if (
+        isLikelyE164CapableLocalPhone(buyerLine) &&
+        isLikelyE164CapableLocalPhone(ownerLine) &&
+        oldForMs &&
+        newSlot
+      ) {
+        const agentName =
+          [sellerData.firstName, sellerData.lastName].filter(Boolean).join(" ") ||
+          sellerData.fullName ||
+          "Agent";
+        void runWhatsapp("inspection_reschedule_whatsapp", async (wa) => {
+          await wa.sendBookingReschedule({
+            booking: {
+              id: inspectionId,
+              dateTime: newSlot,
+              propertyName,
+            } as any,
+            user: {
+              name: buyerData.fullName || "there",
+              phone: buyerLine,
+              id: String(buyerId),
+            },
+            agent: { name: agentName, phone: ownerLine, id: String(ownerId) },
+            oldDateTime: oldForMs,
+            newDateTime: newSlot,
+            reason: "Inspection schedule was updated",
+          });
+        });
+      }
+    }
 
     // Send emails using email service
     const emailService = new InspectionEmailService();

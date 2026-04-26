@@ -65,7 +65,13 @@ import { adminSetupDealSiteForUser } from "../controllers/Admin/Account/adminDea
 import { postPropertyAsAdmin } from "../controllers/Admin/Property/postProperty";
 import { adminSuggestPropertyForUser } from "../controllers/Admin/ai/adminSuggestProperty";
 import { getAdminUserProperties } from "../controllers/Admin/Account/userProperties";
-
+import {
+  getWhatsappAnalytics,
+  postWhatsappBroadcast,
+  postWhatsappMedia,
+  postWhatsappSendTemplate,
+  postWhatsappTest,
+} from "../controllers/Admin/whatsappAdmin";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -453,6 +459,13 @@ AdminRouter.get("/ratings", adminListRatings);
 AdminRouter.get("/reports", adminListReports);
 AdminRouter.get("/reports/:id", adminGetReportById);
 AdminRouter.patch("/reports/:id", adminUpdateReport);
+
+// WhatsApp Cloud API — test, broadcast, arbitrary template, media, analytics
+AdminRouter.post("/whatsapp/test", postWhatsappTest);
+AdminRouter.post("/whatsapp/broadcast", postWhatsappBroadcast);
+AdminRouter.post("/whatsapp/send-template", postWhatsappSendTemplate);
+AdminRouter.post("/whatsapp/media", postWhatsappMedia);
+AdminRouter.get("/whatsapp/analytics", getWhatsappAnalytics);
 
 AdminRouter.use(AdminInspRouter);
 

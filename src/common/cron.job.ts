@@ -8,6 +8,7 @@ import { kebabToTitleCase } from '../utils/helper';
 import { sendTransactionConfirmationRequestEmails } from '../services/transactionConfirmationCron.service';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
+import { processShortletViewingWhatsappReminders } from '../services/shortletViewingWhatsapp.cron.service';
 import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
 
 // ───────────────────────────────
@@ -412,7 +413,8 @@ cron.schedule('0 2 * * *', async () => {
   }
 });
 
-// Every 10 minutes – inspection reminders (24h / 3h / 1h before): buyer email; seller email + in-app
+// Every 10 minutes – inspection reminders (24h / 3h / 1h before): buyer email; seller email + in-app;
+// shortlet confirmed bookings: 24h / 2h WhatsApp before check-in
 cron.schedule('*/10 * * * *', async () => {
   try {
     const { sent24h, sent3h, sent1h } = await processInspectionReminders();
@@ -424,6 +426,17 @@ cron.schedule('*/10 * * * *', async () => {
     }
   } catch (err) {
     console.error('[CRON] Inspection reminders error:', err);
+  }
+  try {
+    const { sent24h, sent2h } = await processShortletViewingWhatsappReminders();
+    const t = sent24h + sent2h;
+    if (t > 0) {
+      console.log(
+        `[CRON] Shortlet viewing WhatsApp: ${sent24h} (24h), ${sent2h} (2h) — ${t} message(s) sent`
+      );
+    }
+  } catch (err) {
+    console.error('[CRON] Shortlet viewing WhatsApp error:', err);
   }
 });
 

@@ -10,6 +10,7 @@ import { generateUniqueAccountId, generateUniqueReferralCode } from "../../utils
 import { referralService } from "../../services/referral.service";
 import { Types } from "mongoose";
 import { SystemSettingService } from "../../services/systemSetting.service";
+import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
 
 /**
  * Traditional Registration
@@ -130,6 +131,15 @@ export const registerUser = async (
       text: "Verify Your Email Address",
       html,
     });
+
+    const regPhone = String(phoneNumber || "")
+      .trim()
+      .replace(/\s/g, "");
+    if (isLikelyE164CapableLocalPhone(regPhone)) {
+      void runWhatsapp("user_registration_welcome", async (wa) => {
+        await wa.sendMessage(regPhone, "welcome_message", { userName: firstName });
+      });
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
