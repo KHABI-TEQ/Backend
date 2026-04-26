@@ -4,9 +4,31 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { getWhatsAppServiceIfConfigured } from "../../services/whatsappClient.service";
 
+type GraphishResult = { success: boolean; error?: string };
+
+/**
+ * When Meta/Graph returns an error, use a non-2xx status so clients and the Network tab
+ * show failure. 401 for auth-style errors; 502 for other upstream failures.
+ */
+function httpStatusForUpstreamWhatsapp(result: GraphishResult): number {
+  if (result.success) {
+    return HttpStatusCodes.OK;
+  }
+  const e = (result.error || "").toLowerCase();
+  if (
+    e.includes("(401)") ||
+    e.includes("authentication") ||
+    e.includes("access token")
+  ) {
+    return HttpStatusCodes.UNAUTHORIZED;
+  }
+  return HttpStatusCodes.BAD_GATEWAY;
+}
+
 /**
  * POST /api/admin/whatsapp/test
  * Body: { phone: string } — sends `test_message` template.
+ * HTTP: 200 on success; 401 if Graph reports auth failure; 502 for other Graph errors.
  */
 export const postWhatsappTest = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
@@ -22,7 +44,8 @@ export const postWhatsappTest = async (req: AppRequest, res: Response, next: Nex
       );
     }
     const result = await wa.testConnection(phone);
-    return res.status(HttpStatusCodes.OK).json({
+    const status = httpStatusForUpstreamWhatsapp(result);
+    return res.status(status).json({
       success: result.success,
       data: result,
     });
@@ -63,7 +86,16 @@ export const postWhatsappBroadcast = async (req: AppRequest, res: Response, next
       delayBetweenMessages:
         typeof delayBetweenMessages === "number" ? delayBetweenMessages : 1000,
     });
-    return res.status(HttpStatusCodes.OK).json({ success: true, data: result });
+    const allFailed = result.totalUsers > 0 && result.successCount === 0;
+    const firstErr = allFailed
+      ? result.results.find((r) => !r.success && r.error)?.error
+      : undefined;
+    const status = allFailed
+      ? httpStatusForUpstreamWhatsapp({ success: false, error: firstErr })
+      : HttpStatusCodes.OK;
+    return res
+      .status(status)
+      .json({ success: !allFailed, data: result });
   } catch (e) {
     next(e);
   }
@@ -90,7 +122,8 @@ export const postWhatsappSendTemplate = async (req: AppRequest, res: Response, n
       );
     }
     const result = await wa.sendMessage(phone, templateKey, variables && typeof variables === "object" ? variables : {});
-    return res.status(HttpStatusCodes.OK).json({ success: result.success, data: result });
+    const status = httpStatusForUpstreamWhatsapp(result);
+    return res.status(status).json({ success: result.success, data: result });
   } catch (e) {
     next(e);
   }
@@ -123,7 +156,8 @@ export const postWhatsappMedia = async (req: AppRequest, res: Response, next: Ne
       );
     }
     const result = await wa.sendMediaMessage(phone, mediaType, mediaUrl, caption);
-    return res.status(HttpStatusCodes.OK).json({ success: result.success, data: result });
+    const status = httpStatusForUpstreamWhatsapp(result);
+    return res.status(status).json({ success: result.success, data: result });
   } catch (e) {
     next(e);
   }
