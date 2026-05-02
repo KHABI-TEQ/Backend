@@ -146,9 +146,6 @@ export const respondToInspectionRequest = async (
       });
     }
 
-    const receiverMode = (inspection as any).receiverMode;
-    const isDealSite = receiverMode?.type === "dealSite" && receiverMode?.dealSiteID;
-
     // DealSite: Agent/Developer may optionally set inspection fee (₦1,000–₦50,000) when accepting.
     // If set, create payment link and notify buyer with it; otherwise notify acceptance only (no payment).
     if (isDealSite) {
