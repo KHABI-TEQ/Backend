@@ -55,6 +55,12 @@ import { fetchGeneralMarketplacePreferences } from "../controllers/Account/Prefe
 import { agentInitiatePreferenceMatch } from "../controllers/Account/Preference/agentInitiatePreferenceMatch";
 import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket, registerSaleForRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
 import { suggestPropertyForm } from "../controllers/aiFormFill/aiFormFillController";
+import {
+  addInspectionRepresentative,
+  deleteInspectionRepresentative,
+  listInspectionRepresentatives,
+  updateInspectionRepresentative,
+} from "../controllers/Account/inspectionRepresentatives";
 
 const AccountRouter = express.Router();
 
@@ -114,6 +120,12 @@ AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
 AccountRouter.get("/properties/fetchAll", fetchAllProperties);
   
+// Inspection notification representatives (Landlords & Developers only)
+AccountRouter.get("/inspection-representatives", listInspectionRepresentatives);
+AccountRouter.post("/inspection-representatives", addInspectionRepresentative);
+AccountRouter.patch("/inspection-representatives/:representativeId", updateInspectionRepresentative);
+AccountRouter.delete("/inspection-representatives/:representativeId", deleteInspectionRepresentative);
+
 // INSPECTIONS ROUTES
 AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);

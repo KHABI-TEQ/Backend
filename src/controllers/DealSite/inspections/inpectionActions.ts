@@ -8,8 +8,10 @@ import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
 import {
   notifyAgentOfInspectionRequest,
+  notifyPublisherRepresentativesInspectionRequest,
   notifyTrueOwnerCcOfInspectionRequest,
 } from "../../../services/inspectionWorkflow.service";
+import { getPropertyTitleFromLocation } from "../../../utils/helper";
 
 /** Public DealSite may only book inspection for properties this site’s operator owns or markets (RTM). */
 function propertyAllowedOnDealSite(property: any, dealSiteCreatedBy: unknown): boolean {
@@ -236,6 +238,18 @@ export const submitInspectionRequest = async (
             buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
             inspectionDate: inspection.inspectionDate,
             inspectionTime: inspection.inspectionTime,
+          });
+        }
+
+        const pubLoc = getPropertyTitleFromLocation((property as any).location) || "Property";
+        if (trueOwnerId) {
+          await notifyPublisherRepresentativesInspectionRequest({
+            publisherUserId: trueOwnerId,
+            buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
+            inspectionDate: inspection.inspectionDate,
+            inspectionTime: inspection.inspectionTime,
+            amount: 0,
+            propertyLocation: pubLoc,
           });
         }
       } catch (e) {

@@ -6,6 +6,29 @@ import { getPropertyTitleFromLocation } from "../utils/helper";
 import { getClientDashboardUrl } from "../utils/clientAppUrl";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 
+/** User IDs of agents accepted to market this property (Request To Market). */
+export function collectMarketedAgentUserIds(property: {
+  marketedByAgentId?: unknown;
+  marketedByAgentIds?: unknown[];
+}): string[] {
+  const ids = new Set<string>();
+  if (property?.marketedByAgentId != null) ids.add(String(property.marketedByAgentId));
+  if (Array.isArray(property?.marketedByAgentIds)) {
+    for (const x of property.marketedByAgentIds) {
+      if (x != null) ids.add(String(x));
+    }
+  }
+  return [...ids];
+}
+
+function inspectionRequestFeeSummary(amount: number): string {
+  return amount != null && amount > 0 ? `₦${amount.toLocaleString()}` : "No inspection fee (this request)";
+}
+
+function inspectionRequestScheduleSummary(inspectionDate: Date, inspectionTime: string): string {
+  return `${inspectionDate} at ${inspectionTime}`;
+}
+
 /**
  * Notify agent (property owner) that a buyer submitted an inspection request.
  * Email + in-app. Used when status is pending_approval.
@@ -23,7 +46,7 @@ export async function notifyAgentOfInspectionRequest(params: {
 }): Promise<void> {
   const { inspectionId, propertyId, ownerId, buyerName, inspectionDate, inspectionTime, amount } = params;
   const property = await DB.Models.Property.findById(propertyId).select("location").lean();
-  const owner = await DB.Models.User.findById(ownerId).select("email firstName lastName").lean();
+  const owner = await DB.Models.User.findById(ownerId).select("email firstName lastName phoneNumber").lean();
   if (!owner) return;
 
   const location = property
@@ -63,6 +86,23 @@ export async function notifyAgentOfInspectionRequest(params: {
     html,
     text: message,
   });
+
+  const ownerPhone = String((owner as any).phoneNumber || "").replace(/\s/g, "");
+  const recipientName =
+    [(owner as any).firstName, (owner as any).lastName].filter(Boolean).join(" ") || "there";
+  if (isLikelyE164CapableLocalPhone(ownerPhone)) {
+    void runWhatsapp("inspection_request_primary", async (wa) => {
+      await wa.sendMessage(ownerPhone, "inspection_request_alert", {
+        recipientName,
+        buyerName,
+        propertySummary: location,
+        scheduleSummary: inspectionRequestScheduleSummary(inspectionDate, inspectionTime),
+        feeSummary: inspectionRequestFeeSummary(amount),
+        actionNote:
+          "Please accept or reject this request in your KHABITEQ dashboard. Representatives are notified separately.",
+      });
+    });
+  }
 }
 
 /**
@@ -88,8 +128,8 @@ export async function notifyTrueOwnerCcOfInspectionRequest(params: {
     inspectionTime,
   } = params;
   const property = await DB.Models.Property.findById(propertyId).select("location").lean();
-  const owner = await DB.Models.User.findById(trueOwnerId).select("email firstName lastName").lean();
-  if (!owner?.email) return;
+  const owner = await DB.Models.User.findById(trueOwnerId).select("email firstName lastName phoneNumber").lean();
+  if (!owner) return;
 
   const location = property
     ? getPropertyTitleFromLocation(property.location) || "Property"
@@ -121,12 +161,184 @@ export async function notifyTrueOwnerCcOfInspectionRequest(params: {
     <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Open dashboard</a></p>
   `);
 
-  await sendEmail({
-    to: owner.email,
-    subject: "Inspection request update for your property",
-    html,
-    text: message,
-  });
+  if (owner.email) {
+    await sendEmail({
+      to: owner.email,
+      subject: "Inspection request update for your property",
+      html,
+      text: message,
+    });
+  }
+
+  const ccPhone = String((owner as any).phoneNumber || "").replace(/\s/g, "");
+  const ccName =
+    [(owner as any).firstName, (owner as any).lastName].filter(Boolean).join(" ") || "there";
+  if (isLikelyE164CapableLocalPhone(ccPhone)) {
+    void runWhatsapp("inspection_request_true_owner_cc", async (wa) => {
+      await wa.sendMessage(ccPhone, "inspection_request_alert", {
+        recipientName: ccName,
+        buyerName,
+        propertySummary: location,
+        scheduleSummary: inspectionRequestScheduleSummary(inspectionDate, inspectionTime),
+        feeSummary: "No inspection fee (this request)",
+        actionNote: `Submitted via ${marketerName}'s public page. They will accept or reject; you have visibility only.`,
+      });
+    });
+  }
+}
+
+/**
+ * Landlords / Developers: email + WhatsApp to saved representatives (no in-app notification).
+ */
+export async function notifyPublisherRepresentativesInspectionRequest(params: {
+  publisherUserId: string;
+  buyerName: string;
+  inspectionDate: Date;
+  inspectionTime: string;
+  amount: number;
+  propertyLocation: string;
+}): Promise<void> {
+  const pub = await DB.Models.User.findById(params.publisherUserId)
+    .select("userType inspectionNotificationRepresentatives email")
+    .lean();
+  if (!pub) return;
+  if (pub.userType !== "Landowners" && pub.userType !== "Developer") return;
+
+  const reps = (pub as any).inspectionNotificationRepresentatives as
+    | { label?: string; email?: string; whatsappNumber?: string }[]
+    | undefined;
+  if (!Array.isArray(reps) || reps.length === 0) return;
+
+  const feeSummary = inspectionRequestFeeSummary(params.amount);
+  const scheduleSummary = inspectionRequestScheduleSummary(params.inspectionDate, params.inspectionTime);
+  const publisherEmail = String((pub as any).email || "").toLowerCase();
+
+  for (const r of reps) {
+    const label = (r.label || "").trim();
+    const repName = label || "there";
+    const em = (r.email || "").trim().toLowerCase();
+
+    if (em && em.includes("@")) {
+      if (em === publisherEmail) continue;
+      const html = generalEmailLayout(`
+        <p>Hello ${repName === "there" ? "there" : repName},</p>
+        <p>You are receiving this because you are listed as an inspection notification contact for a landlord/developer on KHABITEQ.</p>
+        <p><strong>${params.buyerName}</strong> requested an inspection for <strong>${params.propertyLocation}</strong>.</p>
+        <p>Preferred date: ${params.inspectionDate} at ${params.inspectionTime}</p>
+        <p>Inspection fee context: ${feeSummary}</p>
+        <p><strong>Only the property owner or marketer can accept or reject</strong> in the app; this message is for your awareness.</p>
+      `);
+      await sendEmail({
+        to: em,
+        subject: "New inspection request (representative notification)",
+        html,
+        text: `${params.buyerName} requested an inspection for ${params.propertyLocation}. ${scheduleSummary}.`,
+      });
+    }
+
+    const waLine = String(r.whatsappNumber || "").replace(/\s/g, "");
+    if (isLikelyE164CapableLocalPhone(waLine)) {
+      void runWhatsapp("inspection_request_representative", async (wa) => {
+        await wa.sendMessage(waLine, "inspection_request_alert", {
+          recipientName: repName,
+          buyerName: params.buyerName,
+          propertySummary: params.propertyLocation,
+          scheduleSummary,
+          feeSummary,
+          actionNote:
+            "You are notified as a representative. Only the owner or marketer can accept or reject in the app.",
+        });
+      });
+    }
+  }
+}
+
+/**
+ * Agents who market this property (main marketplace) — same inspection alert as additional recipients.
+ */
+export async function notifyMarketingAgentsInspectionRequest(params: {
+  property: {
+    _id?: unknown;
+    owner?: unknown;
+    marketedByAgentId?: unknown;
+    marketedByAgentIds?: unknown[];
+    location?: unknown;
+  };
+  inspectionId: string;
+  buyerName: string;
+  inspectionDate: Date;
+  inspectionTime: string;
+  amount: number;
+  excludeUserIds?: Set<string>;
+}): Promise<void> {
+  const exclude = params.excludeUserIds ?? new Set<string>();
+  const ownerStr = params.property?.owner != null ? String(params.property.owner) : "";
+
+  for (const agentId of collectMarketedAgentUserIds(params.property)) {
+    if (!agentId || agentId === ownerStr || exclude.has(agentId)) continue;
+
+    const agentUser = await DB.Models.User.findById(agentId)
+      .select("email firstName lastName phoneNumber userType")
+      .lean();
+    if (!agentUser || agentUser.userType !== "Agent") continue;
+
+    const location =
+      getPropertyTitleFromLocation((params.property as any).location) || "Property";
+    const title = "New inspection request (property you market)";
+    const hasFee = params.amount != null && params.amount > 0;
+    const msg = hasFee
+      ? `${params.buyerName} requested an inspection for ${location} (₦${params.amount.toLocaleString()}). Please accept or reject.`
+      : `${params.buyerName} requested an inspection for ${location}. Please accept or reject.`;
+
+    await notificationService.createNotification({
+      user: agentId,
+      title,
+      message: msg,
+      type: "inspection",
+      meta: {
+        inspectionId: params.inspectionId,
+        propertyId: params.property?._id != null ? String(params.property._id) : "",
+        status: "pending_approval",
+        role: "marketing_agent",
+      },
+    });
+
+    const link = getClientDashboardUrl();
+    const feeLine = hasFee ? `<p>Inspection fee: ₦${params.amount.toLocaleString()}</p>` : "";
+    if (agentUser.email) {
+      const html = generalEmailLayout(`
+        <p>Hello ${(agentUser as any).firstName || (agentUser as any).lastName || "there"},</p>
+        <p><strong>${params.buyerName}</strong> requested an inspection for a property you market: <strong>${location}</strong>.</p>
+        ${feeLine}
+        <p>Preferred date: ${params.inspectionDate} at ${params.inspectionTime}</p>
+        <p>Please accept or reject this request in your dashboard.</p>
+        <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
+      `);
+      await sendEmail({
+        to: agentUser.email,
+        subject: "New inspection request – property you market",
+        html,
+        text: msg,
+      });
+    }
+
+    const phone = String((agentUser as any).phoneNumber || "").replace(/\s/g, "");
+    const agentName =
+      [(agentUser as any).firstName, (agentUser as any).lastName].filter(Boolean).join(" ") ||
+      "there";
+    if (isLikelyE164CapableLocalPhone(phone)) {
+      void runWhatsapp("inspection_request_marketing_agent", async (wa) => {
+        await wa.sendMessage(phone, "inspection_request_alert", {
+          recipientName: agentName,
+          buyerName: params.buyerName,
+          propertySummary: location,
+          scheduleSummary: inspectionRequestScheduleSummary(params.inspectionDate, params.inspectionTime),
+          feeSummary: inspectionRequestFeeSummary(params.amount),
+          actionNote: "Please accept or reject in your KHABITEQ dashboard.",
+        });
+      });
+    }
+  }
 }
 
 /**

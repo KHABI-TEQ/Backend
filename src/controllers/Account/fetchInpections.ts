@@ -1,10 +1,29 @@
 import { Response, NextFunction } from "express";
+import { Types } from "mongoose";
 import { AppRequest } from "../../types/express";
 import { DB } from "..";
 import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../config/inspectionListing.config";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
+
+/** Owner of inspection row, or agent who markets the property (main marketplace). */
+async function sellerInspectionAccessFilter(user: {
+  _id: Types.ObjectId;
+  userType?: string;
+}): Promise<Record<string, unknown>> {
+  if (user.userType !== "Agent") {
+    return { owner: user._id };
+  }
+  const marketedIds = await DB.Models.Property.find({
+    $or: [{ marketedByAgentId: user._id }, { marketedByAgentIds: user._id }],
+  }).distinct("_id");
+  const parts: Record<string, unknown>[] = [{ owner: user._id }];
+  if (marketedIds.length > 0) {
+    parts.push({ propertyId: { $in: marketedIds } });
+  }
+  return parts.length === 1 ? parts[0] : { $or: parts };
+}
 
 export const fetchUserInspections = async (
   req: AppRequest,
@@ -23,8 +42,9 @@ export const fetchUserInspections = async (
       propertyId,
     } = req.query;
 
+    const access = await sellerInspectionAccessFilter(req.user as any);
     const filter: any = {
-      owner: req.user._id,
+      ...access,
       status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
     };
 
@@ -72,9 +92,10 @@ export const getOneUserInspection = async (
   try {
     const { inspectionId } = req.params;
 
+    const access = await sellerInspectionAccessFilter(req.user as any);
     const inspection = await DB.Models.InspectionBooking.findOne({
       _id: inspectionId,
-      owner: req.user._id,
+      ...access,
     })
       .populate("propertyId")
       .populate("requestedBy")
@@ -99,13 +120,12 @@ export const getInspectionStats = async (
   next: NextFunction
 ) => {
   try {
-    const userId = req.user._id;
+    const access = await sellerInspectionAccessFilter(req.user as any);
 
     // 🚫 Exclude unwanted statuses globally
     const excludedStatuses = ["pending_transaction", "transaction_failed"];
     const baseFilter = {
-      owner: userId,
-      status: { $nin: excludedStatuses },
+      $and: [access, { status: { $nin: excludedStatuses } }],
     };
 
     const [
@@ -118,32 +138,34 @@ export const getInspectionStats = async (
       DB.Models.InspectionBooking.countDocuments(baseFilter),
 
       DB.Models.InspectionBooking.countDocuments({
-        ...baseFilter,
-        status: {
-          $in: [
-            "inspection_rescheduled",
-            "inspection_approved",
-            "active_negotiation",
-            "negotiation_countered",
-            "negotiation_accepted",
-            "negotiation_rejected",
-            "negotiation_cancelled",
-          ],
-        },
+        $and: [
+          ...baseFilter.$and,
+          {
+            status: {
+              $in: [
+                "inspection_rescheduled",
+                "inspection_approved",
+                "active_negotiation",
+                "negotiation_countered",
+                "negotiation_accepted",
+                "negotiation_rejected",
+                "negotiation_cancelled",
+              ],
+            },
+          },
+        ],
       }),
 
       DB.Models.InspectionBooking.countDocuments({
-        ...baseFilter,
-        status: "completed",
+        $and: [...baseFilter.$and, { status: "completed" }],
       }),
 
       DB.Models.InspectionBooking.countDocuments({
-        ...baseFilter,
-        status: "cancelled",
+        $and: [...baseFilter.$and, { status: "cancelled" }],
       }),
 
       DB.Models.InspectionBooking.aggregate([
-        { $match: { owner: userId } },
+        { $match: baseFilter },
         {
           $project: {
             createdAt: 1,

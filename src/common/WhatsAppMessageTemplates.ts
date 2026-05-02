@@ -408,6 +408,26 @@ You're welcome to attend! Your agent {{agentName}} will be there.`,
       requiresApproval: false
     });
 
+    /**
+     * New inspection request — Meta template name must match key `inspection_request_alert` (or override via options.templateName).
+     * Variables map to approved WhatsApp template body parameters in order.
+     */
+    this.templates.set('inspection_request_alert', {
+      template: `🔔 *Inspection request*
+
+Hi {{recipientName}},
+
+{{buyerName}} requested an inspection.
+
+📍 {{propertySummary}}
+📅 {{scheduleSummary}}
+💰 {{feeSummary}}
+
+{{actionNote}}`,
+      category: 'booking',
+      requiresApproval: false
+    });
+
     this.templates.set('mortgage_reminder', {
       template: `💰 *Mortgage Application Reminder*
 

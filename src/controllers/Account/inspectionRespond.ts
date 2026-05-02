@@ -5,7 +5,12 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { PaystackService } from "../../services/paystack.service";
 import { Types } from "mongoose";
-import { notifyBuyerPaymentLink, notifyBuyerAcceptedNoPayment, notifyBuyerRejected } from "../../services/inspectionWorkflow.service";
+import {
+  notifyBuyerPaymentLink,
+  notifyBuyerAcceptedNoPayment,
+  notifyBuyerRejected,
+  collectMarketedAgentUserIds,
+} from "../../services/inspectionWorkflow.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { INSPECTION_FEE_DEFAULT } from "../../services/propertyValidation.service";
@@ -14,7 +19,9 @@ const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
 
 /**
- * Agent (property owner) accepts or rejects an inspection request.
+ * Accept or reject a pending inspection request.
+ * DealSite: only the DealSite operator (`inspection.owner`) may respond.
+ * Main marketplace: the property owner or an agent who markets the listing (RTM) may respond.
  * Accept: optional inspectionFee (₦1,000–₦50,000) can be set; then create payment link, save transaction, email buyer.
  * Reject: set agent_rejected, email buyer.
  */
@@ -47,8 +54,29 @@ export const respondToInspectionRequest = async (
     if (!inspection) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
-    if ((inspection as any).owner.toString() !== userId.toString()) {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, "You can only respond to inspections for your properties");
+    const propRef = (inspection as any).propertyId;
+    const propId = propRef?._id ?? propRef;
+    const propertyDoc = await DB.Models.Property.findById(propId)
+      .select("marketedByAgentId marketedByAgentIds owner")
+      .lean();
+    const ownerMatch = (inspection as any).owner.toString() === userId.toString();
+    const receiverMode = (inspection as any).receiverMode;
+    const isDealSite = receiverMode?.type === "dealSite" && receiverMode?.dealSiteID;
+    const marketedIds = collectMarketedAgentUserIds(propertyDoc || ({} as any));
+    const userIsMarketer = marketedIds.includes(userId.toString());
+
+    if (isDealSite) {
+      if (!ownerMatch) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Only the operator of this public page can accept or reject this inspection request",
+        );
+      }
+    } else if (!ownerMatch && !userIsMarketer) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Only the property owner or an agent marketing this listing can respond to this inspection request",
+      );
     }
     if ((inspection as any).status !== "pending_approval") {
       throw new RouteError(
@@ -57,7 +85,10 @@ export const respondToInspectionRequest = async (
       );
     }
 
-    const property = inspection.propertyId as any;
+    const property =
+      propRef && typeof propRef === "object" && (propRef as any).location != null
+        ? (propRef as any)
+        : ((await DB.Models.Property.findById(propId).lean()) as any);
     const buyer = inspection.requestedBy as any;
     const propertyLocation = getPropertyTitleFromLocation(property?.location) || "Property";
 

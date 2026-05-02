@@ -1,4 +1,12 @@
-import { Schema, model, Document, Model } from "mongoose";
+import { Schema, model, Document, Model, Types } from "mongoose";
+
+/** Contacts who receive inspection-request emails/WhatsApp on behalf of a Landlord or Developer (no dashboard rights). */
+export interface IInspectionNotificationRepresentative {
+  _id?: Types.ObjectId;
+  label?: string;
+  email?: string;
+  whatsappNumber?: string;
+}
 
 export interface IUser { 
   email: string;
@@ -31,6 +39,8 @@ export interface IUser {
   deletionGracePeriodDays?: number;
   /** When true (e.g. admin-provisioned account), client should force password change; cleared after successful change. */
   mustChangePassword?: boolean;
+  /** Landlords / Developers only: CC list for new inspection requests (email + WhatsApp). */
+  inspectionNotificationRepresentatives?: IInspectionNotificationRepresentative[];
 }
  
 export interface IUserDoc extends IUser, Document {
@@ -84,6 +94,16 @@ export class User {
         deletionRequestedAt: { type: Date },
         deletionGracePeriodDays: { type: Number, default: 7 },
         mustChangePassword: { type: Boolean, default: false },
+        inspectionNotificationRepresentatives: {
+          type: [
+            {
+              label: { type: String, trim: true },
+              email: { type: String, trim: true, lowercase: true },
+              whatsappNumber: { type: String, trim: true },
+            },
+          ],
+          default: [],
+        },
       },
       {
         timestamps: true,

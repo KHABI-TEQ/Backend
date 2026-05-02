@@ -7,7 +7,12 @@ import { InspectionLogService } from "../../../services/inspectionLog.service";
 import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
 import { INSPECTION_FEE_DEFAULT } from "../../../services/propertyValidation.service";
-import { notifyAgentOfInspectionRequest } from "../../../services/inspectionWorkflow.service";
+import {
+  notifyAgentOfInspectionRequest,
+  notifyMarketingAgentsInspectionRequest,
+  notifyPublisherRepresentativesInspectionRequest,
+} from "../../../services/inspectionWorkflow.service";
+import { getPropertyTitleFromLocation } from "../../../utils/helper";
 
 const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
@@ -130,15 +135,35 @@ export const submitInspectionRequest = async (
         });
 
         try {
+          const ownerIdStr =
+            (property as any).owner?.toString?.() ?? String((property as any).owner);
           await notifyAgentOfInspectionRequest({
             inspectionId: inspection._id.toString(),
             propertyId: property._id,
-            ownerId: (property as any).owner?.toString?.() ?? (property as any).owner,
+            ownerId: ownerIdStr,
             buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
             buyerEmail: buyer.email,
             inspectionDate: inspection.inspectionDate,
             inspectionTime: inspection.inspectionTime,
             amount: propertyAmount,
+          });
+          await notifyMarketingAgentsInspectionRequest({
+            property: property as any,
+            inspectionId: inspection._id.toString(),
+            buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
+            inspectionDate: inspection.inspectionDate,
+            inspectionTime: inspection.inspectionTime,
+            amount: propertyAmount,
+            excludeUserIds: new Set([ownerIdStr]),
+          });
+          await notifyPublisherRepresentativesInspectionRequest({
+            publisherUserId: ownerIdStr,
+            buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
+            inspectionDate: inspection.inspectionDate,
+            inspectionTime: inspection.inspectionTime,
+            amount: propertyAmount,
+            propertyLocation:
+              getPropertyTitleFromLocation((property as any).location) || "Property",
           });
         } catch (e) {
           console.warn("[public inspection] Notify agent failed:", e);
