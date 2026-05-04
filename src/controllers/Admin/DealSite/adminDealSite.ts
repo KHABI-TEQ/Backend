@@ -6,6 +6,7 @@ import { RouteError } from "../../../common/classes";
 import { dealSiteActivityService } from "../../../services/dealSiteActivity.service";
 import { PaystackService } from "../../../services/paystack.service";
 import { reconcileRunningDealSitesWithoutActiveSubscription } from "../../../services/dealSiteReconciliation.service";
+import { dealSiteOriginFromPublicSlug } from "../../../config/dealSitePublicHost";
 
 
 /**
@@ -54,11 +55,10 @@ export const adminGetAllDealSites = async (
       DB.Models.DealSite.countDocuments(filter),
     ]);
 
-    // 🔹 Add publicPageUrl to each dealSite
-    const baseDomain = "https://khabiteq.com"; // <-- centralize base domain
+    // 🔹 Add publicPageUrl to each dealSite (hostname from DEALSITE_ROOT_HOST, default khabiteq.com)
     const formattedDealSites = dealSites.map((site) => ({
       ...site,
-      publicPageUrl: `https://${site.publicSlug}.${baseDomain.replace(/^https?:\/\//, "")}/`,
+      publicPageUrl: `${dealSiteOriginFromPublicSlug(site.publicSlug)}/`,
     }));
 
     return res.status(HttpStatusCodes.OK).json({
@@ -126,8 +126,7 @@ export const adminGetDealSiteBySlug = async (
     }
 
     // 🔹 Add publicPageUrl
-    const baseDomain = "https://khabiteq.com"; // consider moving to env var
-    const publicPageUrl = `https://${dealSite.publicSlug}.${baseDomain.replace(/^https?:\/\//, "")}/`;
+    const publicPageUrl = `${dealSiteOriginFromPublicSlug((dealSite as any).publicSlug)}/`;
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

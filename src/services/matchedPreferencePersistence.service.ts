@@ -10,6 +10,8 @@ import { resolveMatchedPropertiesEmailBaseUrl } from "../utils/matchedProperties
 import { calculateDetailedMatchScore } from "../controllers/Admin/preference/findMatchProerty";
 import { getPropertyTitleFromLocation } from "../utils/helper";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
+import { getClientBaseUrl } from "../utils/clientAppUrl";
+import { getDealSiteRootHost } from "../config/dealSitePublicHost";
 
 /**
  * Create or merge MatchedPreferenceProperty and optionally notify the buyer (same behavior as admin submit-matches).
@@ -172,7 +174,10 @@ export async function persistMatchedPreferenceProperties(params: {
       const newPropDocs = newIdsThisRun
         .map((id) => byId.get(String(id)))
         .filter(Boolean) as any[];
-      const client = (process.env.CLIENT_LINK || process.env.APP_URL || "https://app.khabiteq.com").replace(/\/$/, "");
+      const client =
+        getClientBaseUrl() ||
+        (process.env.APP_URL || "").replace(/\/$/, "") ||
+        `https://www.${getDealSiteRootHost()}`;
       const bookingLink = matchLink;
 
       await runWhatsapp("preference_match_whatsapp", async (wa) => {

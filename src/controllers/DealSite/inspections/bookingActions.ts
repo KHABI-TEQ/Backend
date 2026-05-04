@@ -11,6 +11,7 @@ import { generateBookingCode, generatePassCode, getPropertyTitleFromLocation } f
 import { generateBookingRequestAcknowledgementForBuyer, generateBookingRequestReceivedForSeller } from "../../../common/emailTemplates/bookingMails";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { dealSiteOriginFromPublicSlug } from "../../../config/dealSitePublicHost";
  
     export const  calculateShortletAmount = (
         property: any,
@@ -191,7 +192,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 
             if (bookingMode === "instant") {
                 const paymentDetails = dealSite.paymentDetails;
-                const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
+                const publicPageUrl = dealSiteOriginFromPublicSlug(dealSite.publicSlug);
  
                 // Calculate 15%
                 const fifteenPercent = (expectedAmount * 10) / 100;

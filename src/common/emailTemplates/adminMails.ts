@@ -1,3 +1,8 @@
+import { getDealSiteRootHost } from "../../config/dealSitePublicHost";
+
+const adminMailItSupport = (): string =>
+  (process.env.MAIN_SUPPORT_EMAIL || `support@${getDealSiteRootHost()}`).trim();
+
 export function kycVerificationAdminNotification(
   agentName: string,
   agentEmail: string,
@@ -62,7 +67,7 @@ export const adminAccountCreated = (
       <p>For security reasons, we recommend changing your password immediately after your first login.</p>
 
       <p>If you encounter any issues, please contact our IT support team at 
-      <a href="mailto:support@khabiteqrealty.com">support@khabiteqrealty.com</a>.</p>
+      <a href="mailto:${adminMailItSupport()}">${adminMailItSupport()}</a>.</p>
 
       <p>We’re excited to have you on board!</p>
 

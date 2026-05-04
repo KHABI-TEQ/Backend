@@ -51,7 +51,7 @@ export const accountDisapproved = (name: string, reason?: string): string => {
       </ul>
 
       <p>You may contact us anytime at 
-      <a href="mailto:agent.support@khabiteqrealty.com">agent.support@khabiteqrealty.com</a> 
+      <a href="mailto:${process.env.AGENT_SUPPORT_EMAIL || "agent.support@khabiteq.com"}">${process.env.AGENT_SUPPORT_EMAIL || "agent.support@khabiteq.com"}</a> 
       for further assistance.</p>
 
       <p>We appreciate your interest in working with us and encourage you to apply again in the future.</p>

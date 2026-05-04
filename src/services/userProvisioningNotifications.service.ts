@@ -1,4 +1,5 @@
 import sendEmail from "../common/send.email";
+import { getMainWebLoginUrl } from "../utils/clientAppUrl";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { adminProvisionedUserWelcome } from "../common/emailTemplates/userProvisioningMail";
 import WhatsAppNotificationService from "./whatsAppNotification.service";
@@ -10,9 +11,7 @@ export async function notifyUserAdminProvisioned(params: {
   temporaryPassword: string;
   userType: string;
 }): Promise<void> {
-  const loginUrl = process.env.CLIENT_LINK
-    ? `${process.env.CLIENT_LINK.replace(/\/$/, "")}/login`
-    : "https://app.khabiteqrealty.com/login";
+  const loginUrl = getMainWebLoginUrl();
 
   const html = generalEmailLayout(
     adminProvisionedUserWelcome({

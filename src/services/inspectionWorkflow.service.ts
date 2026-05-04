@@ -3,7 +3,8 @@ import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import notificationService from "./notification.service";
 import { getPropertyTitleFromLocation } from "../utils/helper";
-import { getClientDashboardUrl } from "../utils/clientAppUrl";
+import { getClientBaseUrl, getClientDashboardUrl } from "../utils/clientAppUrl";
+import { dealSiteOriginFromPublicSlug } from "../config/dealSitePublicHost";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 
 /** User IDs of agents accepted to market this property (Request To Market). */
@@ -543,22 +544,19 @@ export async function notifyAgentPaymentReceived(params: {
   });
 }
 
-/** DealSite subdomain base URL format (e.g. https://realhomes.khabiteq.com) */
-const DEALSITE_BASE_URL_FORMAT = "https://{publicSlug}.khabiteq.com";
-
 /**
  * Get the frontend base URL for an inspection: DealSite subdomain if from DealSite, else main app.
  */
 export async function getInspectionFrontendBaseUrl(inspection: {
   receiverMode?: { type?: string; dealSiteID?: any };
 }): Promise<string> {
-  const base = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
+  const base = getClientBaseUrl();
   if (inspection.receiverMode?.type === "dealSite" && inspection.receiverMode?.dealSiteID) {
     const dealSite = await DB.Models.DealSite.findById(inspection.receiverMode.dealSiteID)
       .select("publicSlug")
       .lean();
     if (dealSite?.publicSlug) {
-      return DEALSITE_BASE_URL_FORMAT.replace("{publicSlug}", (dealSite as any).publicSlug);
+      return dealSiteOriginFromPublicSlug((dealSite as any).publicSlug);
     }
   }
   return base;

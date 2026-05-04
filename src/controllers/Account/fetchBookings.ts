@@ -11,6 +11,7 @@ import { getPropertyTitleFromLocation } from "../../utils/helper";
 import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
+import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 
 export const fetchUserBookings = async (
   req: AppRequest,
@@ -243,7 +244,7 @@ export const respondToBookingRequest = async (
       if (booking.receiverMode.type === "dealSite") {
 
         const paymentDetails = dealSite.paymentDetails;
-        const publicPageUrl = `https://${dealSite.publicSlug}.khabiteq.com`;
+        const publicPageUrl = dealSiteOriginFromPublicSlug(dealSite.publicSlug);
 
         // Calculate 15%
         const fifteenPercent = (expectedAmount * 10) / 100;

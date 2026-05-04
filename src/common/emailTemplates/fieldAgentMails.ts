@@ -1,3 +1,14 @@
+import { getClientBaseUrl } from "../../utils/clientAppUrl";
+import { getDealSiteRootHost } from "../../config/dealSitePublicHost";
+
+function fieldAgentMainWebOrigin(): string {
+  const b = getClientBaseUrl();
+  return b || `https://www.${getDealSiteRootHost()}`;
+}
+
+const fieldAgentSupportEmail =
+  process.env.MAIN_SUPPORT_EMAIL || `support@${getDealSiteRootHost()}`;
+
 export const FieldAgentCreated = (firstName: string, email: string, password: string): string => {
   return `
     <h2 style="color:#09391C;">Welcome to the Team, ${firstName}!</h2>
@@ -8,7 +19,7 @@ export const FieldAgentCreated = (firstName: string, email: string, password: st
       <li><strong>Password:</strong> ${password}</li>
     </ul>
     <p>We strongly recommend that you log in and change your password immediately for security reasons.</p>
-    <a href="https://www.khabiteqrealty.com/auth/login" style="display:inline-block;background-color:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;margin-top:20px;">Log in to Your Dashboard</a>
+    <a href="${fieldAgentMainWebOrigin()}/auth/login" style="display:inline-block;background-color:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;margin-top:20px;">Log in to Your Dashboard</a>
   `;
 };
 
@@ -20,7 +31,7 @@ export const DeleteFieldAgent = (fullNameOrEmail: string, reason: string): strin
     <p>This is to inform you that your Field Agent account has been deleted from the system.</p>
     <p><strong>Reason:</strong> ${reason}</p>
     <p>If you believe this was a mistake or you have any questions, please contact support immediately.</p>
-    <a href="mailto:support@khabiteqrealty.com" style="display:inline-block;background-color:#B00020;color:white;padding:10px 16px;text-decoration:none;border-radius:6px;margin-top:20px;">Contact Support</a>
+    <a href="mailto:${fieldAgentSupportEmail}" style="display:inline-block;background-color:#B00020;color:white;padding:10px 16px;text-decoration:none;border-radius:6px;margin-top:20px;">Contact Support</a>
   `;
 };
 
@@ -38,7 +49,7 @@ export const ToggleFieldAgentStatus = (
     <p>Your Field Agent account has been <strong>${isInactive ? 'temporarily deactivated' : 're-activated'}</strong>.</p>
     ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
     <p>If you have questions or need further clarification, please reach out.</p>
-    <a href="mailto:support@khabiteqrealty.com" style="display:inline-block;background-color:${isInactive ? '#B00020' : '#09391C'};color:white;padding:10px 16px;text-decoration:none;border-radius:6px;margin-top:20px;">Contact Support</a>
+    <a href="mailto:${fieldAgentSupportEmail}" style="display:inline-block;background-color:${isInactive ? '#B00020' : '#09391C'};color:white;padding:10px 16px;text-decoration:none;border-radius:6px;margin-top:20px;">Contact Support</a>
   `;
 };
 

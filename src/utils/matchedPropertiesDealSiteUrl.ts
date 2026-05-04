@@ -1,11 +1,11 @@
 import { DB } from "../controllers";
 import { Types } from "mongoose";
+import { dealSiteOriginFromPublicSlug, getDealSiteRootHost } from "../config/dealSitePublicHost";
+import { getClientBaseUrl } from "./clientAppUrl";
 
 /** Tenant front origin for DealSites (e.g. https://realhomes.khabiteq.com). */
 export function dealSiteBaseUrlFromPublicSlug(publicSlug: string): string {
-  const s = String(publicSlug || "").trim();
-  if (!s) return "";
-  return `https://${s}.khabiteq.com`;
+  return dealSiteOriginFromPublicSlug(publicSlug);
 }
 
 async function dealSitePublicSlugForUser(userId: unknown): Promise<string | null> {
@@ -57,6 +57,6 @@ export async function resolveMatchedPropertiesEmailBaseUrl(
     const slug = await dealSitePublicSlugForProperty(p);
     if (slug) return dealSiteBaseUrlFromPublicSlug(slug);
   }
-  const fallback = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
-  return fallback || "https://khabiteq.com";
+  const fallback = getClientBaseUrl();
+  return fallback || `https://${getDealSiteRootHost()}`;
 }

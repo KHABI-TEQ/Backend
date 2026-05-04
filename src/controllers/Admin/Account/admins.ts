@@ -139,6 +139,17 @@ export const createAdmin = async (
       );
     }
 
+    const adminBase = (process.env.ADMIN_CLIENT_LINK || "").replace(/\/$/, "");
+    const adminLoginUrl =
+      (process.env.ADMIN_LOGIN_URL || "").trim() ||
+      (adminBase ? `${adminBase}/login` : "");
+    if (!adminLoginUrl) {
+      throw new RouteError(
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        "Set ADMIN_CLIENT_LINK or ADMIN_LOGIN_URL in the environment. The admin dashboard uses its own domain and is not derived from khabiteq.com.",
+      );
+    }
+
     // ✅ Generate a random password if not provided
     const generatedPassword = password || generateRandomPassword(10);
 
@@ -160,11 +171,9 @@ export const createAdmin = async (
 
     // ✅ Prepare email
     const fullName = `${firstName} ${lastName}`;
-    const loginUrl = process.env.ADMIN_LOGIN_URL || "https://admin.khabiteqrealty.com/login";
-
     const subject = "Welcome to Khabi-Teq – Your Admin Account Has Been Created";
     const emailBody = generalEmailLayout(
-      adminAccountCreated(fullName, normalizedEmail, generatedPassword, loginUrl)
+      adminAccountCreated(fullName, normalizedEmail, generatedPassword, adminLoginUrl)
     );
 
     // ✅ Send email notification

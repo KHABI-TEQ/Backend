@@ -14,6 +14,7 @@ import {
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { INSPECTION_FEE_DEFAULT } from "../../services/propertyValidation.service";
+import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 
 const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
@@ -235,7 +236,7 @@ export const respondToInspectionRequest = async (
       const publicSlug = (dealSite as any)?.publicSlug;
       const viewPropertyUrl =
         publicSlug && propertyIdStr
-          ? `https://${publicSlug}.khabiteq.com/properties/${propertyIdStr}`
+          ? `${dealSiteOriginFromPublicSlug(publicSlug)}/properties/${propertyIdStr}`
           : undefined;
 
       const inspectionDateStr = (inspection as any).inspectionDate

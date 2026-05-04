@@ -1,3 +1,27 @@
+import { getClientBaseUrl } from "../utils/clientAppUrl";
+import { getDealSiteRootHost } from "../config/dealSitePublicHost";
+
+/** Public main website link for email footers (CLIENT_LINK, else www + DEALSITE_ROOT_HOST). */
+function emailTemplateMainWebHref(): string {
+  return getClientBaseUrl() || `https://www.${getDealSiteRootHost()}`;
+}
+
+function emailTemplateMainWebLabel(): string {
+  return emailTemplateMainWebHref().replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
+function emailTemplateInfoDeskEmail(): string {
+  return (
+    process.env.DOCUMENT_ADMIN_MAIL ||
+    process.env.GENERAL_VERIFICATION_MAIL ||
+    `info@${getDealSiteRootHost()}`
+  ).trim();
+}
+
+function emailTemplateAgentSupportEmail(): string {
+  return (process.env.AGENT_SUPPORT_EMAIL || `agent.support@${getDealSiteRootHost()}`).trim();
+}
+
 interface EmailBrandingOptions {
   companyName?: string;
   logoUrl?: string;
@@ -219,9 +243,9 @@ export const verificationGeneralTemplate = (body: string): string => {
                               <div style="background-color: #f4f4f4; padding: 15px; border-radius: 6px; margin-top: 20px;">
                                 <p style="margin: 0 0 5px 0;"><strong>Verification Desk</strong></p>
                                 <p style="margin: 0 0 5px 0;">Khabi-Teq</p>
-                                <p style="margin: 0 0 5px 0;">📧 <a href="mailto:info@Khabiteqrealty.com">info@Khabiteqrealty.com</a></p>
+                                <p style="margin: 0 0 5px 0;">📧 <a href="mailto:${emailTemplateInfoDeskEmail()}">${emailTemplateInfoDeskEmail()}</a></p>
                                 <p style="margin: 0 0 5px 0;">📞 02013306352</p>
-                                <p style="margin: 0;">🌐 <a href="https://www.khabiteqrealty.com" target="_blank">www.khabiteqrealty.com</a></p>
+                                <p style="margin: 0;">🌐 <a href="${emailTemplateMainWebHref()}" target="_blank">${emailTemplateMainWebLabel()}</a></p>
                               </div>
 
                         </td>
@@ -423,7 +447,7 @@ export const accountDisaapproved = (name: string): string => {
 
         Thank you for your interest in joining Khabi-Teq. After reviewing your application, we regret to inform you that your account has not been approved at this time.
 
-        If you have any questions or wish to provide additional information, please feel free to contact us at agent.support@khabiteqrealty.com.
+        If you have any questions or wish to provide additional information, please feel free to contact us at ${emailTemplateAgentSupportEmail()}.
         </p>
         `;
 };

@@ -13,6 +13,7 @@ import {
 } from "../../services/requestToMarketEmail.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
+import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 
 /**
@@ -104,7 +105,7 @@ export const createRequestToMarket = async (
       .lean();
     const publicSlug = (dealSite as { publicSlug?: string } | null)?.publicSlug;
     if (publicSlug) {
-      agentPublicPageUrl = "https://" + publicSlug + ".khabiteq.com";
+      agentPublicPageUrl = dealSiteOriginFromPublicSlug(publicSlug);
     }
 
     try {
