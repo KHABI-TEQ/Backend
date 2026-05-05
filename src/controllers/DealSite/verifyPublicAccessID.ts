@@ -266,6 +266,115 @@ export const getDealSiteBySlug = async (
   }
 };
 
+/**
+ * GET /deal-site/:publicSlug/owner-contact
+ * Public owner contact payload for visitors.
+ * - Ensures DealSite exists and is running
+ * - Applies the same public subscription gate used by other DealSite public APIs
+ * - Respects contactVisibility flags for email/phone
+ */
+export const getDealSiteOwnerContact = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { publicSlug } = req.params;
+    const normalizedSlug = /^[a-f0-9]{24,}-/i.test(publicSlug)
+      ? "surecoder"
+      : publicSlug;
+
+    const dealSite = await DealSiteService.getBySlug(normalizedSlug, true);
+    if (!dealSite) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_FOUND",
+        message: "Public access page not found",
+        data: null,
+      });
+    }
+
+    if (dealSite.status !== "running") {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        errorCode: "DEALSITE_NOT_ACTIVE",
+        message: "This Public access page is not currently active.",
+        data: null,
+      });
+    }
+
+    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
+    if (!subscriptionOk) {
+      return;
+    }
+
+    const ownerId = resolveLeanRefToObjectId((dealSite as any).createdBy);
+    if (!ownerId) {
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        errorCode: "DEALSITE_INVALID_OWNER",
+        message: "Public access page owner reference is invalid.",
+        data: null,
+      });
+    }
+
+    const owner = await DB.Models.User.findById(ownerId)
+      .select("firstName lastName fullName userType email phoneNumber address")
+      .lean();
+    if (!owner) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        errorCode: "OWNER_NOT_FOUND",
+        message: "Public access page owner not found",
+        data: null,
+      });
+    }
+
+    const visibility = (dealSite as any).contactVisibility || {};
+    const showEmail = visibility.showEmail !== false;
+    const showPhone = visibility.showPhone !== false;
+
+    const ownerAddress = (owner as any).address || {};
+    const contactLocation = (dealSite as any)?.contactUs?.location || {};
+    const address = {
+      street: ownerAddress.street || "",
+      state: ownerAddress.state || "",
+      localGovtArea: ownerAddress.localGovtArea || "",
+      display:
+        contactLocation.address ||
+        [ownerAddress.street, ownerAddress.localGovtArea, ownerAddress.state]
+          .filter(Boolean)
+          .join(", "),
+    };
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Owner contact fetched successfully",
+      data: {
+        owner: {
+          id: String((owner as any)._id),
+          fullName:
+            (owner as any).fullName ||
+            [(owner as any).firstName, (owner as any).lastName]
+              .filter(Boolean)
+              .join(" ") ||
+            "Owner",
+          userType: (owner as any).userType,
+          email: showEmail ? (owner as any).email || null : null,
+          phoneNumber: showPhone ? (owner as any).phoneNumber || null : null,
+          address,
+        },
+        visibility: {
+          showEmail,
+          showPhone,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 
 /**

@@ -1,5 +1,5 @@
 import express from "express";
-import { getDealSiteBySlug, getDealSiteSection, getFeaturedProperties } from "../controllers/DealSite/verifyPublicAccessID";
+import { getDealSiteBySlug, getDealSiteOwnerContact, getDealSiteSection, getFeaturedProperties } from "../controllers/DealSite/verifyPublicAccessID";
 import { getDealSiteProperties } from "../controllers/DealSite/properties/fetchProperties";
 import { getSingleDealSiteProperty } from "../controllers/DealSite/properties/getSingleProperty";
 import { submitBookingRequest } from "../controllers/DealSite/inspections/bookingActions";
@@ -30,6 +30,9 @@ DealSiteRouter.delete("/delete-single-file", deleteFileFromCloudinary);
  
 // get and validate deal site 
 DealSiteRouter.get("/:publicSlug/getData", getDealSiteBySlug);
+
+// public owner contact (phone/email/address based on contactVisibility)
+DealSiteRouter.get("/:publicSlug/owner-contact", getDealSiteOwnerContact);
  
 // get and validate deal site
 DealSiteRouter.get("/:publicSlug/featuredProperties", getFeaturedProperties);
