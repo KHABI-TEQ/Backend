@@ -10,6 +10,7 @@ import {
   autoPairPreferencesForNewProperty,
   isPropertyListedAndMatchable,
 } from "../../../services/autoPreferencePairing.service";
+import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 
 export const updatePropertyStatusAsAdmin = async (
   req: AppRequest,
@@ -87,6 +88,16 @@ export const updatePropertyStatusAsAdmin = async (
       } catch (e) {
         console.warn("[updatePropertyStatusAsAdmin] autoPairPreferencesForNewProperty failed:", e);
       }
+    }
+
+    try {
+      void enqueuePropertySyndicationJobs({
+        propertyId: propertyId.toString(),
+        userId: property.owner.toString(),
+        eventType: status === "deleted" || status === "withdrawn" ? "property.unpublished" : "property.status_changed",
+      });
+    } catch (syndicationErr) {
+      console.warn("[updatePropertyStatusAsAdmin] enqueue syndication failed:", syndicationErr);
     }
 
     return res.status(HttpStatusCodes.OK).json({

@@ -36,3 +36,7 @@ export * from "./agentRating";
 export * from "./agentReport";
 export * from "./transactionRegistration";
 export * from "./requestToMarket";
+export * from "./platformConnection";
+export * from "./syndicationJob";
+export * from "./syndicatedListingMapping";
+export * from "./webhookEvent";

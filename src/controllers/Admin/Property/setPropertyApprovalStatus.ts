@@ -10,6 +10,7 @@ import {
   autoPairPreferencesForNewProperty,
   isPropertyListedAndMatchable,
 } from "../../../services/autoPreferencePairing.service";
+import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 
 export const setPropertyApprovalStatus = async (
   req: AppRequest,
@@ -89,6 +90,17 @@ export const setPropertyApprovalStatus = async (
           console.warn("[setPropertyApprovalStatus] autoPairPreferencesForNewProperty failed:", e);
         }
       }
+    }
+
+    try {
+      const eventType = action === "unpublish" ? "property.unpublished" : "property.status_changed";
+      void enqueuePropertySyndicationJobs({
+        propertyId: propertyId.toString(),
+        userId: property.owner._id.toString(),
+        eventType,
+      });
+    } catch (syndicationErr) {
+      console.warn("[setPropertyApprovalStatus] enqueue syndication failed:", syndicationErr);
     }
 
     const message =

@@ -75,6 +75,14 @@ import {
   ITransactionRegistrationModel,
   RequestToMarketModel,
   IRequestToMarketModel,
+  PlatformConnection,
+  IPlatformConnectionModel,
+  SyndicationJob,
+  ISyndicationJobModel,
+  SyndicatedListingMapping,
+  ISyndicatedListingMappingModel,
+  WebhookEvent,
+  IWebhookEventModel,
 } from "../models/index";
 
 
@@ -117,6 +125,10 @@ declare interface IModels {
   AgentReport: IAgentReportModel;
   TransactionRegistration: ITransactionRegistrationModel;
   RequestToMarket: IRequestToMarketModel;
+  PlatformConnection: IPlatformConnectionModel;
+  SyndicationJob: ISyndicationJobModel;
+  SyndicatedListingMapping: ISyndicatedListingMappingModel;
+  WebhookEvent: IWebhookEventModel;
 } 
 
 export class DB {
@@ -174,6 +186,10 @@ export class DB {
       AgentReport: new AgentReport().model,
       TransactionRegistration: new TransactionRegistration().model,
       RequestToMarket: new RequestToMarketModel().model,
+      PlatformConnection: new PlatformConnection().model,
+      SyndicationJob: new SyndicationJob().model,
+      SyndicatedListingMapping: new SyndicatedListingMapping().model,
+      WebhookEvent: new WebhookEvent().model,
     };
   }
 

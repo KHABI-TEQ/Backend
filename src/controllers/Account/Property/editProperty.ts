@@ -7,6 +7,7 @@ import { propertyValidationSchema } from "../../../utils/formValidation/property
 import { notifySubscribersOfPropertyUpdate } from "../../../services/agentSubscriber.service";
 import { Types } from "mongoose";
 import { notifyPriceDropToMatchedPreferences } from "../../../services/whatsappPropertyPrice.service";
+import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 
 export const editProperty = async (
   req: AppRequest,
@@ -63,6 +64,16 @@ export const editProperty = async (
       await notifySubscribersOfPropertyUpdate(property as any);
     } catch (notifyErr) {
       console.warn("[editProperty] Notify subscribers failed:", notifyErr);
+    }
+
+    try {
+      void enqueuePropertySyndicationJobs({
+        propertyId: property._id.toString(),
+        userId: property.owner.toString(),
+        eventType: "property.updated",
+      });
+    } catch (syndicationErr) {
+      console.warn("[editProperty] enqueue syndication failed:", syndicationErr);
     }
 
     return res.status(HttpStatusCodes.OK).json({
@@ -155,6 +166,16 @@ export const updatePropertyStatus = async (
       await notifySubscribersOfPropertyUpdate(property as any);
     } catch (notifyErr) {
       console.warn("[updatePropertyStatus] Notify subscribers failed:", notifyErr);
+    }
+
+    try {
+      void enqueuePropertySyndicationJobs({
+        propertyId: property._id.toString(),
+        userId: property.owner.toString(),
+        eventType: status === "deleted" || status === "withdrawn" ? "property.unpublished" : "property.status_changed",
+      });
+    } catch (syndicationErr) {
+      console.warn("[updatePropertyStatus] enqueue syndication failed:", syndicationErr);
     }
 
     return res.status(HttpStatusCodes.OK).json({

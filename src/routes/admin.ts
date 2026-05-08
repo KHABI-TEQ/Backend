@@ -166,6 +166,9 @@ AdminRouter.get("/landowners/:userId", getSingleLandlord);
 AdminRouter.get("/landowners/dashboard", getLandlordDashboardStatistics);
 AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
 AdminRouter.delete("/landowners/:userId/delete", deleteLandlordAction);
+// Backward-compatible aliases for older clients using singular "landowner" delete route.
+AdminRouter.delete("/landowner/:userId", deleteLandlordAction);
+AdminRouter.delete("/landowner/:userId/delete", deleteLandlordAction);
 AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount);
 AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 

@@ -16,6 +16,7 @@ import { validatePropertyPayload } from "../../../services/propertyValidation.se
 import { assertPropertyListingAllowedForOwner } from "../../../services/propertyListingEligibility.service";
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
 import { notifyUserPropertyCreatedByAdmin } from "../../../services/userProvisioningNotifications.service";
+import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 
 export const postPropertyAsAdmin = async (
   req: AppRequest,
@@ -165,6 +166,16 @@ export const postPropertyAsAdmin = async (
       await autoPairPreferencesForNewProperty(createdProperty._id.toString());
     } catch (pairErr) {
       console.warn("[postPropertyAsAdmin] autoPairPreferencesForNewProperty failed:", pairErr);
+    }
+
+    try {
+      void enqueuePropertySyndicationJobs({
+        propertyId: createdProperty._id.toString(),
+        userId: owner._id.toString(),
+        eventType: "property.created",
+      });
+    } catch (syndicationErr) {
+      console.warn("[postPropertyAsAdmin] enqueue syndication failed:", syndicationErr);
     }
 
     return res.status(HttpStatusCodes.CREATED).json({

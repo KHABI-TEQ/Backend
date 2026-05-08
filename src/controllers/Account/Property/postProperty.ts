@@ -15,6 +15,7 @@ import { assertPropertyListingAllowedForOwner } from "../../../services/property
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import mongoose from "mongoose";
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
+import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 
 export const postProperty = async (
   req: AppRequest,
@@ -164,6 +165,16 @@ export const postProperty = async (
       await autoPairPreferencesForNewProperty(createdProperty._id.toString());
     } catch (pairErr) {
       console.warn("[postProperty] autoPairPreferencesForNewProperty failed:", pairErr);
+    }
+
+    try {
+      void enqueuePropertySyndicationJobs({
+        propertyId: createdProperty._id.toString(),
+        userId: userId.toString(),
+        eventType: "property.created",
+      });
+    } catch (syndicationErr) {
+      console.warn("[postProperty] enqueue syndication failed:", syndicationErr);
     }
 
     return res.status(HttpStatusCodes.CREATED).json({
