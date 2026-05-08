@@ -72,6 +72,17 @@ import {
   postWhatsappSendTemplate,
   postWhatsappTest,
 } from "../controllers/Admin/whatsappAdmin";
+import {
+  createSyndicationPlatform,
+  editSyndicationPlatform,
+  listSyndicationPlatformsForAdmin,
+  updateSyndicationPlatformStatus,
+} from "../controllers/Admin/syndicationPlatforms";
+import {
+  approveSyndicationPlatformApplication,
+  listSyndicationPlatformApplications,
+  reviewSyndicationPlatformApplication,
+} from "../controllers/Admin/syndicationPlatformApplications";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -221,6 +232,15 @@ AdminRouter.delete("/properties/:propertyId/delete", deletePropertyById);
 AdminRouter.post("/properties/:propertyId/changeStatus", updatePropertyStatusAsAdmin);
 AdminRouter.put("/properties/:propertyId/approval", setPropertyApprovalStatus);
 AdminRouter.get("/properties/:propertyId/inspections", getPropertyInspections);
+
+// SYNDICATION PLATFORM CATALOG (ADMIN-OWNED)
+AdminRouter.post("/syndication/platforms", createSyndicationPlatform);
+AdminRouter.patch("/syndication/platforms/:id", editSyndicationPlatform);
+AdminRouter.patch("/syndication/platforms/:id/status", updateSyndicationPlatformStatus);
+AdminRouter.get("/syndication/platforms", listSyndicationPlatformsForAdmin);
+AdminRouter.get("/syndication/platform-applications", listSyndicationPlatformApplications);
+AdminRouter.patch("/syndication/platform-applications/:id/review", reviewSyndicationPlatformApplication);
+AdminRouter.post("/syndication/platform-applications/:id/approve", approveSyndicationPlatformApplication);
   
 
 // TESTIMONIALS MANAGEMENT ROUTES

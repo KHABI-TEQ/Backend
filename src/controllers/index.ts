@@ -83,6 +83,10 @@ import {
   ISyndicatedListingMappingModel,
   WebhookEvent,
   IWebhookEventModel,
+  SyndicationPlatform,
+  ISyndicationPlatformModel,
+  SyndicationPlatformApplication,
+  ISyndicationPlatformApplicationModel,
 } from "../models/index";
 
 
@@ -129,6 +133,8 @@ declare interface IModels {
   SyndicationJob: ISyndicationJobModel;
   SyndicatedListingMapping: ISyndicatedListingMappingModel;
   WebhookEvent: IWebhookEventModel;
+  SyndicationPlatform: ISyndicationPlatformModel;
+  SyndicationPlatformApplication: ISyndicationPlatformApplicationModel;
 } 
 
 export class DB {
@@ -190,6 +196,8 @@ export class DB {
       SyndicationJob: new SyndicationJob().model,
       SyndicatedListingMapping: new SyndicatedListingMapping().model,
       WebhookEvent: new WebhookEvent().model,
+      SyndicationPlatform: new SyndicationPlatform().model,
+      SyndicationPlatformApplication: new SyndicationPlatformApplication().model,
     };
   }
 

@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import axios from "axios";
 import { Types } from "mongoose";
 import { DB } from "../controllers";
 import { dealSiteOriginFromPublicSlug } from "../config/dealSitePublicHost";
@@ -88,21 +89,27 @@ export async function enqueuePropertySyndicationJobs(params: {
       userId: new Types.ObjectId(params.userId),
       status: "active",
       "config.outboundEnabled": { $ne: false },
-    }).lean();
+    })
+      .populate("platformId")
+      .lean();
 
     if (!connections.length) return;
 
     await Promise.all(
-      connections.map((connection: any) =>
-        DB.Models.SyndicationJob.create({
+      connections.map((connection: any) => {
+        const platform = connection.platformId as any;
+        if (!platform || platform.status !== "approved" || platform?.config?.outboundEnabled === false) {
+          return Promise.resolve(null);
+        }
+        return DB.Models.SyndicationJob.create({
           propertyId: new Types.ObjectId(params.propertyId),
           userId: new Types.ObjectId(params.userId),
-          platformKey: normalizePlatformKey(connection.platformKey),
+          platformKey: normalizePlatformKey(platform.platformKey || connection.platformKey),
           eventType: params.eventType,
           status: "pending",
           payload,
-        })
-      )
+        });
+      })
     );
   } catch (error) {
     console.warn("[enqueuePropertySyndicationJobs] failed:", error);
@@ -122,6 +129,14 @@ export async function saveInboundSyndicationWebhook(params: {
   let errorMessage = "";
 
   try {
+    const platform = await DB.Models.SyndicationPlatform.findOne({ platformKey }).lean();
+    if (!platform || platform.status !== "approved") {
+      throw new Error("Platform is not approved for inbound webhook processing");
+    }
+    if (platform?.config?.inboundWebhookEnabled === false) {
+      throw new Error("Inbound webhook is disabled for this platform");
+    }
+
     // Idempotency: upsert by (platformKey, eventId) when eventId is provided.
     if (eventId) {
       const existing = await DB.Models.WebhookEvent.findOne({ platformKey, eventId }).lean();
@@ -175,5 +190,167 @@ export async function saveInboundSyndicationWebhook(params: {
   }
 
   return { duplicated: false, status };
+}
+
+function buildAuthHeaders(connection: any): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  const authType = String(connection?.authType || "");
+  if (authType === "api_key" && connection?.credentials?.apiKey) {
+    headers.Authorization = `Bearer ${connection.credentials.apiKey}`;
+  }
+  if (authType === "oauth2" && connection?.credentials?.accessToken) {
+    headers.Authorization = `Bearer ${connection.credentials.accessToken}`;
+  }
+  if (authType === "basic" && connection?.credentials?.apiKey) {
+    headers.Authorization = `Basic ${connection.credentials.apiKey}`;
+  }
+
+  return headers;
+}
+
+function resolveEndpointForEvent(baseUrl: string, eventType: SyndicationEvent): string {
+  const normalizedBase = String(baseUrl || "").replace(/\/+$/, "");
+  if (!normalizedBase) return "";
+  if (eventType === "property.unpublished") return `${normalizedBase}/listings/unpublish`;
+  if (eventType === "property.status_changed") return `${normalizedBase}/listings/status`;
+  return `${normalizedBase}/listings`;
+}
+
+async function markJobAsFailed(jobId: string, attempts: number, maxAttempts: number, message: string) {
+  const exceeded = attempts >= maxAttempts;
+  await DB.Models.SyndicationJob.updateOne(
+    { _id: new Types.ObjectId(jobId) },
+    {
+      $set: {
+        status: exceeded ? "failed" : "pending",
+        errorMessage: message,
+        lastAttemptAt: new Date(),
+      },
+      $inc: { attempts: 1 },
+    }
+  );
+}
+
+async function processSingleSyndicationJob(job: any) {
+  const connection = await DB.Models.PlatformConnection.findOne({
+    userId: job.userId,
+    platformKey: job.platformKey,
+    status: "active",
+    "config.outboundEnabled": { $ne: false },
+  })
+    .populate("platformId")
+    .lean();
+
+  if (!connection) {
+    await markJobAsFailed(job._id.toString(), job.attempts, job.maxAttempts, "Active platform connection not found");
+    return;
+  }
+
+  const platform = connection.platformId as any;
+  if (!platform || platform.status !== "approved") {
+    await markJobAsFailed(job._id.toString(), job.attempts, job.maxAttempts, "Platform is not approved");
+    return;
+  }
+  if (platform?.config?.outboundEnabled === false) {
+    await markJobAsFailed(job._id.toString(), job.attempts, job.maxAttempts, "Platform outbound is disabled by admin");
+    return;
+  }
+
+  const endpoint = resolveEndpointForEvent(platform?.config?.baseUrl || connection?.config?.baseUrl || "", job.eventType);
+  if (!endpoint) {
+    await markJobAsFailed(job._id.toString(), job.attempts, job.maxAttempts, "Platform baseUrl is missing");
+    return;
+  }
+
+  const headers = buildAuthHeaders({
+    ...connection,
+    authType: platform?.authType || connection?.authType,
+  });
+  const body = {
+    eventType: job.eventType,
+    ...job.payload,
+  };
+
+  try {
+    const response = await axios.post(endpoint, body, {
+      headers,
+      timeout: Number(process.env.SYNDICATION_HTTP_TIMEOUT_MS || 12000),
+      validateStatus: () => true,
+    });
+
+    if (response.status >= 200 && response.status < 300) {
+      await DB.Models.SyndicationJob.updateOne(
+        { _id: job._id },
+        {
+          $set: {
+            status: "sent",
+            sentAt: new Date(),
+            lastAttemptAt: new Date(),
+            errorMessage: undefined,
+          },
+          $inc: { attempts: 1 },
+        }
+      );
+
+      const platformListingId = String(
+        response.data?.listingId || response.data?.id || response.data?.data?.listingId || ""
+      );
+      const listingUrl = String(response.data?.url || response.data?.data?.url || "");
+      if (platformListingId) {
+        await DB.Models.SyndicatedListingMapping.updateOne(
+          { propertyId: job.propertyId, platformKey: job.platformKey },
+          {
+            $set: {
+              propertyId: job.propertyId,
+              userId: job.userId,
+              platformKey: job.platformKey,
+              platformListingId,
+              listingUrl: listingUrl || undefined,
+              lastSyncedStatus: "active",
+              isActive: true,
+            },
+          },
+          { upsert: true }
+        );
+      }
+      return;
+    }
+
+    await markJobAsFailed(
+      job._id.toString(),
+      job.attempts,
+      job.maxAttempts,
+      `HTTP ${response.status}: ${JSON.stringify(response.data || {}).slice(0, 500)}`
+    );
+  } catch (error: any) {
+    await markJobAsFailed(
+      job._id.toString(),
+      job.attempts,
+      job.maxAttempts,
+      error?.message || "Unknown outbound syndication error"
+    );
+  }
+}
+
+export async function dispatchPendingSyndicationJobs(options?: { batchSize?: number }) {
+  if ((process.env.SYNDICATION_ENABLED || "false").toLowerCase() !== "true") return;
+
+  const batchSize = Math.max(1, Math.min(Number(options?.batchSize || process.env.SYNDICATION_DISPATCH_BATCH_SIZE || 10), 50));
+  for (let i = 0; i < batchSize; i += 1) {
+    const job = await DB.Models.SyndicationJob.findOneAndUpdate(
+      {
+        status: "pending",
+        $expr: { $lt: ["$attempts", "$maxAttempts"] },
+      },
+      { $set: { status: "processing", lastAttemptAt: new Date() } },
+      { sort: { createdAt: 1 }, new: true }
+    ).lean();
+
+    if (!job) break;
+    await processSingleSyndicationJob(job);
+  }
 }
 

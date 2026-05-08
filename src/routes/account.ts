@@ -61,6 +61,12 @@ import {
   listInspectionRepresentatives,
   updateInspectionRepresentative,
 } from "../controllers/Account/inspectionRepresentatives";
+import {
+  createSyndicationConnection,
+  listApprovedSyndicationPlatforms,
+  listMySyndicationConnections,
+  toggleSyndicationConnection,
+} from "../controllers/Account/syndicationConnections";
 
 const AccountRouter = express.Router();
 
@@ -207,6 +213,12 @@ AccountRouter.post("/inspectionsFieldAgent/:inspectionId/stopInspection", comple
 // MARKETPLACE — general (main-site) preferences for agent dashboard + agent-initiated matching
 AccountRouter.get("/marketplace/general-preferences", fetchGeneralMarketplacePreferences);
 AccountRouter.post("/marketplace/preferences/:preferenceId/match", agentInitiatePreferenceMatch);
+
+// SYNDICATION (USER)
+AccountRouter.get("/syndication/platforms", listApprovedSyndicationPlatforms);
+AccountRouter.post("/syndication/connections", createSyndicationConnection);
+AccountRouter.patch("/syndication/connections/:id/toggle", toggleSyndicationConnection);
+AccountRouter.get("/syndication/connections", listMySyndicationConnections);
 
 // PREFERENCES ROUTES
 AccountRouter.get("/my-preferences/fetchAll", getMatchedPreferencesForOwner);

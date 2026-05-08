@@ -10,6 +10,7 @@ import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
 import { processShortletViewingWhatsappReminders } from '../services/shortletViewingWhatsapp.cron.service';
 import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
+import { dispatchPendingSyndicationJobs } from '../services/propertySyndication.service';
 
 // ───────────────────────────────
 // 1. DELETE OLD PENDING ITEMS
@@ -437,6 +438,15 @@ cron.schedule('*/10 * * * *', async () => {
     }
   } catch (err) {
     console.error('[CRON] Shortlet viewing WhatsApp error:', err);
+  }
+});
+
+// Every 1 minute – dispatch pending property syndication jobs to external platforms
+cron.schedule('* * * * *', async () => {
+  try {
+    await dispatchPendingSyndicationJobs();
+  } catch (err) {
+    console.error('[CRON] Syndication dispatcher error:', err);
   }
 });
 

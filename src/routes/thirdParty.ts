@@ -4,6 +4,7 @@ import {
   receiveSyndicationWebhook,
   redirectSyndicationInspection,
 } from "../controllers/public/thirdParty/syndication/syndicationWebhook";
+import { submitSyndicationPlatformApplication } from "../controllers/public/thirdParty/syndication/platformApplications";
 
 const ThirdPartyRouter = express.Router();
 
@@ -21,5 +22,8 @@ ThirdPartyRouter.post("/syndication/webhooks/:platformKey", receiveSyndicationWe
 
 // Signed redirect used as inspection URL in outbound listing payloads.
 ThirdPartyRouter.get("/syndication/inspection-redirect/:propertyId", redirectSyndicationInspection);
+
+// Public platform application (for partner platforms to request onboarding).
+ThirdPartyRouter.post("/syndication/platform-applications", submitSyndicationPlatformApplication);
 
 export default ThirdPartyRouter;

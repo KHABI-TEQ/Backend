@@ -5,6 +5,7 @@ export type PlatformConnectionStatus = "active" | "inactive" | "error";
 
 export interface IPlatformConnection {
   userId: Types.ObjectId;
+  platformId?: Types.ObjectId;
   platformKey: string;
   platformName: string;
   status: PlatformConnectionStatus;
@@ -36,6 +37,7 @@ export class PlatformConnection {
     const schema = new Schema<IPlatformConnectionDoc>(
       {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+        platformId: { type: Schema.Types.ObjectId, ref: "SyndicationPlatform", index: true },
         platformKey: { type: String, required: true, trim: true, lowercase: true },
         platformName: { type: String, required: true, trim: true },
         status: { type: String, enum: ["active", "inactive", "error"], default: "active" },
@@ -57,6 +59,7 @@ export class PlatformConnection {
       { timestamps: true }
     );
 
+    schema.index({ userId: 1, platformId: 1 }, { unique: true, sparse: true });
     schema.index({ userId: 1, platformKey: 1 }, { unique: true });
 
     this._model = model<IPlatformConnectionDoc>("PlatformConnection", schema);
