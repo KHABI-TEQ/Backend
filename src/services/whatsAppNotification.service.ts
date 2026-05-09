@@ -1010,14 +1010,22 @@ class WhatsAppNotificationService {
   }
 
   /**
-   * Test method to verify service is working
+   * Test method to verify service is working.
+   * Uses Meta's pre-approved `hello_world` template by default (no WhatsApp Manager setup).
+   * Override with WHATSAPP_TEST_TEMPLATE_KEY / WHATSAPP_TEST_TEMPLATE_LANGUAGE if needed.
    */
   async testConnection(testPhone: string): Promise<MessageResult> {
     try {
-      const result = await this.sendMessage(testPhone, 'test_message', {
-        timestamp: new Date().toISOString()
+      const templateKey = (process.env.WHATSAPP_TEST_TEMPLATE_KEY || "hello_world").trim();
+      const languageCode =
+        (process.env.WHATSAPP_TEST_TEMPLATE_LANGUAGE || "").trim() ||
+        (templateKey.toLowerCase() === "hello_world" ? "en_US" : this.templateLanguageCode);
+
+      const result = await this.sendMessage(testPhone, templateKey, {}, {
+        templateName: templateKey.toLowerCase(),
+        languageCode,
       });
-      
+
       return result;
     } catch (error: any) {
       return { success: false, error: error.message };

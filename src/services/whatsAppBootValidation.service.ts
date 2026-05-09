@@ -112,6 +112,10 @@ const TEMPLATE_CONTRACTS: TemplateContract[] = [
     key: "test_message",
     requiredVariables: ["timestamp"],
   },
+  {
+    key: "hello_world",
+    requiredVariables: [],
+  },
 ];
 
 function extractTemplateVariables(template: string): string[] {

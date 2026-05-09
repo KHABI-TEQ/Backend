@@ -6,6 +6,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { DealSiteService } from "../../../services/dealSite.service";
 import { dealSiteActivityService } from "../../../services/dealSiteActivity.service";
+import { notifyUserDealSiteCreatedByAdmin } from "../../../services/userProvisioningNotifications.service";
 
 /**
  * POST /admin/users/:userId/deal-site/setup
@@ -47,6 +48,16 @@ export const adminSetupDealSiteForUser = async (
       description: `Admin provisioned DealSite for user ${userId}`,
       req,
     });
+
+    try {
+      await notifyUserDealSiteCreatedByAdmin({
+        email: owner.email,
+        firstName: owner.firstName || "there",
+        publicSlug: String((dealSite as any).publicSlug || ""),
+      });
+    } catch (emailErr) {
+      console.warn("[adminSetupDealSiteForUser] dealSite notification email failed:", emailErr);
+    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

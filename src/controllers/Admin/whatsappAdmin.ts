@@ -27,7 +27,7 @@ function httpStatusForUpstreamWhatsapp(result: GraphishResult): number {
 
 /**
  * POST /api/admin/whatsapp/test
- * Body: { phone: string } — sends `test_message` template.
+ * Body: { phone: string } — sends Meta sample `hello_world` by default (see WHATSAPP_TEST_TEMPLATE_* env).
  * HTTP: 200 on success; 401 if Graph reports auth failure; 502 for other Graph errors.
  */
 export const postWhatsappTest = async (req: AppRequest, res: Response, next: NextFunction) => {

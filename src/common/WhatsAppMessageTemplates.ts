@@ -181,6 +181,13 @@ Ready to find your dream home?
 
     // ==================== SYSTEM TEMPLATES ====================
 
+    /** Meta pre-approved sample template (no body variables). Used by admin WhatsApp test. */
+    this.templates.set('hello_world', {
+      template: `Hello World`,
+      category: 'system',
+      requiresApproval: false
+    });
+
     this.templates.set('test_message', {
       template: `🧪 *Test Message*
 
@@ -194,7 +201,7 @@ Timestamp: {{timestamp}}
     });
 
     this.templates.set('welcome_message', {
-      template: `🎉 *Welcome to PropertyFinder!*
+      template: `🎉 *Welcome to Khabi-Teq!*
 
 Hi {{userName}},
 

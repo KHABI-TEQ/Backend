@@ -3,6 +3,7 @@ import { getMainWebLoginUrl } from "../utils/clientAppUrl";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { adminProvisionedUserWelcome } from "../common/emailTemplates/userProvisioningMail";
 import WhatsAppNotificationService from "./whatsAppNotification.service";
+import { dealSiteOriginFromPublicSlug } from "../config/dealSitePublicHost";
 
 export async function notifyUserAdminProvisioned(params: {
   email: string;
@@ -80,4 +81,26 @@ export async function notifyUserPropertyCreatedByAdmin(params: {
       console.warn("[WhatsApp] property_created_by_admin failed:", e);
     }
   }
+}
+
+export async function notifyUserDealSiteCreatedByAdmin(params: {
+  email: string;
+  firstName: string;
+  publicSlug: string;
+}): Promise<void> {
+  const publicPageUrl = `${dealSiteOriginFromPublicSlug(params.publicSlug)}/`;
+  const html = generalEmailLayout(`
+    <h3>Your public access page is now live</h3>
+    <p>Hello ${params.firstName || "there"},</p>
+    <p>An admin has created your DealSite public access page successfully.</p>
+    <p><strong>Public page URL:</strong> <a href="${publicPageUrl}">${publicPageUrl}</a></p>
+    <p>You can now share this link with clients and visitors.</p>
+  `);
+
+  await sendEmail({
+    to: params.email,
+    subject: "Your DealSite public page has been created",
+    text: `Your DealSite public page is now live: ${publicPageUrl}`,
+    html,
+  });
 }
