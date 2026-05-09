@@ -245,6 +245,8 @@ export interface WhatsAppMessage {
       parameters: Array<{
         type: 'text';
         text: string;
+        /** Required when Meta template uses named body variables (snake_case), e.g. {{user_name}} */
+        parameter_name?: string;
       }>;
     }>;
   };
@@ -336,10 +338,25 @@ class WhatsAppNotificationService {
         );
       }
 
-      const templateParams = variableKeys.map((key) => ({
-        type: "text" as const,
-        text: this.sanitizeTemplateValue(variables[key]),
-      }));
+      const bodyParamMode = (
+        process.env.WHATSAPP_TEMPLATE_BODY_PARAMETER_MODE || "positional"
+      )
+        .trim()
+        .toLowerCase();
+
+      const templateParams = variableKeys.map((key) => {
+        const base = {
+          type: "text" as const,
+          text: this.sanitizeTemplateValue(variables[key]),
+        };
+        if (bodyParamMode === "named") {
+          return {
+            ...base,
+            parameter_name: this.appVariableKeyToMetaParameterName(key),
+          };
+        }
+        return base;
+      });
 
       const templateName = (options.templateName || templateKey).toLowerCase();
 
@@ -898,6 +915,17 @@ class WhatsAppNotificationService {
     return String(value ?? "")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  /**
+   * Meta "named" template variables must be lowercase + underscores (e.g. {{user_name}}).
+   * App template keys use camelCase (userName) — map to Meta parameter_name for sends.
+   */
+  private appVariableKeyToMetaParameterName(key: string): string {
+    return String(key || "")
+      .replace(/([A-Z])/g, "_$1")
+      .toLowerCase()
+      .replace(/^_/, "");
   }
 
   private getTemplateVariables(templateKey: string): string[] {

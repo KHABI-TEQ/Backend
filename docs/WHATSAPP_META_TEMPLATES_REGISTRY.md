@@ -11,13 +11,25 @@ On Meta you must create a **message template** whose:
 
 - **Name** equals the key below (already lowercase for all current keys).
 - **Language** matches what you configure (env `WHATSAPP_TEMPLATE_LANGUAGE`, default `en`; use `en_US` if your Meta templates use that locale).
-- **Body** has the same number of **positional variables** `{{1}}`, `{{2}}`, … in the **same order** as the variables listed here (Meta’s UI labels them as numbered placeholders).
+- **Body** placeholders must match how this backend sends parameters (see next section).
+
+### Positional vs named body variables
+
+**Default (`WHATSAPP_TEMPLATE_BODY_PARAMETER_MODE` unset or `positional`):** Meta body uses numbered placeholders only — `{{1}}`, `{{2}}`, … — in the **same order** as the variables listed in the table below. The Graph payload sends parameters **without** `parameter_name` (order only).
+
+**Named mode (`WHATSAPP_TEMPLATE_BODY_PARAMETER_MODE=named`):** Meta’s “Name” variable type only allows **lowercase letters, digits, and underscores** inside `{{…}}` (e.g. `{{user_name}}`, not `{{userName}}`). The app still uses camelCase keys in code (`userName`, `bookingId`, …); at send time each key is converted to Meta’s `parameter_name` by inserting underscores before capitals and lowercasing (e.g. `userName` → `user_name`, `bookingId` → `booking_id`). Your Meta template body must use those exact snake_case names in the **same order** as the table.
+
+Use **one** mode consistently per environment: if the template in Meta is positional, keep the default; if you registered named placeholders in Meta, set `named` or sends will fail.
+
+### Header variables
+
+This service currently builds **body** components only. If you add a **header** with a variable in Meta, approval may succeed but sends can fail until header parameters are implemented — prefer **no header**, or a fixed header text with no variables, until then.
 
 ---
 
 ## Built-in template keys and variables (send order)
 
-| Template key (Meta name) | Variables in order (must match Meta body {{1}}…{{n}}) |
+| Template key (Meta name) | Variables in order (positional: `{{1}}`…`{{n}}`; named: snake_case of each key, same order) |
 |---------------------------|--------------------------------------------------------|
 | `booking_confirmation` | `userName`, `propertyName`, `propertyAddress`, `date`, `time`, `agentName`, `agentPhone`, `bookingId` |
 | `preferences_updated` | `userName`, `preferencesSummary` |
@@ -74,7 +86,8 @@ On Meta you must create a **message template** whose:
 2. **Variable count:** Templates with many variables are harder to maintain and may hit Meta limits; you may simplify body text in Meta to fewer variables and then adjust this codebase to match (or combine values in fewer parameters).
 3. **`hello_world`:** Usually pre-created by Meta for testing; admin test uses it by default.
 4. **Language:** Set `WHATSAPP_TEMPLATE_LANGUAGE` (e.g. `en` or `en_US`) to match the **approved language code** of each template in Meta.
-5. **Emojis / markdown:** Meta template bodies may not match our internal formatting exactly; only **variable count and order** must align with what `sendMessage` sends.
+5. **Body parameter mode:** Set `WHATSAPP_TEMPLATE_BODY_PARAMETER_MODE` to `named` only if Meta templates use named snake_case placeholders; omit or use `positional` for `{{1}}`…`{{n}}` templates.
+6. **Emojis / markdown:** Meta template bodies may not match our internal formatting exactly; only **variable count and order** must align with what `sendMessage` sends.
 
 ---
 
