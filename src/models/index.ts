@@ -12,6 +12,7 @@ export * from "./buyers";
 export * from "./preference";
 export * from "./documentVerification";
 export * from "./admin";
+export * from "./adminNotification";
 export * from "./user";
 export * from "./propertyView";
 export * from "./testimonial";

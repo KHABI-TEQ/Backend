@@ -20,6 +20,7 @@ import { generateSuccessfulBookingReceiptForBuyer, generateSuccessfulBookingRece
 import { Url } from 'url';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from './whatsappClient.service';
+import { notifyAllActiveAdmins } from './adminNotification.service';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -376,6 +377,25 @@ export class PaystackService {
     await DB.Models.TransactionRegistration.findByIdAndUpdate(registrationId, {
       $set: { status: 'pending_completion' },
     });
+    try {
+      const reg = await DB.Models.TransactionRegistration.findById(registrationId)
+        .select("buyer transactionType")
+        .lean();
+      const buyerEmail = (reg as any)?.buyer?.email ?? "unknown";
+      void notifyAllActiveAdmins({
+        type: "transaction_registration_fee_paid",
+        title: "Transaction registration fee paid",
+        message: `Processing fee received for registration ${registrationId} (${buyerEmail}). Status: pending completion.`,
+        meta: {
+          registrationId: String(registrationId),
+          transactionId: String(tx._id),
+          amount: tx.amount,
+          buyerEmail,
+        },
+      });
+    } catch (e) {
+      console.warn("[Paystack] admin notify transaction registration payment failed:", e);
+    }
     return null;
   }
 

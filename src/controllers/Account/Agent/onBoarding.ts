@@ -6,6 +6,7 @@ import { generalEmailLayout } from '../../../common/emailTemplates/emailLayout';
 import sendEmail from '../../../common/send.email';
 import { kycSubmissionAcknowledgement } from '../../../common/emailTemplates/agentMails';
 import { SystemSettingService } from '../../../services/systemSetting.service';
+import { notifyAllActiveAdmins } from '../../../services/adminNotification.service';
 import { kycVerificationAdminNotification } from '../../../common/emailTemplates/adminMails';
 
 // to be removed
@@ -171,6 +172,16 @@ export const completeAgentKYC = async (
       subject: "New KYC Verification Request Pending – Khabi-Teq",
       html: adminEmailBody,
       text: adminEmailBody,
+    });
+
+    void notifyAllActiveAdmins({
+      type: "kyc_submitted",
+      title: "New KYC verification request",
+      message: `${authUser?.firstName || "Agent"} (${authUser?.email}) submitted KYC for review.`,
+      meta: {
+        userId: String(authUser._id),
+        reviewPath: `/agents/${authUser._id}`,
+      },
     });
 
     return res.status(HttpStatusCodes.OK).json({

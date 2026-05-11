@@ -87,6 +87,8 @@ import {
   ISyndicationPlatformModel,
   SyndicationPlatformApplication,
   ISyndicationPlatformApplicationModel,
+  AdminNotification,
+  IAdminNotificationModel,
 } from "../models/index";
 
 
@@ -135,6 +137,7 @@ declare interface IModels {
   WebhookEvent: IWebhookEventModel;
   SyndicationPlatform: ISyndicationPlatformModel;
   SyndicationPlatformApplication: ISyndicationPlatformApplicationModel;
+  AdminNotification: IAdminNotificationModel;
 } 
 
 export class DB {
@@ -198,6 +201,7 @@ export class DB {
       WebhookEvent: new WebhookEvent().model,
       SyndicationPlatform: new SyndicationPlatform().model,
       SyndicationPlatformApplication: new SyndicationPlatformApplication().model,
+      AdminNotification: new AdminNotification().model,
     };
   }
 

@@ -83,6 +83,13 @@ import {
   listSyndicationPlatformApplications,
   reviewSyndicationPlatformApplication,
 } from "../controllers/Admin/syndicationPlatformApplications";
+import {
+  deleteAdminNotification,
+  getAdminNotifications,
+  getAdminUnreadNotificationCount,
+  markAdminNotificationRead,
+  markAllAdminNotificationsRead,
+} from "../controllers/Admin/adminNotifications";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -143,6 +150,15 @@ AdminRouter.get("/stats/export", dashboardController.exportData);
 AdminRouter.get("/profile", getAdminProfile);
 AdminRouter.get("/profile/update", updateAdminProfile);
 AdminRouter.post("/change-password", changeAdminPassword);
+
+/**
+ * ADMIN IN-APP NOTIFICATIONS (per logged-in admin)
+ */
+AdminRouter.get("/notifications/unread-count", getAdminUnreadNotificationCount);
+AdminRouter.get("/notifications", getAdminNotifications);
+AdminRouter.put("/notifications/read-all", markAllAdminNotificationsRead);
+AdminRouter.put("/notifications/:notificationId/read", markAdminNotificationRead);
+AdminRouter.delete("/notifications/:notificationId", deleteAdminNotification);
 
 /**
  * ADMIN MANAGEMENT ROUTES

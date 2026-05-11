@@ -6,6 +6,7 @@ import { RouteError } from "../../common/classes";
 import { PaystackService } from "../../services/paystack.service";
 import { Types } from "mongoose";
 import { SystemSettingService } from "../../services/systemSetting.service";
+import { notifyAllActiveAdmins } from "../../services/adminNotification.service";
 
 // Map of document names to their corresponding price setting keys
 const listDocNames: Record<string, string> = {
@@ -131,6 +132,17 @@ export const submitDocumentVerification = async (
         });
       })
     );
+
+    void notifyAllActiveAdmins({
+      type: "document_verification_submitted",
+      title: "New document verification request",
+      message: `Buyer ${contactInfo.email} submitted ${createdDocs.length} document verification record(s) (doc code ${docCode}).`,
+      meta: {
+        docCode,
+        buyerEmail: contactInfo.email,
+        documentIds: createdDocs.map((d) => String(d._id)),
+      },
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

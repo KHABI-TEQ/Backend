@@ -3,6 +3,7 @@ import HttpStatusCodes from "../../../../common/HttpStatusCodes";
 import { RouteError } from "../../../../common/classes";
 import { AppRequest } from "../../../../types/express";
 import { DB } from "../../..";
+import { notifyAllActiveAdmins } from "../../../../services/adminNotification.service";
 import sendEmail from "../../../../common/send.email";
 import { generalEmailLayout } from "../../../../common/emailTemplates/emailLayout";
 
@@ -78,6 +79,16 @@ export const submitSyndicationPlatformApplication = async (
     } catch (mailErr) {
       console.warn("[submitSyndicationPlatformApplication] admin alert email failed:", mailErr);
     }
+
+    void notifyAllActiveAdmins({
+      type: "syndication_application_submitted",
+      title: "New syndication platform application",
+      message: `${created.companyName} applied for platform "${created.platformName}" (${created.contactEmail}).`,
+      meta: {
+        applicationId: String(created._id),
+        platformKeySuggestion: created.platformKeySuggestion,
+      },
+    });
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

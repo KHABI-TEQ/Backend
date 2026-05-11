@@ -22,6 +22,7 @@ import {
 import type { TransactionRegistrationType } from "../../../models/transactionRegistration";
 import type { IPropertyIdentification } from "../../../models/transactionRegistration";
 import { PaystackService } from "../../../services/paystack.service";
+import { notifyAllActiveAdmins } from "../../../services/adminNotification.service";
 
 const ACTIVE_OR_COMPLETED_STATUSES = ["submitted", "pending_completion", "completed"] as const;
 
@@ -314,6 +315,18 @@ export const registerTransaction = async (
 
     await DB.Models.Property.findByIdAndUpdate(propertyId, {
       status: "transaction_registered_pending",
+    });
+
+    void notifyAllActiveAdmins({
+      type: "transaction_registration_submitted",
+      title: "Transaction registration submitted",
+      message: `${buyer.fullName} (${buyer.email}) registered a ${transactionType} transaction (property ${propertyId}). Processing fee: ₦${fee.toLocaleString()}.`,
+      meta: {
+        registrationId: String(reg._id),
+        propertyId,
+        transactionType,
+        buyerEmail: buyer.email,
+      },
     });
 
     const data: { registrationId: string; processingFee: number; paymentUrl?: string } = {

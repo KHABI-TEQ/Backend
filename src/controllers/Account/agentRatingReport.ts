@@ -9,6 +9,7 @@ import {
   submitReportSchemaPublic,
 } from "../../validators/agentRatingReport.validator";
 import mongoose from "mongoose";
+import { notifyAllActiveAdmins } from "../../services/adminNotification.service";
 
 const COMPLETED_STAGE = "completed";
 const COMPLETED_STATUS = "completed";
@@ -121,6 +122,18 @@ export const submitInspectionReportPublic = async (
       subject: subject || undefined,
       description: description.trim(),
       status: "pending",
+    });
+
+    void notifyAllActiveAdmins({
+      type: "agent_report_submitted",
+      title: "New agent complaint / report",
+      message: `Buyer submitted a report (${category}) for inspection ${inspectionId}.`,
+      meta: {
+        reportId: String(doc._id),
+        inspectionId,
+        category,
+        reportedAgentId: String(reportedAgentId),
+      },
     });
 
     return res.status(HttpStatusCodes.CREATED).json({

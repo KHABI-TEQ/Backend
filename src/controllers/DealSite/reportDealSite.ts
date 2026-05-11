@@ -2,6 +2,7 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../types/express";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
+import { notifyAllActiveAdmins } from "../../services/adminNotification.service";
  
 // ✅ Controller: Report a DealSite
 export const reportDealSite = async (
@@ -52,6 +53,18 @@ export const reportDealSite = async (
       reason,
       description: description || null,
       status: "pending", // could be: pending, reviewed, resolved, dismissed
+    });
+
+    void notifyAllActiveAdmins({
+      type: "dealsite_reported",
+      title: "DealSite reported",
+      message: `DealSite "${publicSlug}" was reported (${reason}).`,
+      meta: {
+        reportId: String(report._id),
+        dealSiteId: String(dealSite._id),
+        publicSlug,
+        reason,
+      },
     });
 
     res.status(HttpStatusCodes.CREATED).json({
