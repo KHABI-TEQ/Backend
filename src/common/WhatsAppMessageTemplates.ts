@@ -306,6 +306,67 @@ Your agent {{agentName}} is ready to help with next steps!
       requiresApproval: false
     });
 
+    this.templates.set('buyer_inspection_confirmation', {
+      template: `🏠 *Inspection confirmation*
+
+Hi {{userName}} 👋
+
+✅ We need one quick step from you: confirm that your *property inspection* took place on Khabiteq.
+
+📋 *Why this matters*
+It helps us keep your record accurate and unlock the next steps in your journey.
+
+🔗 *Tap to confirm*
+{{confirmUrl}}
+
+⏱️ *Tip:* Use the link on the same device you use for Khabiteq if you can.
+
+Thanks for choosing Khabiteq 🙏`,
+      category: 'reminder',
+      requiresApproval: false
+    });
+
+    this.templates.set('buyer_transaction_confirmation', {
+      template: `🤝 *Transaction confirmation*
+
+Hi {{userName}} 👋
+
+✅ Quick check: did your *property transaction* go ahead?
+
+📋 *Why we’re asking*
+Your answer helps us close the loop and guide you to registration or support if needed.
+
+🔗 *Tap to confirm*
+{{confirmUrl}}
+
+💡 *Note:* The link is unique to you—please don’t forward it.
+
+Thanks — *Team Khabiteq* 🏡`,
+      category: 'reminder',
+      requiresApproval: false
+    });
+
+    this.templates.set('buyer_inspection_rate_report', {
+      template: `⭐ *Rate & report — inspection done*
+
+Hi {{userName}} 👋
+
+Your inspection is marked *completed* on Khabiteq. We’d love your feedback.
+
+⭐️ *Rate your experience*
+{{rateUrl}}
+
+🛡️ *Report an issue (optional)*
+If something went wrong with this inspection, you can report it here:
+{{reportUrl}}
+
+🔒 These links are tied to your inspection — please don’t forward them.
+
+Thank you — *Team Khabiteq* 🏡`,
+      category: 'followup',
+      requiresApproval: false
+    });
+
     this.templates.set('offer_submitted', {
       template: `📝 *Offer Submitted*
 

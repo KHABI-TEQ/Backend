@@ -15,6 +15,7 @@ import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { INSPECTION_FEE_DEFAULT } from "../../services/propertyValidation.service";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
+import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from "../../services/buyerConfirmationDevScheduler.service";
 
 const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
@@ -269,6 +270,8 @@ export const respondToInspectionRequest = async (
         inspectionDate: inspectionDateStr,
         inspectionTime: inspectionTimeStr,
       });
+
+      scheduleDevBuyerConfirmationSequenceAfterSellerAccept(String(inspectionId));
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,

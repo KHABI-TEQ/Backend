@@ -21,6 +21,7 @@ import { Url } from 'url';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from './whatsappClient.service';
 import { notifyAllActiveAdmins } from './adminNotification.service';
+import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from './buyerConfirmationDevScheduler.service';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -875,6 +876,10 @@ export class PaystackService {
       inspection.status = updatedStatus;
       inspection.stage = updatedStage;
       await inspection.save();
+
+      if (transaction.status === "success") {
+        scheduleDevBuyerConfirmationSequenceAfterSellerAccept(inspection._id.toString());
+      }
     }
 
     return inspections;

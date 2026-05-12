@@ -47,6 +47,9 @@ This service currently builds **body** components only. If you add a **header** 
 | `maintenance_notice` | `userName`, `maintenanceDate`, `maintenanceTime`, `estimatedDuration` |
 | `property_inquiry` | `agentName`, `userName`, `userPhone`, `propertyName`, `propertyLocation`, `inquiryMessage` |
 | `viewing_completed` | `userName`, `propertyName`, `agentName`, `agentPhone` |
+| `buyer_inspection_confirmation` | `userName`, `confirmUrl` |
+| `buyer_transaction_confirmation` | `userName`, `confirmUrl` |
+| `buyer_inspection_rate_report` | `userName`, `rateUrl`, `reportUrl` |
 | `offer_submitted` | `userName`, `propertyName`, `offerAmount`, `submissionDate` |
 | `offer_accepted` | `userName`, `propertyName`, `acceptedAmount`, `propertyAddress`, `agentName` |
 | `offer_rejected` | `userName`, `propertyName`, `offerAmount`, `sellerFeedback`, `agentName` |
