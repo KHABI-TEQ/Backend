@@ -69,7 +69,12 @@ export interface IInspectionBooking {
 
   meta?: Record<string, any>;
 
-  /** Set when the 3-day-after inspection cron sends the transaction confirmation request email. */
+  /** Cron: 1+ day after scheduled slot — inspection confirmation request email sent. */
+  inspectionConfirmationRequestSentAt?: Date;
+  /** Set when the buyer confirms the scheduled inspection took place (inspection confirmation link). */
+  buyerConfirmedInspectionAt?: Date;
+
+  /** Cron: 3+ day after scheduled slot — transaction confirmation request email sent. */
   transactionConfirmationRequestSentAt?: Date;
   /** Set when the buyer clicks the confirm button in that email. */
   buyerConfirmedTransactionAt?: Date;
@@ -204,6 +209,9 @@ export class InspectionBooking {
           dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
         meta: { type: Schema.Types.Mixed, default: {} },
+        inspectionConfirmationRequestSentAt: { type: Date },
+        buyerConfirmedInspectionAt: { type: Date },
+
         transactionConfirmationRequestSentAt: { type: Date },
         buyerConfirmedTransactionAt: { type: Date },
         reminderSlotAt: { type: Date },

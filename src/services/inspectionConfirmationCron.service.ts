@@ -1,22 +1,19 @@
 import { DB } from "../controllers";
 import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
-import {
-  transactionConfirmationRequestMail,
-  transactionConfirmationFollowUpMail,
-} from "../common/emailTemplates/transactionConfirmationMails";
+import { inspectionConfirmationRequestMail } from "../common/emailTemplates/inspectionConfirmationMails";
 import { BUYER_CONFIRM_FLOW_INSPECTION_STATUSES } from "../constants/buyerInspectionConfirmationFlow";
 import { parseInspectionScheduledAt } from "../utils/inspectionSchedule";
 import { InspectionLogService } from "./inspectionLog.service";
 import {
-  CONFIRM_TOKEN_PURPOSE_TRANSACTION,
+  CONFIRM_TOKEN_PURPOSE_INSPECTION,
   generateBuyerConfirmationToken,
   getBuyerConfirmationApiPath,
 } from "./buyerConfirmationToken.service";
 
 const ACCEPTED_STATUSES = [...BUYER_CONFIRM_FLOW_INSPECTION_STATUSES];
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
-const MIN_DAYS_AFTER_SLOT = 3;
+const MIN_DAYS_AFTER_SLOT = 1;
 
 function scheduledSlotOrFallback(inspectionDate: Date, inspectionTime: string): Date {
   const parsed = parseInspectionScheduledAt(inspectionDate, inspectionTime);
@@ -31,23 +28,16 @@ function viewingClosed(inv: { status?: string; stage?: string }): boolean {
 }
 
 /**
- * Buyer must have confirmed the inspection (or viewing was closed by field agent) before we ask about the transaction.
+ * Run daily: 1+ full day after the agreed inspection date/time, send a dedicated
+ * "confirm inspection took place" email (separate from transaction confirmation).
  */
-function inspectionStepSatisfied(inv: any): boolean {
-  return !!inv.buyerConfirmedInspectionAt || viewingClosed(inv);
-}
-
-/**
- * Run daily: 3+ full days after the agreed inspection date/time, send the transaction-only confirmation email.
- * Requires inspection step satisfied (`buyerConfirmedInspectionAt` or viewing already completed).
- */
-export async function sendTransactionConfirmationRequestEmails(): Promise<number> {
+export async function sendInspectionConfirmationRequestEmails(): Promise<number> {
   const now = Date.now();
   const cutoff = now - MIN_DAYS_AFTER_SLOT * MS_PER_DAY;
 
   const candidates = await DB.Models.InspectionBooking.find({
     status: { $in: ACCEPTED_STATUSES },
-    transactionConfirmationRequestSentAt: null,
+    inspectionConfirmationRequestSentAt: null,
   })
     .populate("requestedBy")
     .populate("propertyId")
@@ -58,7 +48,8 @@ export async function sendTransactionConfirmationRequestEmails(): Promise<number
 
   for (const insp of candidates) {
     const inv = insp as any;
-    if (!inspectionStepSatisfied(inv)) continue;
+    if (viewingClosed(inv)) continue;
+    if (inv.buyerConfirmedInspectionAt) continue;
 
     const slot = scheduledSlotOrFallback(new Date(inv.inspectionDate), String(inv.inspectionTime || ""));
     if (slot.getTime() > cutoff) continue;
@@ -68,9 +59,9 @@ export async function sendTransactionConfirmationRequestEmails(): Promise<number
     if (!buyer?.email || !property?._id) continue;
 
     try {
-      const token = generateBuyerConfirmationToken(String(inv._id), CONFIRM_TOKEN_PURPOSE_TRANSACTION);
+      const token = generateBuyerConfirmationToken(String(inv._id), CONFIRM_TOKEN_PURPOSE_INSPECTION);
       const confirmUrl = apiPath
-        ? `${apiPath}/inspections/confirm-transaction?token=${encodeURIComponent(token)}`
+        ? `${apiPath}/inspections/confirm-inspection?token=${encodeURIComponent(token)}`
         : `#`;
 
       const inspectionDateStr = inv.inspectionDate
@@ -83,7 +74,7 @@ export async function sendTransactionConfirmationRequestEmails(): Promise<number
       const inspectionTimeStr = String(inv.inspectionTime || "—");
 
       const html = generalEmailLayout(
-        transactionConfirmationRequestMail({
+        inspectionConfirmationRequestMail({
           buyerName: buyer.fullName || buyer.email || "there",
           confirmUrl,
           inspectionDate: inspectionDateStr,
@@ -93,14 +84,14 @@ export async function sendTransactionConfirmationRequestEmails(): Promise<number
 
       await sendEmail({
         to: buyer.email,
-        subject: "Confirm your property transaction – Khabiteq",
-        text: `Please confirm if your transaction took place by visiting: ${confirmUrl}`,
+        subject: "Confirm your property inspection – Khabiteq",
+        text: `Please confirm your inspection took place: ${confirmUrl}`,
         html,
       });
 
       await DB.Models.InspectionBooking.updateOne(
         { _id: inv._id },
-        { $set: { transactionConfirmationRequestSentAt: new Date() } }
+        { $set: { inspectionConfirmationRequestSentAt: new Date() } }
       );
 
       try {
@@ -111,49 +102,20 @@ export async function sendTransactionConfirmationRequestEmails(): Promise<number
           senderModel: "Buyer",
           senderRole: "buyer",
           message:
-            "[Automated] Transaction confirmation request email sent to buyer (3+ days after scheduled slot; inspection step satisfied).",
+            "[Automated] Inspection confirmation request email sent to buyer (1+ day after scheduled slot).",
           status: inv.status,
           stage: inv.stage,
-          meta: {
-            event: "transaction_confirmation_email_sent",
-            scheduledSlotAt: slot.toISOString(),
-            buyerConfirmedInspectionAt: inv.buyerConfirmedInspectionAt || null,
-          },
+          meta: { event: "inspection_confirmation_email_sent", scheduledSlotAt: slot.toISOString() },
         });
       } catch (logErr) {
-        console.warn("[transactionConfirmationCron] log failed:", inv._id, logErr);
+        console.warn("[inspectionConfirmationCron] log failed:", inv._id, logErr);
       }
 
       sent++;
     } catch (err) {
-      console.warn("[transactionConfirmationCron] Failed to send for inspection", inv._id, err);
+      console.warn("[inspectionConfirmationCron] Failed to send for inspection", inv._id, err);
     }
   }
 
   return sent;
-}
-
-/**
- * Send the follow-up email (register transaction + benefits) to the buyer after they confirmed the transaction.
- */
-export async function sendTransactionRegistrationFollowUpEmail(
-  buyerEmail: string,
-  buyerName: string
-): Promise<void> {
-  const clientLink = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
-  const registerUrl = clientLink ? `${clientLink}/transaction-registration` : "#";
-
-  const html = generalEmailLayout(
-    transactionConfirmationFollowUpMail({
-      buyerName: buyerName || "there",
-      registerUrl,
-    })
-  );
-
-  await sendEmail({
-    to: buyerEmail,
-    subject: "Register your transaction – Khabiteq",
-    text: `Thank you for confirming. Please register your transaction at: ${registerUrl}`,
-    html,
-  });
 }

@@ -6,12 +6,13 @@ export function transactionConfirmationRequestMail(options: {
   buyerName: string;
   confirmUrl: string;
   inspectionDate: string;
+  inspectionTime: string;
 }): string {
-  const { buyerName, confirmUrl, inspectionDate } = options;
+  const { buyerName, confirmUrl, inspectionDate, inspectionTime } = options;
   return `
     <p>Hello ${buyerName},</p>
-    <p>Your property inspection was scheduled for <strong>${inspectionDate}</strong>. We hope it went well.</p>
-    <p>If you have proceeded with a transaction (rental, purchase, or other) with the agent or developer, please confirm this to us by clicking the button below. This helps us keep our records accurate and support you with transaction registration.</p>
+    <p>Following your scheduled inspection on <strong>${inspectionDate}</strong> at <strong>${inspectionTime}</strong>, we are checking in on the next step.</p>
+    <p>If you have proceeded with a transaction (rental, purchase, or other) with the agent or developer, please confirm this to us by clicking the button below. This helps us keep our records accurate and supports you with transaction registration.</p>
     <p style="margin: 24px 0;">
       <a href="${confirmUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Confirm transaction took place</a>
     </p>

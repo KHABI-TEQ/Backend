@@ -6,6 +6,7 @@ import sendEmail from './send.email';
 import { PaystackService } from '../services/paystack.service';
 import { kebabToTitleCase } from '../utils/helper';
 import { sendTransactionConfirmationRequestEmails } from '../services/transactionConfirmationCron.service';
+import { sendInspectionConfirmationRequestEmails } from '../services/inspectionConfirmationCron.service';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
 import { processShortletViewingWhatsappReminders } from '../services/shortletViewingWhatsapp.cron.service';
@@ -403,10 +404,21 @@ cron.schedule('30 0 * * *', () => {
   autoRenewSubscriptionsCronJob();
 });
 
-// Run every day at 02:00 AM – send transaction confirmation request emails to buyers 3 days after accepted inspection date
+// Run every day at 01:45 AM – inspection confirmation emails (1+ day after scheduled slot)
+cron.schedule('45 1 * * *', async () => {
+  try {
+    console.log('[CRON] Inspection confirmation request emails (1+ day after scheduled slot)...');
+    const sent = await sendInspectionConfirmationRequestEmails();
+    if (sent > 0) console.log(`[CRON] Sent ${sent} inspection confirmation request email(s).`);
+  } catch (err) {
+    console.error('[CRON] Inspection confirmation request emails error:', err);
+  }
+});
+
+// Run every day at 02:00 AM – transaction confirmation request emails (3+ days after scheduled slot; after inspection step)
 cron.schedule('0 2 * * *', async () => {
   try {
-    console.log('[CRON] Transaction confirmation request emails (3 days after inspection)...');
+    console.log('[CRON] Transaction confirmation request emails (3+ days after scheduled slot)...');
     const sent = await sendTransactionConfirmationRequestEmails();
     if (sent > 0) console.log(`[CRON] Sent ${sent} transaction confirmation request email(s).`);
   } catch (err) {
