@@ -12,6 +12,24 @@ import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 
+/** Subscription snapshot, DealSite, and Agent collection row — same shape for Agent and Developer (see loginUser). Landowners get the same keys; agentData is usually null. */
+async function buildPublisherProfileExtensions(user: { _id: unknown; accountApproved?: boolean }) {
+  const agentData = await DB.Models.Agent.findOne({ userId: user._id }).lean();
+  const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+    String(user._id)
+  );
+  const dealSites = await DealSiteService.getByAgent(String(user._id), true);
+  const dealSite = dealSites?.[0] ?? null;
+  const snap = activeSnapshot || null;
+  return {
+    agentData,
+    isAccountApproved: user.accountApproved,
+    activeSubscription: snap,
+    activeSnapshot: snap,
+    dealSite,
+  };
+}
+
 // Fetch Profile
 export const getProfile = async (
   req: AppRequest,
@@ -48,25 +66,10 @@ export const getProfile = async (
     };
 
     let responseData: any = userResponse;
-
-    if (user.userType === "Agent") {
-      const agentData = await DB.Models.Agent.findOne({ userId: user._id }).lean();
-
-      // Get active subscription snapshot using the service
-      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
-        user._id.toString()
-      );
-
-      // get the agent deal site page if found
-      const dealSite = await DealSiteService.getByAgent(user._id.toString());
-
-      responseData = {
-        ...userResponse,
-        agentData,
-        isAccountApproved: user.accountApproved,
-        activeSubscription: activeSnapshot || null,
-        dealSite: dealSite || null
-      };
+    const ut = user.userType;
+    if (ut === "Agent" || ut === "Developer" || ut === "Landowners") {
+      const extra = await buildPublisherProfileExtensions(user);
+      responseData = { ...userResponse, ...extra };
     }
 
     return res.status(HttpStatusCodes.OK).json({
