@@ -354,6 +354,7 @@ export async function dispatchPendingSyndicationJobs(options?: { batchSize?: num
     ).lean();
 
     if (!job) break;
+    console.log("Processing the job after fetching it", job);
     await processSingleSyndicationJob(job);
   }
 }
