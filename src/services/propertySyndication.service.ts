@@ -220,7 +220,8 @@ function resolveEndpointForEvent(baseUrl: string, eventType: SyndicationEvent): 
 }
 
 async function markJobAsFailed(jobId: string, attempts: number, maxAttempts: number, message: string) {
-  const exceeded = attempts >= maxAttempts;
+  // After this update, attempts becomes attempts+1. Mark failed when no retries remain (dispatcher only picks attempts < maxAttempts).
+  const exceeded = attempts + 1 >= maxAttempts;
   await DB.Models.SyndicationJob.updateOne(
     { _id: new Types.ObjectId(jobId) },
     {
@@ -235,6 +236,7 @@ async function markJobAsFailed(jobId: string, attempts: number, maxAttempts: num
 }
 
 async function processSingleSyndicationJob(job: any) {
+  console.log("Processing syndication job", job);
   const connection = await DB.Models.PlatformConnection.findOne({
     userId: job.userId,
     platformKey: job.platformKey,
@@ -256,6 +258,7 @@ async function processSingleSyndicationJob(job: any) {
   }
   if (platform?.config?.outboundEnabled === false) {
     await markJobAsFailed(job._id.toString(), job.attempts, job.maxAttempts, "Platform outbound is disabled by admin");
+    console.log("Platform outbound is disabled by admin");
     return;
   }
 
@@ -336,6 +339,7 @@ async function processSingleSyndicationJob(job: any) {
 }
 
 export async function dispatchPendingSyndicationJobs(options?: { batchSize?: number }) {
+  console.log("Dispatching pending syndication jobs");
   if ((process.env.SYNDICATION_ENABLED || "false").toLowerCase() !== "true") return;
 
   const batchSize = Math.max(1, Math.min(Number(options?.batchSize || process.env.SYNDICATION_DISPATCH_BATCH_SIZE || 10), 50));

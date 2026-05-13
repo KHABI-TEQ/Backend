@@ -456,6 +456,7 @@ cron.schedule('*/10 * * * *', async () => {
 // Every 1 minute – dispatch pending property syndication jobs to external platforms
 cron.schedule('* * * * *', async () => {
   try {
+    console.log('[CRON] Dispatching pending property syndication jobs to external platforms...');
     await dispatchPendingSyndicationJobs();
   } catch (err) {
     console.error('[CRON] Syndication dispatcher error:', err);
