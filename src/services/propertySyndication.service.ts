@@ -222,6 +222,15 @@ function buildAuthHeaders(connection: any): Record<string, string> {
   if (authType === "basic" && connection?.credentials?.apiKey) {
     headers.Authorization = `Basic ${connection.credentials.apiKey}`;
   }
+  if (authType === "partner_login") {
+    const email = String(connection?.credentials?.email || "").trim();
+    const password =
+      connection?.credentials?.password != null ? String(connection.credentials.password) : "";
+    if (email && password) {
+      const token = Buffer.from(`${email}:${password}`, "utf8").toString("base64");
+      headers.Authorization = `Basic ${token}`;
+    }
+  }
 
   return headers;
 }

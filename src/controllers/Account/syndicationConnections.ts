@@ -5,6 +5,57 @@ import { RouteError } from "../../common/classes";
 import { AppRequest } from "../../types/express";
 import { DB } from "../index";
 
+function sanitizeSyndicationConnectionForClient(doc: any): any {
+  const plain = doc && typeof doc.toObject === "function" ? doc.toObject() : { ...doc };
+  if (plain.credentials) {
+    const c = { ...plain.credentials };
+    delete c.password;
+    delete c.apiKey;
+    delete c.refreshToken;
+    delete c.accessToken;
+    plain.credentials = c;
+  }
+  return plain;
+}
+
+function validateConnectionCredentialsForAuthType(
+  authType: string,
+  credentials: Record<string, unknown> | undefined
+): void {
+  const cred = credentials || {};
+  if (authType === "partner_login") {
+    const email = String(cred.email || "").trim();
+    const password = cred.password != null ? String(cred.password) : "";
+    if (!email || !password) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "credentials.email and credentials.password (partner platform login) are required for this integration"
+      );
+    }
+    return;
+  }
+  if (authType === "api_key") {
+    if (!String(cred.apiKey || "").trim()) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "credentials.apiKey is required for this integration");
+    }
+    return;
+  }
+  if (authType === "oauth2") {
+    if (!String(cred.accessToken || "").trim()) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "credentials.accessToken is required for this integration");
+    }
+    return;
+  }
+  if (authType === "basic") {
+    if (!String(cred.apiKey || "").trim()) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "credentials.apiKey is required (Base64-encoded user:password) for basic auth integrations"
+      );
+    }
+  }
+}
+
 export const listApprovedSyndicationPlatforms = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const platforms = await DB.Models.SyndicationPlatform.find({
@@ -52,6 +103,8 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
       throw new RouteError(HttpStatusCodes.CONFLICT, "Connection already exists for this platform");
     }
 
+    validateConnectionCredentialsForAuthType(platform.authType, credentials);
+
     const created = await DB.Models.PlatformConnection.create({
       userId: new Types.ObjectId(userId),
       platformId: new Types.ObjectId(platformId),
@@ -63,6 +116,8 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
         accessToken: credentials?.accessToken,
         refreshToken: credentials?.refreshToken,
         apiKey: credentials?.apiKey,
+        email: credentials?.email != null ? String(credentials.email).trim().toLowerCase() : undefined,
+        password: credentials?.password != null ? String(credentials.password) : undefined,
         tokenExpiresAt: credentials?.tokenExpiresAt,
       },
       config: {
@@ -75,7 +130,7 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
       message: "Platform connection created successfully",
-      data: created,
+      data: sanitizeSyndicationConnectionForClient(created),
     });
   } catch (err) {
     next(err);
@@ -103,7 +158,7 @@ export const toggleSyndicationConnection = async (req: AppRequest, res: Response
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: `Platform connection ${enabled ? "enabled" : "disabled"} successfully`,
-      data: updated,
+      data: sanitizeSyndicationConnectionForClient(updated),
     });
   } catch (err) {
     next(err);
@@ -123,7 +178,7 @@ export const listMySyndicationConnections = async (req: AppRequest, res: Respons
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Syndication connections fetched successfully",
-      data,
+      data: data.map((row) => sanitizeSyndicationConnectionForClient(row)),
     });
   } catch (err) {
     next(err);

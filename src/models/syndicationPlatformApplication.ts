@@ -13,7 +13,7 @@ export interface ISyndicationPlatformApplication {
   contactPhone?: string;
   platformName: string;
   platformKeySuggestion: string;
-  authType: "api_key" | "oauth2" | "basic";
+  authType: "api_key" | "oauth2" | "basic" | "partner_login";
   baseUrl: string;
   webhookSupport?: boolean;
   docsUrl?: string;
@@ -51,7 +51,7 @@ export class SyndicationPlatformApplication {
           lowercase: true,
           index: true,
         },
-        authType: { type: String, enum: ["api_key", "oauth2", "basic"], required: true },
+        authType: { type: String, enum: ["api_key", "oauth2", "basic", "partner_login"], required: true },
         baseUrl: { type: String, required: true, trim: true },
         webhookSupport: { type: Boolean, default: true },
         docsUrl: { type: String },
