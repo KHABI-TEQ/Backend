@@ -10,13 +10,28 @@ function normalizePlatformKey(platformKey: string): string {
   return String(platformKey || "").trim().toLowerCase();
 }
 
+/**
+ * Public API root for routes mounted under `app.use('/api', ...)` (e.g. third-party syndication).
+ * Supports both `API_BASE_URL=https://host` and `https://host/api` without duplicating `/api`.
+ */
+function resolvePublicApiBase(): string {
+  const raw = (process.env.API_BASE_URL || process.env.CLIENT_LINK || "").trim().replace(/\/+$/, "");
+  if (!raw) return "";
+  if (/\/api$/i.test(raw)) return raw;
+  return `${raw}/api`;
+}
+
 function buildInspectionRedirectUrl(propertyId: string, ownerId: string): string {
-  const base = (process.env.API_BASE_URL || process.env.CLIENT_LINK || "").replace(/\/+$/, "");
+  const base = resolvePublicApiBase();
   if (!base) return "";
   const secret = process.env.SYNDICATION_LINK_SECRET || "khabiteq-syndication";
   const raw = `${propertyId}:${ownerId}`;
   const signature = crypto.createHmac("sha256", secret).update(raw).digest("hex").slice(0, 24);
-  return `${base}/api/third-party/syndication/inspection-redirect/${propertyId}?ownerId=${ownerId}&sig=${signature}`;
+  const q = new URLSearchParams({
+    ownerId: String(ownerId),
+    sig: signature,
+  });
+  return `${base}/third-party/syndication/inspection-redirect/${encodeURIComponent(propertyId)}?${q.toString()}`;
 }
 
 function mapOutboundStatus(status: string): "active" | "inactive" {
@@ -236,7 +251,6 @@ async function markJobAsFailed(jobId: string, attempts: number, maxAttempts: num
 }
 
 async function processSingleSyndicationJob(job: any) {
-  console.log("Processing syndication job", job);
   const connection = await DB.Models.PlatformConnection.findOne({
     userId: job.userId,
     platformKey: job.platformKey,
@@ -258,7 +272,6 @@ async function processSingleSyndicationJob(job: any) {
   }
   if (platform?.config?.outboundEnabled === false) {
     await markJobAsFailed(job._id.toString(), job.attempts, job.maxAttempts, "Platform outbound is disabled by admin");
-    console.log("Platform outbound is disabled by admin");
     return;
   }
 
@@ -339,7 +352,6 @@ async function processSingleSyndicationJob(job: any) {
 }
 
 export async function dispatchPendingSyndicationJobs(options?: { batchSize?: number }) {
-  console.log("Dispatching pending syndication jobs");
   if ((process.env.SYNDICATION_ENABLED || "false").toLowerCase() !== "true") return;
 
   const batchSize = Math.max(1, Math.min(Number(options?.batchSize || process.env.SYNDICATION_DISPATCH_BATCH_SIZE || 10), 50));
@@ -354,7 +366,6 @@ export async function dispatchPendingSyndicationJobs(options?: { batchSize?: num
     ).lean();
 
     if (!job) break;
-    console.log("Processing the job after fetching it", job);
     await processSingleSyndicationJob(job);
   }
 }
