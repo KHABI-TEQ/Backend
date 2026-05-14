@@ -120,9 +120,9 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
       userId: new Types.ObjectId(userId),
       platformId: new Types.ObjectId(platformId),
     }).lean();
-    if (existing) {
-      throw new RouteError(HttpStatusCodes.CONFLICT, "Connection already exists for this platform");
-    }
+    // if (existing) {
+    //   throw new RouteError(HttpStatusCodes.CONFLICT, "Connection already exists for this platform");
+    // }
 
     validateConnectionCredentialsForAuthType(platform.authType, credentials);
 
