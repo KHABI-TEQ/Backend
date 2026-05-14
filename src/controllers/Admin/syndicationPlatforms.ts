@@ -35,7 +35,7 @@ export const createSyndicationPlatform = async (req: AppRequest, res: Response, 
       acceptedPropertyTypes: finalAccepted,
       config: {
         baseUrl: String(config.baseUrl).trim(),
-        ...(config?.loginUrl ? { loginUrl: String(config.loginUrl).trim() } : {}),
+        loginUrl:String(config.loginUrl).trim(),,
         outboundEnabled: config.outboundEnabled !== false,
         inboundWebhookEnabled: config.inboundWebhookEnabled !== false,
       },

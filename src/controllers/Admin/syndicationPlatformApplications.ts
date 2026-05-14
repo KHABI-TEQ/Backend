@@ -142,6 +142,7 @@ export const approveSyndicationPlatformApplication = async (
     const finalPlatformName = String(platformName || application.platformName).trim();
     const finalAuthType = String(authType || application.authType).trim();
     const baseUrl = String(config?.baseUrl || application.baseUrl).trim();
+    const loginUrl = String(config?.loginUrl || application.loginUrl).trim();
 
     const existing = await DB.Models.SyndicationPlatform.findOne({
       platformKey: finalPlatformKey,
@@ -164,7 +165,7 @@ export const approveSyndicationPlatformApplication = async (
       acceptedPropertyTypes: finalAcceptedPropertyTypes,
       config: {
         baseUrl,
-        ...(config?.loginUrl ? { loginUrl: String(config.loginUrl).trim() } : {}),
+        loginUrl,
         outboundEnabled: config?.outboundEnabled !== false,
         inboundWebhookEnabled: config?.inboundWebhookEnabled !== false,
       },

@@ -24,6 +24,7 @@ export interface IPlatformConnection {
   };
   config?: {
     baseUrl?: string;
+    loginUrl?:string;
     outboundEnabled?: boolean;
     inboundWebhookEnabled?: boolean;
   };
@@ -59,6 +60,7 @@ export class PlatformConnection {
         },
         config: {
           baseUrl: { type: String },
+          loginUrl: { type: String },
           outboundEnabled: { type: Boolean, default: true },
           inboundWebhookEnabled: { type: Boolean, default: true },
         },

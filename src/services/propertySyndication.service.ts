@@ -32,7 +32,8 @@ function buildInspectionRedirectUrl(propertyId: string, ownerId: string): string
     ownerId: String(ownerId),
     sig: signature,
   });
-  return `${base}/third-party/syndication/inspection-redirect/${encodeURIComponent(propertyId)}?${q.toString()}`;
+  // dealsiteUrl ? `${dealsiteUrl}/market-place?propertyId=${(property as any)._id}` : "";
+  return `${base}/market-place?propertyId=${encodeURIComponent(propertyId)}`;
 }
 
 function mapOutboundStatus(status: string): "active" | "inactive" {
