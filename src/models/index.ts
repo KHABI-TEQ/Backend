@@ -43,3 +43,4 @@ export * from "./syndicatedListingMapping";
 export * from "./webhookEvent";
 export * from "./syndicationPlatform";
 export * from "./syndicationPlatformApplication";
+export * from "./syndicationConnectionVerification";

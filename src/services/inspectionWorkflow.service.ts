@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { DB } from "../controllers";
 import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
@@ -193,6 +194,8 @@ export async function notifyTrueOwnerCcOfInspectionRequest(params: {
  */
 export async function notifyPublisherRepresentativesInspectionRequest(params: {
   publisherUserId: string;
+  /** When set, also notifies contacts saved on that property (deduped with account-level list). */
+  propertyId?: string;
   buyerName: string;
   inspectionDate: Date;
   inspectionTime: string;
@@ -205,16 +208,45 @@ export async function notifyPublisherRepresentativesInspectionRequest(params: {
   if (!pub) return;
   if (pub.userType !== "Landowners" && pub.userType !== "Developer") return;
 
-  const reps = (pub as any).inspectionNotificationRepresentatives as
+  const globalReps = (pub as any).inspectionNotificationRepresentatives as
     | { label?: string; email?: string; whatsappNumber?: string }[]
     | undefined;
-  if (!Array.isArray(reps) || reps.length === 0) return;
+
+  type RepRow = { label?: string; email?: string; whatsappNumber?: string };
+  let propertyReps: RepRow[] = [];
+  if (params.propertyId && Types.ObjectId.isValid(params.propertyId)) {
+    const prop = await DB.Models.Property.findById(params.propertyId)
+      .select("owner inspectionNotificationRepresentatives")
+      .lean();
+    const ownerStr = prop?.owner != null ? String((prop as any).owner) : "";
+    if (ownerStr === String(params.publisherUserId)) {
+      const pr = (prop as any)?.inspectionNotificationRepresentatives;
+      if (Array.isArray(pr)) propertyReps = pr;
+    }
+  }
+
+  const seenEmails = new Set<string>();
+  const seenWa = new Set<string>();
+  const merged: RepRow[] = [];
+  const pushRep = (r: RepRow) => {
+    const em = (r.email || "").trim().toLowerCase();
+    const wa = (r.whatsappNumber || "").replace(/\s/g, "");
+    if (em && seenEmails.has(em)) return;
+    if (wa && seenWa.has(wa)) return;
+    if (em) seenEmails.add(em);
+    if (wa) seenWa.add(wa);
+    merged.push(r);
+  };
+  for (const r of globalReps || []) pushRep(r);
+  for (const r of propertyReps || []) pushRep(r);
+
+  if (merged.length === 0) return;
 
   const feeSummary = inspectionRequestFeeSummary(params.amount);
   const scheduleSummary = inspectionRequestScheduleSummary(params.inspectionDate, params.inspectionTime);
   const publisherEmail = String((pub as any).email || "").toLowerCase();
 
-  for (const r of reps) {
+  for (const r of merged) {
     const label = (r.label || "").trim();
     const repName = label || "there";
     const em = (r.email || "").trim().toLowerCase();

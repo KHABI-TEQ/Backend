@@ -6,6 +6,16 @@ import { AppRequest } from "../../types/express";
 import { DB } from "../index";
 import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
+import {
+  normalizeSyndicationPropertyTypesInput,
+  SYNDICATION_PROPERTY_TYPE_VALUES,
+} from "../../common/syndicationPropertyTypes";
+import {
+  buildSyndicationIntegrationAppendixText,
+  publicApiBaseUrl,
+  syndicationListingInboundWebhookUrl,
+  syndicationUserAuthenticationWebhookUrl,
+} from "../../common/syndicationIntegrationUrls";
 
 function escapeHtml(value: string): string {
   return String(value || "")
@@ -13,21 +23,6 @@ function escapeHtml(value: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
-}
-
-/** Public API origin used in partner-facing emails (same envs as outbound syndication links). */
-function publicApiBaseUrl(): string {
-  return String(process.env.API_BASE_URL || process.env.CLIENT_LINK || "").trim().replace(/\/+$/, "");
-}
-
-/** Full URL partners should POST inbound webhooks to (Khabiteq receives). */
-function syndicationInboundWebhookUrl(platformKey: string): string {
-  const base = publicApiBaseUrl();
-  if (!base) return "";
-  const pk = encodeURIComponent(String(platformKey).trim().toLowerCase());
-  const path = `/third-party/syndication/webhooks/${pk}`;
-  if (/\/api$/i.test(base)) return `${base}${path}`;
-  return `${base}/api${path}`;
 }
 
 export const listSyndicationPlatformApplications = async (
@@ -128,7 +123,8 @@ export const approveSyndicationPlatformApplication = async (
 ) => {
   try {
     const { id } = req.params;
-    const { reviewNotes, platformKey, platformName, authType, config } = req.body || {};
+    const { reviewNotes, platformKey, platformName, authType, config, acceptedPropertyTypes: acceptedPropertyTypesBody } =
+      req.body || {};
 
     if (!Types.ObjectId.isValid(id)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid application id");
@@ -154,14 +150,21 @@ export const approveSyndicationPlatformApplication = async (
       throw new RouteError(HttpStatusCodes.CONFLICT, "Platform key already exists");
     }
 
+    const fromBody = normalizeSyndicationPropertyTypesInput(acceptedPropertyTypesBody);
+    const fromApp = normalizeSyndicationPropertyTypesInput((application as any).acceptedPropertyTypes);
+    const finalAcceptedPropertyTypes =
+      fromBody.length > 0 ? fromBody : fromApp.length > 0 ? fromApp : [...SYNDICATION_PROPERTY_TYPE_VALUES];
+
     const createdPlatform = await DB.Models.SyndicationPlatform.create({
       platformKey: finalPlatformKey,
       platformName: finalPlatformName,
       description: `Auto-created from public application (${application.companyName})`,
       authType: finalAuthType,
       status: "approved",
+      acceptedPropertyTypes: finalAcceptedPropertyTypes,
       config: {
         baseUrl,
+        ...(config?.loginUrl ? { loginUrl: String(config.loginUrl).trim() } : {}),
         outboundEnabled: config?.outboundEnabled !== false,
         inboundWebhookEnabled: config?.inboundWebhookEnabled !== false,
       },
@@ -176,14 +179,31 @@ export const approveSyndicationPlatformApplication = async (
 
     try {
       const hubBase = publicApiBaseUrl();
-      const webhookUrl = syndicationInboundWebhookUrl(createdPlatform.platformKey);
+      const listingWebhookUrl = syndicationListingInboundWebhookUrl(createdPlatform.platformKey);
+      const authWebhookUrl = syndicationUserAuthenticationWebhookUrl();
       const webhookSecret = String(process.env.SYNDICATION_WEBHOOK_SECRET || "").trim();
+      const authCallbackSecret = String(
+        process.env.SYNDICATION_AUTH_CALLBACK_SECRET || process.env.SYNDICATION_WEBHOOK_SECRET || ""
+      ).trim();
       const signingEnabled = Boolean(webhookSecret);
+      const authSigningEnabled = Boolean(authCallbackSecret);
       const signingHtml = signingEnabled
-        ? `<p><strong>Webhook signing (required):</strong> Include header <code>x-platform-signature</code> on each POST: hex-encoded HMAC-SHA256 of the <strong>exact JSON body string</strong> you send, using the secret below (same string your server puts on the wire after serialization).</p>
+        ? `<p><strong>Listing webhook signing (when enabled):</strong> Header <code>x-platform-signature</code> = hex(HMAC-SHA256 of the exact JSON body) using the secret below.</p>
         <p><strong>Webhook signing secret:</strong> <code style="word-break:break-all;">${escapeHtml(webhookSecret)}</code></p>
         <p style="font-size:14px;color:#555;">Store this secret only in your credential store; do not commit it to source control or share it beyond your integration team.</p>`
-        : `<p><strong>Webhook signing:</strong> The current Khabi-Teq environment does not require a signature on inbound webhooks. If we enable signing later, we will notify you with the secret and algorithm separately.</p>`;
+        : `<p><strong>Listing webhook signing:</strong> Optional in this environment; we may enable it later.</p>`;
+
+      const authSigningHtml = authSigningEnabled
+        ? `<p><strong>User authentication callback signing:</strong> Same algorithm — header <code>x-platform-signature</code> = hex(HMAC-SHA256(JSON body)). Use secret: <code style="word-break:break-all;">${escapeHtml(authCallbackSecret)}</code> (or set <code>SYNDICATION_AUTH_CALLBACK_SECRET</code> separately from listing webhooks).</p>`
+        : `<p><strong>User authentication callback signing:</strong> Optional unless the hub sets <code>SYNDICATION_AUTH_CALLBACK_SECRET</code> or <code>SYNDICATION_WEBHOOK_SECRET</code>.</p>`;
+
+      const appendix = buildSyndicationIntegrationAppendixText({
+        platformKey: createdPlatform.platformKey,
+        hubBase,
+        listingWebhookUrl,
+        authWebhookUrl,
+        webhookSecretConfigured: signingEnabled || authSigningEnabled,
+      });
 
       const body = generalEmailLayout(`
         <h3>Your Syndication Application Was Approved</h3>
@@ -191,11 +211,21 @@ export const approveSyndicationPlatformApplication = async (
         <p>Your platform application for <strong>${escapeHtml(application.platformName)}</strong> has been <strong>approved</strong>.</p>
         <p><strong>Registered platform key:</strong> <code>${escapeHtml(createdPlatform.platformKey)}</code></p>
         <p><strong>KhabiTeq API base (for your integration):</strong> ${hubBase ? `<code>${escapeHtml(hubBase)}</code>` : "<em>Not configured on our server (ask your contact for the production API base URL).</em>"}</p>
-        <p><strong>Inbound webhooks (your servers → Khabi-Teq):</strong> Send JSON <code>POST</code> requests to:</p>
-        <p><code style="word-break:break-all;">${escapeHtml(webhookUrl || "(configure API_BASE_URL or CLIENT_LINK on Khabi-Teq)")}</code></p>
+        <p><strong>Listing lifecycle webhooks (optional):</strong> <code>POST</code></p>
+        <p><code style="word-break:break-all;">${escapeHtml(listingWebhookUrl || "(configure API_BASE_URL or CLIENT_LINK on Khabi-Teq)")}</code></p>
         ${signingHtml}
+        <h4 style="margin-top:24px;">User registration verification (partner_login)</h4>
+        <p>When hub users connect with email and password, Khabi-Teq will <code>POST</code> to your <strong>login URL</strong> (<code>config.loginUrl</code> if set, otherwise <code>config.baseUrl</code>) with:</p>
+        <ul style="padding-left:20px;">
+          <li>Headers: <code>X-Khabiteq-Correlation-Id</code> (UUID), <code>X-Khabiteq-Platform-Key</code> (your platform key)</li>
+          <li>JSON body: <code>{ "email": "...", "password": "..." }</code> only</li>
+        </ul>
+        <p>After you validate credentials, call our authentication callback:</p>
+        <p><code style="word-break:break-all;">${escapeHtml(authWebhookUrl || "(configure API_BASE_URL or CLIENT_LINK)")}</code></p>
+        <p>JSON body (camelCase): <code>success</code>, <code>verified</code>, <code>correlationId</code> (echo header), <code>email</code> (lowercase), <code>platformKey</code> (echo header), optional <code>message</code>, optional <code>externalUserId</code>.</p>
+        ${authSigningHtml}
         <p><strong>Review notes:</strong> ${escapeHtml(application.reviewNotes || "Approved")}</p>
-        <p>Next steps: ensure your technical team can reach the URL above from your network, implement signing as described, and follow any integration checklist we have shared separately.</p>
+        <p>A plain-text integration appendix is attached to this email for your engineering team.</p>
       `);
 
       const textLines = [
@@ -206,18 +236,25 @@ export const approveSyndicationPlatformApplication = async (
         `Registered platform key: ${createdPlatform.platformKey}`,
         "",
         `Khabi-Teq API base: ${hubBase || "(not configured — ask your Khabi-Teq contact)"}`,
-        `Inbound webhook URL (POST JSON here): ${webhookUrl || "(not configured — ask your Khabi-Teq contact)"}`,
+        `Listing webhook URL: ${listingWebhookUrl || "(not configured)"}`,
+        `User authentication callback URL: ${authWebhookUrl || "(not configured)"}`,
+        "",
+        "See attached khabiteq-syndication-integration.txt for full technical reference.",
         "",
       ];
       if (signingEnabled) {
         textLines.push(
-          "Webhook signing: required. Header x-platform-signature = hex(HMAC-SHA256(JSON body string, secret below)).",
-          `Webhook signing secret: ${webhookSecret}`,
-          "Store the secret securely; do not commit it to git.",
+          "Listing webhook signing: header x-platform-signature = hex(HMAC-SHA256(JSON body string, secret below)).",
+          `Secret: ${webhookSecret}`,
           ""
         );
-      } else {
-        textLines.push("Webhook signing is not required in the current Khabi-Teq environment.", "");
+      }
+      if (authSigningEnabled) {
+        textLines.push(
+          "Auth callback signing: same header/algorithm; secret may be SYNDICATION_AUTH_CALLBACK_SECRET or SYNDICATION_WEBHOOK_SECRET.",
+          `Auth callback secret: ${authCallbackSecret}`,
+          ""
+        );
       }
       textLines.push(`Review notes: ${application.reviewNotes || "Approved"}`, "", "— Khabi-Teq");
       await sendEmail({
@@ -225,6 +262,13 @@ export const approveSyndicationPlatformApplication = async (
         subject: "Syndication platform application approved",
         text: textLines.join("\n"),
         html: body,
+        attachments: [
+          {
+            filename: "khabiteq-syndication-integration.txt",
+            content: appendix,
+            contentType: "text/plain; charset=utf-8",
+          },
+        ],
       });
     } catch (mailErr) {
       console.warn("[approveSyndicationPlatformApplication] applicant email failed:", mailErr);

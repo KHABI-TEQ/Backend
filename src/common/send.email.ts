@@ -1,10 +1,17 @@
 import nodemailer from 'nodemailer';
 
+type EmailAttachment = {
+  filename: string;
+  content: string | Buffer;
+  contentType?: string;
+};
+
 type EmailOptions = {
   to: string;
   subject: string;
   text: string;
   html?: string;
+  attachments?: EmailAttachment[];
 };
 
 const sendEmail = async (emailOptions: EmailOptions) => {
@@ -19,12 +26,13 @@ const sendEmail = async (emailOptions: EmailOptions) => {
     },
   });
  
-  const mailOptions = {
+  const mailOptions: nodemailer.SendMailOptions = {
     from: `${process.env.FROM_NAME} <${process.env.EMAIL_USER}>`,
     to: emailOptions.to,
     subject: emailOptions.subject,
     text: emailOptions.text,
     html: emailOptions.html,
+    attachments: emailOptions.attachments,
   };
 
   try {

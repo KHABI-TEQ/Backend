@@ -62,7 +62,14 @@ import {
   updateInspectionRepresentative,
 } from "../controllers/Account/inspectionRepresentatives";
 import {
+  addPropertyInspectionRepresentative,
+  deletePropertyInspectionRepresentative,
+  listPropertyInspectionRepresentatives,
+  updatePropertyInspectionRepresentative,
+} from "../controllers/Account/propertyInspectionRepresentatives";
+import {
   createSyndicationConnection,
+  getSyndicationVerificationStatus,
   listApprovedSyndicationPlatforms,
   listMySyndicationConnections,
   toggleSyndicationConnection,
@@ -125,6 +132,18 @@ AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus
 AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
 AccountRouter.get("/properties/fetchAll", fetchAllProperties);
+
+// Per-property inspection representatives (approved User-owned listings; Landlords & Developers)
+AccountRouter.get("/properties/:propertyId/inspection-representatives", listPropertyInspectionRepresentatives);
+AccountRouter.post("/properties/:propertyId/inspection-representatives", addPropertyInspectionRepresentative);
+AccountRouter.patch(
+  "/properties/:propertyId/inspection-representatives/:representativeId",
+  updatePropertyInspectionRepresentative,
+);
+AccountRouter.delete(
+  "/properties/:propertyId/inspection-representatives/:representativeId",
+  deletePropertyInspectionRepresentative,
+);
   
 // Inspection notification representatives (Landlords & Developers only)
 AccountRouter.get("/inspection-representatives", listInspectionRepresentatives);
@@ -216,6 +235,7 @@ AccountRouter.post("/marketplace/preferences/:preferenceId/match", agentInitiate
 
 // SYNDICATION (USER)
 AccountRouter.get("/syndication/platforms", listApprovedSyndicationPlatforms);
+AccountRouter.get("/syndication/connections/verification/:correlationId", getSyndicationVerificationStatus);
 AccountRouter.post("/syndication/connections", createSyndicationConnection);
 AccountRouter.patch("/syndication/connections/:id/toggle", toggleSyndicationConnection);
 AccountRouter.get("/syndication/connections", listMySyndicationConnections);

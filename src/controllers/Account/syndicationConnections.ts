@@ -1,9 +1,23 @@
 import { NextFunction, Response } from "express";
+import { randomUUID } from "crypto";
 import { Types } from "mongoose";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { AppRequest } from "../../types/express";
 import { DB } from "../index";
+import {
+  SYNDICATION_PROPERTY_TYPE_LABELS,
+  SYNDICATION_PROPERTY_TYPE_VALUES,
+} from "../../common/syndicationPropertyTypes";
+import {
+  publicApiBaseUrl,
+  syndicationUserAuthenticationWebhookUrl,
+} from "../../common/syndicationIntegrationUrls";
+import {
+  encryptSyndicationPendingSecret,
+  postPartnerCredentialVerification,
+  resolvePartnerSyndicationLoginUrl,
+} from "../../services/syndicationPartnerCredentialVerification.service";
 
 function sanitizeSyndicationConnectionForClient(doc: any): any {
   const plain = doc && typeof doc.toObject === "function" ? doc.toObject() : { ...doc };
@@ -13,6 +27,7 @@ function sanitizeSyndicationConnectionForClient(doc: any): any {
     delete c.apiKey;
     delete c.refreshToken;
     delete c.accessToken;
+    delete c.externalUserId;
     plain.credentials = c;
   }
   return plain;
@@ -62,14 +77,20 @@ export const listApprovedSyndicationPlatforms = async (req: AppRequest, res: Res
       status: "approved",
       "config.outboundEnabled": { $ne: false },
     })
-      .select("platformKey platformName description authType config status createdAt updatedAt")
+      .select("platformKey platformName description authType acceptedPropertyTypes config status createdAt updatedAt")
       .sort({ platformName: 1 })
       .lean();
+
+    const propertyTypeCatalog = SYNDICATION_PROPERTY_TYPE_VALUES.map((value) => ({
+      value,
+      label: SYNDICATION_PROPERTY_TYPE_LABELS[value],
+    }));
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Approved syndication platforms fetched successfully",
       data: platforms,
+      propertyTypeCatalog,
     });
   } catch (err) {
     next(err);
@@ -105,6 +126,88 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
 
     validateConnectionCredentialsForAuthType(platform.authType, credentials);
 
+    const userType = String((req.user as any)?.userType || "");
+
+    if (platform.authType === "partner_login") {
+      if (userType !== "Agent" && userType !== "Developer") {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Only agents and developers can connect using partner platform login"
+        );
+      }
+
+      const inProgress = await DB.Models.SyndicationConnectionVerification.findOne({
+        userId: new Types.ObjectId(userId),
+        platformId: new Types.ObjectId(platformId),
+        status: "pending",
+        expiresAt: { $gt: new Date() },
+      }).lean();
+      if (inProgress) {
+        throw new RouteError(
+          HttpStatusCodes.CONFLICT,
+          "A connection verification is already in progress for this platform"
+        );
+      }
+
+      const loginUrl = resolvePartnerSyndicationLoginUrl(platform);
+      if (!loginUrl) {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Platform is missing syndication base URL (and optional login URL) for credential verification"
+        );
+      }
+
+      const correlationId = randomUUID();
+      const email = String(credentials?.email || "").trim().toLowerCase();
+      const password = String(credentials?.password ?? "");
+      const enc = encryptSyndicationPendingSecret(password);
+
+      await DB.Models.SyndicationConnectionVerification.create({
+        correlationId,
+        userId: new Types.ObjectId(userId),
+        platformId: new Types.ObjectId(platformId),
+        platformKey: platform.platformKey,
+        email,
+        encBlob: enc.encBlob,
+        encIv: enc.encIv,
+        encTag: enc.encTag,
+        status: "pending",
+        expiresAt: new Date(Date.now() + 45 * 60 * 1000),
+      });
+
+      const probe = await postPartnerCredentialVerification({
+        loginUrl,
+        correlationId,
+        platformKey: platform.platformKey,
+        email,
+        password,
+      });
+
+      if (!probe.ok) {
+        await DB.Models.SyndicationConnectionVerification.deleteOne({ correlationId });
+        throw new RouteError(
+          HttpStatusCodes.BAD_GATEWAY,
+          `Partner login endpoint error (HTTP ${probe.status || "n/a"}): ${JSON.stringify(probe.data || {}).slice(0, 500)}`
+        );
+      }
+
+      const hubBase = publicApiBaseUrl();
+      const authCallbackUrl = syndicationUserAuthenticationWebhookUrl();
+
+      return res.status(HttpStatusCodes.ACCEPTED).json({
+        success: true,
+        message:
+          "Verification started. Your partner platform will validate credentials and call Khabi-Teq’s authentication webhook. Poll the verification status until it completes, then your connection will appear under syndication connections.",
+        data: {
+          correlationId,
+          verificationStatusPath: `/api/account/syndication/connections/verification/${correlationId}`,
+          partnerLoginUrlUsed: loginUrl,
+          authenticationCallbackUrl: authCallbackUrl || null,
+          hubApiBaseUrl: hubBase || null,
+        },
+      });
+    }
+
     const created = await DB.Models.PlatformConnection.create({
       userId: new Types.ObjectId(userId),
       platformId: new Types.ObjectId(platformId),
@@ -131,6 +234,43 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
       success: true,
       message: "Platform connection created successfully",
       data: sanitizeSyndicationConnectionForClient(created),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSyndicationVerificationStatus = async (req: AppRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
+
+    const { correlationId } = req.params;
+    if (!correlationId || typeof correlationId !== "string") {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "correlationId is required");
+    }
+
+    const row = await DB.Models.SyndicationConnectionVerification.findOne({
+      correlationId: String(correlationId).trim(),
+      userId: new Types.ObjectId(userId),
+    }).lean();
+
+    if (!row) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Verification not found");
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Verification status fetched",
+      data: {
+        correlationId: row.correlationId,
+        status: row.status,
+        platformKey: row.platformKey,
+        email: row.email,
+        connectionId: row.connectionId || null,
+        partnerMessage: row.partnerMessage || null,
+        expiresAt: row.expiresAt,
+      },
     });
   } catch (err) {
     next(err);

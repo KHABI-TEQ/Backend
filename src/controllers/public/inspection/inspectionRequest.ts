@@ -158,6 +158,7 @@ export const submitInspectionRequest = async (
           });
           await notifyPublisherRepresentativesInspectionRequest({
             publisherUserId: ownerIdStr,
+            propertyId: String((property as any)._id),
             buyerName: (buyer as any).fullName || requestedBy.fullName || buyer.email,
             inspectionDate: inspection.inspectionDate,
             inspectionTime: inspection.inspectionTime,

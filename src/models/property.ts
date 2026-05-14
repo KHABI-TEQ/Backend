@@ -1,4 +1,12 @@
-import { Document, model, Model, Types, Schema } from "mongoose";
+import { Document, model, Model, Schema, Types } from "mongoose";
+
+/** Same shape as user-level inspection representatives; embedded on Property. */
+export interface IPropertyInspectionRepresentative {
+  _id?: Types.ObjectId;
+  label?: string;
+  email?: string;
+  whatsappNumber?: string;
+}
   
 export interface IBookedPeriod {
   bookingId: Types.ObjectId;
@@ -117,6 +125,8 @@ export interface IProperty {
   marketedByAgentId?: Types.ObjectId;
   /** Multiple agents can market the same property; array of Agent (User) IDs accepted by the Publisher. */
   marketedByAgentIds?: Types.ObjectId[];
+  /** Landlord/Developer only: per-property inspection notification contacts (in addition to user-level list). */
+  inspectionNotificationRepresentatives?: IPropertyInspectionRepresentative[];
   isApproved?: boolean;
   isDeleted?: boolean;
   isRejected?: boolean;
@@ -255,6 +265,16 @@ export class Property {
         listingScope: { type: String, enum: ["agent_listing", "lasrera_marketplace"], default: "agent_listing" },
         marketedByAgentId: { type: Schema.Types.ObjectId, ref: "User", default: null },
         marketedByAgentIds: { type: [{ type: Schema.Types.ObjectId, ref: "User" }], default: [] },
+        inspectionNotificationRepresentatives: {
+          type: [
+            {
+              label: { type: String, trim: true },
+              email: { type: String, trim: true, lowercase: true },
+              whatsappNumber: { type: String, trim: true },
+            },
+          ],
+          default: [],
+        },
         isApproved: { type: Boolean, default: false },
         isRejected: { type: Boolean, default: false },
         isDeleted: { type: Boolean, default: false },

@@ -1,4 +1,5 @@
 import { Schema, model, Document, Model } from "mongoose";
+import type { SyndicationPropertyTypeValue } from "../common/syndicationPropertyTypes";
 
 export type SyndicationPlatformApplicationStatus =
   | "pending"
@@ -15,6 +16,8 @@ export interface ISyndicationPlatformApplication {
   platformKeySuggestion: string;
   authType: "api_key" | "oauth2" | "basic" | "partner_login";
   baseUrl: string;
+  /** Property kinds this partner will syndicate (sell, rent, jv, shortlet). */
+  acceptedPropertyTypes?: SyndicationPropertyTypeValue[];
   webhookSupport?: boolean;
   docsUrl?: string;
   notes?: string;
@@ -53,6 +56,9 @@ export class SyndicationPlatformApplication {
         },
         authType: { type: String, enum: ["api_key", "oauth2", "basic", "partner_login"], required: true },
         baseUrl: { type: String, required: true, trim: true },
+        acceptedPropertyTypes: {
+          type: [{ type: String, enum: ["sell", "rent", "jv", "shortlet"] }],
+        },
         webhookSupport: { type: Boolean, default: true },
         docsUrl: { type: String },
         notes: { type: String },

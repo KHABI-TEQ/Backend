@@ -3,6 +3,7 @@ import axios from "axios";
 import { Types } from "mongoose";
 import { DB } from "../controllers";
 import { dealSiteOriginFromPublicSlug } from "../config/dealSitePublicHost";
+import { platformAcceptsSyndicationPropertyType } from "../common/syndicationPropertyTypes";
 
 type SyndicationEvent = "property.created" | "property.updated" | "property.status_changed" | "property.unpublished";
 
@@ -67,7 +68,7 @@ async function buildSyndicationPayload(propertyId: string) {
   const dealsiteUrl = dealSite?.publicSlug ? dealSiteOriginFromPublicSlug(dealSite.publicSlug) : "";
   const inspectionUrl =
     buildInspectionRedirectUrl(String((property as any)._id), ownerId) ||
-    (dealsiteUrl ? `${dealsiteUrl}/inspection?propertyId=${(property as any)._id}` : "");
+    (dealsiteUrl ? `${dealsiteUrl}/market-place?propertyId=${(property as any)._id}` : "");
 
   return {
     propertyId: String((property as any)._id),
@@ -114,6 +115,9 @@ export async function enqueuePropertySyndicationJobs(params: {
       connections.map((connection: any) => {
         const platform = connection.platformId as any;
         if (!platform || platform.status !== "approved" || platform?.config?.outboundEnabled === false) {
+          return Promise.resolve(null);
+        }
+        if (!platformAcceptsSyndicationPropertyType(platform, payload.propertyType as string)) {
           return Promise.resolve(null);
         }
         return DB.Models.SyndicationJob.create({

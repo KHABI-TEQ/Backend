@@ -18,6 +18,8 @@ export interface IPlatformConnection {
     email?: string;
     /** Partner platform password (with authType partner_login); never returned in list APIs. */
     password?: string;
+    /** Partner stable user id after successful auth callback (optional). */
+    externalUserId?: string;
     tokenExpiresAt?: Date;
   };
   config?: {
@@ -52,6 +54,7 @@ export class PlatformConnection {
           apiKey: { type: String },
           email: { type: String, trim: true, lowercase: true },
           password: { type: String },
+          externalUserId: { type: String, trim: true },
           tokenExpiresAt: { type: Date },
         },
         config: {

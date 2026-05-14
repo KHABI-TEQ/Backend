@@ -6,6 +6,10 @@ import { DB } from "../../..";
 import { notifyAllActiveAdmins } from "../../../../services/adminNotification.service";
 import sendEmail from "../../../../common/send.email";
 import { generalEmailLayout } from "../../../../common/emailTemplates/emailLayout";
+import {
+  normalizeSyndicationPropertyTypesInput,
+  SYNDICATION_PROPERTY_TYPE_VALUES,
+} from "../../../../common/syndicationPropertyTypes";
 
 function escapeHtml(value: string): string {
   return String(value || "")
@@ -30,6 +34,7 @@ export const submitSyndicationPlatformApplication = async (
       platformKeySuggestion,
       authType,
       baseUrl,
+      acceptedPropertyTypes,
       webhookSupport,
       docsUrl,
       notes,
@@ -50,6 +55,14 @@ export const submitSyndicationPlatformApplication = async (
       );
     }
 
+    const normalizedTypes = normalizeSyndicationPropertyTypesInput(acceptedPropertyTypes);
+    if (normalizedTypes.length === 0) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        `acceptedPropertyTypes is required: provide at least one of ${SYNDICATION_PROPERTY_TYPE_VALUES.join(", ")} (e.g. sell, rent, jv, shortlet)`
+      );
+    }
+
     const created = await DB.Models.SyndicationPlatformApplication.create({
       companyName: String(companyName).trim(),
       contactName: String(contactName).trim(),
@@ -59,6 +72,7 @@ export const submitSyndicationPlatformApplication = async (
       platformKeySuggestion: String(platformKeySuggestion).trim().toLowerCase(),
       authType: String(authType).trim(),
       baseUrl: String(baseUrl).trim(),
+      acceptedPropertyTypes: normalizedTypes,
       webhookSupport: webhookSupport !== false,
       docsUrl: docsUrl ? String(docsUrl).trim() : undefined,
       notes: notes ? String(notes).trim() : undefined,
