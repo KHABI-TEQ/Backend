@@ -34,6 +34,8 @@ export const submitSyndicationPlatformApplication = async (
       platformKeySuggestion,
       authType,
       baseUrl,
+      loginUrl,
+      config,
       acceptedPropertyTypes,
       webhookSupport,
       docsUrl,
@@ -47,11 +49,12 @@ export const submitSyndicationPlatformApplication = async (
       !platformName ||
       !platformKeySuggestion ||
       !authType ||
-      !baseUrl
+      !baseUrl ||
+      !loginUrl
     ) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "companyName, contactName, contactEmail, platformName, platformKeySuggestion, authType and baseUrl are required"
+        "companyName, contactName, contactEmail, platformName, platformKeySuggestion, authType, loginUrl and baseUrl are required"
       );
     }
 
@@ -63,6 +66,14 @@ export const submitSyndicationPlatformApplication = async (
       );
     }
 
+    const trimmedBaseUrl = String(baseUrl).trim();
+    const configLoginUrl =
+      config && typeof config === "object" && config !== null && "loginUrl" in config
+        ? String((config as { loginUrl?: unknown }).loginUrl ?? "").trim()
+        : "";
+    const topLevelLoginUrl = loginUrl != null ? String(loginUrl).trim() : "";
+    const resolvedLoginUrl = topLevelLoginUrl || configLoginUrl || trimmedBaseUrl;
+
     const created = await DB.Models.SyndicationPlatformApplication.create({
       companyName: String(companyName).trim(),
       contactName: String(contactName).trim(),
@@ -71,7 +82,8 @@ export const submitSyndicationPlatformApplication = async (
       platformName: String(platformName).trim(),
       platformKeySuggestion: String(platformKeySuggestion).trim().toLowerCase(),
       authType: String(authType).trim(),
-      baseUrl: String(baseUrl).trim(),
+      baseUrl: trimmedBaseUrl,
+      loginUrl: resolvedLoginUrl,
       acceptedPropertyTypes: normalizedTypes,
       webhookSupport: webhookSupport !== false,
       docsUrl: docsUrl ? String(docsUrl).trim() : undefined,
@@ -137,6 +149,7 @@ export const submitSyndicationPlatformApplication = async (
         <p><strong>Key Suggestion:</strong> ${created.platformKeySuggestion}</p>
         <p><strong>Auth Type:</strong> ${created.authType}</p>
         <p><strong>Base URL:</strong> ${created.baseUrl}</p>
+        <p><strong>Login URL:</strong> ${created.loginUrl}</p>
         <p><strong>Status:</strong> ${created.status}</p>
       `);
       await sendEmail({
