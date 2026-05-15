@@ -22,19 +22,19 @@ function resolvePublicApiBase(): string {
   return `${raw}/api`;
 }
 
-function buildInspectionRedirectUrl(propertyId: string, ownerId: string): string {
-  const base = resolvePublicApiBase();
-  if (!base) return "";
-  const secret = process.env.SYNDICATION_LINK_SECRET || "khabiteq-syndication";
-  const raw = `${propertyId}:${ownerId}`;
-  const signature = crypto.createHmac("sha256", secret).update(raw).digest("hex").slice(0, 24);
-  const q = new URLSearchParams({
-    ownerId: String(ownerId),
-    sig: signature,
-  });
-  // dealsiteUrl ? `${dealsiteUrl}/market-place?propertyId=${(property as any)._id}` : "";
-  return `${base}/market-place?propertyId=${encodeURIComponent(propertyId)}`;
-}
+// function buildInspectionRedirectUrl(propertyId: string, ownerId: string): string {
+//   const base = resolvePublicApiBase();
+//   if (!base) return "";
+//   const secret = process.env.SYNDICATION_LINK_SECRET || "khabiteq-syndication";
+//   const raw = `${propertyId}:${ownerId}`;
+//   const signature = crypto.createHmac("sha256", secret).update(raw).digest("hex").slice(0, 24);
+//   const q = new URLSearchParams({
+//     ownerId: String(ownerId),
+//     sig: signature,
+//   });
+//   // dealsiteUrl ? `${dealsiteUrl}/market-place?propertyId=${(property as any)._id}` : "";
+//   return `${base}/market-place?propertyId=${encodeURIComponent(propertyId)}`;
+// }
 
 function mapOutboundStatus(status: string): "active" | "inactive" {
   const inactive = new Set([
@@ -67,9 +67,7 @@ async function buildSyndicationPayload(propertyId: string) {
     .lean();
 
   const dealsiteUrl = dealSite?.publicSlug ? dealSiteOriginFromPublicSlug(dealSite.publicSlug) : "";
-  const inspectionUrl =
-    buildInspectionRedirectUrl(String((property as any)._id), ownerId) ||
-    (dealsiteUrl ? `${dealsiteUrl}/market-place?propertyId=${(property as any)._id}` : "");
+  const inspectionUrl = dealsiteUrl ? `${dealsiteUrl}/market-place/${encodeURIComponent((property as any)._id)}` : "";
 
   return {
     propertyId: String((property as any)._id),
