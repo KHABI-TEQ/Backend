@@ -15,6 +15,7 @@ import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
+import { enqueuePropertySyndicationJobs } from "../../services/propertySyndication.service";
 
 /**
  * POST /account/request-to-market
@@ -308,6 +309,16 @@ export const respondToRequestToMarket = async (
       { _id: propertyOid },
       { $addToSet: { marketedByAgentIds: agentOid } }
     );
+
+    try {
+      void enqueuePropertySyndicationJobs({
+        propertyId: String(propertyOid),
+        userId: String(agentOid),
+        eventType: "property.created",
+      });
+    } catch (syndicationErr) {
+      console.warn("[requestToMarket] enqueue agent syndication failed:", syndicationErr);
+    }
 
     const publisher = await DB.Models.User.findById(userId).select("email firstName lastName fullName phoneNumber").lean();
     const agent = (request as any).requestedByAgentId;

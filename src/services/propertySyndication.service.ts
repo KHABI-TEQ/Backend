@@ -57,12 +57,17 @@ function mapOutboundStatus(status: string): "active" | "inactive" {
   return inactive.has(status) ? "inactive" : "active";
 }
 
-async function buildSyndicationPayload(propertyId: string) {
+async function buildSyndicationPayload(propertyId: string, syndicatingUserId?: string) {
   const property = await DB.Models.Property.findById(propertyId).lean();
   if (!property) return null;
 
   const ownerId = String((property as any).owner);
-  const dealSite = await DB.Models.DealSite.findOne({ createdBy: new Types.ObjectId(ownerId), status: "running" })
+  /** DealSite / inspection links follow whoever is syndicating (owner on own listing; agent after RTM accept). */
+  const dealSiteOwnerId = syndicatingUserId && Types.ObjectId.isValid(syndicatingUserId) ? syndicatingUserId : ownerId;
+  const dealSite = await DB.Models.DealSite.findOne({
+    createdBy: new Types.ObjectId(dealSiteOwnerId),
+    status: "running",
+  })
     .sort({ updatedAt: -1 })
     .lean();
 
@@ -97,7 +102,7 @@ export async function enqueuePropertySyndicationJobs(params: {
   try {
     if ((process.env.SYNDICATION_ENABLED || "false").toLowerCase() !== "true") return;
 
-    const payload = await buildSyndicationPayload(params.propertyId);
+    const payload = await buildSyndicationPayload(params.propertyId, params.userId);
     if (!payload) return;
 
     const connections = await DB.Models.PlatformConnection.find({
