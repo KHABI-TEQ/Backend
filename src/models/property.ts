@@ -53,7 +53,13 @@ export interface IProperty {
     noOfBathroom?: number;
     noOfToilet?: number;
     noOfCarPark?: number;
+    noOfSittingRoom?: number;
   };
+  /** Off-plan listing fields */
+  expectedCompletionDate?: string;
+  developmentStage?: string;
+  paymentPlan?: string;
+  ownershipDocuments?: unknown[];
   jvConditions?: string[];
   shortletDetails?: {
     streetAddress?: string;
@@ -193,7 +199,12 @@ export class Property {
           noOfBathroom: { type: Number, default: 0 },
           noOfToilet: { type: Number, default: 0 },
           noOfCarPark: { type: Number, default: 0 },
+          noOfSittingRoom: { type: Number, default: 0 },
         },
+        expectedCompletionDate: { type: String },
+        developmentStage: { type: String },
+        paymentPlan: { type: String },
+        ownershipDocuments: { type: [Schema.Types.Mixed], default: [] },
         jvConditions: [{ type: String }],
         shortletDetails: {
           streetAddress: { type: String },

@@ -13,6 +13,7 @@ const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
   "joint-venture": "jv",
   rent: "rent",
   shortlet: "shortlet",
+  "off-plan": "off-plan",
 };
 
 /** Map property brief `propertyType` → buyer `preferenceType`. */
@@ -21,6 +22,7 @@ const BRIEF_TO_PREFERENCE_TYPE: Record<string, string> = {
   jv: "joint-venture",
   rent: "rent",
   shortlet: "shortlet",
+  "off-plan": "off-plan",
 };
 
 /** Listings in these workflow states are not offered for preference matching. */

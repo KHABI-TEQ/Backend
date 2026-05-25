@@ -1,3 +1,5 @@
+import { sortPreferenceLocationAlphabetically } from "./sortLocationAlphabetically";
+
 // Assuming these are your preference payload interfaces (as provided in the prompt)
 interface BuyPreferencePayload {
   _id: string;
@@ -200,11 +202,34 @@ interface ShortletPreferencePayload {
   createdAt: Date;
 }
 
+interface OffPlanPreferencePayload {
+  _id: string;
+  buyer: string;
+  preferenceType: "off-plan";
+  preferenceMode: "buy";
+  location: BuyPreferencePayload["location"];
+  budget: BuyPreferencePayload["budget"];
+  propertyDetails: BuyPreferencePayload["propertyDetails"] & {
+    minLandSize?: string;
+    maxLandSize?: string;
+    expectedCompletionDate?: string;
+    developmentStage?: string;
+    paymentPlan?: string;
+  };
+  features: BuyPreferencePayload["features"];
+  contactInfo: BuyPreferencePayload["contactInfo"];
+  nearbyLandmark?: string;
+  additionalNotes?: string;
+  status: string;
+  createdAt: Date;
+}
+
 export type PreferencePayload =
   | BuyPreferencePayload
   | RentPreferencePayload
   | JointVenturePreferencePayload
-  | ShortletPreferencePayload;
+  | ShortletPreferencePayload
+  | OffPlanPreferencePayload;
 
 export function formatPreferenceForFrontend(preference: PreferencePayload): { [key: string]: any } {
   const formattedData: { [key: string]: any } = {
@@ -219,17 +244,18 @@ export function formatPreferenceForFrontend(preference: PreferencePayload): { [k
     contactInfo: {},
   };
 
-  // Location Details
+  // Location Details (LGAs and areas sorted A→Z for clients)
   if (preference.location) {
-    if (preference.location.state) formattedData.location.state = preference.location.state;
-    if (preference.location.localGovernmentAreas && preference.location.localGovernmentAreas.length > 0) {
-      formattedData.location.localGovernmentAreas = preference.location.localGovernmentAreas;
+    const sortedLoc = sortPreferenceLocationAlphabetically(preference.location) ?? preference.location;
+    if (sortedLoc.state) formattedData.location.state = sortedLoc.state;
+    if (sortedLoc.localGovernmentAreas && sortedLoc.localGovernmentAreas.length > 0) {
+      formattedData.location.localGovernmentAreas = sortedLoc.localGovernmentAreas;
     }
-    if (preference.location.lgasWithAreas && preference.location.lgasWithAreas.length > 0) {
-      formattedData.location.lgasWithAreas = preference.location.lgasWithAreas;
+    if (sortedLoc.lgasWithAreas && sortedLoc.lgasWithAreas.length > 0) {
+      formattedData.location.lgasWithAreas = sortedLoc.lgasWithAreas;
     }
-    if (preference.location.customLocation) {
-      formattedData.location.customLocation = preference.location.customLocation;
+    if (sortedLoc.customLocation) {
+      formattedData.location.customLocation = sortedLoc.customLocation;
     }
   }
 
@@ -303,6 +329,39 @@ export function formatPreferenceForFrontend(preference: PreferencePayload): { [k
       if (jvDetails?.minBathrooms) formattedData.developmentDetails.minBathrooms = jvDetails.minBathrooms;
       if (jvDetails?.purpose) formattedData.developmentDetails.purpose = jvDetails.purpose;
       break;
+
+    case "off-plan": {
+      const offPlanDetails = (preference as OffPlanPreferencePayload).propertyDetails;
+      formattedData.propertyDetails = {};
+      if (offPlanDetails?.propertyType) formattedData.propertyDetails.propertyType = offPlanDetails.propertyType;
+      if (offPlanDetails?.buildingType) formattedData.propertyDetails.buildingType = offPlanDetails.buildingType;
+      if (offPlanDetails?.minBedrooms) formattedData.propertyDetails.minBedrooms = offPlanDetails.minBedrooms;
+      if (offPlanDetails?.minBathrooms != null) {
+        formattedData.propertyDetails.minBathrooms = offPlanDetails.minBathrooms;
+      }
+      if (offPlanDetails?.propertyCondition) {
+        formattedData.propertyDetails.propertyCondition = offPlanDetails.propertyCondition;
+      }
+      if (offPlanDetails?.purpose) formattedData.propertyDetails.purpose = offPlanDetails.purpose;
+      if (offPlanDetails?.minLandSize) formattedData.propertyDetails.minLandSize = offPlanDetails.minLandSize;
+      if (offPlanDetails?.maxLandSize) formattedData.propertyDetails.maxLandSize = offPlanDetails.maxLandSize;
+      if (offPlanDetails?.measurementUnit) {
+        formattedData.propertyDetails.measurementUnit = offPlanDetails.measurementUnit;
+      }
+      if (offPlanDetails?.documentTypes?.length) {
+        formattedData.propertyDetails.documentTypes = offPlanDetails.documentTypes;
+      }
+      if (offPlanDetails?.expectedCompletionDate) {
+        formattedData.propertyDetails.expectedCompletionDate = offPlanDetails.expectedCompletionDate;
+      }
+      if (offPlanDetails?.developmentStage) {
+        formattedData.propertyDetails.developmentStage = offPlanDetails.developmentStage;
+      }
+      if (offPlanDetails?.paymentPlan) {
+        formattedData.propertyDetails.paymentPlan = offPlanDetails.paymentPlan;
+      }
+      break;
+    }
 
     case "shortlet":
       const shortletDetails = (preference as ShortletPreferencePayload).bookingDetails;

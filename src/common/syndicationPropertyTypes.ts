@@ -1,5 +1,5 @@
 /** Values stored on Property.propertyType and used for syndication filtering. */
-export const SYNDICATION_PROPERTY_TYPE_VALUES = ["sell", "rent", "jv", "shortlet"] as const;
+export const SYNDICATION_PROPERTY_TYPE_VALUES = ["sell", "rent", "jv", "shortlet", "off-plan"] as const;
 export type SyndicationPropertyTypeValue = (typeof SYNDICATION_PROPERTY_TYPE_VALUES)[number];
 
 /** UI labels for partner onboarding (checkboxes). */
@@ -8,6 +8,7 @@ export const SYNDICATION_PROPERTY_TYPE_LABELS: Record<SyndicationPropertyTypeVal
   rent: "Rent",
   jv: "Joint Ventures",
   shortlet: "Shortlet",
+  "off-plan": "Off-Plan",
 };
 
 const ALLOWED = new Set<string>(SYNDICATION_PROPERTY_TYPE_VALUES);

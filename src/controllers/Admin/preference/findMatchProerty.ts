@@ -54,6 +54,7 @@ const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
   "joint-venture": "jv", 
   "rent": "rent",
   "shortlet": "shortlet",
+  "off-plan": "off-plan",
 };
 
 export const findMatchedProperties = async (

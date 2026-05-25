@@ -3,6 +3,7 @@ import { formatBuyProperty } from "./formatBuyProperty";
 import { formatRentProperty } from "./formatRentProperty";
 import { formatJointVentureProperty } from "./formatJointVentureProperty";
 import { formatShortletProperty } from "./formatShortletProperty";
+import { formatOffPlanProperty } from "./formatOffPlanProperty";
 
 export const formatPropertyPayload = (
   payload: any,
@@ -24,6 +25,10 @@ export const formatPropertyPayload = (
 
     case "shortlet":
       return formatShortletProperty(payload, ownerId, createdByRole, ownerModel);
+
+    case "off-plan":
+    case "off_plan":
+      return formatOffPlanProperty(payload, ownerId, createdByRole, ownerModel);
 
     default:
       throw new Error(`Unsupported property type: ${payload.propertyType}`);

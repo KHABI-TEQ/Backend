@@ -59,7 +59,7 @@ export class SyndicationPlatformApplication {
         baseUrl: { type: String, required: true, trim: true },
         loginUrl: { type: String, required: true, trim: true },
         acceptedPropertyTypes: {
-          type: [{ type: String, enum: ["sell", "rent", "jv", "shortlet"] }],
+          type: [{ type: String, enum: ["sell", "rent", "jv", "shortlet", "off-plan"] }],
         },
         webhookSupport: { type: Boolean, default: true },
         docsUrl: { type: String },

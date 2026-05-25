@@ -37,7 +37,7 @@ export class SyndicationPlatform {
         status: { type: String, enum: ["approved", "disabled"], default: "approved", index: true },
         authType: { type: String, enum: ["api_key", "oauth2", "basic", "partner_login"], required: true },
         acceptedPropertyTypes: {
-          type: [{ type: String, enum: ["sell", "rent", "jv", "shortlet"] }],
+          type: [{ type: String, enum: ["sell", "rent", "jv", "shortlet", "off-plan"] }],
           default: undefined,
         },
         config: {

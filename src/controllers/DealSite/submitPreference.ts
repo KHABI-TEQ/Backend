@@ -9,6 +9,7 @@ import sendEmail from "../../common/send.email";
 import { preferenceMail } from "../../common/emailTemplates/preference";
 import { generalTemplate } from "../../common/email.template";
 import { autoPairPreferenceById } from "../../services/autoPreferencePairing.service";
+import { sortPreferenceLocationAlphabetically } from "../../utils/sortLocationAlphabetically";
  
 // ✅ Controller: Submit Preference from a DealSite
 export const sendPreferenceRequest = async (
@@ -92,9 +93,12 @@ export const sendPreferenceRequest = async (
         buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
     }
 
+    const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
+
     // Prepare preference data
     const preferenceData = {
         ...payload,
+        location: sortedLocation ?? payload.location,
         contactInfo: normalizedBuyerPayload,
         buyer: buyer._id,
         status: payload.status || "pending",
@@ -137,10 +141,18 @@ export const sendPreferenceRequest = async (
       console.warn("[DealSite preference] Auto pairing failed (non-fatal):", matchErr);
     }
 
+    const responseData = createdPreference.toObject
+      ? createdPreference.toObject()
+      : createdPreference;
+    if (responseData?.location) {
+      responseData.location =
+        sortPreferenceLocationAlphabetically(responseData.location) ?? responseData.location;
+    }
+
     res.status(HttpStatusCodes.CREATED).json({
       success: true,
       message: "Preference submitted successfully",
-      data: createdPreference,
+      data: responseData,
     });
   } catch (err: any) {
     if (err?.isJoi) {

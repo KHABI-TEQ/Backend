@@ -104,6 +104,7 @@ export async function persistMatchedPreferenceProperties(params: {
   switch (preference.preferenceType) {
     case "buy":
     case "rent":
+    case "off-plan":
       summaryData = preference.propertyDetails || {};
       break;
     case "joint-venture":

@@ -21,7 +21,7 @@ const preferenceMeasurementUnit = Joi.string()
 
 export const preferenceValidationSchema = Joi.object({
   preferenceType: Joi.string()
-    .valid("buy", "rent", "joint-venture", "shortlet")
+    .valid("buy", "rent", "joint-venture", "shortlet", "off-plan")
     .required(),
 
   preferenceMode: Joi.string()
@@ -48,7 +48,7 @@ export const preferenceValidationSchema = Joi.object({
     currency: Joi.string().required(),
   }).required(),
 
-  // For Buy & Rent
+  // For Buy, Rent & Off-plan
   propertyDetails: Joi.object({
     propertyType: Joi.string(),
     buildingType: Joi.string(),
@@ -63,6 +63,9 @@ export const preferenceValidationSchema = Joi.object({
     measurementUnit: preferenceMeasurementUnit,
     documentTypes: Joi.array().items(Joi.string()).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
+    expectedCompletionDate: Joi.string().trim().allow("").optional(),
+    developmentStage: Joi.string().trim().allow("").optional(),
+    paymentPlan: Joi.string().trim().allow("").optional(),
   }).optional(),
 
   // For Joint Venture

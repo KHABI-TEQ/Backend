@@ -10,6 +10,7 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
 import { preferencePayloadToUserPreferences } from "../../../utils/preferenceUserPreferencesForWhatsapp";
+import { sortPreferenceLocationAlphabetically } from "../../../utils/sortLocationAlphabetically";
 
 export const postPreference = async (
   req: AppRequest,
@@ -66,9 +67,12 @@ export const postPreference = async (
       buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
     }
 
+    const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
+
     // Prepare preference data (initially pending; we auto-approve below)
     const preferenceData = {
       ...payload,
+      location: sortedLocation ?? payload.location,
       contactInfo: normalizedBuyerPayload,
       buyer: buyer._id,
       status: payload.status || "pending",
@@ -113,10 +117,17 @@ export const postPreference = async (
       });
     }
 
+    const responseData = createdPreference.toObject
+      ? createdPreference.toObject()
+      : createdPreference;
+    if (responseData?.location) {
+      responseData.location = sortPreferenceLocationAlphabetically(responseData.location) ?? responseData.location;
+    }
+
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
       message: "Preference submitted successfully",
-      data: createdPreference,
+      data: responseData,
     });
   } catch (err: any) {
     if (err?.isJoi) {

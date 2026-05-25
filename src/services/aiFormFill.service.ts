@@ -4,7 +4,7 @@ const PROPERTY_SYSTEM_PROMPT = `You are a real-estate form assistant. The user w
 
 Schema (all optional except you must return an object):
 {
-  "propertyType": "sell" | "rent" | "shortlet" | "jv",
+  "propertyType": "sell" | "rent" | "shortlet" | "jv" | "off-plan",
   "propertyCategory": "Residential" | "Commercial" | "Land" | "Industrial" | "Mixed-Use",
   "propertyCondition": "New" | "Renovated" | "Fairly Used" | "Old" etc,
   "typeOfBuilding": "Duplex" | "Bungalow" | "Flat" | "Terrace" | "Self Contain" | "Shop" | "Warehouse" | "Land" etc,
@@ -28,7 +28,7 @@ const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant in Nigeri
 
 Schema (all optional except you must return an object):
 {
-  "preferenceType": "buy" | "rent" | "joint-venture" | "shortlet",
+  "preferenceType": "buy" | "rent" | "joint-venture" | "shortlet" | "off-plan",
   "preferenceMode": "buy" | "tenant" | "developer" | "shortlet",
   "location": {
     "state": string,

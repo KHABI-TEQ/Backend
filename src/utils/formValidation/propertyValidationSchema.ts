@@ -1,7 +1,9 @@
 import Joi from "joi";
 
+const roomCount = Joi.alternatives().try(Joi.number(), Joi.string()).optional();
+
 export const propertyValidationSchema = Joi.object({
-  propertyType: Joi.string().valid("sell", "rent", "shortlet", "jv").required(),
+  propertyType: Joi.string().valid("sell", "rent", "shortlet", "jv", "off-plan").required(),
   propertyCategory: Joi.string().required(),
 
   // Required only for Residential and Commercial; not required for Land
@@ -41,11 +43,12 @@ export const propertyValidationSchema = Joi.object({
     state: Joi.string().required(),
     localGovernment: Joi.string().required(),
     area: Joi.string().required(),
+    streetAddress: Joi.string().trim().allow("").optional(),
   }).required(),
 
   landSize: Joi.object({
     measurementType: Joi.string().required(),
-    size: Joi.number().required(),
+    size: Joi.alternatives().try(Joi.number(), Joi.string()).required(),
   }).required(),
 
   docOnProperty: Joi.array()
@@ -62,16 +65,37 @@ export const propertyValidationSchema = Joi.object({
 
   areYouTheOwner: Joi.boolean().required(),
 
+  ownershipDocuments: Joi.array().items(Joi.object().unknown(true)).optional(),
+
   features: Joi.array().items(Joi.string()).default([]),
 
   tenantCriteria: Joi.array().items(Joi.string()).default([]),
 
   additionalFeatures: Joi.object({
-    noOfBedroom: Joi.number().default(0),
-    noOfBathroom: Joi.number().default(0),
-    noOfToilet: Joi.number().default(0),
-    noOfCarPark: Joi.number().default(0),
+    noOfBedroom: roomCount,
+    noOfBathroom: roomCount,
+    noOfToilet: roomCount,
+    noOfCarPark: roomCount,
+    noOfSittingRoom: roomCount,
   }).required(),
+
+  /** Off-plan only */
+  expectedCompletionDate: Joi.string().trim().allow("").when("propertyType", {
+    is: "off-plan",
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+  developmentStage: Joi.string().trim().allow("").when("propertyType", {
+    is: "off-plan",
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+  paymentPlan: Joi.string().trim().allow("").when("propertyType", {
+    is: "off-plan",
+    then: Joi.optional(),
+    otherwise: Joi.forbidden(),
+  }),
+  briefType: Joi.string().trim().optional(),
 
   jvConditions: Joi.when("propertyType", {
     is: "jv",
@@ -140,23 +164,25 @@ export const propertyValidationSchema = Joi.object({
   /** Only Landlords and Developers may set "lasrera_marketplace" (property visible only on LASRERA Market Place, no contact). */
   listingScope: Joi.string().valid("agent_listing", "lasrera_marketplace").default("agent_listing").optional(),
 
-  /** Agent commission: 0–5%. Accepted for Sale, Rent, JV, Shortlet (Landlord/Developer). */
+  /** Agent commission: 0–5%. Accepted for Sale, Rent, JV, Shortlet, Off-plan (Landlord/Developer). */
   agentCommissionPercent: Joi.number().min(0).max(5).optional(),
-  /** Agent commission amount in Naira. Accepted for Sale, Rent, JV, Shortlet (Landlord/Developer). */
+  /** Agent commission amount in Naira. */
   agentCommissionAmount: Joi.number().min(0).optional(),
 
   createdByRole: Joi.string().valid("user", "admin").optional(),
-}).custom((value, helpers) => {
-  const pictures = Array.isArray(value.pictures) ? value.pictures.filter(Boolean) : [];
-  const videos = Array.isArray(value.videos) ? value.videos.filter(Boolean) : [];
+})
+  .custom((value, helpers) => {
+    const pictures = Array.isArray(value.pictures) ? value.pictures.filter(Boolean) : [];
+    const videos = Array.isArray(value.videos) ? value.videos.filter(Boolean) : [];
 
-  if (pictures.length === 0 && videos.length === 0) {
-    return helpers.error("any.custom", {
-      message: "At least one media is required: provide at least one image or one video.",
-    });
-  }
+    if (pictures.length === 0 && videos.length === 0) {
+      return helpers.error("any.custom", {
+        message: "At least one media is required: provide at least one image or one video.",
+      });
+    }
 
-  return value;
-}, "property media presence validation").messages({
-  "any.custom": "{{#message}}",
-});
+    return value;
+  }, "property media presence validation")
+  .messages({
+    "any.custom": "{{#message}}",
+  });

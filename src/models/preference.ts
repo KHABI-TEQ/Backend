@@ -32,6 +32,10 @@ export interface IPropertyDetails {
   measurementUnit?: string; // Changed from measurementType
   documentTypes?: string[]; // Changed from documents
   landConditions?: string[]; // New field
+  /** Off-plan preference */
+  expectedCompletionDate?: string;
+  developmentStage?: string;
+  paymentPlan?: string;
 }
 
 // Development Details for Joint-Venture
@@ -129,7 +133,7 @@ export type IContactInfo =
 export interface IPreference {
   buyer: Types.ObjectId;
 
-  preferenceType: "buy" | "joint-venture" | "rent" | "shortlet";
+  preferenceType: "buy" | "joint-venture" | "rent" | "shortlet" | "off-plan";
   preferenceMode: "buy" | "tenant" | "developer" | "shortlet";
 
   location: ILocation; // Now uses the ILocation interface and is required
@@ -172,7 +176,7 @@ export class Preference {
 
         preferenceType: {
           type: String,
-          enum: ["buy", "joint-venture", "rent", "shortlet"],
+          enum: ["buy", "joint-venture", "rent", "shortlet", "off-plan"],
           required: true,
         },
 
@@ -213,6 +217,9 @@ export class Preference {
           measurementUnit: String, // Stored as string
           documentTypes: [String],
           landConditions: [String],
+          expectedCompletionDate: String,
+          developmentStage: String,
+          paymentPlan: String,
         },
 
         developmentDetails: {
@@ -272,7 +279,12 @@ export class Preference {
 
         contactInfo: {
           fullName: { type: String, required: function(this: any) { // Required for General and Shortlet
-            return this.preferenceType === "buy" || this.preferenceType === "rent" || this.preferenceType === "shortlet";
+            return (
+              this.preferenceType === "buy" ||
+              this.preferenceType === "rent" ||
+              this.preferenceType === "shortlet" ||
+              this.preferenceType === "off-plan"
+            );
           }},
           contactPerson: { type: String },
           email: { type: String, required: true },
