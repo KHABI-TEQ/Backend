@@ -1,4 +1,5 @@
 import { IInspectionBookingDoc } from "../models";
+import { FIELD_AGENT_COMMISSION_TIMELINE_DETAIL } from "../common/constants/fieldAgentRepresentation";
 
 export type InspectionFlowStepStatus = "done" | "pending" | "skipped" | "active";
 
@@ -175,7 +176,7 @@ export function buildInspectionFlowTimeline(
       label: "Buyer confirmed transaction completed",
       status: ins.buyerConfirmedTransactionAt ? "done" : "skipped",
       at: iso(ins.buyerConfirmedTransactionAt as Date),
-      detail: "Commission on completed deals is settled outside the app (50/50 company / requesting Agent).",
+      detail: FIELD_AGENT_COMMISSION_TIMELINE_DETAIL,
     },
   ];
 

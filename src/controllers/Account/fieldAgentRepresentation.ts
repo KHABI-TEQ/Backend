@@ -10,7 +10,11 @@ import {
   respondFieldAgentRepresentationSchema,
 } from "../../validators/fieldAgentRepresentation.validator";
 import {
+  FIELD_AGENT_COMMISSION_ACCEPTED_MESSAGE,
+  FIELD_AGENT_COMMISSION_CHECKBOX_ACK,
   FIELD_AGENT_COMMISSION_DISCLOSURE,
+  FIELD_AGENT_COMMISSION_LOG_SNIPPET,
+  FIELD_AGENT_COMMISSION_REQUESTED_MESSAGE_SUFFIX,
 } from "../../common/constants/fieldAgentRepresentation";
 import {
   assignFieldAgentUserToInspection,
@@ -56,6 +60,7 @@ export async function getFieldAgentRepresentationTerms(
     success: true,
     data: {
       commissionDisclosure: FIELD_AGENT_COMMISSION_DISCLOSURE,
+      commissionCheckboxAck: FIELD_AGENT_COMMISSION_CHECKBOX_ACK,
       paymentRequired: false,
     },
   });
@@ -262,7 +267,7 @@ export async function requestFieldAgentForInspection(
         senderId: String(userId),
         senderRole: "seller",
         senderModel: "User",
-        message: `Agent requested Field Agent ${fieldAgentUser.firstName ?? ""} ${fieldAgentUser.lastName ?? ""} for on-site representation. No Paystack payment — commission 50/50 outside app when deal completes.${note?.trim() ? ` Note: ${note.trim()}` : ""}`,
+        message: `Agent requested Field Agent ${fieldAgentUser.firstName ?? ""} ${fieldAgentUser.lastName ?? ""} for on-site representation. ${FIELD_AGENT_COMMISSION_LOG_SNIPPET}.${note?.trim() ? ` Note: ${note.trim()}` : ""}`,
         status: inspection.status,
         stage: inspection.stage,
         meta: { fieldAgentUserId, fieldAgentRequestStatus: "pending" },
@@ -273,7 +278,7 @@ export async function requestFieldAgentForInspection(
     await notificationService.createNotification({
       user: fieldAgentUserId,
       title: "Field Agent representation request",
-      message: `${agentName || "An agent"} requested you to represent them on an inspection. No in-app payment is required — commission is settled outside the app when the deal completes.`,
+      message: `${agentName || "An agent"} requested you to represent them on an inspection. ${FIELD_AGENT_COMMISSION_REQUESTED_MESSAGE_SUFFIX}`,
       type: "inspection",
       meta: { inspectionId: String(inspection._id) },
     });
@@ -306,7 +311,7 @@ export async function requestFieldAgentForInspection(
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
       message:
-        "Field Agent request sent. They will be notified to accept or reject. No Paystack payment is required.",
+        "Field Agent request sent. They will be notified to accept or reject.",
       data: {
         commissionDisclosure: FIELD_AGENT_COMMISSION_DISCLOSURE,
         fieldAgentRequestStatus: "pending",
@@ -560,8 +565,7 @@ export async function respondToFieldAgentRepresentationRequest(
       await notificationService.createNotification({
         user: requesterId,
         title: "Field Agent accepted your request",
-        message:
-          "Your Field Agent accepted the representation request and has been assigned to the inspection. Commission on a completed deal is shared 50/50 between Khabi-Teq and you outside the app.",
+        message: FIELD_AGENT_COMMISSION_ACCEPTED_MESSAGE,
         type: "inspection",
         meta: { inspectionId: String(inspection._id) },
       });
