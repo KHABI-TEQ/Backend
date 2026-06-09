@@ -6,32 +6,31 @@ import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 
-/** After DealSite exists and is running: require owner subscription when they own 2+ listings. */
+/** After DealSite exists and is running: require owner KYC (after grace) and subscription when applicable. */
+async function applyPublicDealSiteAccessGates(
+  res: Response,
+  dealSite: { _id?: unknown; status?: string; createdBy?: unknown }
+): Promise<boolean> {
+  const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+  if (access.ok === false) {
+    res.status(access.httpStatus).json({
+      success: false,
+      errorCode: access.errorCode,
+      message: access.message,
+      data: null,
+    });
+    return false;
+  }
+
+  return true;
+}
+
+/** @deprecated Use applyPublicDealSiteAccessGates */
 async function applyPublicDealSiteSubscriptionGate(
   res: Response,
   dealSite: { createdBy?: unknown }
 ): Promise<boolean> {
-  const ownerId = resolveLeanRefToObjectId(dealSite.createdBy);
-  if (!ownerId) {
-    res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
-      success: false,
-      errorCode: "DEALSITE_INVALID_OWNER",
-      message: "Public access page owner reference is invalid.",
-      data: null,
-    });
-    return false;
-  }
-  const gate = await DealSiteService.getPublicDealSiteSubscriptionGate(ownerId.toString());
-  if (gate.ok === false) {
-    res.status(HttpStatusCodes.OK).json({
-      success: false,
-      errorCode: gate.errorCode,
-      message: gate.message,
-      data: null,
-    });
-    return false;
-  }
-  return true;
+  return applyPublicDealSiteAccessGates(res, dealSite);
 }
 
 // Allowed keys from DealSite
@@ -199,7 +198,7 @@ export const getDealSiteBySlug = async (
       });
     }
 
-    // Only allow running DealSites
+    // Only allow running DealSites (KYC/subscription gates applied below)
     if (dealSite.status !== "running") {
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
@@ -209,8 +208,8 @@ export const getDealSiteBySlug = async (
       });
     }
 
-    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
-    if (!subscriptionOk) {
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    if (!accessOk) {
       return;
     }
 
@@ -303,8 +302,8 @@ export const getDealSiteOwnerContact = async (
       });
     }
 
-    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
-    if (!subscriptionOk) {
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    if (!accessOk) {
       return;
     }
 
@@ -415,8 +414,8 @@ export const getDealSiteSection = async (
       });
     }
 
-    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
-    if (!subscriptionOk) {
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    if (!accessOk) {
       return;
     }
 
@@ -512,8 +511,8 @@ export const getFeaturedProperties = async (
       });
     }
 
-    const subscriptionOk = await applyPublicDealSiteSubscriptionGate(res, dealSite);
-    if (!subscriptionOk) {
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    if (!accessOk) {
       return;
     }
 

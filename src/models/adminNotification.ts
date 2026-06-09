@@ -8,6 +8,7 @@ export type AdminNotificationType =
   | "agent_report_submitted"
   | "syndication_application_submitted"
   | "dealsite_reported"
+  | "field_agent_representation_pending"
   | "general";
 
 export interface IAdminNotification {
@@ -31,6 +32,7 @@ const TYPE_ENUM: AdminNotificationType[] = [
   "agent_report_submitted",
   "syndication_application_submitted",
   "dealsite_reported",
+  "field_agent_representation_pending",
   "general",
 ];
 

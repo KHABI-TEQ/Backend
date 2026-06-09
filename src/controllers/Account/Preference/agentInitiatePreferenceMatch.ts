@@ -5,6 +5,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.service";
+import { getAgentAccessGate } from "../../../services/agentPublisherEligibility.service";
 import { dealSiteBaseUrlFromPublicSlug } from "../../../utils/matchedPropertiesDealSiteUrl";
 
 /**
@@ -41,6 +42,11 @@ export const agentInitiatePreferenceMatch = async (
     const { preferenceId } = req.params;
     if (!preferenceId || !mongoose.Types.ObjectId.isValid(preferenceId)) {
       return next(new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid preference id"));
+    }
+
+    const gate = await getAgentAccessGate(String(userId));
+    if (gate.ok === false) {
+      return next(new RouteError(HttpStatusCodes.FORBIDDEN, gate.message));
     }
 
     const matchBaseUrl = await getRunningDealSiteBaseUrlForUser(userId);

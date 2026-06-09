@@ -11,6 +11,11 @@ import sendEmail from "../../../common/send.email";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
 import { PlanFeatureService } from "../../../services/planFeatures.service";
+import { isPublisherKycApproved } from "../../../services/publisherKyc.service";
+import {
+  computePaidSubscriptionExpiresAt,
+  resolveAgentSubscriptionBonusDays,
+} from "../../../services/agentSubscriptionIncentive.service";
 
 
 /**
@@ -31,14 +36,17 @@ export const createSubscription = async (
       throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only registered agents or developers can create subscriptions.");
     }
 
-    // Agents must have an approved Agent profile; Developers do not have an Agent record
+    if (userType === "Agent" && !(await isPublisherKycApproved(userId))) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Your account must be KYC-approved before creating a subscription."
+      );
+    }
+
     if (userType === "Agent") {
       const agentAccount = await DB.Models.Agent.findOne({ userId });
       if (!agentAccount) {
         throw new RouteError(HttpStatusCodes.NOT_FOUND, "Only registered agents can create subscriptions.");
-      }
-      if (agentAccount.kycStatus !== "approved") {
-        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Your agent account must be approved before creating a subscription.");
       }
     }
 
@@ -106,8 +114,12 @@ export const createSubscription = async (
 
     // 4. Create subscription snapshot (pending until payment success)
     const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + durationInDays);
+    const { expiresAt: endDate, bonusDays } = computePaidSubscriptionExpiresAt({
+      startDate,
+      baseDurationInDays: durationInDays,
+      planName: appliedPlanName,
+      planCode,
+    });
  
     const subscriptionSnapshot =
       await UserSubscriptionSnapshotService.createSnapshot({
@@ -121,7 +133,8 @@ export const createSubscription = async (
           planType,
           planCode,
           appliedPlanName,
-          durationInDays
+          durationInDays,
+          ...(bonusDays > 0 ? { bonusDays, baseDurationInDays: durationInDays } : {}),
         },
       });
 
@@ -134,6 +147,8 @@ export const createSubscription = async (
         planName: appliedPlanName,
         amount: price,
         planType,
+        bonusDays,
+        expiresAt: endDate,
       },
     });
   } catch (err) {
@@ -419,9 +434,30 @@ export const getAllActiveSubscriptionPlans = async (
 
     const plans = await SubscriptionPlanService.getAllActivePlans();
 
+    const enriched = (plans as any[]).map((plan) => {
+      const bonusDays = resolveAgentSubscriptionBonusDays({
+        planName: plan.name,
+        planCode: plan.code,
+        durationInDays: plan.durationInDays,
+      });
+      const discountedPlans = (plan.discountedPlans || []).map((dp: any) => ({
+        ...dp,
+        bonusDays: resolveAgentSubscriptionBonusDays({
+          planName: dp.name ?? plan.name,
+          planCode: dp.code,
+          durationInDays: dp.durationInDays,
+        }),
+      }));
+      return {
+        ...plan,
+        bonusDays,
+        discountedPlans,
+      };
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: plans,
+      data: enriched,
     });
   } catch (err) {
     next(err);

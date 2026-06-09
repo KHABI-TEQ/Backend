@@ -35,6 +35,14 @@ export interface IInspectionBooking {
   reason?: string;
   assignedFieldAgent?: Types.ObjectId;
 
+  /** Agent-initiated request for a company Field Agent (no Paystack payment). */
+  fieldAgentRequestStatus?: "none" | "pending" | "accepted" | "rejected" | "cancelled";
+  fieldAgentRequestTargetId?: Types.ObjectId;
+  fieldAgentRequestedBy?: Types.ObjectId;
+  fieldAgentRequestNote?: string;
+  fieldAgentRequestedAt?: Date;
+  fieldAgentRespondedAt?: Date;
+
   owner: Types.ObjectId;
   approveLOI?: boolean;
   pendingResponseFrom?: "buyer" | "seller" | "admin";
@@ -153,6 +161,16 @@ export class InspectionBooking {
         letterOfIntention: { type: String },
         reason: { type: String },
         assignedFieldAgent: { type: Schema.Types.ObjectId, ref: "User" },
+        fieldAgentRequestStatus: {
+          type: String,
+          enum: ["none", "pending", "accepted", "rejected", "cancelled"],
+          default: "none",
+        },
+        fieldAgentRequestTargetId: { type: Schema.Types.ObjectId, ref: "User" },
+        fieldAgentRequestedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        fieldAgentRequestNote: { type: String },
+        fieldAgentRequestedAt: { type: Date },
+        fieldAgentRespondedAt: { type: Date },
         owner: { type: Schema.Types.ObjectId, required: true, ref: "User" },
         approveLOI: { type: Boolean, default: false },
         pendingResponseFrom: {

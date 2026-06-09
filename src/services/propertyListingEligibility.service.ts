@@ -1,58 +1,50 @@
 import { Types } from "mongoose";
-import { DB } from "../controllers";
 import HttpStatusCodes from "../common/HttpStatusCodes";
 import { RouteError } from "../common/classes";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import type { IUserSubscriptionSnapshotDoc } from "../models";
+import {
+  AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE,
+  getAgentAccessGate,
+  isAgentKycGraceListingLimitReached,
+} from "./agentPublisherEligibility.service";
 
-/** First N listings for Agent/Developer do not require a subscription. */
-export const FREE_PROPERTY_LIMIT_AGENT_DEVELOPER = 1;
+/** @deprecated Agent trial allows up to 10 properties; kept for legacy imports. */
+export const FREE_PROPERTY_LIMIT = 1;
+
+/** @deprecated Use FREE_PROPERTY_LIMIT */
+export const FREE_PROPERTY_LIMIT_AGENT_DEVELOPER = FREE_PROPERTY_LIMIT;
 
 export type ActiveSnapshot = IUserSubscriptionSnapshotDoc | null;
 
 /**
- * Landowners — unlimited (no snapshot).
- * Agent/Developer — first {@link FREE_PROPERTY_LIMIT_AGENT_DEVELOPER} listing(s): no subscription check.
- * From the next listing onward: active subscription required; Agents also need KYC `approved` before any 2nd+ listing.
+ * Agent — 7-day KYC grace, then approved KYC required; 4-week trial up to 10 listings without subscription.
+ * Developer / Landowner — no KYC or subscription checks.
  */
 export async function assertPropertyListingAllowedForOwner(params: {
   ownerId: Types.ObjectId | string;
   userType: string;
 }): Promise<{ activeSnapshot: ActiveSnapshot }> {
   const { ownerId, userType } = params;
+  const ownerIdStr = ownerId.toString();
 
-  if (userType !== "Agent" && userType !== "Developer") {
+  if (userType === "Developer" || userType === "Landowners") {
     return { activeSnapshot: null };
   }
 
-  const existingPropertyCount = await DB.Models.Property.countDocuments({
-    owner: ownerId,
-    isDeleted: { $ne: true },
-  });
-
-  if (existingPropertyCount < FREE_PROPERTY_LIMIT_AGENT_DEVELOPER) {
+  if (userType !== "Agent") {
     return { activeSnapshot: null };
   }
 
-  if (userType === "Agent") {
-    const agent = await DB.Models.Agent.findOne({ userId: ownerId });
-    if (!agent || agent.kycStatus !== "approved") {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Complete KYC verification and obtain approval before listing more than one property."
-      );
-    }
+  const gate = await getAgentAccessGate(ownerIdStr);
+  if (gate.ok === false) {
+    throw new RouteError(HttpStatusCodes.FORBIDDEN, gate.message);
   }
 
-  const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(
-    ownerId.toString()
-  );
-  if (!activeSnapshot) {
-    throw new RouteError(
-      HttpStatusCodes.FORBIDDEN,
-      "You have reached the free limit of 1 property. Please subscribe to a plan to post more properties."
-    );
+  if (await isAgentKycGraceListingLimitReached(ownerIdStr)) {
+    throw new RouteError(HttpStatusCodes.FORBIDDEN, AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE);
   }
 
+  const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(ownerIdStr);
   return { activeSnapshot };
 }

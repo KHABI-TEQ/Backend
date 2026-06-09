@@ -7,6 +7,7 @@ import { RouteError } from "../../../common/classes";
 import { generateUniqueAccountId, generateUniqueReferralCode } from "../../../utils/generateUniqueAccountId";
 import { generateRandomPassword } from "../../../utils/generatePassword";
 import { notifyUserAdminProvisioned } from "../../../services/userProvisioningNotifications.service";
+import { ensurePublisherProfile } from "../../../services/publisherKyc.service";
 import XLSX from "xlsx";
 
 const ALLOWED_TYPES = ["Agent", "Developer", "Landowners"] as const;
@@ -146,6 +147,8 @@ async function createUserByAdminProvision(payload: AdminProvisionPayload): Promi
       kycStatus: "none",
     });
   }
+
+  await ensurePublisherProfile({ userId: String(newUser._id), userType });
 
   try {
     await notifyUserAdminProvisioned({

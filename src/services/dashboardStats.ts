@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { DB } from "../controllers";
 import { AnalyticsStats, BookingStats, InspectionStats, OverviewStats, PreferenceStats, PropertyStats, ReferralStats, SubscriptionStats, TransactionStats, UserStats } from "../types/dashboardStats";
+import { getFieldAgentRepresentationCounts } from "./fieldAgentRepresentationAlert.service";
 
 export type TimeFilter = "7days" | "30days" | "90days" | "365days" | "range";
 
@@ -24,6 +25,8 @@ export interface DashboardStats {
     totalAgents: number;
     activeSubscriptions: number;
     totalReferrals: number;
+    pendingFieldAgentRequests: number;
+    openFieldAgentRepresentationRequests: number;
   };
   propertyStats: {
     byType: { type: string; count: number }[];
@@ -79,6 +82,9 @@ export interface DashboardStats {
       byBuyerInterest: { interest: string; count: number }[];
       successfulInspections: number;
     };
+    pendingFieldAgentRequests: number;
+    acceptedFieldAgentRequestsAwaitingAssignment: number;
+    openFieldAgentRepresentationRequests: number;
   };
   bookingStats: {
     byStatus: { status: string; count: number }[];
@@ -808,6 +814,8 @@ export class DashboardStatsService {
       percentage: totalRevenueForPercentage > 0 ? (item.amount / totalRevenueForPercentage) * 100 : 0
     }));
 
+    const fieldAgentRepresentation = await getFieldAgentRepresentationCounts();
+
     return {
       overview: {
         totalProperties,
@@ -822,7 +830,9 @@ export class DashboardStatsService {
         totalBookings,
         totalAgents,
         activeSubscriptions,
-        totalReferrals
+        totalReferrals,
+        pendingFieldAgentRequests: fieldAgentRepresentation.pending,
+        openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
       },
       propertyStats: {
         byType: propertyByType,
@@ -877,7 +887,11 @@ export class DashboardStatsService {
           byStatus: inspectionReportByStatus,
           byBuyerInterest: inspectionReportByInterest,
           successfulInspections
-        }
+        },
+        pendingFieldAgentRequests: fieldAgentRepresentation.pending,
+        acceptedFieldAgentRequestsAwaitingAssignment:
+          fieldAgentRepresentation.acceptedAwaitingAssignment,
+        openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
       },
       bookingStats: {
         byStatus: bookingByStatus,
@@ -953,7 +967,8 @@ export class DashboardStatsService {
       totalAgents,
       activeSubscriptions,
       totalReferrals,
-      revenueResult
+      revenueResult,
+      fieldAgentRepresentation,
     ] = await Promise.all([
       this.propertyModel.countDocuments(dateFilter),
       this.preferenceModel.countDocuments(dateFilter),
@@ -970,7 +985,8 @@ export class DashboardStatsService {
       this.transactionModel.aggregate([
         { $match: { ...dateFilter, status: "success", transactionFlow: "internal" } },
         { $group: { _id: null, total: { $sum: "$amount" } } }
-      ])
+      ]),
+      getFieldAgentRepresentationCounts(),
     ]);
 
     const totalRevenue = revenueResult[0]?.total || 0;
@@ -988,7 +1004,9 @@ export class DashboardStatsService {
         totalBookings,
         totalAgents,
         activeSubscriptions,
-        totalReferrals
+        totalReferrals,
+        pendingFieldAgentRequests: fieldAgentRepresentation.pending,
+        openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
     }
 
   }
@@ -1291,7 +1309,8 @@ export class DashboardStatsService {
       withLOI,
       inspectionReportByStatus,
       inspectionReportByInterest,
-      successfulInspections
+      successfulInspections,
+      fieldAgentRepresentation,
     ] = await Promise.all([
       this.inspectionModel.aggregate([
         { $match: dateFilter },
@@ -1337,7 +1356,8 @@ export class DashboardStatsService {
         { $group: { _id: "$inspectionReport.buyerInterest", count: { $sum: 1 } } },
         { $project: { interest: "$_id", count: 1, _id: 0 } }
       ]),
-      this.inspectionModel.countDocuments({ ...dateFilter, "inspectionReport.wasSuccessful": true })
+      this.inspectionModel.countDocuments({ ...dateFilter, "inspectionReport.wasSuccessful": true }),
+      getFieldAgentRepresentationCounts(),
     ]);
 
     return {
@@ -1356,7 +1376,11 @@ export class DashboardStatsService {
           byStatus: inspectionReportByStatus,
           byBuyerInterest: inspectionReportByInterest,
           successfulInspections
-        }
+        },
+        pendingFieldAgentRequests: fieldAgentRepresentation.pending,
+        acceptedFieldAgentRequestsAwaitingAssignment:
+          fieldAgentRepresentation.acceptedAwaitingAssignment,
+        openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
     }
   }
 

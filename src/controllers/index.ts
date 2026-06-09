@@ -91,6 +91,8 @@ import {
   ISyndicationConnectionVerificationModel,
   AdminNotification,
   IAdminNotificationModel,
+  PublisherProfile,
+  IPublisherProfileModel,
 } from "../models/index";
 
 
@@ -141,7 +143,8 @@ declare interface IModels {
   SyndicationPlatformApplication: ISyndicationPlatformApplicationModel;
   SyndicationConnectionVerification: ISyndicationConnectionVerificationModel;
   AdminNotification: IAdminNotificationModel;
-} 
+  PublisherProfile: IPublisherProfileModel;
+}
 
 export class DB {
   private static instance: DB;
@@ -206,6 +209,7 @@ export class DB {
       SyndicationPlatformApplication: new SyndicationPlatformApplication().model,
       SyndicationConnectionVerification: new SyndicationConnectionVerification().model,
       AdminNotification: new AdminNotification().model,
+      PublisherProfile: new PublisherProfile().model,
     };
   }
 

@@ -15,6 +15,8 @@ export interface OverviewStats {
     totalAgents: number;
     activeSubscriptions: number;
     totalReferrals: number;
+    pendingFieldAgentRequests: number;
+    openFieldAgentRepresentationRequests: number;
 };
 
 // Property Stats
@@ -82,6 +84,9 @@ export interface InspectionStats {
       byBuyerInterest: { interest: string; count: number }[];
       successfulInspections: number;
     };
+    pendingFieldAgentRequests: number;
+    acceptedFieldAgentRequestsAwaitingAssignment: number;
+    openFieldAgentRepresentationRequests: number;
 };
 
 // Booking Stats

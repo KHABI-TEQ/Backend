@@ -9,6 +9,8 @@ const controller = new AdminInspectionController();
 
 
 // Fetch all inspections with optional filters (status, propertyId, etc.)
+AdminInspRouter.get('/inspections/representation-requests', use(controller.getRepresentationRequests.bind(controller)));
+
 AdminInspRouter.get('/inspections', use(controller.getAllInspections.bind(controller)));
 
 // Fetch inspection stats

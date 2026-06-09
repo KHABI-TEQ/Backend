@@ -11,6 +11,7 @@ import { preferenceMail } from "../../../common/emailTemplates/preference";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
 import { preferencePayloadToUserPreferences } from "../../../utils/preferenceUserPreferencesForWhatsapp";
 import { sortPreferenceLocationAlphabetically } from "../../../utils/sortLocationAlphabetically";
+import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.service";
 
 export const postPreference = async (
   req: AppRequest,
@@ -115,6 +116,15 @@ export const postPreference = async (
           preferences: prefs,
         });
       });
+    }
+
+    try {
+      await autoPairPreferenceById(createdPreference._id.toString(), {
+        sendMatchEmail: true,
+        sendNoMatchEmail: true,
+      });
+    } catch (matchErr) {
+      console.warn("[Main site preference] Auto pairing failed (non-fatal):", matchErr);
     }
 
     const responseData = createdPreference.toObject

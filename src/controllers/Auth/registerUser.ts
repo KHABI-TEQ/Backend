@@ -11,6 +11,8 @@ import { referralService } from "../../services/referral.service";
 import { Types } from "mongoose";
 import { SystemSettingService } from "../../services/systemSetting.service";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
+import { ensurePublisherProfile } from "../../services/publisherKyc.service";
+import { isPublisherKycUserType } from "../../common/kycTypes";
 
 /**
  * Traditional Registration
@@ -92,6 +94,10 @@ export const registerUser = async (
         userId: newUser._id,
         accountStatus: "inactive",
       });
+    }
+
+    if (isPublisherKycUserType(userType)) {
+      await ensurePublisherProfile({ userId: String(newUser._id), userType });
     }
 
     const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");

@@ -11,6 +11,14 @@ import {
 } from "../controllers/Account/Property/fetchProperty";
 import { fetchUserInspections, getInspectionStats, getOneUserInspection } from "../controllers/Account/fetchInpections";
 import { respondToInspectionRequest } from "../controllers/Account/inspectionRespond";
+import {
+  cancelFieldAgentRequest,
+  getFieldAgentRepresentationTerms,
+  listAvailableFieldAgents,
+  listFieldAgentRepresentationRequests,
+  requestFieldAgentForInspection,
+  respondToFieldAgentRepresentationRequest,
+} from "../controllers/Account/fieldAgentRepresentation";
  
 import {
   getAllNotifications,
@@ -37,11 +45,13 @@ import {
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { fetchDealsitePreferences, fetchDealsitePreferenceById } from "../controllers/Account/Preference/fetchDealsitePreferences";
-import { completeAgentKYC, completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
+import { completePublisherKYC } from "../controllers/Account/publisherKyc";
+import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
 import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, sendInspectionParticipantDetails, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionSnapshotAutoRenewal } from "../controllers/Account/Agent/subscriptions";
+import { getAgentEligibility } from "../controllers/Account/Agent/agentEligibility";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
@@ -94,7 +104,8 @@ AccountRouter.put("/notificationStatus", updateNotificationSettings);
 AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
 // AGENT UNIQUE ROUTES
-AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completeAgentKYC);
+AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completePublisherKYC);
+AccountRouter.get("/agent/eligibility", getAgentEligibility);
 
 // Agent broadcast to DealSite email subscribers (guests subscribe with email on DealSite)
 AccountRouter.post("/agent/broadcast", broadcastToMySubscribers);
@@ -156,6 +167,26 @@ AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.post("/my-inspections/:inspectionId/respond", respondToInspectionRequest);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
+AccountRouter.post(
+  "/my-inspections/:inspectionId/request-field-agent",
+  requestFieldAgentForInspection,
+);
+AccountRouter.delete(
+  "/my-inspections/:inspectionId/field-agent-request",
+  cancelFieldAgentRequest,
+);
+
+// Field Agent representation (company staff — no Paystack payment from requesting Agent)
+AccountRouter.get("/field-agents/representation-terms", getFieldAgentRepresentationTerms);
+AccountRouter.get("/field-agents/available", listAvailableFieldAgents);
+AccountRouter.get(
+  "/inspectionsFieldAgent/representation-requests",
+  listFieldAgentRepresentationRequests,
+);
+AccountRouter.post(
+  "/inspectionsFieldAgent/:inspectionId/representation/respond",
+  respondToFieldAgentRepresentationRequest,
+);
 
 // BOOKING REQUEST ROUTES
 AccountRouter.get("/my-bookings/fetchAll", fetchUserBookings);

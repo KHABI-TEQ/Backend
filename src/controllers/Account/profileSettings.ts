@@ -11,10 +11,12 @@ import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
+import { getPublisherKycStatus } from "../../services/publisherKyc.service";
 
 /** Subscription snapshot, DealSite, and Agent collection row — same shape for Agent and Developer (see loginUser). Landowners get the same keys; agentData is usually null. */
 async function buildPublisherProfileExtensions(user: { _id: unknown; accountApproved?: boolean }) {
   const agentData = await DB.Models.Agent.findOne({ userId: user._id }).lean();
+  const kycStatus = await getPublisherKycStatus(String(user._id));
   const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
     String(user._id)
   );
@@ -23,6 +25,7 @@ async function buildPublisherProfileExtensions(user: { _id: unknown; accountAppr
   const snap = activeSnapshot || null;
   return {
     agentData,
+    kycStatus,
     isAccountApproved: user.accountApproved,
     activeSubscription: snap,
     activeSnapshot: snap,

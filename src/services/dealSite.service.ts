@@ -6,6 +6,11 @@ import { Types } from "mongoose";
 import { PaystackService } from "./paystack.service";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import { resolveLeanRefToObjectId } from "../utils/mongooseId";
+import {
+  assertDealSiteKycAllowed,
+  getPublicDealSiteKycGate,
+} from "./dealSiteKycEligibility.service";
+import { getAgentAccessGate } from "./agentPublisherEligibility.service";
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
 
@@ -33,6 +38,8 @@ export class DealSiteService {
         "Only agents and developers can set up a public access page."
       );
     }
+
+    await assertDealSiteKycAllowed(userId);
 
     // Ensure publicSlug is unique
     const existingSlug = await DB.Models.DealSite.findOne({
@@ -136,6 +143,8 @@ export class DealSiteService {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
     }
 
+    await assertDealSiteKycAllowed(userId);
+
     // 🔹 Disallow enabling if on-hold
     if (dealSite.status === "on-hold") {
       throw new RouteError(
@@ -176,6 +185,7 @@ export class DealSiteService {
     }
 
     dealSite.status = "paused";
+    dealSite.pausedByPolicy = undefined;
     await dealSite.save();
 
     return dealSite;
@@ -472,8 +482,8 @@ export class DealSiteService {
   }
 
   /**
-   * Public DealSite (visitor): if the page owner has 2+ non-deleted properties they own,
-   * the owner must have an active subscription snapshot. One owned listing does not gate the public page.
+   * Public DealSite (visitor): Agent owners must satisfy trial/subscription rules;
+   * Developers are not gated by subscription.
    */
   static async getPublicDealSiteSubscriptionGate(
     ownerUserId: string
@@ -481,24 +491,126 @@ export class DealSiteService {
     | { readonly ok: true }
     | { readonly ok: false; readonly errorCode: string; readonly message: string }
   > {
-    const count = await DB.Models.Property.countDocuments({
-      owner: ownerUserId,
-      isDeleted: { $ne: true },
-    });
-    if (count < 2) {
+    const owner = await DB.Models.User.findById(ownerUserId).select("userType").lean();
+    if (!owner || owner.userType !== "Agent") {
       return { ok: true } as const;
     }
-    const active = await UserSubscriptionSnapshotService.getActiveSnapshot(ownerUserId);
-    if (active) {
+
+    const gate = await getAgentAccessGate(ownerUserId);
+    if (gate.ok) {
       return { ok: true } as const;
     }
-    return {
-      ok: false,
-      errorCode: "SUBSCRIPTION_INVALID",
-      message:
-        "This public page requires an active subscription from the owner because they have two or more property listings.",
-    } as const;
+    if (gate.ok === false && gate.reason === "kyc") {
+      return { ok: true } as const;
+    }
+    if (gate.ok === false) {
+      return {
+        ok: false,
+        errorCode: "SUBSCRIPTION_REQUIRED",
+        message: gate.message,
+      } as const;
+    }
+    return { ok: true } as const;
   }
 
+  /** Public visitor gate: Agent owners must satisfy KYC grace and trial/subscription rules. */
+  static async getPublicDealSiteKycGate(ownerUserId: string) {
+    return getPublicDealSiteKycGate(ownerUserId);
+  }
+
+  /**
+   * Validates whether a DealSite may be served to public visitors (running + KYC + subscription rules).
+   * Pauses the page when KYC grace has expired without approval.
+   */
+  static async validatePublicDealSiteVisitorAccess(dealSite: {
+    _id?: unknown;
+    status?: string;
+    createdBy?: unknown;
+  }): Promise<
+    | { readonly ok: true }
+    | {
+        readonly ok: false;
+        readonly httpStatus: number;
+        readonly errorCode: string;
+        readonly message: string;
+      }
+  > {
+    if (dealSite.status !== "running") {
+      return {
+        ok: false,
+        httpStatus: HttpStatusCodes.FORBIDDEN,
+        errorCode: "DEALSITE_NOT_ACTIVE",
+        message: "This Public access page is not currently active.",
+      } as const;
+    }
+
+    const ownerId = resolveLeanRefToObjectId(dealSite.createdBy);
+    if (!ownerId) {
+      return {
+        ok: false,
+        httpStatus: HttpStatusCodes.INTERNAL_SERVER_ERROR,
+        errorCode: "DEALSITE_INVALID_OWNER",
+        message: "Public access page owner reference is invalid.",
+      } as const;
+    }
+
+    const kycGate = await getPublicDealSiteKycGate(ownerId.toString());
+    if (kycGate.ok === false) {
+      void DealSiteService.pauseDealSiteForKycIfNeeded(dealSite);
+      return {
+        ok: false,
+        httpStatus: HttpStatusCodes.FORBIDDEN,
+        errorCode: kycGate.errorCode,
+        message: kycGate.message,
+      } as const;
+    }
+
+    const subscriptionGate = await DealSiteService.getPublicDealSiteSubscriptionGate(
+      ownerId.toString()
+    );
+    if (subscriptionGate.ok === false) {
+      void DealSiteService.pauseDealSiteForPolicyIfNeeded(dealSite, "subscription");
+      return {
+        ok: false,
+        httpStatus: HttpStatusCodes.OK,
+        errorCode: subscriptionGate.errorCode,
+        message: subscriptionGate.message,
+      } as const;
+    }
+
+    return { ok: true } as const;
+  }
+
+  /** Pause a running DealSite when the Agent owner fails KYC/subscription policy checks. */
+  static async pauseDealSiteForKycIfNeeded(dealSite: {
+    _id?: unknown;
+    status?: string;
+    createdBy?: unknown;
+  }): Promise<void> {
+    const ownerId = resolveLeanRefToObjectId(dealSite.createdBy);
+    if (!ownerId) {
+      return;
+    }
+
+    const gate = await getPublicDealSiteKycGate(ownerId.toString());
+    if (gate.ok === false) {
+      const reason = gate.errorCode === "KYC_REQUIRED" ? "kyc" : "subscription";
+      await DealSiteService.pauseDealSiteForPolicyIfNeeded(dealSite, reason);
+    }
+  }
+
+  static async pauseDealSiteForPolicyIfNeeded(
+    dealSite: { _id?: unknown; status?: string },
+    reason: "kyc" | "subscription"
+  ): Promise<void> {
+    if (dealSite.status !== "running") {
+      return;
+    }
+
+    await DB.Models.DealSite.updateOne(
+      { _id: dealSite._id, status: "running" },
+      { $set: { status: "paused", pausedByPolicy: reason } }
+    );
+  }
 
 }

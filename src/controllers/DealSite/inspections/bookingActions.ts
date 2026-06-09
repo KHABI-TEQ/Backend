@@ -12,6 +12,7 @@ import { generateBookingRequestAcknowledgementForBuyer, generateBookingRequestRe
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { dealSiteOriginFromPublicSlug } from "../../../config/dealSitePublicHost";
+import { DealSiteService } from "../../../services/dealSite.service";
  
     export const  calculateShortletAmount = (
         property: any,
@@ -100,12 +101,12 @@ import { dealSiteOriginFromPublicSlug } from "../../../config/dealSitePublicHost
                 return;
             }
         
-            // ✅ Ensure it's running
-            if (dealSite.status !== "running") {
-                res.status(HttpStatusCodes.BAD_REQUEST).json({
+            const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+            if (access.ok === false) {
+                res.status(access.httpStatus).json({
                     success: false,
-                    errorCode: "DEALSITE_NOT_ACTIVE",
-                    message: "This DealSite is not currently active.",
+                    errorCode: access.errorCode,
+                    message: access.message,
                     data: null,
                 });
                 return;

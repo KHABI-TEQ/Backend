@@ -14,6 +14,8 @@ import { verifyEmailTemplate } from '../../common/email.template';
 import { generalEmailLayout } from '../../common/emailTemplates/emailLayout';
 import sendEmail from '../../common/send.email';
 import crypto from "crypto";
+import { ensurePublisherProfile, getPublisherKycStatus } from '../../services/publisherKyc.service';
+import { isPublisherKycUserType } from '../../common/kycTypes';
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(
@@ -82,11 +84,13 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(user._id.toString());
     const dealSites = await DealSiteService.getByAgent(user._id.toString());
     const dealSite = dealSites?.[0] ?? null;
+    const kycStatus = await getPublisherKycStatus(user._id);
     const userWithDeveloper = {
       ...userResponse,
       isAccountApproved: user.accountApproved,
       activeSubscription: activeSnapshot || null,
       dealSite,
+      kycStatus,
     };
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -95,6 +99,18 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
         token,
         user: userWithDeveloper,
       }
+    });
+  }
+
+  if (user.userType === 'Landowners') {
+    const kycStatus = await getPublisherKycStatus(user._id);
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: { ...userResponse, kycStatus },
+      },
     });
   }
 
@@ -281,6 +297,10 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       });
     }
 
+    if (isPublisherKycUserType(userType)) {
+      await ensurePublisherProfile({ userId: String(newUser._id), userType });
+    }
+
     const referralStatusSettings = await SystemSettingService.getSetting("referral_enabled");
     if (referralStatusSettings?.value) {
       const referralRegisteredPoints = await SystemSettingService.getSetting("referral_register_price");
@@ -408,6 +428,10 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
 
     if (userType === 'Agent') {
       await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
+    }
+
+    if (isPublisherKycUserType(userType)) {
+      await ensurePublisherProfile({ userId: String(newUser._id), userType });
     }
 
     // ✅ Log the referral if valid

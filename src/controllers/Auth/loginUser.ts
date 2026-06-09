@@ -8,6 +8,7 @@ import { verifyEmailTemplate, generalTemplate } from "../../common/email.templat
 import sendEmail from "../../common/send.email";
 import { UserSubscriptionSnapshotService } from "../../services/userSubscriptionSnapshot.service";
 import { DealSiteService } from "../../services/dealSite.service";
+import { getPublisherKycStatus } from "../../services/publisherKyc.service";
  
 export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -144,11 +145,13 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       );
       const dealSites = await DealSiteService.getByAgent(user._id.toString());
       const dealSite = dealSites?.[0] ?? null;
+      const kycStatus = await getPublisherKycStatus(String(user._id));
       const userWithDeveloper = {
         ...userResponse,
         isAccountApproved: user.accountApproved,
         activeSubscription: activeSnapshot || null,
         dealSite,
+        kycStatus,
       };
       return res.status(HttpStatusCodes.OK).json({
         success: true,
@@ -160,7 +163,19 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
-    // All other users (e.g. Landowners, FieldAgent)
+    if (user.userType === "Landowners") {
+      const kycStatus = await getPublisherKycStatus(String(user._id));
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          token,
+          user: { ...userResponse, kycStatus },
+        },
+      });
+    }
+
+    // All other users (e.g. FieldAgent)
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Login successful",

@@ -22,6 +22,8 @@ import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from './whatsappClient.service';
 import { notifyAllActiveAdmins } from './adminNotification.service';
 import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from './buyerConfirmationDevScheduler.service';
+import { resumeAgentPolicyPausedDealSites } from './agentPublisherEligibility.service';
+import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.service';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -908,7 +910,6 @@ export class PaystackService {
 
       // calculating subscription snapshot dates also confirm if the plan is a discounted plan
       const startDate = new Date();
-      const endDate = new Date(startDate);
       
       if (snapshot.meta.planType === "discounted" && snapshot.meta.planCode) {
         // find exact discounted plan under this plan
@@ -925,7 +926,12 @@ export class PaystackService {
         planDuration = plan.durationInDays;
       }
 
-      endDate.setDate(endDate.getDate() + planDuration);
+      const { expiresAt: endDateWithBonus, bonusDays } = computePaidSubscriptionExpiresAt({
+        startDate,
+        baseDurationInDays: planDuration,
+        planName: snapshot.meta.appliedPlanName ?? plan.name,
+        planCode: snapshot.meta.planCode ?? plan.code,
+      });
  
       // Map plan features into snapshot
       const planFeatures = plan.features?.map((f: any) => ({
@@ -937,8 +943,15 @@ export class PaystackService {
 
       snapshot.status = newStatus;
       snapshot.startedAt = startDate;
-      snapshot.expiresAt = endDate;
+      snapshot.expiresAt = endDateWithBonus;
       snapshot.features = Array.isArray(planFeatures) ? planFeatures : [];
+      if (bonusDays > 0) {
+        snapshot.meta = {
+          ...snapshot.meta,
+          bonusDays,
+          baseDurationInDays: planDuration,
+        };
+      }
       await snapshot.save();
 
       // =======================
@@ -1021,7 +1034,7 @@ export class PaystackService {
             fullName,
             planName: plan.name,
             amount: transaction.amount, // if Paystack stores in kobo
-            nextBillingDate: endDate.toDateString(),
+            nextBillingDate: endDateWithBonus.toDateString(),
             transactionRef: transaction.reference,
             publicAccessSettingsLink: publicAccessCompleteLink,
           })
@@ -1033,6 +1046,10 @@ export class PaystackService {
           html: successMailBody,
           text: successMailBody,
         });
+
+        if (user.userType === "Agent") {
+          await resumeAgentPolicyPausedDealSites(String(user._id));
+        }
 
       } else { 
         const failureMailBody = generalEmailLayout(

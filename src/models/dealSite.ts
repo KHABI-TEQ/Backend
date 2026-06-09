@@ -162,6 +162,8 @@ export interface IDealSite {
     active?: boolean;
   };
   status: DealSiteStatus;
+  /** Set when paused by KYC/subscription policy enforcement; cleared on manual pause or auto-resume. */
+  pausedByPolicy?: "kyc" | "subscription";
   createdBy: Types.ObjectId;
 }
 
@@ -364,6 +366,11 @@ export class DealSite {
           type: String,
           enum: ["pending", "on-hold", "deleted", "running", "paused"],
           default: "pending",
+        },
+        pausedByPolicy: {
+          type: String,
+          enum: ["kyc", "subscription"],
+          required: false,
         },
 
         createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

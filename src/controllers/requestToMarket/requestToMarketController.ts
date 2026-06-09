@@ -16,6 +16,7 @@ import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 import { enqueuePropertySyndicationJobs } from "../../services/propertySyndication.service";
+import { getAgentAccessGate } from "../../services/agentPublisherEligibility.service";
 
 /**
  * POST /account/request-to-market
@@ -33,6 +34,11 @@ export const createRequestToMarket = async (
     const user = await DB.Models.User.findById(userId).lean();
     if (!user || (user as any).userType !== "Agent") {
       throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only Agents can request to market a property.");
+    }
+
+    const gate = await getAgentAccessGate(String(userId));
+    if (gate.ok === false) {
+      throw new RouteError(HttpStatusCodes.FORBIDDEN, gate.message);
     }
 
     const { propertyId } = req.body as { propertyId: string };

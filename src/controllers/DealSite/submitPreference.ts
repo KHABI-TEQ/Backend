@@ -10,6 +10,7 @@ import { preferenceMail } from "../../common/emailTemplates/preference";
 import { generalTemplate } from "../../common/email.template";
 import { autoPairPreferenceById } from "../../services/autoPreferencePairing.service";
 import { sortPreferenceLocationAlphabetically } from "../../utils/sortLocationAlphabetically";
+import { dealSiteBaseUrlFromPublicSlug } from "../../utils/matchedPropertiesDealSiteUrl";
  
 // ✅ Controller: Submit Preference from a DealSite
 export const sendPreferenceRequest = async (
@@ -136,7 +137,12 @@ export const sendPreferenceRequest = async (
     });
 
     try {
-      await autoPairPreferenceById(createdPreference._id.toString());
+      const matchBaseUrl = dealSiteBaseUrlFromPublicSlug(String(publicSlug));
+      await autoPairPreferenceById(createdPreference._id.toString(), {
+        sendMatchEmail: true,
+        sendNoMatchEmail: true,
+        matchEmailBaseUrlOverride: matchBaseUrl,
+      });
     } catch (matchErr) {
       console.warn("[DealSite preference] Auto pairing failed (non-fatal):", matchErr);
     }

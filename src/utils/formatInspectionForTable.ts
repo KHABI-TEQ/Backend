@@ -33,5 +33,11 @@ export const formatInspectionForTable = (inspection: IInspectionBookingDoc) => {
     stage: inspection.stage,
     createdAt: inspection.createdAt,
     updatedAt: inspection.updatedAt,
+    assignedFieldAgent: inspection.assignedFieldAgent,
+    fieldAgentRequestStatus: inspection.fieldAgentRequestStatus,
+    fieldAgentRequestTargetId: inspection.fieldAgentRequestTargetId,
+    fieldAgentRequestedBy: inspection.fieldAgentRequestedBy,
+    fieldAgentRequestNote: inspection.fieldAgentRequestNote,
+    fieldAgentRequestedAt: inspection.fieldAgentRequestedAt,
   };
 };

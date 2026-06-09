@@ -12,6 +12,8 @@ import sendEmail from "../../../common/send.email";
 import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { assertPropertyListingAllowedForOwner } from "../../../services/propertyListingEligibility.service";
+import { agentHasUnlimitedPropertyListings } from "../../../services/agentSubscriptionIncentive.service";
+import { isAgentSubscriptionRequired } from "../../../services/agentPublisherEligibility.service";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import mongoose from "mongoose";
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
@@ -80,9 +82,9 @@ export const postProperty = async (
       (formatted as any).listingScope = "agent_listing";
     }
 
-    // ✅ Agents and Developers: first 1 property free; beyond that subscription (+ Agent KYC) required
+    // ✅ Agents: KYC grace, 4-week trial (up to 10 listings), then subscription required
     let activeSnapshot = null;
-    if (req.user?.userType === "Agent" || req.user?.userType === "Developer") {
+    if (req.user?.userType === "Agent") {
       const { activeSnapshot: snap } = await assertPropertyListingAllowedForOwner({
         ownerId: userId,
         userType: req.user.userType as string,
@@ -93,8 +95,14 @@ export const postProperty = async (
     // ✅ Create property first (inside session)
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    // ✅ Deduct quota after successful property creation (only if agent with active subscription)
-    if (activeSnapshot) {
+    // Paid practitioner subscriptions include unlimited listings (no LISTINGS quota deduction).
+    const unlimitedListings =
+      userType === "Agent" ? await agentHasUnlimitedPropertyListings(String(userId)) : false;
+    const subscriptionRequired =
+      userType === "Agent" ? await isAgentSubscriptionRequired(String(userId)) : false;
+
+    // ✅ Deduct quota only when a paid subscription is required and listings are not unlimited.
+    if (activeSnapshot && subscriptionRequired && !unlimitedListings) {
       try {
         if (preferenceId) {
           await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(

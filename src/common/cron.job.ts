@@ -11,7 +11,10 @@ import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
 import { processShortletViewingWhatsappReminders } from '../services/shortletViewingWhatsapp.cron.service';
 import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
+import { reconcileRunningDealSitesWithoutKycApproval } from '../services/dealSiteKycEligibility.service';
+import { computePaidSubscriptionExpiresAt } from '../services/agentSubscriptionIncentive.service';
 import { dispatchPendingSyndicationJobs } from '../services/propertySyndication.service';
+import { sendPendingFieldAgentRepresentationDigest } from '../services/fieldAgentRepresentationAlert.service';
 
 // ───────────────────────────────
 // 1. DELETE OLD PENDING ITEMS
@@ -100,6 +103,9 @@ const expireSubscriptions = async () => {
         }
 
         dealSite.status = "paused";
+        if (user.userType === "Agent") {
+          dealSite.pausedByPolicy = "subscription";
+        }
         await dealSite.save();
 
         // Send email notification
@@ -140,10 +146,21 @@ const reconcileDealSiteSubscriptionState = async () => {
   try {
     const result = await reconcileRunningDealSitesWithoutActiveSubscription();
     console.log(
-      `[CRON] DealSite reconciliation completed: scanned=${result.scanned}, paused=${result.paused}, skippedNoOwner=${result.skippedNoOwner}, skippedBelowPropertyThreshold=${result.skippedBelowPropertyThreshold}, skippedHasActiveSubscription=${result.skippedHasActiveSubscription}`
+      `[CRON] DealSite reconciliation completed: scanned=${result.scanned}, paused=${result.paused}, resumed=${result.resumed}, skippedNoOwner=${result.skippedNoOwner}, skippedNotAgent=${result.skippedNotAgent}, skippedEligible=${result.skippedEligible}`
     );
   } catch (err) {
     console.error('[CRON] Error reconciling DealSite subscription state:', err);
+  }
+};
+
+const reconcileDealSiteKycState = async () => {
+  try {
+    const result = await reconcileRunningDealSitesWithoutKycApproval();
+    console.log(
+      `[CRON] DealSite KYC reconciliation completed: scanned=${result.scanned}, paused=${result.paused}, resumed=${result.resumed}, skippedEligible=${result.skippedEligible}, skippedNotAgent=${result.skippedNotAgent}, skippedNoOwner=${result.skippedNoOwner}`
+    );
+  } catch (err) {
+    console.error('[CRON] Error reconciling DealSite KYC state:', err);
   }
 };
 
@@ -305,10 +322,14 @@ const autoRenewSubscriptionsCronJob = async () => {
 
       if (paymentResult.success) {
 
-        // ✅ Extend subscription dates
+        // ✅ Extend subscription dates (includes practitioner plan bonus days)
         const newStartDate = sub.expiresAt;
-        const newEndDate = new Date(newStartDate);
-        newEndDate.setDate(newEndDate.getDate() + durationInDays);
+        const { expiresAt: newEndDate, bonusDays } = computePaidSubscriptionExpiresAt({
+          startDate: newStartDate,
+          baseDurationInDays: durationInDays,
+          planName: appliedPlanName,
+          planCode: sub.meta.planCode,
+        });
 
         // Map plan features into snapshot
         const planFeatures = plan.features?.map((f: any) => ({
@@ -321,6 +342,13 @@ const autoRenewSubscriptionsCronJob = async () => {
         sub.startedAt = newStartDate;
         sub.expiresAt = newEndDate;
         sub.features = planFeatures;
+        if (bonusDays > 0) {
+          sub.meta = {
+            ...sub.meta,
+            bonusDays,
+            baseDurationInDays: durationInDays,
+          };
+        }
         await sub.save();
 
         console.log(
@@ -389,6 +417,7 @@ cron.schedule('0 0 * * *', () => {
   console.log('[CRON] Midnight job running...');
   expireSubscriptions();
   reconcileDealSiteSubscriptionState();
+  reconcileDealSiteKycState();
   notifyExpiringSubscriptions();
 });
 
@@ -460,6 +489,19 @@ cron.schedule('* * * * *', async () => {
     await dispatchPendingSyndicationJobs();
   } catch (err) {
     console.error('[CRON] Syndication dispatcher error:', err);
+  }
+});
+
+// Every day at 08:00 – pending Field Agent representation digest for admins
+cron.schedule('0 8 * * *', async () => {
+  try {
+    console.log('[CRON] Field Agent representation pending digest...');
+    const sent = await sendPendingFieldAgentRepresentationDigest();
+    if (sent > 0) {
+      console.log(`[CRON] Field Agent representation digest emailed (${sent} pending row(s)).`);
+    }
+  } catch (err) {
+    console.error('[CRON] Field Agent representation digest error:', err);
   }
 });
 

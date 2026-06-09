@@ -12,6 +12,11 @@ env/
 dist/
 build/
 
+# Client-side apps (kept alongside backend for local dev; not tracked in this repo)
+Frontend/
+public-access/
+Khabiteq-admin-web/
+
 # Ignore temporary files
 *.tmp
 *.swp

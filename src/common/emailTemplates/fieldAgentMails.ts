@@ -89,3 +89,88 @@ export const InspectionRemoved = (
     <p>If you have any questions, feel free to contact your supervisor.</p>
   `;
 };
+
+function adminButton(href: string, label: string): string {
+  return `
+    <p>
+      <a href="${href}" style="
+        display:inline-block;
+        padding:10px 16px;
+        background-color:#09391C;
+        color:#fff;
+        text-decoration:none;
+        border-radius:6px;
+        font-weight:bold;
+      ">${label}</a>
+    </p>
+  `;
+}
+
+export function fieldAgentRepresentationAdminAlert(params: {
+  agentName: string;
+  agentEmail: string;
+  fieldAgentName: string;
+  fieldAgentEmail: string;
+  propertySummary: string;
+  inspectionDate?: string;
+  note?: string;
+  reviewLink: string;
+  queueLink: string;
+}): string {
+  return `
+    <div>
+      <p>Dear Admin,</p>
+      <p>An Agent has submitted a new <strong>Field Agent representation request</strong> that is awaiting response.</p>
+      <ul>
+        <li><strong>Requesting Agent:</strong> ${params.agentName} (${params.agentEmail})</li>
+        <li><strong>Target Field Agent:</strong> ${params.fieldAgentName} (${params.fieldAgentEmail})</li>
+        <li><strong>Property:</strong> ${params.propertySummary}</li>
+        ${params.inspectionDate ? `<li><strong>Inspection date:</strong> ${params.inspectionDate}</li>` : ""}
+        ${params.note ? `<li><strong>Agent note:</strong> ${params.note}</li>` : ""}
+      </ul>
+      <p>No Paystack payment is involved — commission is settled outside the app when the deal completes.</p>
+      ${adminButton(params.reviewLink, "Track inspection flow")}
+      ${adminButton(params.queueLink, "Open representation queue")}
+    </div>
+  `;
+}
+
+export function fieldAgentRepresentationPendingDigest(params: {
+  pendingCount: number;
+  acceptedAwaitingAssignment: number;
+  queueLink: string;
+  rows: Array<{
+    propertyLabel: string;
+    location: string;
+    agentName: string;
+    fieldAgentName: string;
+    requestedAt: string;
+    reviewLink: string;
+  }>;
+}): string {
+  const listItems = params.rows
+    .map(
+      (row) => `
+      <li style="margin-bottom:12px;">
+        <strong>${row.propertyLabel}</strong> — ${row.location}<br/>
+        Agent: ${row.agentName} → Field Agent: ${row.fieldAgentName}<br/>
+        Requested: ${row.requestedAt}<br/>
+        <a href="${row.reviewLink}">Track inspection</a>
+      </li>
+    `,
+    )
+    .join("");
+
+  return `
+    <div>
+      <p>Dear Admin,</p>
+      <p>This is your daily summary of open Field Agent representation activity:</p>
+      <ul>
+        <li><strong>${params.pendingCount}</strong> request(s) pending Field Agent response</li>
+        <li><strong>${params.acceptedAwaitingAssignment}</strong> accepted but awaiting admin assignment</li>
+      </ul>
+      ${params.rows.length ? `<p><strong>Pending requests:</strong></p><ul>${listItems}</ul>` : ""}
+      ${adminButton(params.queueLink, "Review all in admin dashboard")}
+    </div>
+  `;
+}

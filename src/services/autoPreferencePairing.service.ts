@@ -7,6 +7,9 @@ import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { noMatchesPreferenceFeedbackMail } from "../common/emailTemplates/preference";
 import { preferencePhysicalTypeMatches } from "../utils/preferencePhysicalTypeMatch";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
+import { getAgentAccessGate } from "./agentPublisherEligibility.service";
+import { dealSiteBaseUrlFromPublicSlug } from "../utils/matchedPropertiesDealSiteUrl";
+import { resolveLeanRefToObjectId } from "../utils/mongooseId";
 
 const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
   buy: "sell",
@@ -125,11 +128,108 @@ function preferenceHasMinimumLocationForPairing(preference: any): boolean {
   return true;
 }
 
+/**
+ * DealSite preferences: only listings owned by or marketed through the practitioner.
+ * General (main website) preferences: no extra scope — scan all eligible listings.
+ */
+async function buildPropertyScopeForPreference(
+  preference: any,
+): Promise<Record<string, unknown> | null> {
+  const receiverMode = preference?.receiverMode;
+  if (receiverMode?.type !== "dealSite" || !receiverMode.dealSiteID) {
+    return null;
+  }
+
+  const dealSite = await DB.Models.DealSite.findById(receiverMode.dealSiteID)
+    .select("createdBy")
+    .lean();
+  const creatorId = resolveLeanRefToObjectId(dealSite?.createdBy);
+  if (!creatorId) {
+    return { _id: { $in: [] } };
+  }
+
+  return {
+    $or: [
+      { owner: creatorId },
+      { marketedByAgentIds: creatorId },
+      { marketedByAgentId: creatorId },
+    ],
+  };
+}
+
+async function mergePreferencePropertyQuery(
+  preference: any,
+  baseQuery: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const scope = await buildPropertyScopeForPreference(preference);
+  if (!scope) return baseQuery;
+  return { $and: [baseQuery, scope] };
+}
+
+async function propertyBelongsToDealSitePractitioner(
+  property: any,
+  dealSiteId: unknown,
+): Promise<boolean> {
+  const dealSite = await DB.Models.DealSite.findById(dealSiteId).select("createdBy").lean();
+  const creatorId = resolveLeanRefToObjectId(dealSite?.createdBy);
+  if (!creatorId) return false;
+
+  const ownerId = resolveLeanRefToObjectId(property?.owner);
+  if (ownerId?.equals(creatorId)) return true;
+
+  const marketedIds: unknown[] = Array.isArray(property?.marketedByAgentIds)
+    ? property.marketedByAgentIds
+    : [];
+  if (property?.marketedByAgentId != null) {
+    marketedIds.push(property.marketedByAgentId);
+  }
+
+  return marketedIds.some((id) => {
+    const oid = resolveLeanRefToObjectId(id);
+    return oid?.equals(creatorId) ?? false;
+  });
+}
+
+async function buildAgentOwnerEligibilityMap(
+  properties: Array<{ owner?: unknown }>,
+): Promise<Map<string, boolean>> {
+  const ownerIds = [
+    ...new Set(
+      properties
+        .map((p) => (p.owner ? String(p.owner) : ""))
+        .filter((id) => id.length > 0),
+    ),
+  ];
+
+  if (ownerIds.length === 0) {
+    return new Map();
+  }
+
+  const owners = await DB.Models.User.find({ _id: { $in: ownerIds } })
+    .select("_id userType")
+    .lean();
+
+  const agentOwnerIds = owners
+    .filter((owner) => owner.userType === "Agent")
+    .map((owner) => String(owner._id));
+
+  const eligibility = new Map<string, boolean>();
+  await Promise.all(
+    agentOwnerIds.map(async (ownerId) => {
+      const gate = await getAgentAccessGate(ownerId);
+      eligibility.set(ownerId, gate.ok);
+    }),
+  );
+
+  return eligibility;
+}
+
 async function scoreAndFilterPropertyDocs(
   preference: any,
   baseQuery: Record<string, unknown>,
 ): Promise<Types.ObjectId[]> {
   const rawMatches = await DB.Models.Property.find(baseQuery).lean();
+  const agentEligibility = await buildAgentOwnerEligibilityMap(rawMatches);
 
   const eligible = rawMatches.filter((p: any) => {
     if (!isPropertyListedAndMatchable(p)) return false;
@@ -138,6 +238,8 @@ async function scoreAndFilterPropertyDocs(
     const pr = p.price;
     if (pr == null || !Number.isFinite(Number(pr))) return false;
     if (!propertyPriceMatchesPreferenceRelaxed(Number(pr), preference)) return false;
+    const ownerId = p.owner ? String(p.owner) : "";
+    if (ownerId && agentEligibility.get(ownerId) === false) return false;
     return true;
   });
 
@@ -176,13 +278,17 @@ export async function computeMatchingPropertyIdsForPreference(preference: any): 
   const priceQ = buildRelaxedPriceQuery(preference);
   if (priceQ) (baseQuery as any).price = priceQ;
 
-  return scoreAndFilterPropertyDocs(preference, baseQuery);
+  const query = await mergePreferencePropertyQuery(preference, baseQuery);
+  return scoreAndFilterPropertyDocs(preference, query);
 }
 
 /**
  * Preference + single property satisfy the same scoring/area/price rules as batch pairing.
  */
-export function preferenceMatchesPropertyForReversePair(preference: any, property: any): boolean {
+export async function preferenceMatchesPropertyForReversePair(
+  preference: any,
+  property: any,
+): Promise<boolean> {
   if (!preferenceHasMinimumLocationForPairing(preference)) return false;
   const expectedBriefType = PREFERENCE_TO_BRIEF_TYPE[preference.preferenceType];
   if (!expectedBriefType || property.propertyType !== expectedBriefType) return false;
@@ -193,20 +299,77 @@ export function preferenceMatchesPropertyForReversePair(preference: any, propert
   if (!preferencePhysicalTypeMatches(preference, property)) return false;
   if (!propertyMatchesSubmittedAreas(preference, property)) return false;
   if (!propertyPriceMatchesPreferenceRelaxed(Number(property.price), preference)) return false;
+
+  const receiverMode = preference?.receiverMode;
+  if (receiverMode?.type === "dealSite" && receiverMode.dealSiteID) {
+    const inScope = await propertyBelongsToDealSitePractitioner(
+      property,
+      receiverMode.dealSiteID,
+    );
+    if (!inScope) return false;
+  }
+
+  const ownerId = property.owner ? String(property.owner) : "";
+  if (ownerId) {
+    const owner = await DB.Models.User.findById(ownerId).select("userType").lean();
+    if (owner?.userType === "Agent") {
+      const gate = await getAgentAccessGate(ownerId);
+      if (gate.ok === false) return false;
+    }
+  }
   const score = calculateDetailedMatchScore(property, preference);
   return score >= MIN_MATCH_SCORE;
+}
+
+async function resolvePreferenceRecipientEmail(preference: any): Promise<string | undefined> {
+  let email: string | undefined;
+
+  if (preference.buyer) {
+    const buyer = await DB.Models.Buyer.findById(preference.buyer).select("email").lean();
+    email = (buyer as any)?.email;
+  }
+
+  if (!email) {
+    email = (preference.contactInfo as any)?.email;
+  }
+
+  const normalized = String(email || "").trim();
+  if (!normalized || normalized === "unknown@example.com") {
+    return undefined;
+  }
+
+  return normalized;
+}
+
+async function resolveSubmitPreferenceUrl(preference: any): Promise<string | undefined> {
+  const receiverMode = preference?.receiverMode;
+  if (receiverMode?.type === "dealSite" && receiverMode.dealSiteID) {
+    const dealSite = await DB.Models.DealSite.findById(receiverMode.dealSiteID)
+      .select("publicSlug")
+      .lean();
+    const slug = String((dealSite as any)?.publicSlug || "").trim();
+    if (slug) {
+      const base = dealSiteBaseUrlFromPublicSlug(slug).replace(/\/$/, "");
+      return `${base}/submit-preference`;
+    }
+  }
+
+  const clientBase = (process.env.CLIENT_LINK || process.env.APP_URL || "").replace(/\/$/, "");
+  return clientBase ? `${clientBase}/preferences/submit` : undefined;
 }
 
 async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void> {
   const preference = await DB.Models.Preference.findById(preferenceId).lean();
   if (!preference) return;
 
-  let email = (preference.contactInfo as any)?.email;
-  if (!email && preference.buyer) {
-    const b = await DB.Models.Buyer.findById(preference.buyer).select("email").lean();
-    email = (b as any)?.email;
+  const email = await resolvePreferenceRecipientEmail(preference);
+  if (!email) {
+    console.warn(
+      "[autoPairPreference] No-match email skipped — no recipient email for preference",
+      preferenceId,
+    );
+    return;
   }
-  if (!email) return;
 
   const buyerName =
     (preference.contactInfo as any)?.fullName ||
@@ -215,7 +378,7 @@ async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void>
 
   const clientBase = (process.env.CLIENT_LINK || process.env.APP_URL || "")
     .replace(/\/$/, "");
-  const submitPreferenceUrl = clientBase ? `${clientBase}/preferences/submit` : undefined;
+  const submitPreferenceUrl = await resolveSubmitPreferenceUrl(preference);
 
   const inner = noMatchesPreferenceFeedbackMail({
     buyerName,
@@ -325,7 +488,7 @@ export async function autoPairPreferencesForNewProperty(propertyId: string): Pro
   const propOid = new Types.ObjectId((property as any)._id);
 
   for (const pref of prefs) {
-    if (!preferenceMatchesPropertyForReversePair(pref, property)) continue;
+    if (!(await preferenceMatchesPropertyForReversePair(pref, property))) continue;
 
     const existingMatch = await DB.Models.MatchedPreferenceProperty.findOne({
       preference: pref._id,

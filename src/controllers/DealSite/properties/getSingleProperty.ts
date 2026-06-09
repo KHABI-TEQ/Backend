@@ -35,12 +35,12 @@ export const getSingleDealSiteProperty = async (
       });
     }
 
-    // ✅ Ensure it's running
-    if (dealSite.status !== "running") {
-      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+    const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+    if (access.ok === false) {
+      return res.status(access.httpStatus).json({
         success: false,
-        errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This DealSite is not currently active.",
+        errorCode: access.errorCode,
+        message: access.message,
         data: null,
       });
     }
@@ -51,16 +51,6 @@ export const getSingleDealSiteProperty = async (
         success: false,
         errorCode: "DEALSITE_INVALID_OWNER",
         message: "DealSite owner reference is invalid.",
-        data: null,
-      });
-    }
-
-    const gate = await DealSiteService.getPublicDealSiteSubscriptionGate(creatorId.toString());
-    if (gate.ok === false) {
-      return res.status(HttpStatusCodes.OK).json({
-        success: false,
-        errorCode: gate.errorCode,
-        message: gate.message,
         data: null,
       });
     }

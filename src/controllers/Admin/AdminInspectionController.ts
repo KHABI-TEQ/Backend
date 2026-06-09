@@ -19,6 +19,27 @@ import { AppRequest } from "../../types/express";
 import { FieldAgentAssignmentTemplate, FieldAgentRemovalTemplate, InspectionLoiRejectionTemplate } from "../../common/emailTemplates/inspectionMails";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
+import { buildInspectionFlowTimeline } from "../../services/inspectionFlowTimeline.service";
+import { assertInspectionReadyForFieldAgent } from "../../services/fieldAgentAssignment.service";
+import { getFieldAgentRepresentationCounts } from "../../services/fieldAgentRepresentationAlert.service";
+
+const ADMIN_USER_SELECT = {
+  password: 0,
+  __v: 0,
+  isDeleted: 0,
+  isInActive: 0,
+  isAccountInRecovery: 0,
+  isAccountVerified: 0,
+  accountApproved: 0,
+  isFlagged: 0,
+  googleId: 0,
+  facebookId: 0,
+  enableNotifications: 0,
+  referralCode: 0,
+  referredBy: 0,
+  createdAt: 0,
+  updatedAt: 0,
+};
 
 export class AdminInspectionController {
   /**
@@ -39,6 +60,8 @@ export class AdminInspectionController {
         propertyId,
         owner,
         isNegotiating,
+        fieldAgentRequestStatus,
+        hasAssignedFieldAgent,
       } = req.query;
 
       const query: any = {
@@ -53,29 +76,24 @@ export class AdminInspectionController {
       if (owner && mongoose.isValidObjectId(owner)) query.owner = owner;
       if (typeof isNegotiating !== "undefined")
         query.isNegotiating = isNegotiating === "true";
+      if (fieldAgentRequestStatus && String(fieldAgentRequestStatus).trim()) {
+        query.fieldAgentRequestStatus = String(fieldAgentRequestStatus).trim();
+      }
+      if (hasAssignedFieldAgent === "true") {
+        query.assignedFieldAgent = { $exists: true, $ne: null };
+      } else if (hasAssignedFieldAgent === "false") {
+        query.$or = [
+          { assignedFieldAgent: { $exists: false } },
+          { assignedFieldAgent: null },
+        ];
+      }
 
       // For auditing, admin sees all statuses (including pending_approval, pending_transaction, agent_rejected)
 
       const currentPage = Math.max(1, parseInt(page as string, 10));
       const perPage = Math.min(100, parseInt(limit as string, 10));
 
-      const userRestrictedData = {
-        password: 0,
-        __v: 0,
-        isDeleted: 0,
-        isInActive: 0,
-        isAccountInRecovery: 0,
-        isAccountVerified: 0,
-        accountApproved: 0,
-        isFlagged: 0,
-        googleId: 0,
-        facebookId: 0,
-        enableNotifications: 0,
-        referralCode: 0,
-        referredBy: 0,
-        createdAt: 0,
-        updatedAt: 0
-      };
+      const userRestrictedData = ADMIN_USER_SELECT;
  
       const total = await DB.Models.InspectionBooking.countDocuments(query);
       const inspections = await DB.Models.InspectionBooking.find(query)
@@ -96,6 +114,16 @@ export class AdminInspectionController {
           path: "assignedFieldAgent",
           model: "User",
           select: userRestrictedData,
+        })
+        .populate({
+          path: "fieldAgentRequestedBy",
+          model: "User",
+          select: "firstName lastName email phoneNumber userType",
+        })
+        .populate({
+          path: "fieldAgentRequestTargetId",
+          model: "User",
+          select: "firstName lastName email phoneNumber userType",
         })
         .skip((currentPage - 1) * perPage)
         .limit(perPage)
@@ -150,7 +178,17 @@ export class AdminInspectionController {
       .populate({
         path: "assignedFieldAgent",
         model: DB.Models.User.modelName,
-        select: "firstName lastName email phoneNumber"
+        select: "firstName lastName email phoneNumber isInActive isFlagged",
+      })
+      .populate({
+        path: "fieldAgentRequestedBy",
+        model: DB.Models.User.modelName,
+        select: "firstName lastName email phoneNumber userType",
+      })
+      .populate({
+        path: "fieldAgentRequestTargetId",
+        model: DB.Models.User.modelName,
+        select: "firstName lastName email phoneNumber userType",
       })
       .lean();
 
@@ -161,13 +199,82 @@ export class AdminInspectionController {
     // Include activity log for admin auditing (last 50 entries)
     const auditLog = await InspectionLogService.getLogsByInspection(id, 1, 50);
 
+    const flowTimeline = buildInspectionFlowTimeline(inspection as any);
+
     return res.status(200).json({
       success: true,
       message: "Inspection details fetched successfully",
       data: {
         ...inspection,
+        flowTimeline,
         activityLog: auditLog.data,
         activityLogPagination: auditLog.pagination,
+      },
+    });
+  }
+
+  /**
+   * Admin queue: agent-initiated Field Agent representation requests across all inspections.
+   */
+  public async getRepresentationRequests(
+    req: Request,
+    res: Response,
+  ): Promise<Response> {
+    const {
+      page = 1,
+      limit = 20,
+      status = "pending",
+    } = req.query;
+
+    const currentPage = Math.max(1, parseInt(String(page), 10));
+    const perPage = Math.min(100, parseInt(String(limit), 10));
+
+    const query: Record<string, unknown> = {};
+    if (status && String(status) !== "all") {
+      query.fieldAgentRequestStatus = String(status);
+    } else {
+      query.fieldAgentRequestStatus = { $nin: ["none", null] };
+    }
+
+    const total = await DB.Models.InspectionBooking.countDocuments(query);
+    const inspections = await DB.Models.InspectionBooking.find(query)
+      .populate("propertyId")
+      .populate("requestedBy")
+      .populate("owner")
+      .populate({
+        path: "assignedFieldAgent",
+        model: "User",
+        select: "firstName lastName email phoneNumber",
+      })
+      .populate({
+        path: "fieldAgentRequestedBy",
+        model: "User",
+        select: "firstName lastName email phoneNumber",
+      })
+      .populate({
+        path: "fieldAgentRequestTargetId",
+        model: "User",
+        select: "firstName lastName email phoneNumber",
+      })
+      .sort({ fieldAgentRequestedAt: -1, createdAt: -1 })
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage)
+      .lean();
+
+    const data = inspections.map((row) => ({
+      ...row,
+      flowTimeline: buildInspectionFlowTimeline(row as any),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Field Agent representation requests fetched successfully",
+      data,
+      pagination: {
+        total,
+        page: currentPage,
+        limit: perPage,
+        totalPages: Math.ceil(total / perPage),
       },
     });
   }
@@ -433,14 +540,7 @@ export class AdminInspectionController {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
 
-    const inspectionTrans = inspection.transaction as any;
-    // Ensure inspection transaction is successful
-    if (!inspectionTrans || inspectionTrans.status !== "success") {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Only inspections with successful payment transactions can have a field agent assigned"
-      );
-    }
+    await assertInspectionReadyForFieldAgent(inspection as any);
 
     // Prevent assignment if already completed or cancelled
     if (["completed", "cancelled"].includes(inspection.stage)) {
@@ -792,6 +892,8 @@ export class AdminInspectionController {
           status: { $in: activeNegotiationStatuses },
         });
 
+      const fieldAgentRepresentation = await getFieldAgentRepresentationCounts();
+
       // 6. Return as structured response
       return res.status(200).json({
         success: true,
@@ -801,6 +903,10 @@ export class AdminInspectionController {
           totalCompletedInspections,
           totalCancelledInspections,
           totalActiveNegotiations,
+          pendingFieldAgentRequests: fieldAgentRepresentation.pending,
+          acceptedFieldAgentRequestsAwaitingAssignment:
+            fieldAgentRepresentation.acceptedAwaitingAssignment,
+          openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
         },
       });
     } catch (error: any) {
