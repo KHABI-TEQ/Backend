@@ -9,6 +9,14 @@ export const formatInspectionForTable = (inspection: IInspectionBookingDoc) => {
       ? {
           id: property._id,
           title: `${property?.location?.area}, ${property?.location?.localGovernment}, ${property?.location?.state}`,
+          location: property?.location
+            ? {
+                area: property.location.area,
+                state: property.location.state,
+                localGovernment: property.location.localGovernment,
+                streetAddress: property.location.streetAddress,
+              }
+            : undefined,
           price: property?.price,
           image: property?.pictures?.[0] || "https://placehold.co/600x400?text=No+Image",
           status: property?.status,

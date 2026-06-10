@@ -25,6 +25,10 @@ import { collectMarketedAgentUserIds } from "../../services/inspectionWorkflow.s
 import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { notifyAdminsOfNewRepresentationRequest } from "../../services/fieldAgentRepresentationAlert.service";
+import {
+  buildFieldAgentLgaRegionRegex,
+  buildFieldAgentStateRegionRegex,
+} from "../../utils/fieldAgentRegionMatch";
 
 function inspectionPropertyId(inspection: { propertyId?: unknown }): string {
   const p = inspection.propertyId as { _id?: unknown } | unknown;
@@ -122,11 +126,21 @@ export async function listAvailableFieldAgents(
           ),
         },
       });
-    } else if (state?.trim() || localGovernment?.trim()) {
-      const regionParts = [state, localGovernment].filter(Boolean).join("|");
+    } else if (localGovernment?.trim()) {
+      // Primary match: property LGA vs field agent `regionOfOperation` entries like "ikeja, lagos"
       pipeline.push({
         $match: {
-          "fieldAgentProfile.regionOfOperation": new RegExp(regionParts, "i"),
+          "fieldAgentProfile.regionOfOperation": buildFieldAgentLgaRegionRegex(
+            localGovernment,
+          ),
+        },
+      });
+    } else if (state?.trim()) {
+      pipeline.push({
+        $match: {
+          "fieldAgentProfile.regionOfOperation": buildFieldAgentStateRegionRegex(
+            state,
+          ),
         },
       });
     }
