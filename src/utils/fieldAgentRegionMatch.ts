@@ -50,50 +50,31 @@ export function regionEntryMatchesPropertyLocation(
   return false;
 }
 
-/**
- * Mongo regex: match `regionOfOperation` array elements for a property LGA (e.g. `ikeja, lagos`).
- */
-export function buildFieldAgentLgaRegionRegex(localGovernment: string): RegExp {
+/** BSON regex query — matches any `regionOfOperation` array element (Atlas-safe, no `$expr`). */
+export function buildFieldAgentLgaRegionRegexQuery(
+  localGovernment: string,
+): { $regex: string; $options: string } {
   const lga = escapeRegex(normalizeLocationToken(localGovernment));
-  return new RegExp(`^${lga}(\\s*,|$)`, "i");
+  return { $regex: `^${lga}(\\s*,|$)`, $options: "i" };
 }
 
-/** `$match` stage: any `regionOfOperation` entry whose LGA matches (primary yardstick). */
-export function buildFieldAgentLgaRegionExprMatch(
+/** `$match` stage: LGA is the primary yardstick (`"ikeja, lagos"` etc.). */
+export function buildFieldAgentLgaRegionMatchStage(
   localGovernment: string,
-): Record<string, unknown> {
-  const lga = escapeRegex(normalizeLocationToken(localGovernment));
-  const lgaRegex = `^${lga}(\\s*,|$)`;
-
+): { $match: Record<string, unknown> } {
   return {
-    $expr: {
-      $gt: [
-        {
-          $size: {
-            $filter: {
-              input: { $ifNull: ["$fieldAgentProfile.regionOfOperation", []] },
-              as: "region",
-              cond: {
-                $regexMatch: {
-                  input: {
-                    $toLower: {
-                      $trim: { input: { $toString: "$$region" } },
-                    },
-                  },
-                  regex: lgaRegex,
-                },
-              },
-            },
-          },
-        },
-        0,
-      ],
+    $match: {
+      "fieldAgentProfile.regionOfOperation": buildFieldAgentLgaRegionRegexQuery(
+        localGovernment,
+      ),
     },
   };
 }
 
 /** Mongo regex: match state-only or `lga, state` entries when only state is known. */
-export function buildFieldAgentStateRegionRegex(state: string): RegExp {
+export function buildFieldAgentStateRegionRegexQuery(
+  state: string,
+): { $regex: string; $options: string } {
   const st = escapeRegex(normalizeLocationToken(state));
-  return new RegExp(`(^${st}$|,?\\s*${st}\\s*$)`, "i");
+  return { $regex: `(^${st}$|,\\s*${st}\\s*$)`, $options: "i" };
 }

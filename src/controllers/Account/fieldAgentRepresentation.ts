@@ -26,8 +26,8 @@ import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { notifyAdminsOfNewRepresentationRequest } from "../../services/fieldAgentRepresentationAlert.service";
 import {
-  buildFieldAgentLgaRegionExprMatch,
-  buildFieldAgentStateRegionRegex,
+  buildFieldAgentLgaRegionMatchStage,
+  buildFieldAgentStateRegionRegexQuery,
 } from "../../utils/fieldAgentRegionMatch";
 import { isFieldAgentAvailableForRepresentation } from "../../utils/fieldAgentAvailability";
 
@@ -128,13 +128,12 @@ export async function listAvailableFieldAgents(
       });
     } else if (localGovernment?.trim()) {
       // Primary match: property LGA vs entries like "ikeja, lagos" (area is ignored)
-      pipeline.push(buildFieldAgentLgaRegionExprMatch(localGovernment));
+      pipeline.push(buildFieldAgentLgaRegionMatchStage(localGovernment));
     } else if (state?.trim()) {
       pipeline.push({
         $match: {
-          "fieldAgentProfile.regionOfOperation": buildFieldAgentStateRegionRegex(
-            state,
-          ),
+          "fieldAgentProfile.regionOfOperation":
+            buildFieldAgentStateRegionRegexQuery(state),
         },
       });
     }
