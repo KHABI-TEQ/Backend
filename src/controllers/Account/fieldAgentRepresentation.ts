@@ -26,9 +26,10 @@ import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { notifyAdminsOfNewRepresentationRequest } from "../../services/fieldAgentRepresentationAlert.service";
 import {
-  buildFieldAgentLgaRegionRegex,
+  buildFieldAgentLgaRegionExprMatch,
   buildFieldAgentStateRegionRegex,
 } from "../../utils/fieldAgentRegionMatch";
+import { isFieldAgentAvailableForRepresentation } from "../../utils/fieldAgentAvailability";
 
 function inspectionPropertyId(inspection: { propertyId?: unknown }): string {
   const p = inspection.propertyId as { _id?: unknown } | unknown;
@@ -112,7 +113,6 @@ export async function listAvailableFieldAgents(
       {
         $match: {
           "fieldAgentProfile.isFlagged": { $ne: true },
-          "fieldAgentProfile.accountApproved": true,
         },
       },
     ];
@@ -127,14 +127,8 @@ export async function listAvailableFieldAgents(
         },
       });
     } else if (localGovernment?.trim()) {
-      // Primary match: property LGA vs field agent `regionOfOperation` entries like "ikeja, lagos"
-      pipeline.push({
-        $match: {
-          "fieldAgentProfile.regionOfOperation": buildFieldAgentLgaRegionRegex(
-            localGovernment,
-          ),
-        },
-      });
+      // Primary match: property LGA vs entries like "ikeja, lagos" (area is ignored)
+      pipeline.push(buildFieldAgentLgaRegionExprMatch(localGovernment));
     } else if (state?.trim()) {
       pipeline.push({
         $match: {
@@ -258,7 +252,7 @@ export async function requestFieldAgentForInspection(
     const fieldAgentProfile = await DB.Models.FieldAgent.findOne({
       userId: fieldAgentUserId,
     }).lean();
-    if (!fieldAgentProfile?.accountApproved || fieldAgentProfile.isFlagged) {
+    if (!isFieldAgentAvailableForRepresentation(fieldAgentUser, fieldAgentProfile)) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         "This Field Agent is not available for assignment.",

@@ -80,6 +80,7 @@ export const createFieldAgent = async (
       regionOfOperation,
       guarantors,
       isFlagged: false,
+      accountApproved: true,
       assignedInspections: [],
     });
 
@@ -230,7 +231,8 @@ export const toggleFieldAgentStatus = async (
 
     await DB.Models.FieldAgent.findOneAndUpdate(
       { userId },
-      { accountApproved: status },
+      // `status` is isInActive: active agents must remain assignable (accountApproved true)
+      { accountApproved: !status },
       { new: true }
     ).exec();
 
@@ -840,22 +842,24 @@ export const getFieldAgentAssignedInspections = async (
  * Validate Field Agent account is active & approved
  */
 export const validateActiveFieldAgent = async (fieldAgentId: string) => {
-
-  // Fetch field agent record
   const fieldAgent = await DB.Models.FieldAgent.findById(fieldAgentId).exec();
   if (!fieldAgent) {
     throw new RouteError(HttpStatusCodes.NOT_FOUND, "Field agent not found");
   }
 
-  // Check account status
-  // if (fieldAgent.isDeleted) {
-  //   throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has been deleted");
-  // }
-
-
-  if (!fieldAgent.accountApproved) {
-    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account has not been approved");
+  const user = await DB.Models.User.findById(fieldAgent.userId).exec();
+  if (!user || user.userType !== "FieldAgent") {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "Field agent user not found");
+  }
+  if (user.isDeleted || user.isInActive || !user.accountApproved) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Field agent account is not active or approved",
+    );
+  }
+  if (fieldAgent.isFlagged) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Field agent account is flagged");
   }
 
-  return fieldAgent; // Return it so caller can use the details
+  return fieldAgent;
 };

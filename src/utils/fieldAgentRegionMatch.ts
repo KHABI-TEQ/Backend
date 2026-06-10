@@ -55,7 +55,41 @@ export function regionEntryMatchesPropertyLocation(
  */
 export function buildFieldAgentLgaRegionRegex(localGovernment: string): RegExp {
   const lga = escapeRegex(normalizeLocationToken(localGovernment));
-  return new RegExp(`^${lga}\\s*,`, "i");
+  return new RegExp(`^${lga}(\\s*,|$)`, "i");
+}
+
+/** `$match` stage: any `regionOfOperation` entry whose LGA matches (primary yardstick). */
+export function buildFieldAgentLgaRegionExprMatch(
+  localGovernment: string,
+): Record<string, unknown> {
+  const lga = escapeRegex(normalizeLocationToken(localGovernment));
+  const lgaRegex = `^${lga}(\\s*,|$)`;
+
+  return {
+    $expr: {
+      $gt: [
+        {
+          $size: {
+            $filter: {
+              input: { $ifNull: ["$fieldAgentProfile.regionOfOperation", []] },
+              as: "region",
+              cond: {
+                $regexMatch: {
+                  input: {
+                    $toLower: {
+                      $trim: { input: { $toString: "$$region" } },
+                    },
+                  },
+                  regex: lgaRegex,
+                },
+              },
+            },
+          },
+        },
+        0,
+      ],
+    },
+  };
 }
 
 /** Mongo regex: match state-only or `lga, state` entries when only state is known. */
