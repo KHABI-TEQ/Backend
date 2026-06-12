@@ -747,6 +747,8 @@ export class PaystackService {
         letterOfIntention: inspection.letterOfIntention,
         agentName: owner.fullName || owner.firstName,
         inspectionMode: inspection.inspectionMode,
+        propertyId: property._id?.toString?.() ?? String(property._id),
+        inspectionId: inspection._id?.toString?.() ?? String(inspection._id),
       };
 
       let updatedStatus: IInspectionBooking["status"];

@@ -24,7 +24,7 @@ Schema (all optional except you must return an object):
   "agentCommissionAmount": number | null (Naira)
 }`;
 
-const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant in Nigeria. The user will describe what kind of property they are looking for (buy, rent, shortlet, or joint venture). Extract structured data and return ONLY a valid JSON object with the following optional fields. Use Nigerian locations. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
+const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant in Nigeria. The user will describe what kind of property they are looking for (buy, rent, shortlet, off-plan, or joint venture). They may send one short answer per field OR a long compound message with many details at once — extract every field you can infer from the full text in a single JSON response. Use Nigerian locations. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
 
 Schema (all optional except you must return an object):
 {
@@ -118,7 +118,10 @@ export async function suggestFormFields(
         { role: "system", content: systemPrompt },
         {
           role: "user",
-          content: `Extract property listing form data from this description. Return only valid JSON.\n\n${userInput.trim()}`,
+          content:
+            formType === "preference"
+              ? `Extract preference form data from this description. Return only valid JSON. If the message contains multiple details (location, budget, bedrooms, dates, etc.), populate all matching fields at once.\n\n${userInput.trim()}`
+              : `Extract property listing form data from this description. Return only valid JSON.\n\n${userInput.trim()}`,
         },
       ],
       max_tokens: maxTokens,

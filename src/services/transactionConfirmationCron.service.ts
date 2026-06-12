@@ -5,6 +5,7 @@ import {
   transactionConfirmationRequestMail,
   transactionConfirmationFollowUpMail,
 } from "../common/emailTemplates/transactionConfirmationMails";
+import { buildTransactionRegistrationPageUrl } from "../common/emailTemplates/transactionReferenceIds";
 import { BUYER_CONFIRM_FLOW_INSPECTION_STATUSES } from "../constants/buyerInspectionConfirmationFlow";
 import { parseInspectionScheduledAt } from "../utils/inspectionSchedule";
 import { InspectionLogService } from "./inspectionLog.service";
@@ -92,12 +93,17 @@ export async function deliverTransactionConfirmationRequestToBuyer(
   const inspectionTimeStr = String(inv.inspectionTime || "—");
   const slot = scheduledSlotOrFallback(new Date(inv.inspectionDate), String(inv.inspectionTime || ""));
 
+  const propertyIdStr = String(property._id);
+  const inspectionIdStr = String(inv._id);
+
   const html = generalEmailLayout(
     transactionConfirmationRequestMail({
       buyerName: buyer.fullName || buyer.email || "there",
       confirmUrl,
       inspectionDate: inspectionDateStr,
       inspectionTime: inspectionTimeStr,
+      propertyId: propertyIdStr,
+      inspectionId: inspectionIdStr,
     })
   );
 
@@ -195,15 +201,21 @@ export async function sendTransactionConfirmationRequestEmails(): Promise<number
  */
 export async function sendTransactionRegistrationFollowUpEmail(
   buyerEmail: string,
-  buyerName: string
+  buyerName: string,
+  options?: { propertyId?: string; inspectionId?: string }
 ): Promise<void> {
   const clientLink = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
-  const registerUrl = clientLink ? `${clientLink}/transaction-registration` : "#";
+  const registerUrl = buildTransactionRegistrationPageUrl(clientLink, {
+    propertyId: options?.propertyId,
+    inspectionId: options?.inspectionId,
+  });
 
   const html = generalEmailLayout(
     transactionConfirmationFollowUpMail({
       buyerName: buyerName || "there",
       registerUrl,
+      propertyId: options?.propertyId,
+      inspectionId: options?.inspectionId,
     })
   );
 

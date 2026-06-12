@@ -108,7 +108,11 @@ export const confirmTransaction = async (
       try {
         await sendTransactionRegistrationFollowUpEmail(
           buyer.email,
-          buyer.fullName || buyer.email
+          buyer.fullName || buyer.email,
+          {
+            propertyId: String(property._id),
+            inspectionId: String(decoded.inspectionId),
+          }
         );
       } catch (emailErr) {
         console.warn("[confirmTransaction] Follow-up email failed:", emailErr);

@@ -247,6 +247,8 @@ export const registerTransaction = async (
     };
     let paymentReceiptFileName: string | undefined;
     let paymentReceiptBase64: string | undefined;
+    let buyerIdFileName: string | undefined;
+    let buyerIdBase64: string | undefined;
 
     const frontendValidation = JoiValidator.validate(registerTransactionFrontendSchema, req.body);
     if (frontendValidation.success && frontendValidation.data) {
@@ -257,6 +259,12 @@ export const registerTransaction = async (
       }
       if (fd.paymentReceiptBase64 != null && String(fd.paymentReceiptBase64).trim()) {
         paymentReceiptBase64 = String(fd.paymentReceiptBase64).trim();
+      }
+      if (fd.buyerIdFileName != null && String(fd.buyerIdFileName).trim()) {
+        buyerIdFileName = String(fd.buyerIdFileName).trim();
+      }
+      if (fd.buyerIdBase64 != null && String(fd.buyerIdBase64).trim()) {
+        buyerIdBase64 = String(fd.buyerIdBase64).trim();
       }
     } else {
       const validation = JoiValidator.validate(registerTransactionSchema, req.body);
@@ -311,6 +319,8 @@ export const registerTransaction = async (
     };
     if (paymentReceiptFileName != null) createPayload.paymentReceiptFileName = paymentReceiptFileName;
     if (paymentReceiptBase64 != null) createPayload.paymentReceiptBase64 = paymentReceiptBase64;
+    if (buyerIdFileName != null) createPayload.buyerIdFileName = buyerIdFileName;
+    if (buyerIdBase64 != null) createPayload.buyerIdBase64 = buyerIdBase64;
     const reg = await DB.Models.TransactionRegistration.create(createPayload);
 
     await DB.Models.Property.findByIdAndUpdate(propertyId, {

@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { DB } from "../controllers";
 import sendEmail from "../common/send.email";
+import { transactionReferenceIdsBlock } from "../common/emailTemplates/transactionReferenceIds";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import notificationService from "./notification.service";
 import { getPropertyTitleFromLocation } from "../utils/helper";
@@ -383,14 +384,18 @@ export async function notifyBuyerPaymentLink(params: {
   propertyLocation: string;
   amount: number;
   paymentUrl: string;
+  propertyId?: string;
+  inspectionId?: string;
 }): Promise<void> {
-  const { buyerEmail, buyerName, propertyLocation, amount, paymentUrl } = params;
+  const { buyerEmail, buyerName, propertyLocation, amount, paymentUrl, propertyId, inspectionId } = params;
+  const referenceIds = transactionReferenceIdsBlock({ propertyId, inspectionId });
   const html = generalEmailLayout(`
     <p>Hello ${buyerName || "there"},</p>
     <p>Your inspection request for <strong>${propertyLocation}</strong> has been accepted by the agent.</p>
     <p>Amount to pay: ₦${amount?.toLocaleString() || ""}</p>
     <p>Complete your payment to confirm the inspection:</p>
     <p><a href="${paymentUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Pay now</a></p>
+    ${referenceIds}
     <p>This link may expire after a period of time.</p>
   `);
   await sendEmail({
@@ -429,8 +434,20 @@ export async function notifyBuyerAcceptedNoPayment(params: {
   propertyDetails?: InspectionAcceptedPropertyDetails;
   inspectionDate?: string;
   inspectionTime?: string;
+  propertyId?: string;
+  inspectionId?: string;
 }): Promise<void> {
-  const { buyerEmail, buyerName, propertyLocation, propertyDetails, inspectionDate, inspectionTime } = params;
+  const {
+    buyerEmail,
+    buyerName,
+    propertyLocation,
+    propertyDetails,
+    inspectionDate,
+    inspectionTime,
+    propertyId,
+    inspectionId,
+  } = params;
+  const referenceIds = transactionReferenceIdsBlock({ propertyId, inspectionId });
 
   const detailsSection = propertyDetails
     ? (() => {
@@ -496,6 +513,7 @@ export async function notifyBuyerAcceptedNoPayment(params: {
     <p>Your inspection request for <strong>${propertyLocation}</strong> has been accepted by the agent.</p>
     ${detailsSection}
     ${scheduleLine}
+    ${referenceIds}
     <p>The agent will coordinate with you for the scheduled date and time.</p>
   `);
 
@@ -613,12 +631,18 @@ export async function sendInspectionRateReportEmailToBuyer(inspectionId: string)
   const rateLink = `${baseUrl}/inspection/rate?inspectionId=${inspectionId}`;
   const reportLink = `${baseUrl}/report-agent?inspectionId=${inspectionId}`;
   const buyerName = buyer.fullName || buyer.email || "there";
+  const propertyId = inv.propertyId?._id?.toString?.() ?? inv.propertyId?.toString?.() ?? "";
+  const referenceIds = transactionReferenceIdsBlock({
+    propertyId,
+    inspectionId: String(inspectionId),
+  });
 
   const html = generalEmailLayout(`
     <p>Hello ${buyerName},</p>
     <p>Your inspection has been completed. We’d love to hear about your experience.</p>
     <p><strong>Rate your experience:</strong> <a href="${rateLink}">${rateLink}</a></p>
     <p><strong>To report the agent for this inspection:</strong> <a href="${reportLink}">${reportLink}</a></p>
+    ${referenceIds}
     <p>Thank you for using our platform.</p>
   `);
 

@@ -199,6 +199,8 @@ export const respondToInspectionRequest = async (
           propertyLocation,
           amount: dealSiteAmount,
           paymentUrl: paymentResponse.authorization_url,
+          propertyId: propertyIdStr,
+          inspectionId: String(inspectionId),
         });
 
         return res.status(HttpStatusCodes.OK).json({
@@ -269,6 +271,8 @@ export const respondToInspectionRequest = async (
         },
         inspectionDate: inspectionDateStr,
         inspectionTime: inspectionTimeStr,
+        propertyId: propertyIdStr,
+        inspectionId: String(inspectionId),
       });
 
       scheduleDevBuyerConfirmationSequenceAfterSellerAccept(String(inspectionId));
@@ -324,6 +328,8 @@ export const respondToInspectionRequest = async (
       propertyLocation,
       amount,
       paymentUrl: paymentResponse.authorization_url,
+      propertyId: propertyIdStr,
+      inspectionId: String(inspectionId),
     });
 
     return res.status(HttpStatusCodes.OK).json({

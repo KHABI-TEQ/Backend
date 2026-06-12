@@ -89,8 +89,10 @@ export const registerTransactionFrontendSchema = Joi.object({
   buyer: buyerSchema.required(),
   transactionValue: Joi.number().min(0).required(),
   propertyIdentification: propertyIdentificationFrontend,
-  paymentReceiptFileName: Joi.string().allow("", null).optional(),
-  paymentReceiptBase64: Joi.string().allow("", null).optional(),
+  paymentReceiptFileName: Joi.string().trim().min(1).required(),
+  paymentReceiptBase64: Joi.string().trim().min(1).required(),
+  buyerIdFileName: Joi.string().trim().min(1).required(),
+  buyerIdBase64: Joi.string().trim().min(1).required(),
 });
 
 export const publicSearchSchema = Joi.object({

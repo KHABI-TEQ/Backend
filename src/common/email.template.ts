@@ -1,5 +1,6 @@
 import { getClientBaseUrl } from "../utils/clientAppUrl";
 import { getDealSiteRootHost } from "../config/dealSitePublicHost";
+import { transactionReferenceIdsBlock } from "./emailTemplates/transactionReferenceIds";
 
 /** Public main website link for email footers (CLIENT_LINK, else www + DEALSITE_ROOT_HOST). */
 function emailTemplateMainWebHref(): string {
@@ -1223,6 +1224,10 @@ export function InspectionRequestWithNegotiation(
 	buyerName: string,
 	propertyData: any
 ): string {
+	const referenceIds = transactionReferenceIdsBlock({
+		propertyId: propertyData.propertyId,
+		inspectionId: propertyData.inspectionId,
+	});
 	return `
     <p>Dear ${buyerName},</p>
     
@@ -1278,6 +1283,8 @@ Below are your inspection details:</p>`
       <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
       <li><strong>Mode:</strong> ${propertyData.inspectionMode === 'in_person' ? 'In Person' : 'Virtual'}</li>
     </ul>
+
+    ${referenceIds}
 
     <p style="margin-top: 15px;">
       If you have any questions or need to reschedule, please let us know in advance.

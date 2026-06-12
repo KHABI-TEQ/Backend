@@ -89,6 +89,8 @@ export async function deliverInspectionConfirmationRequestToBuyer(
       confirmUrl,
       inspectionDate: inspectionDateStr,
       inspectionTime: inspectionTimeStr,
+      propertyId: String(property._id),
+      inspectionId: String(inv._id),
     })
   );
 

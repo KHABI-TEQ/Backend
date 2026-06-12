@@ -2,13 +2,18 @@
  * Transaction confirmation request (3 days after inspection) and follow-up (after buyer confirms).
  */
 
+import { transactionReferenceIdsBlock } from "./transactionReferenceIds";
+
 export function transactionConfirmationRequestMail(options: {
   buyerName: string;
   confirmUrl: string;
   inspectionDate: string;
   inspectionTime: string;
+  propertyId?: string | null;
+  inspectionId?: string | null;
 }): string {
-  const { buyerName, confirmUrl, inspectionDate, inspectionTime } = options;
+  const { buyerName, confirmUrl, inspectionDate, inspectionTime, propertyId, inspectionId } = options;
+  const referenceIds = transactionReferenceIdsBlock({ propertyId, inspectionId });
   return `
     <p>Hello ${buyerName},</p>
     <p>Following your scheduled inspection on <strong>${inspectionDate}</strong> at <strong>${inspectionTime}</strong>, we are checking in on the next step.</p>
@@ -16,6 +21,7 @@ export function transactionConfirmationRequestMail(options: {
     <p style="margin: 24px 0;">
       <a href="${confirmUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Confirm transaction took place</a>
     </p>
+    ${referenceIds}
     <p>If you have not completed a transaction, you may ignore this email.</p>
   `;
 }
@@ -30,9 +36,12 @@ const REGISTRATION_BENEFITS = [
 export function transactionConfirmationFollowUpMail(options: {
   buyerName: string;
   registerUrl: string;
+  propertyId?: string | null;
+  inspectionId?: string | null;
 }): string {
-  const { buyerName, registerUrl } = options;
+  const { buyerName, registerUrl, propertyId, inspectionId } = options;
   const benefitsList = REGISTRATION_BENEFITS.map((b) => `<li>${b}</li>`).join("");
+  const referenceIds = transactionReferenceIdsBlock({ propertyId, inspectionId });
   return `
     <p>Hello ${buyerName},</p>
     <p>Thank you for confirming that your transaction took place.</p>
@@ -41,9 +50,10 @@ export function transactionConfirmationFollowUpMail(options: {
     <ul style="margin: 16px 0; padding-left: 24px;">
       ${benefitsList}
     </ul>
+    ${referenceIds}
     <p style="margin: 24px 0;">
       <a href="${registerUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Register my transaction</a>
     </p>
-    <p>You can use the same page whether you are the buyer or the agent/developer. If you have any questions, please contact our support team.</p>
+    <p>The registration link above pre-fills your Property ID and Inspection ID when available. You can use the same page whether you are the buyer or the agent/developer. If you have any questions, please contact our support team.</p>
   `;
 }

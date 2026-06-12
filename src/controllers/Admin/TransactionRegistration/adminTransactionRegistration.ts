@@ -46,6 +46,7 @@ export const getAllTransactionRegistrations = async (
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
+        .select("-paymentReceiptBase64 -buyerIdBase64")
         .populate("propertyId", "location price briefType propertyType status pictures additionalFeatures")
         .populate("inspectionId", "inspectionDate inspectionTime status stage")
         .lean(),

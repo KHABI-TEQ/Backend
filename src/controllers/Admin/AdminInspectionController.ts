@@ -389,6 +389,8 @@ export class AdminInspectionController {
       negotiationPrice,
       letterOfIntention: inspection.letterOfIntention,
       agentName: owner.fullName || owner.firstName,
+      propertyId: property._id?.toString?.() ?? String(property._id),
+      inspectionId: inspection._id?.toString?.() ?? String(inspection._id),
     };
 
     // Rejection email flow

@@ -149,56 +149,48 @@ export interface SafeTransactionGuidelines {
 export const SAFE_TRANSACTION_GUIDELINES: SafeTransactionGuidelines = {
   title: "Safe Transaction Guidelines",
   introduction:
-    "Before registering your transaction with KHABITEQ, please review the following requirements. This ensures regulatory awareness and strengthens consumer protection.",
+    "As the buyer or tenant, review these requirements before you register your transaction with KHABITEQ. Registration is your responsibility — your agent may help with due diligence, but you submit the registration yourself.",
   sections: [
     {
       heading: "Required Documentation Checklist",
       content: [
-        "Valid identity document (e.g. NIN, international passport, driver's licence).",
-        "Proof of address where applicable.",
-        "Duly executed agreement (lease, sale, off-plan or JV as applicable).",
-        "Evidence of ownership or authority to deal (for sellers/landlords).",
-        "Payment receipts or proof of transaction value where required.",
+        "Your valid ID (e.g. NIN, international passport, or driver's licence).",
+        "A receipt or proof of payment for the transaction value you paid to the seller or landlord.",
       ],
     },
-    {
-      heading: "Commission Compliance Rules",
-      content: [
-        "Commission rates and who bears them must be clearly stated in the agreement.",
-        "KHABITEQ guidelines on agency commission must be adhered to.",
-        "All commission-related payments must be documented.",
-      ],
-    },
+  
     {
       heading: "Ownership Verification Standards",
       content: [
-        "Seller/landlord must provide evidence of title or right to deal.",
-        "Where applicable, Certificate of Occupancy or registered title should be verified.",
-        "For off-plan, developer's title and project approvals should be confirmed.",
+        "Ask the seller or landlord for proof they own the property or have authority to sell or let.",
+        "For completed property, request a Certificate of Occupancy or registered title and check the name matches.",
+        "For off-plan purchases, confirm the developer's title and project approvals before you commit.",
       ],
     },
     {
       heading: "Title Verification Recommendations",
       content: [
-        "Conduct a search at the relevant land registry.",
-        "Confirm there are no encumbrances, liens or disputes on the property.",
-        "Verify that the person dealing is the registered owner or has authority.",
+        "Use Check property status on this page, or search the land registry, before you commit.",
+        "Confirm there are no active registrations, encumbrances, liens, or disputes on the property.",
+        "Verify the person you are dealing with is the registered owner or has written authority to act for them.",
       ],
     },
     {
       heading: "Dispute Resolution Procedures",
       content: [
-        "Parties are encouraged to resolve disputes through KHABITEQ mediation channels.",
-        "Registered transactions may be referred to KHABITEQ for dispute resolution.",
-        "Legal recourse remains available where mediation does not resolve the matter.",
+        "If a dispute arises after you register, you may seek help through KHABITEQ support channels for mediation.",
+        "Your registered transaction can be referred to KHABITEQ for dispute resolution support.",
+        "Legal action remains available if mediation does not resolve the matter.",
       ],
     },
     {
       heading: "Mandatory Data Disclosure Requirements",
       content: [
-        "Property address and/or GPS coordinates as required for the transaction type.",
-        "Transaction type, value and parties' contact details for registry purposes.",
-        "Declaration that the information provided is true and complete.",
+        "You must provide the property address and/or GPS coordinates as required for the property type.",
+        "You must declare the transaction type, value, and your contact details for the registry.",
+        "You must upload a proof of payment for the transaction value you paid to the seller or landlord.",
+        "You must upload your valid ID.",
+        "By submitting registration, you confirm the information you provide is true and complete.",
       ],
     },
   ],
