@@ -128,7 +128,7 @@ export function fieldAgentRepresentationAdminAlert(params: {
         ${params.inspectionDate ? `<li><strong>Inspection date:</strong> ${params.inspectionDate}</li>` : ""}
         ${params.note ? `<li><strong>Agent note:</strong> ${params.note}</li>` : ""}
       </ul>
-      <p>Commission is shared 40% to 60% between Khabi-Teq (the company) and the requesting Agent outside the app when the deal completes.</p>
+      <p>Commission is shared 50% to 50% between Khabi-Teq (the company) and the requesting Agent outside the app when the deal completes.</p>
       ${adminButton(params.reviewLink, "Track inspection flow")}
       ${adminButton(params.queueLink, "Open representation queue")}
     </div>

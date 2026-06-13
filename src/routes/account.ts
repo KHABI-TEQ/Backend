@@ -52,6 +52,10 @@ import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspec
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import { cancelSubscriptionSnapshot, createSubscription, fetchUserSubscriptions, getAllActiveSubscriptionPlans, getUserSubscriptionDetails, toggleSubscriptionSnapshotAutoRenewal } from "../controllers/Account/Agent/subscriptions";
 import { getAgentEligibility } from "../controllers/Account/Agent/agentEligibility";
+import {
+  getPublisherListingEligibility,
+  getUnlimitedListingPlanOffer,
+} from "../controllers/Account/Publisher/publisherListingEligibility";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
@@ -106,6 +110,8 @@ AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 // AGENT UNIQUE ROUTES
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completePublisherKYC);
 AccountRouter.get("/agent/eligibility", getAgentEligibility);
+AccountRouter.get("/publisher/listing-eligibility", getPublisherListingEligibility);
+AccountRouter.get("/publisher/unlimited-listing-plan", getUnlimitedListingPlanOffer);
 
 // Agent broadcast to DealSite email subscribers (guests subscribe with email on DealSite)
 AccountRouter.post("/agent/broadcast", broadcastToMySubscribers);

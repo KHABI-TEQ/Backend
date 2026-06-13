@@ -82,12 +82,12 @@ export const postProperty = async (
       (formatted as any).listingScope = "agent_listing";
     }
 
-    // ✅ Agents: KYC grace, 4-week trial (up to 10 listings), then subscription required
+    // Publisher listing policy (25 cap / Portfolio Unlimited) for all listing roles
     let activeSnapshot = null;
-    if (req.user?.userType === "Agent") {
+    if (userType === "Agent" || userType === "Developer" || userType === "Landowners") {
       const { activeSnapshot: snap } = await assertPropertyListingAllowedForOwner({
         ownerId: userId,
-        userType: req.user.userType as string,
+        userType: userType as string,
       });
       activeSnapshot = snap;
     }

@@ -25,6 +25,10 @@ export interface ISubscriptionPlan {
   features: IAssignedFeature[];
   isActive?: boolean; 
   isTrial?: boolean;
+  /** When true, plan is omitted from the public catalog (e.g. Portfolio Unlimited). */
+  hiddenFromCatalog?: boolean;
+  /** When true, subscribers may list properties without the standard 25-property cap. */
+  unlimitedListings?: boolean;
   discountedPlans?: IDiscountedPlan[];
 }  
 
@@ -69,6 +73,8 @@ export class SubscriptionPlan {
         features: { type: [assignedFeatureSchema], default: [] },
         isActive: { type: Boolean, default: true },
         isTrial: { type: Boolean, default: false },
+        hiddenFromCatalog: { type: Boolean, default: false },
+        unlimitedListings: { type: Boolean, default: false },
         discountedPlans: { type: [discountedPlanSchema], default: [] },
       },
       { timestamps: true }

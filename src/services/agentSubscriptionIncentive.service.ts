@@ -155,8 +155,9 @@ export async function getActivePaidAgentSubscriptionSnapshot(
   return snapshot;
 }
 
-/** Paid subscribers receive unlimited property listings (no LISTINGS quota deduction). */
+import { publisherHasUnlimitedListings } from "./publisherListingEligibility.service";
+
+/** Paid Portfolio Unlimited subscribers receive unlimited property listings. */
 export async function agentHasUnlimitedPropertyListings(userId: string): Promise<boolean> {
-  const paid = await getActivePaidAgentSubscriptionSnapshot(userId);
-  return paid != null;
+  return publisherHasUnlimitedListings(userId);
 }

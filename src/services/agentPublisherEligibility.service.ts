@@ -9,7 +9,7 @@ export const AGENT_KYC_GRACE_PERIOD_DAYS = 7;
 export const AGENT_TRIAL_PERIOD_DAYS = 28;
 
 /** Max owned properties an Agent may list without an active subscription during the trial window. */
-export const AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION = 10;
+export const AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION = 25;
 
 /** Max owned properties an Agent may list during the 7-day KYC grace period before KYC approval. */
 export const AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL = 1;

@@ -18,6 +18,8 @@ export class SubscriptionPlanService {
     features = [],
     isActive = true,
     isTrial = false,
+    hiddenFromCatalog = false,
+    unlimitedListings = false,
     discountedPlans = []
   }: {
     name: string;
@@ -32,6 +34,8 @@ export class SubscriptionPlanService {
     }[];
     isActive?: boolean;
     isTrial?: boolean;
+    hiddenFromCatalog?: boolean;
+    unlimitedListings?: boolean;
     discountedPlans?: {
       name: string;
       code: string;
@@ -74,6 +78,8 @@ export class SubscriptionPlanService {
       features: assignedFeatures,
       isActive,
       isTrial,
+      hiddenFromCatalog,
+      unlimitedListings,
       discountedPlans: discountedPlans.map(dp => ({
         ...dp,
         code: dp.code.toUpperCase().trim()
@@ -101,6 +107,8 @@ export class SubscriptionPlanService {
       }[];
       isActive: boolean;
       isTrial: boolean;
+      hiddenFromCatalog: boolean;
+      unlimitedListings: boolean;
       discountedPlans: {
         name: string;
         code: string;
@@ -125,6 +133,8 @@ export class SubscriptionPlanService {
     if (updates.currency !== undefined) plan.currency = updates.currency;
     if (updates.isActive !== undefined) plan.isActive = updates.isActive;
     if (updates.isTrial !== undefined) plan.isTrial = updates.isTrial;
+    if (updates.hiddenFromCatalog !== undefined) plan.hiddenFromCatalog = updates.hiddenFromCatalog;
+    if (updates.unlimitedListings !== undefined) plan.unlimitedListings = updates.unlimitedListings;
 
     if (updates.discountedPlans !== undefined) {
       const codes = updates.discountedPlans.map(dp => dp.code.toUpperCase().trim());
@@ -180,8 +190,15 @@ export class SubscriptionPlanService {
   /**
    * Get all active plans
    */
-  static async getAllActivePlans(): Promise<ISubscriptionPlanDoc[]> {
-    return this.PlanModel.find({ isActive: true })
+  static async getAllActivePlans(options?: {
+    includeHiddenFromCatalog?: boolean;
+  }): Promise<ISubscriptionPlanDoc[]> {
+    const filter: Record<string, unknown> = { isActive: true };
+    if (!options?.includeHiddenFromCatalog) {
+      filter.hiddenFromCatalog = { $ne: true };
+      filter.unlimitedListings = { $ne: true };
+    }
+    return this.PlanModel.find(filter)
       .populate("features.feature")
       .lean();
   }

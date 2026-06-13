@@ -16,6 +16,7 @@ import {
   computePaidSubscriptionExpiresAt,
   resolveAgentSubscriptionBonusDays,
 } from "../../../services/agentSubscriptionIncentive.service";
+import { isUnlimitedListingPlanCode } from "../../../common/constants/publisherListingLimits";
 
 
 /**
@@ -31,9 +32,9 @@ export const createSubscription = async (
     const userId = req.user?._id;
     const userType = (req.user as any)?.userType;
 
-    // Only Agents and Developers can create subscriptions
-    if (userType !== "Agent" && userType !== "Developer") {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only registered agents or developers can create subscriptions.");
+    // Agents, Developers, and Landlords (Portfolio Unlimited only) may create subscriptions
+    if (userType !== "Agent" && userType !== "Developer" && userType !== "Landowners") {
+      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only registered agents, developers, or landlords can create subscriptions.");
     }
 
     if (userType === "Agent" && !(await isPublisherKycApproved(userId))) {
@@ -53,7 +54,14 @@ export const createSubscription = async (
 
     if (!planCode) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Plan code is required");
-    } 
+    }
+
+    if (userType === "Landowners" && !isUnlimitedListingPlanCode(planCode)) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Landlords may only subscribe to the Portfolio Unlimited plan for additional listings."
+      );
+    }
 
     // 1. Try to find a standard plan by code
     let plan = await DB.Models.SubscriptionPlan.findOne({

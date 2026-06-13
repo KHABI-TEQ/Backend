@@ -23,6 +23,7 @@ import {
   isComplimentaryAgentSubscriptionSnapshot,
   resolveAgentSubscriptionPlanTier,
 } from "../../../services/agentSubscriptionIncentive.service";
+import { getPublisherListingSnapshot } from "../../../services/publisherListingEligibility.service";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 
 function daysUntil(deadline: Date | null): number | null {
@@ -51,13 +52,14 @@ export const getAgentEligibility = async (
       throw new RouteError(HttpStatusCodes.FORBIDDEN, "Eligibility applies to Agent accounts only.");
     }
 
-    const [kycStatus, ownedProperties, gate, paidSubscription, anyActiveSubscription] =
+    const [kycStatus, ownedProperties, gate, paidSubscription, anyActiveSubscription, publisherListing] =
       await Promise.all([
         getPublisherKycStatus(String(userId)),
         countAgentOwnedProperties(String(userId)),
         getAgentAccessGate(String(userId)),
         getActivePaidAgentSubscriptionSnapshot(String(userId)),
         UserSubscriptionSnapshotService.getActiveSnapshot(String(userId)),
+        getPublisherListingSnapshot(String(userId), "Agent"),
       ]);
 
     const kycApproved = kycStatus === "approved";
@@ -81,9 +83,11 @@ export const getAgentEligibility = async (
         ? AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION
         : null;
 
-    const effectiveListingLimit = paidSubscription
+    const publisherCap = publisherListing?.listingLimit ?? null;
+    const effectiveListingLimit = publisherListing?.unlimitedListings
       ? null
-      : listingLimitDuringGrace ?? listingLimitDuringTrial;
+      : publisherCap ??
+        (listingLimitDuringGrace ?? listingLimitDuringTrial);
 
     const policyPhase = (() => {
       if (!kycRequirementSatisfied) return "kyc_blocked";
@@ -109,16 +113,18 @@ export const getAgentEligibility = async (
         ownedProperties,
         listingLimit: effectiveListingLimit,
         listingsRemaining:
-          effectiveListingLimit != null
+          publisherListing?.listingsRemaining ??
+          (effectiveListingLimit != null
             ? Math.max(0, effectiveListingLimit - ownedProperties)
-            : paidSubscription
-              ? null
-              : null,
+            : null),
         subscriptionRequired,
         hasPaidSubscription: !!paidSubscription,
         hasComplimentarySubscription: complimentarySubscription,
-        unlimitedListings: !!paidSubscription,
-        canListProperties: gate.ok,
+        unlimitedListings: publisherListing?.unlimitedListings ?? false,
+        requiresSpecialPlan: publisherListing?.requiresSpecialPlan ?? false,
+        specialPlanCode: publisherListing?.specialPlanCode ?? null,
+        specialPlanName: publisherListing?.specialPlanName ?? null,
+        canListProperties: gate.ok && (publisherListing?.canListProperties ?? true),
         canUseDealSite: gate.ok,
         canRequestToMarket: gate.ok,
         canSubscribe: kycApproved,
