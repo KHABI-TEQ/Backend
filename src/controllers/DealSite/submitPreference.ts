@@ -8,6 +8,7 @@ import { preferenceValidationSchema } from "../../validators/preference.validato
 import sendEmail from "../../common/send.email";
 import { preferenceMail } from "../../common/emailTemplates/preference";
 import { generalTemplate } from "../../common/email.template";
+import { getKhabiteqEmailLogoUrl } from "../../common/constants/emailBranding";
 import { autoPairPreferenceById } from "../../services/autoPreferencePairing.service";
 import { sortPreferenceLocationAlphabetically } from "../../utils/sortLocationAlphabetically";
 import { dealSiteBaseUrlFromPublicSlug } from "../../utils/matchedPropertiesDealSiteUrl";
@@ -119,9 +120,7 @@ export const sendPreferenceRequest = async (
 
     const userGeneralMail = generalTemplate(userMailBody, {
         companyName: dealSiteName,
-        logoUrl:
-        logoUrl ||
-        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+        logoUrl: logoUrl || getKhabiteqEmailLogoUrl(),
         address,
         facebookUrl: socialLinks.facebook || "",
         instagramUrl: socialLinks.instagram || "",

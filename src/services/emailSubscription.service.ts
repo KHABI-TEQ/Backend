@@ -3,6 +3,7 @@ import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { Types } from "mongoose";
 import { generalTemplate } from "../common/email.template";
+import { getKhabiteqEmailLogoUrl } from "../common/constants/emailBranding";
 
 interface IReceiverMode {
   type?: "general" | "dealSite";
@@ -123,9 +124,7 @@ export class EmailSubscriptionService {
     
     const dealSiteMail = generalTemplate(baseHtml, {
       companyName,
-      logoUrl:
-        logoUrl ||
-        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+      logoUrl: logoUrl || getKhabiteqEmailLogoUrl(),
       address,
       facebookUrl: socialLinks.facebook || "",
       instagramUrl: socialLinks.instagram || "",

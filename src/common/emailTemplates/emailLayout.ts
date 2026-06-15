@@ -1,4 +1,12 @@
+import {
+  getKhabiteqEmailFooterLogoUrl,
+  getKhabiteqEmailLogoUrl,
+  KHABITEQ_EMAIL_LOGO_ALT,
+} from "../constants/emailBranding";
+
 export const generalEmailLayout = (body: string): string => {
+  const logoUrl = getKhabiteqEmailLogoUrl();
+  const footerLogoUrl = getKhabiteqEmailFooterLogoUrl();
   return `
         <html>
           <head>
@@ -14,7 +22,7 @@ export const generalEmailLayout = (body: string): string => {
                       <!-- Header Logo -->
                       <tr>
                           <td align="start" style="padding: 50px 0px 0 100px;">
-                              <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
+                              <img src="${logoUrl}" alt="${KHABITEQ_EMAIL_LOGO_ALT} Logo" width="169" style="max-width:169px;height:auto;">
                           </td>
                       </tr>
                       <td align="center" style="padding: 30px;">
@@ -57,10 +65,10 @@ export const generalEmailLayout = (body: string): string => {
 
                         <!-- Copyright Section -->
                         <tr>
-                            <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
+                            <td align="start" style="padding: 30px 100px; font-family: Arial, sans-serif; font-size: 12px; color: #D6DDEB; background-color: #0B423D;">
+                                <img src="${footerLogoUrl}" alt="${KHABITEQ_EMAIL_LOGO_ALT} Logo" width="180" style="max-width:180px;height:auto;"><br><br>
 
-                                <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} Khabi-Teq Limited.<br>
+                                <p style="margin-top: 20px; color: #D6DDEB;">Copyright © ${new Date().getFullYear()} Khabi-Teq Limited.<br>
                                 Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                             </td>
                         </tr>

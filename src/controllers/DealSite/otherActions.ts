@@ -7,6 +7,7 @@ import { dealSiteActivityService } from "../../services/dealSiteActivity.service
 import { generateDealSiteContactOwnerMail, generateDealSiteContactUserMail } from "../../common/emailTemplates/dealSiteMails";
 import sendEmail from "../../common/send.email";
 import { generalTemplate } from "../../common/email.template";
+import { getKhabiteqEmailLogoUrl } from "../../common/constants/emailBranding";
 import { RouteError } from "../../common/classes";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
 
@@ -290,9 +291,7 @@ export const createDealSiteContactUs = async (
 
     const buyerEmail = generalTemplate(buyerEmailRaw, {
       companyName,
-      logoUrl:
-        logoUrl ||
-        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+      logoUrl: logoUrl || getKhabiteqEmailLogoUrl(),
       address,
       facebookUrl: socialLinks.facebook || "",
       instagramUrl: socialLinks.instagram || "",
@@ -302,9 +301,7 @@ export const createDealSiteContactUs = async (
 
     const sellerEmail = generalTemplate(sellerEmailRaw, {
       companyName,
-      logoUrl:
-        logoUrl ||
-        "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+      logoUrl: logoUrl || getKhabiteqEmailLogoUrl(),
       address,
       facebookUrl: socialLinks.facebook || "",
       instagramUrl: socialLinks.instagram || "",

@@ -8,6 +8,7 @@ import { generalTemplate, InspectionRequestWithNegotiation, InspectionTransactio
 import { notifyAgentPaymentReceived } from './inspectionWorkflow.service';
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
+import { getKhabiteqEmailLogoUrl } from '../common/constants/emailBranding';
 import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
 import { generateSubscriptionFailureEmail, generateSubscriptionReceiptEmail } from '../common/emailTemplates/subscriptionMails';
 import { SystemSettingService } from './systemSetting.service';
@@ -484,9 +485,7 @@ export class PaystackService {
 
         return generalTemplate(baseHtml, {
           companyName,
-          logoUrl:
-            logoUrl ||
-            "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+          logoUrl: logoUrl || getKhabiteqEmailLogoUrl(),
           address,
           facebookUrl: socialLinks.facebook || "",
           instagramUrl: socialLinks.instagram || "",
@@ -712,9 +711,7 @@ export class PaystackService {
 
       return generalTemplate(baseHtml, {
         companyName,
-        logoUrl:
-          logoUrl ||
-          "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+        logoUrl: logoUrl || getKhabiteqEmailLogoUrl(),
         address,
         facebookUrl: socialLinks.facebook || "",
         instagramUrl: socialLinks.instagram || "",

@@ -1,6 +1,10 @@
 import { getClientBaseUrl } from "../utils/clientAppUrl";
 import { getDealSiteRootHost } from "../config/dealSitePublicHost";
 import { transactionReferenceIdsBlock } from "./emailTemplates/transactionReferenceIds";
+import {
+  getKhabiteqEmailFooterLogoUrl,
+  getKhabiteqEmailLogoUrl,
+} from "./constants/emailBranding";
 
 /** Public main website link for email footers (CLIENT_LINK, else www + DEALSITE_ROOT_HOST). */
 function emailTemplateMainWebHref(): string {
@@ -34,9 +38,11 @@ interface EmailBrandingOptions {
 }
 
 export const generalTemplate = (body: string, options: EmailBrandingOptions = {}): string => {
+  const headerLogoUrl = getKhabiteqEmailLogoUrl();
+  const footerLogoUrl = getKhabiteqEmailFooterLogoUrl();
   const {
     companyName = "Khabiteq",
-    logoUrl = "https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png",
+    logoUrl = headerLogoUrl,
     address = "Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.",
     facebookUrl = "https://www.facebook.com/profile.php?id=61568584928290&mibextid=ZbWKwL",
     instagramUrl = "https://www.instagram.com/khabiteq_realty/profilecard/?igsh=YjRvanQ3YmlmdDNl",
@@ -59,7 +65,7 @@ export const generalTemplate = (body: string, options: EmailBrandingOptions = {}
                 <!-- Header Logo -->
                 <tr>
                     <td align="start" style="padding: 50px 0px 0 100px;">
-                        <img src="${logoUrl}" alt="${companyName} Logo" width="150">
+                        <img src="${logoUrl}" alt="${companyName} Logo" width="169" style="max-width:169px;height:auto;">
                     </td>
                 </tr>
                 <td align="center" style="padding: 30px;">
@@ -119,10 +125,10 @@ export const generalTemplate = (body: string, options: EmailBrandingOptions = {}
 
                   <!-- Copyright Section -->
                   <tr>
-                      <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                          <img src="${logoUrl}" alt="${companyName} Logo" width="120"><br><br>
+                      <td align="start" style="padding: 30px 100px; font-family: Arial, sans-serif; font-size: 12px; color: #D6DDEB; background-color: #0B423D;">
+                          <img src="${footerLogoUrl}" alt="${companyName} Logo" width="180" style="max-width:180px;height:auto;"><br><br>
                           
-                          <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} ${companyName}.<br>
+                          <p style="margin-top: 20px; color: #D6DDEB;">Copyright © ${new Date().getFullYear()} ${companyName}.<br>
                           ${address}</p>
                       </td>
                   </tr>
@@ -150,7 +156,7 @@ export const generalTemplate___old = (body: string): string => {
                       <!-- Header Logo -->
                       <tr>
                           <td align="start" style="padding: 50px 0px 0 100px;">
-                              <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
+                              <img src="${getKhabiteqEmailLogoUrl()}" alt="Khabi-Teq Logo" width="150">
                           </td>
                       </tr>
                       <td align="center" style="padding: 30px;">
@@ -193,10 +199,10 @@ export const generalTemplate___old = (body: string): string => {
 
                         <!-- Copyright Section -->
                         <tr>
-                            <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
+                            <td align="start" style="padding: 30px 100px; font-family: Arial, sans-serif; font-size: 12px; color: #D6DDEB; background-color: #0B423D;">
+                                <img src="${getKhabiteqEmailFooterLogoUrl()}" alt="Khabi-Teq Logo" width="180" style="max-width:180px;height:auto;"><br><br>
                                 
-                                <p style="margin-top: 20px;">Copyright © ${new Date().getFullYear()} Khabi-Teq Limited.<br>
+                                <p style="margin-top: 20px; color: #D6DDEB;">Copyright © ${new Date().getFullYear()} Khabi-Teq Limited.<br>
                                 Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                             </td>
                         </tr>
@@ -227,7 +233,7 @@ export const verificationGeneralTemplate = (body: string): string => {
             <!-- Header Logo -->
             <tr>
                 <td align="start" style="padding: 50px 0px 0 100px;">
-                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
+                    <img src="${getKhabiteqEmailLogoUrl()}" alt="Khabi-Teq Logo" width="150">
                 </td>
             </tr>
             <td align="center" style="padding: 30px;">
@@ -278,10 +284,10 @@ export const verificationGeneralTemplate = (body: string): string => {
             
                                 <!-- Copyright Section -->
                                 <tr>
-                                    <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
+                                    <td align="start" style="padding: 30px 100px; font-family: Arial, sans-serif; font-size: 12px; color: #D6DDEB; background-color: #0B423D;">
+                                        <img src="${getKhabiteqEmailFooterLogoUrl()}" alt="Khabi-Teq Logo" width="180" style="max-width:180px;height:auto;"><br><br>
                                         
-                                        <p style="margin-top: 20px;">Copyright © 2020 Khabi-Teq Limited.<br>
+                                        <p style="margin-top: 20px; color: #D6DDEB;">Copyright © 2020 Khabi-Teq Limited.<br>
                                         Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                                     </td>
                                 </tr>
@@ -2571,7 +2577,7 @@ export const preferenceMatchingTemplate = (body: string): string =>{
             <!-- Header Logo -->
             <tr>
                 <td align="start" style="padding: 50px 0px 0 100px;">
-                    <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/logo_1_flo1nf.png" alt="Khabi-Teq Logo" width="150">
+                    <img src="${getKhabiteqEmailLogoUrl()}" alt="Khabi-Teq Logo" width="150">
                 </td>
             </tr>
             <td align="center" style="padding: 30px;">
@@ -2614,10 +2620,10 @@ export const preferenceMatchingTemplate = (body: string): string =>{
             
                                 <!-- Copyright Section -->
                                 <tr>
-                                    <td align="start" style="padding: 40px 0px 0 100px; font-family: Arial, sans-serif; font-size: 12px; color: #777;">
-                                        <img src="https://res.cloudinary.com/dkqjneask/image/upload/v1744050595/Black_Logo_1_gkxdph.png" alt="Khabi-Teq Logo" width="120"><br><br>
+                                    <td align="start" style="padding: 30px 100px; font-family: Arial, sans-serif; font-size: 12px; color: #D6DDEB; background-color: #0B423D;">
+                                        <img src="${getKhabiteqEmailFooterLogoUrl()}" alt="Khabi-Teq Logo" width="180" style="max-width:180px;height:auto;"><br><br>
                                         
-                                        <p style="margin-top: 20px;">Copyright © 2020 Khabi-Teq Limited.<br>
+                                        <p style="margin-top: 20px; color: #D6DDEB;">Copyright © 2020 Khabi-Teq Limited.<br>
                                         Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.</p>
                                     </td>
                                 </tr>
