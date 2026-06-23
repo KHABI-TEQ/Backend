@@ -1,4 +1,7 @@
+import { getClientDashboardUrl } from "../../utils/clientAppUrl";
+
 export const accountApproved = (name: string): string => {
+  const dashboard = getClientDashboardUrl();
   return `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <p>Dear <strong>${name}</strong>,</p>
@@ -15,10 +18,15 @@ export const accountApproved = (name: string): string => {
 
       <p><strong>What’s next?</strong></p>
       <ol>
-        <li>Log into your agent dashboard</li>
+        <li><a href="${dashboard}">Log into your agent dashboard</a></li>
         <li>Complete your profile and upload any pending documents</li>
         <li>Start exploring buyer preferences and property opportunities</li>
       </ol>
+
+      <p style="margin:20px 0;">
+        <a href="${dashboard}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Open dashboard</a>
+      </p>
+      <p style="font-size:13px;color:#666;">If you are not logged in, you will be asked to sign in first.</p>
 
       <p>We are thrilled to have you onboard and can’t wait to see the value you’ll bring to our marketplace.</p>
 

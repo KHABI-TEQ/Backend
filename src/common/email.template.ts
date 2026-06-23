@@ -517,60 +517,145 @@ export function generatePropertyRentBriefEmail(data: any) {
   `;
 }
 
+function formatPropertyList(items: unknown): string {
+  if (!Array.isArray(items)) return "";
+  return items
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        const record = item as Record<string, unknown>;
+        return String(record.featureName ?? record.criteria ?? record.docName ?? "").trim();
+      }
+      return "";
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+function resolveSellBriefOwner(data: any): { email: string; fullName: string; phoneNumber: string } {
+  const owner = data.owner;
+  if (owner && typeof owner === "object" && !Array.isArray(owner) && !(owner instanceof Date)) {
+    const fullName =
+      owner.fullName ||
+      [owner.firstName, owner.lastName].filter(Boolean).join(" ").trim();
+    return {
+      email: owner.email || "N/A",
+      fullName: fullName || "N/A",
+      phoneNumber: owner.phoneNumber || "N/A",
+    };
+  }
+  return {
+    email: data.ownerEmail || "N/A",
+    fullName: data.ownerName || "N/A",
+    phoneNumber: data.ownerPhone || "N/A",
+  };
+}
+
+function formatBriefPrice(price: unknown): string {
+  if (price == null || price === "") return "N/A";
+  const n = typeof price === "string" ? parseFloat(price) : Number(price);
+  if (!Number.isFinite(n)) return "N/A";
+  return `₦${n.toLocaleString("en-US")}`;
+}
+
 export function generatePropertySellBriefEmail(data: any) {
+  const bedrooms =
+    data.additionalFeatures?.noOfBedroom ??
+    data.additionalFeatures?.noOfBedrooms ??
+    data.propertyFeatures?.noOfBedrooms ??
+    data.noOfBedrooms;
+  const bathrooms =
+    data.additionalFeatures?.noOfBathroom ?? data.additionalFeatures?.noOfBathrooms;
+  const toilets =
+    data.additionalFeatures?.noOfToilet ?? data.additionalFeatures?.noOfToilets;
+  const carParks =
+    data.additionalFeatures?.noOfCarPark ?? data.additionalFeatures?.noOfCarParks;
+  const sittingRooms = data.additionalFeatures?.noOfSittingRoom;
+
+  const features = formatPropertyList(data.features);
+  const tenantCriteria = formatPropertyList(data.tenantCriteria);
+  const docOnProperty = Array.isArray(data.docOnProperty) ? data.docOnProperty : [];
+  const documentsHtml =
+    docOnProperty.length > 0
+      ? `<p><strong>Documents on Property:</strong> ${docOnProperty
+          .map(
+            (doc: any) =>
+              `${doc.docName} (${doc.isProvided ? "Provided" : "Not Provided"})`,
+          )
+          .join(", ")}</p>`
+      : "";
+
+  const owner = resolveSellBriefOwner(data);
+  const priceLabel = formatBriefPrice(data.price ?? data.rentalPrice);
+  const location = data.location;
+  const locationLabel = location
+    ? [location.state, location.localGovernment, location.area].filter(Boolean).join(", ")
+    : "N/A";
+
+  const bedroomLine =
+    bedrooms != null && bedrooms !== ""
+      ? `<p><strong>Number of Bedrooms:</strong> ${bedrooms}</p>`
+      : "";
+  const bathroomLine =
+    bathrooms != null && bathrooms !== ""
+      ? `<p><strong>Number of Bathrooms:</strong> ${bathrooms}</p>`
+      : "";
+  const toiletLine =
+    toilets != null && toilets !== ""
+      ? `<p><strong>Number of Toilets:</strong> ${toilets}</p>`
+      : "";
+  const carParkLine =
+    carParks != null && carParks !== ""
+      ? `<p><strong>Number of Car Parks:</strong> ${carParks}</p>`
+      : "";
+  const sittingRoomLine =
+    sittingRooms != null && sittingRooms !== ""
+      ? `<p><strong>Number of Sitting Rooms:</strong> ${sittingRooms}</p>`
+      : "";
+  const featuresLine = features
+    ? `<p><strong>Features:</strong> ${features}</p>`
+    : "";
+  const tenantCriteriaLine = tenantCriteria
+    ? `<p><strong>Tenant Criteria:</strong> ${tenantCriteria}</p>`
+    : "";
+  const categoryLine = data.propertyCategory
+    ? `<p><strong>Property Category:</strong> ${data.propertyCategory}</p>`
+    : "";
+  const conditionLine = data.propertyCondition
+    ? `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`
+    : "";
+  const buildingLine = data.typeOfBuilding
+    ? `<p><strong>Building Type:</strong> ${data.typeOfBuilding}</p>`
+    : "";
+  const landSizeLine =
+    data.landSize?.size
+      ? `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType || ""}</p>`
+      : "";
+
 	return ` <div class="container">
             <h2>New Property Brief Created</h2>
             <p>A new property brief has been submitted for sale. Here are the details:</p>
             
             <div class="details">
-                <p><strong>Property Type:</strong> ${data.propertyType}</p>
-                <p><strong>Location:</strong> ${data.location.state}, ${
-		data.location.localGovernment
-	}, ${data.location.area}</p>
-                <p><strong>Price:</strong> ₦${
-																	data.price || data.rentalPrice
-																}</p>
-                <p><strong>Number of Bedrooms:</strong> ${
-																	data.propertyFeatures?.noOfBedrooms || data.noOfBedrooms
-																}</p>
-                <p><strong>Features:</strong> ${
-																	data.propertyFeatures?.additionalFeatures?.join(", ") ||
-																	data.features?.map((f: any) => f.featureName).join(", ")
-																}</p>
-                ${
-																	data.tenantCriteria.length > 0 &&
-																	`<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria
-																		?.map((c: any) => c.criteria)
-																		.join(", ")}</p>`
-																}
-               ${
-																data.docOnProperty.length > 0 &&
-																`<p><strong>Documents on Property:</strong> ${data.docOnProperty
-																	?.map(
-																		(doc: any) =>
-																			`${doc.docName} (${
-																				doc.isProvided ? "Provided" : "Not Provided"
-																			})`
-																	)
-																	.join(", ")}</p>`
-															}
-                <p>Owner Email: ${data.owner.email}</p>
-                <p><strong>Owner Name:</strong> ${data.owner.fullName}</p>
-                <p><strong>Owner Phone:</strong> ${data.owner.phoneNumber}</p>
-                <p><strong>Owner Status:</strong> ${
-																	data.areYouTheOwner ? "Yes" : "No"
-																}</p>
-               ${
-																data.docOnProperty.length > 0 &&
-																`<p><strong>Usage Options:</strong> ${data.docOnProperty?.join(
-																	", "
-																)}</p>`
-															}
-               
-                ${
-																	data.budgetRange &&
-																	`<p><strong>Budget Range:</strong> ${data.budgetRange}</p>`
-																}
+                <p><strong>Property Type:</strong> ${data.propertyType || "N/A"}</p>
+                ${categoryLine}
+                ${conditionLine}
+                ${buildingLine}
+                <p><strong>Location:</strong> ${locationLabel}</p>
+                <p><strong>Price:</strong> ${priceLabel}</p>
+                ${landSizeLine}
+                ${bedroomLine}
+                ${bathroomLine}
+                ${toiletLine}
+                ${carParkLine}
+                ${sittingRoomLine}
+                ${featuresLine}
+                ${tenantCriteriaLine}
+                ${documentsHtml}
+                <p><strong>Owner Email:</strong> ${owner.email}</p>
+                <p><strong>Owner Name:</strong> ${owner.fullName}</p>
+                <p><strong>Owner Phone:</strong> ${owner.phoneNumber}</p>
+                <p><strong>Owner Status:</strong> ${data.areYouTheOwner ? "Yes" : "No"}</p>
             </div>
     
             ${
@@ -656,29 +741,39 @@ export function generatePropertyBriefEmail(ownerName: string, data: any) {
 		details += `<p><strong>Property Condition:</strong> ${data.propertyCondition}</p>`;
 	if (data.location)
 		details += `<p><strong>Location:</strong> ${data.location.state}, ${data.location.localGovernment}, ${data.location.area}</p>`;
-	if (data.price) details += `<p><strong>Price:</strong> ₦${data.price}</p>`;
+	if (data.price) details += `<p><strong>Price:</strong> ${formatBriefPrice(data.price)}</p>`;
 	if (data.landSize)
 		details += `<p><strong>Land Size:</strong> ${data.landSize.size} ${data.landSize.measurementType}</p>`;
-	if (data.buildingType)
-		details += `<p><strong>Building Type:</strong> ${data.buildingType}</p>`;
-	if (data.additionalFeatures?.noOfBedrooms)
-		details += `<p><strong>Number of Bedrooms:</strong> ${data.additionalFeatures.noOfBedrooms}</p>`;
-	if (data.additionalFeatures?.noOfBathrooms)
-		details += `<p><strong>Number of Bathrooms:</strong> ${data.additionalFeatures.noOfBathrooms}</p>`;
-	if (data.additionalFeatures?.noOfToilets)
-		details += `<p><strong>Number of Toilets:</strong> ${data.additionalFeatures.noOfToilets}</p>`;
-	if (data.additionalFeatures?.noOfCarParks)
-		details += `<p><strong>Number of Car Parks:</strong> ${data.additionalFeatures.noOfCarParks}</p>`;
+	if (data.typeOfBuilding || data.buildingType)
+		details += `<p><strong>Building Type:</strong> ${data.typeOfBuilding || data.buildingType}</p>`;
+	const bedrooms =
+		data.additionalFeatures?.noOfBedroom ??
+		data.additionalFeatures?.noOfBedrooms;
+	if (bedrooms != null && bedrooms !== "")
+		details += `<p><strong>Number of Bedrooms:</strong> ${bedrooms}</p>`;
+	const bathrooms =
+		data.additionalFeatures?.noOfBathroom ??
+		data.additionalFeatures?.noOfBathrooms;
+	if (bathrooms != null && bathrooms !== "")
+		details += `<p><strong>Number of Bathrooms:</strong> ${bathrooms}</p>`;
+	const toilets =
+		data.additionalFeatures?.noOfToilet ??
+		data.additionalFeatures?.noOfToilets;
+	if (toilets != null && toilets !== "")
+		details += `<p><strong>Number of Toilets:</strong> ${toilets}</p>`;
+	const carParks =
+		data.additionalFeatures?.noOfCarPark ??
+		data.additionalFeatures?.noOfCarParks;
+	if (carParks != null && carParks !== "")
+		details += `<p><strong>Number of Car Parks:</strong> ${carParks}</p>`;
 	if (data.additionalFeatures?.additionalFeatures?.length)
 		details += `<p><strong>Additional Features:</strong> ${data.additionalFeatures.additionalFeatures.join(
 			", "
 		)}</p>`;
 	if (data.features?.length)
-		details += `<p><strong>Features:</strong> ${data.features.join(", ")}</p>`;
+		details += `<p><strong>Features:</strong> ${formatPropertyList(data.features)}</p>`;
 	if (data.tenantCriteria?.length)
-		details += `<p><strong>Tenant Criteria:</strong> ${data.tenantCriteria.join(
-			", "
-		)}</p>`;
+		details += `<p><strong>Tenant Criteria:</strong> ${formatPropertyList(data.tenantCriteria)}</p>`;
 	details += `<p><strong>Under Review:</strong>Yes</p>`;
 
 	return `

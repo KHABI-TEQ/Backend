@@ -154,6 +154,15 @@ export const postProperty = async (
         const adminMailBody = generalTemplate(
           generatePropertySellBriefEmail({
             ...createdProperty.toObject(),
+            owner: {
+              email: req.user.email,
+              firstName: req.user.firstName,
+              lastName: req.user.lastName,
+              fullName:
+                req.user.fullName ||
+                `${req.user.firstName || ""} ${req.user.lastName || ""}`.trim(),
+              phoneNumber: req.user.phoneNumber,
+            },
             isAdmin: true,
           }),
         );

@@ -17,10 +17,13 @@ export interface PropertyValidationResult {
  */
 export async function validatePropertyPayload(payload: any): Promise<PropertyValidationResult> {
   try {
-    const validated = await propertyValidationSchema.validateAsync(payload, {
+    const validated = await propertyValidationSchema.validateAsync(
+      normalizePropertyPayload(payload),
+      {
       abortEarly: false,
       stripUnknown: true,
-    });
+      },
+    );
 
     const fee =
       validated.inspectionFee != null
@@ -45,3 +48,24 @@ export async function validatePropertyPayload(payload: any): Promise<PropertyVal
 }
 
 export { INSPECTION_FEE_MIN, INSPECTION_FEE_MAX, INSPECTION_FEE_DEFAULT };
+
+function normalizePropertyPayload(payload: any): any {
+  const normalized = { ...payload };
+
+  if (normalized.propertyCategory !== "Land" && normalized.landSize) {
+    const size = normalized.landSize.size;
+    const measurementType = normalized.landSize.measurementType;
+    const hasSize =
+      size !== "" && size !== null && size !== undefined && Number(size) !== 0;
+    const hasMeasurementType = Boolean(measurementType);
+    if (!hasSize && !hasMeasurementType) {
+      delete normalized.landSize;
+    }
+  }
+
+  if (!Array.isArray(normalized.docOnProperty)) {
+    normalized.docOnProperty = [];
+  }
+
+  return normalized;
+}

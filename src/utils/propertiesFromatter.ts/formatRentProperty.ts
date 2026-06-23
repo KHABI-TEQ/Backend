@@ -29,6 +29,14 @@ export const formatRentProperty = (
     streetAddress: payload.location?.streetAddress || "",
   },
   docOnProperty: payload.docOnProperty || [],
+  ...(payload.landSize
+    ? {
+        landSize: {
+          measurementType: payload.landSize?.measurementType || "",
+          size: Number(payload.landSize?.size) || 0,
+        },
+      }
+    : {}),
   owner: new Types.ObjectId(ownerId),
   ownerModel: ownerModel,
   areYouTheOwner: Boolean(payload.areYouTheOwner),

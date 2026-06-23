@@ -6,12 +6,19 @@ export const propertyValidationSchema = Joi.object({
   propertyType: Joi.string().valid("sell", "rent", "shortlet", "jv", "off-plan").required(),
   propertyCategory: Joi.string().required(),
 
-  // Required only for Residential and Commercial; not required for Land
-  propertyCondition: Joi.string().when("propertyCategory", {
-    is: Joi.string().valid("Residential", "Commercial"),
-    then: Joi.required(),
-    otherwise: Joi.optional(),
-  }),
+  // Required for Residential/Commercial sell & rent; optional for shortlet, JV, and Land
+  propertyCondition: Joi.string()
+    .trim()
+    .allow("", null)
+    .when("propertyCategory", {
+      is: Joi.string().valid("Residential", "Commercial"),
+      then: Joi.when("propertyType", {
+        is: Joi.valid("shortlet", "jv"),
+        then: Joi.optional(),
+        otherwise: Joi.required(),
+      }),
+      otherwise: Joi.optional(),
+    }),
 
   typeOfBuilding: Joi.string().when("propertyCategory", {
     is: Joi.string().valid("Residential", "Commercial"),
@@ -46,10 +53,17 @@ export const propertyValidationSchema = Joi.object({
     streetAddress: Joi.string().trim().allow("").optional(),
   }).required(),
 
-  landSize: Joi.object({
-    measurementType: Joi.string().required(),
-    size: Joi.alternatives().try(Joi.number(), Joi.string()).required(),
-  }).required(),
+  landSize: Joi.when("propertyCategory", {
+    is: "Land",
+    then: Joi.object({
+      measurementType: Joi.string().required(),
+      size: Joi.alternatives().try(Joi.number(), Joi.string()).required(),
+    }).required(),
+    otherwise: Joi.object({
+      measurementType: Joi.string().allow("", null).optional(),
+      size: Joi.alternatives().try(Joi.number(), Joi.string()).allow("", null).optional(),
+    }).optional(),
+  }),
 
   docOnProperty: Joi.array()
     .items(
@@ -58,8 +72,7 @@ export const propertyValidationSchema = Joi.object({
         isProvided: Joi.boolean().required(),
       }),
     )
-    .min(1)
-    .required(),
+    .default([]),
 
   owner: Joi.string().optional(), // Set by server from authenticated user
 
@@ -103,33 +116,70 @@ export const propertyValidationSchema = Joi.object({
     otherwise: Joi.array().items(Joi.string()).optional(),
   }),
 
-  shortletDetails: Joi.object().when("propertyType", {
+  shortletDetails: Joi.when("propertyType", {
     is: "shortlet",
     then: Joi.object({
-      streetAddress: Joi.string().required(),
-      maxGuests: Joi.number().required(),
+      streetAddress: Joi.string().allow("").optional(),
+      maxGuests: Joi.number().optional(),
       availability: Joi.object({
-        minStay: Joi.number().required(),
-      }).required(),
+        minStay: Joi.number().optional(),
+      }).optional(),
       pricing: Joi.object({
-        nightly: Joi.number().required(),
+        nightly: Joi.number().optional(),
         weeklyDiscount: Joi.number().default(0),
-      }).required(),
+      }).optional(),
       houseRules: Joi.object({
-        checkIn: Joi.string().required(),
-        checkOut: Joi.string().required(),
-      }).required(),
-    }).required(),
+        checkIn: Joi.string().optional(),
+        checkOut: Joi.string().optional(),
+      }).optional(),
+    }).optional(),
     otherwise: Joi.optional(),
+  }),
+
+  /** Shortlet listings submit these at the top level (see formatShortletProperty). */
+  availability: Joi.when("propertyType", {
+    is: "shortlet",
+    then: Joi.object({
+      minStay: Joi.number().optional(),
+      maxStay: Joi.number().optional(),
+      calendar: Joi.any().optional(),
+    }).optional(),
+    otherwise: Joi.forbidden(),
+  }),
+
+  pricing: Joi.when("propertyType", {
+    is: "shortlet",
+    then: Joi.object({
+      nightly: Joi.number().optional(),
+      weeklyDiscount: Joi.number().optional(),
+      monthlyDiscount: Joi.number().optional(),
+      cleaningFee: Joi.number().optional(),
+      securityDeposit: Joi.number().optional(),
+      cancellationPolicy: Joi.string().optional(),
+    }).optional(),
+    otherwise: Joi.forbidden(),
+  }),
+
+  houseRules: Joi.when("propertyType", {
+    is: "shortlet",
+    then: Joi.object({
+      checkIn: Joi.string().optional(),
+      checkOut: Joi.string().optional(),
+      smoking: Joi.boolean().optional(),
+      pets: Joi.boolean().optional(),
+      parties: Joi.boolean().optional(),
+      otherRules: Joi.string().allow("").optional(),
+    }).optional(),
+    otherwise: Joi.forbidden(),
   }),
 
   pictures: Joi.array().items(Joi.string()).default([]),
 
   videos: Joi.array().items(Joi.string()).default([]),
 
-  description: Joi.string().required(),
+  description: Joi.string().trim().allow("", null).optional().default(""),
 
-  addtionalInfo: Joi.string().allow("").optional(),
+  addtionalInfo: Joi.string().trim().allow("", null).optional().default(""),
 
   isTenanted: Joi.string().valid("Yes", "No").required(),
 
