@@ -207,7 +207,7 @@ function normalizeRegisterPayload(body: any): {
   const hasAddress = pi.exactAddress && String(pi.exactAddress).trim().length > 0;
   const hasGps = pi.lat != null && pi.lng != null;
   if (!hasAddress && !hasGps) {
-    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "For building/residential/commercial/duplex, exactAddress or lat/lng is required.");
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "For building/residential/commercial property, exactAddress or lat/lng is required.");
   }
   return {
     transactionType: internalType,
@@ -247,8 +247,10 @@ export const registerTransaction = async (
     };
     let paymentReceiptFileName: string | undefined;
     let paymentReceiptBase64: string | undefined;
+    let paymentReceiptUrl: string | undefined;
     let buyerIdFileName: string | undefined;
     let buyerIdBase64: string | undefined;
+    let buyerIdUrl: string | undefined;
 
     const frontendValidation = JoiValidator.validate(registerTransactionFrontendSchema, req.body);
     if (frontendValidation.success && frontendValidation.data) {
@@ -260,11 +262,17 @@ export const registerTransaction = async (
       if (fd.paymentReceiptBase64 != null && String(fd.paymentReceiptBase64).trim()) {
         paymentReceiptBase64 = String(fd.paymentReceiptBase64).trim();
       }
+      if (fd.paymentReceiptUrl != null && String(fd.paymentReceiptUrl).trim()) {
+        paymentReceiptUrl = String(fd.paymentReceiptUrl).trim();
+      }
       if (fd.buyerIdFileName != null && String(fd.buyerIdFileName).trim()) {
         buyerIdFileName = String(fd.buyerIdFileName).trim();
       }
       if (fd.buyerIdBase64 != null && String(fd.buyerIdBase64).trim()) {
         buyerIdBase64 = String(fd.buyerIdBase64).trim();
+      }
+      if (fd.buyerIdUrl != null && String(fd.buyerIdUrl).trim()) {
+        buyerIdUrl = String(fd.buyerIdUrl).trim();
       }
     } else {
       const validation = JoiValidator.validate(registerTransactionSchema, req.body);
@@ -319,8 +327,10 @@ export const registerTransaction = async (
     };
     if (paymentReceiptFileName != null) createPayload.paymentReceiptFileName = paymentReceiptFileName;
     if (paymentReceiptBase64 != null) createPayload.paymentReceiptBase64 = paymentReceiptBase64;
+    if (paymentReceiptUrl != null) createPayload.paymentReceiptUrl = paymentReceiptUrl;
     if (buyerIdFileName != null) createPayload.buyerIdFileName = buyerIdFileName;
     if (buyerIdBase64 != null) createPayload.buyerIdBase64 = buyerIdBase64;
+    if (buyerIdUrl != null) createPayload.buyerIdUrl = buyerIdUrl;
     const reg = await DB.Models.TransactionRegistration.create(createPayload);
 
     await DB.Models.Property.findByIdAndUpdate(propertyId, {

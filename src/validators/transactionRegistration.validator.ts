@@ -68,7 +68,7 @@ export const REGISTER_TYPE_SLUGS = [
 /** Frontend property identification (flat lat/lng, titleNumber, ownerName, etc.) */
 const propertyIdentificationFrontend = Joi.object({
   type: Joi.string()
-    .valid("land", "residential", "commercial", "duplex")
+    .valid("land", "residential", "commercial")
     .required(),
   exactAddress: Joi.string().trim().allow("", null).optional(),
   titleNumber: Joi.string().trim().allow("", null).optional(),
@@ -89,11 +89,18 @@ export const registerTransactionFrontendSchema = Joi.object({
   buyer: buyerSchema.required(),
   transactionValue: Joi.number().min(0).required(),
   propertyIdentification: propertyIdentificationFrontend,
-  paymentReceiptFileName: Joi.string().trim().min(1).required(),
-  paymentReceiptBase64: Joi.string().trim().min(1).required(),
-  buyerIdFileName: Joi.string().trim().min(1).required(),
-  buyerIdBase64: Joi.string().trim().min(1).required(),
-});
+  paymentReceiptFileName: Joi.string().trim().min(1).optional(),
+  paymentReceiptBase64: Joi.string().trim().min(1).optional(),
+  paymentReceiptUrl: Joi.string().uri().trim().optional(),
+  buyerIdFileName: Joi.string().trim().min(1).optional(),
+  buyerIdBase64: Joi.string().trim().min(1).optional(),
+  buyerIdUrl: Joi.string().uri().trim().optional(),
+})
+  .or("paymentReceiptBase64", "paymentReceiptUrl")
+  .or("buyerIdBase64", "buyerIdUrl")
+  .messages({
+    "object.missing": "Payment receipt and buyer ID document are required.",
+  });
 
 export const publicSearchSchema = Joi.object({
   address: Joi.string().trim().min(1).optional(),

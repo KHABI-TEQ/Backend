@@ -74,6 +74,13 @@ import {
   postWhatsappTest,
 } from "../controllers/Admin/whatsappAdmin";
 import {
+  getWhatsappSupportCount,
+  getWhatsappSupportSessionDetail,
+  listWhatsappSupportSessions,
+  patchWhatsappSupportResolve,
+  postWhatsappSupportReply,
+} from "../controllers/Admin/whatsappSupportAdmin";
+import {
   createSyndicationPlatform,
   editSyndicationPlatform,
   listSyndicationPlatformsForAdmin,
@@ -507,6 +514,12 @@ AdminRouter.post("/whatsapp/broadcast", postWhatsappBroadcast);
 AdminRouter.post("/whatsapp/send-template", postWhatsappSendTemplate);
 AdminRouter.post("/whatsapp/media", postWhatsappMedia);
 AdminRouter.get("/whatsapp/analytics", getWhatsappAnalytics);
+
+AdminRouter.get("/whatsapp/support/sessions", listWhatsappSupportSessions);
+AdminRouter.get("/whatsapp/support/sessions/count", getWhatsappSupportCount);
+AdminRouter.get("/whatsapp/support/sessions/:phone", getWhatsappSupportSessionDetail);
+AdminRouter.post("/whatsapp/support/sessions/:phone/reply", postWhatsappSupportReply);
+AdminRouter.patch("/whatsapp/support/sessions/:phone/resolve", patchWhatsappSupportResolve);
 
 AdminRouter.use(AdminInspRouter);
 

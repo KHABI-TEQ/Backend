@@ -21,8 +21,8 @@ const app = express();
  *                              Set basic express settings
  ***********************************************************************************/
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: process.env.JSON_BODY_LIMIT || "25mb" }));
 app.use(cookieParser());
 
 app.use(cors());

@@ -8,6 +8,7 @@ import {
   CONFIRM_TOKEN_PURPOSE_TRANSACTION,
   verifyBuyerConfirmationToken,
 } from "../../../services/buyerConfirmationToken.service";
+import { sendTransactionVoiceNote } from "../../../services/voiceNote.service";
 import { InspectionLogService } from "../../../services/inspectionLog.service";
 
 const CLIENT_LINK = (process.env.CLIENT_LINK || "").replace(/\/$/, "");
@@ -116,6 +117,21 @@ export const confirmTransaction = async (
         );
       } catch (emailErr) {
         console.warn("[confirmTransaction] Follow-up email failed:", emailErr);
+      }
+
+      const waPhone = String(buyer?.whatsAppNumber || buyer?.phoneNumber || "").replace(/\s/g, "");
+      if (waPhone.length >= 10) {
+        const propertyLabel =
+          property?.location?.street ||
+          property?.location?.area ||
+          property?.title ||
+          "your property";
+        void sendTransactionVoiceNote({
+          phone: waPhone,
+          propertyLabel,
+          language: "pcm",
+          event: "confirmed",
+        });
       }
     }
 

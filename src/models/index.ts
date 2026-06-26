@@ -42,6 +42,7 @@ export * from "./platformConnection";
 export * from "./syndicationJob";
 export * from "./syndicatedListingMapping";
 export * from "./webhookEvent";
+export * from "./channelSession";
 export * from "./syndicationPlatform";
 export * from "./syndicationPlatformApplication";
 export * from "./syndicationConnectionVerification";

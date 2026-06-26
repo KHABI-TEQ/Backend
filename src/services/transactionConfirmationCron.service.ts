@@ -43,7 +43,7 @@ function inspectionStepSatisfied(inv: any): boolean {
   return !!inv.buyerConfirmedInspectionAt || viewingClosed(inv);
 }
 
-function tryWhatsappTransactionConfirmation(buyer: any, confirmUrl: string, userName: string): void {
+function tryWhatsappTransactionConfirmation(buyer: any, confirmUrl: string, userName: string, propertyLabel?: string): void {
   const line = String(buyer?.whatsAppNumber || buyer?.phoneNumber || "").replace(/\s/g, "");
   if (!isLikelyE164CapableLocalPhone(line)) return;
   void runWhatsapp("buyer_transaction_confirmation", async (wa) => {
@@ -52,6 +52,14 @@ function tryWhatsappTransactionConfirmation(buyer: any, confirmUrl: string, user
       confirmUrl,
     });
   });
+  void import("./voiceNote.service").then(({ sendTransactionVoiceNote }) =>
+    sendTransactionVoiceNote({
+      phone: line,
+      propertyLabel: propertyLabel || "the property",
+      language: "pcm",
+      event: "confirmation_request",
+    })
+  );
 }
 
 /**
@@ -142,10 +150,17 @@ export async function deliverTransactionConfirmationRequestToBuyer(
     console.warn("[transactionConfirmationCron] log failed:", inv._id, logErr);
   }
 
+  const propertyLabel =
+    property?.location?.street ||
+    property?.location?.area ||
+    (property as any)?.title ||
+    "the property";
+
   tryWhatsappTransactionConfirmation(
     buyer,
     confirmUrl,
-    buyer.fullName || buyer.email || "there"
+    buyer.fullName || buyer.email || "there",
+    propertyLabel
   );
 
   return true;

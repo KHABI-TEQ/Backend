@@ -48,10 +48,14 @@ export interface ITransactionRegistration {
   paymentReceiptFileName?: string;
   /** Base64-encoded deal payment receipt. */
   paymentReceiptBase64?: string;
+  /** Cloudinary URL for deal payment receipt (preferred over base64). */
+  paymentReceiptUrl?: string;
   /** Buyer valid ID file name (from registration upload). */
   buyerIdFileName?: string;
   /** Base64-encoded buyer valid ID. */
   buyerIdBase64?: string;
+  /** Cloudinary URL for buyer valid ID (preferred over base64). */
+  buyerIdUrl?: string;
   /** Paystack transaction ID for the processing fee (set when payment link is generated). */
   paymentTransactionId?: Types.ObjectId;
 }
@@ -108,8 +112,10 @@ export class TransactionRegistration {
         },
         paymentReceiptFileName: { type: String, required: false },
         paymentReceiptBase64: { type: String, required: false },
+        paymentReceiptUrl: { type: String, required: false },
         buyerIdFileName: { type: String, required: false },
         buyerIdBase64: { type: String, required: false },
+        buyerIdUrl: { type: String, required: false },
         paymentTransactionId: { type: Schema.Types.ObjectId, ref: "newTransaction", required: false },
       },
       { timestamps: true }

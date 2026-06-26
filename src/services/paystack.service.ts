@@ -25,6 +25,7 @@ import { notifyAllActiveAdmins } from './adminNotification.service';
 import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from './buyerConfirmationDevScheduler.service';
 import { resumeAgentPolicyPausedDealSites } from './agentPublisherEligibility.service';
 import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.service';
+import { sendTransactionVoiceNote } from './voiceNote.service';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -114,7 +115,77 @@ export class PaystackService {
       access_code: response.data.data.access_code,
     };
   }
-  
+
+  /**
+   * Start a Paystack USSD charge (user dials returned USSD code to complete payment).
+   */
+  static async initializeUssdCharge({
+    email,
+    amount,
+    fromWho,
+    transactionType,
+    ussdBankCode,
+    paymentMode = 'ussd',
+    currency = 'NGN',
+    metadata = {},
+  }: {
+    email: string;
+    amount: number;
+    fromWho: { kind: 'User' | 'Buyer'; item: Types.ObjectId };
+    transactionType: string;
+    ussdBankCode: string;
+    paymentMode?: string;
+    currency?: string;
+    metadata?: Record<string, any>;
+  }) {
+    const reference = 'KT' + Math.floor(Math.random() * 9e14 + 1e14).toString();
+
+    await DB.Models.NewTransaction.create({
+      reference,
+      fromWho,
+      amount,
+      transactionType,
+      paymentMode,
+      status: 'pending',
+      currency,
+      platform: metadata?.channel || 'ussd',
+      meta: metadata,
+    });
+
+    const paystackKey = await PaystackService.getPaystackSecretKey();
+
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/charge`,
+      {
+        email,
+        amount: amount * 100,
+        reference,
+        currency,
+        metadata: {
+          ...metadata,
+          transactionType,
+          fromWho,
+        },
+        ussd: {
+          type: String(ussdBankCode),
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${paystackKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const data = response.data?.data || {};
+    return {
+      reference,
+      status: data.status,
+      display_text: data.display_text || data.message,
+      ussd_code: data.ussd_code,
+    };
+  }
 
   /**
    * Initialize a Paystack split transaction and store it as pending in DB.
@@ -366,6 +437,9 @@ export class PaystackService {
       case 'request-to-market':
         return await PaystackService.handleRequestToMarketPaymentEffect(tx);
 
+      case 'channel-registration-fee':
+        return await PaystackService.handleChannelRegistrationFeeEffect(tx);
+
       default:
         console.warn(`Unhandled transaction type: ${transactionType}`);
         return null;
@@ -399,6 +473,40 @@ export class PaystackService {
       });
     } catch (e) {
       console.warn("[Paystack] admin notify transaction registration payment failed:", e);
+    }
+    return null;
+  }
+
+  /**
+   * Channel USSD/WhatsApp registration fee paid — notify admins and send voice confirmation.
+   */
+  static async handleChannelRegistrationFeeEffect(tx: INewTransactionDoc): Promise<null> {
+    const phone = tx.meta?.phone;
+    const feeLabel = tx.meta?.feeLabel || 'registration fee';
+    try {
+      void notifyAllActiveAdmins({
+        type: 'transaction_registration_fee_paid',
+        title: 'Channel registration fee paid',
+        message: `₦${(tx.amount || 0).toLocaleString()} ${feeLabel} paid via ${tx.meta?.channel || 'channel'} (${phone || 'unknown'}). Ref: ${tx.reference}.`,
+        meta: {
+          reference: tx.reference,
+          phone,
+          channel: tx.meta?.channel,
+          feeTier: tx.meta?.feeTier,
+          amount: tx.amount,
+        },
+      });
+    } catch (e) {
+      console.warn('[Paystack] channel fee admin notify failed:', e);
+    }
+
+    if (phone) {
+      void sendTransactionVoiceNote({
+        phone: String(phone),
+        propertyLabel: feeLabel,
+        language: 'pcm',
+        event: 'fee_paid',
+      });
     }
     return null;
   }

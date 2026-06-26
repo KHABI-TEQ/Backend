@@ -31,6 +31,7 @@ import { listLasreraMarketplaceProperties } from "../controllers/public/lasreraM
 import { optionalAccountAuth } from "../middlewares/accountAuth";
 import { subscribeEmail, unsubscribeEmail } from "../controllers/public/emailSubscribeActions";
 import { handleWebhook, verifyWebhook } from "../controllers/public/whatsappWebhookController";
+import { handleUssdWebhook, ussdHealth } from "../controllers/public/ussd/ussdWebhookController";
 import {
   getAgentRatingSummaryPublic,
   getAgentRatingsPublic,
@@ -165,6 +166,10 @@ router.get("/verify-payment", paymentVerification)
 router.get("/whatsapp/webhook", verifyWebhook);
 
 router.post("/whatsapp/webhook", handleWebhook);
+
+// USSD aggregator webhook (Africa's Talking, Termii, etc.)
+router.get("/ussd/health", ussdHealth);
+router.post("/ussd/webhook", handleUssdWebhook);
 
 router.post("/emailSubscription/subscribe", subscribeEmail);
 

@@ -18,7 +18,8 @@ export type TransactionType =
   | 'shortlet-booking'
   | 'document-verification'
   | 'transaction-registration'
-  | 'request-to-market';
+  | 'request-to-market'
+  | 'channel-registration-fee';
 
 export interface INewTransaction {
   reference: string;
@@ -91,6 +92,7 @@ export class NewTransaction {
             'document-verification',
             'transaction-registration',
             'request-to-market',
+            'channel-registration-fee',
           ],
           required: true,
         },

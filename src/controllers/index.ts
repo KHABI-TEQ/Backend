@@ -93,6 +93,8 @@ import {
   IAdminNotificationModel,
   PublisherProfile,
   IPublisherProfileModel,
+  ChannelSession,
+  IChannelSessionModel,
 } from "../models/index";
 
 
@@ -144,6 +146,7 @@ declare interface IModels {
   SyndicationConnectionVerification: ISyndicationConnectionVerificationModel;
   AdminNotification: IAdminNotificationModel;
   PublisherProfile: IPublisherProfileModel;
+  ChannelSession: IChannelSessionModel;
 }
 
 export class DB {
@@ -210,6 +213,7 @@ export class DB {
       SyndicationConnectionVerification: new SyndicationConnectionVerification().model,
       AdminNotification: new AdminNotification().model,
       PublisherProfile: new PublisherProfile().model,
+      ChannelSession: new ChannelSession().model,
     };
   }
 

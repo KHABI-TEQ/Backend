@@ -90,7 +90,7 @@ export const getDealSiteProperties = async (
       ...baseCondition,
       isApproved: true,
       isDeleted: { $ne: true }, // include false or undefined (not explicitly deleted)
-      isAvailable: true
+      isAvailable: { $ne: false },
     };
     // Only filter by briefType when provided; omit so all properties (owned + marketed) show
     if (briefType && String(briefType).trim()) {
