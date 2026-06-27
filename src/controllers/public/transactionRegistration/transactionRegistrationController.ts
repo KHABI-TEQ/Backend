@@ -594,10 +594,10 @@ export const publicSearch = async (
         propertyStatus: r.propertyId?.status ?? null,
         soldOrLeasedRegistered: r.status === "completed" || r.propertyId?.status === "sold_leased_registered",
         inspectionHistoryCount: propId ? inspectionCounts.get(propId) ?? 0 : 0,
-        titleStatus: null,
-        ownershipVerified: null,
-        coordinateVerified: null,
-        egisLandRecordRef: null,
+        titleStatus: null as string | null,
+        ownershipVerified: null as boolean | null,
+        coordinateVerified: null as boolean | null,
+        egisLandRecordRef: null as string | null,
       };
     });
 
@@ -668,10 +668,10 @@ export const checkPropertyRegistration = async (
         hasRegistration,
         warning: hasRegistration ? warning : null,
         registrationSource: existing?.registrationSource ?? null,
-        titleStatus: null,
-        ownershipVerified: null,
-        coordinateVerified: null,
-        egisLandRecordRef: null,
+        titleStatus: null as string | null,
+        ownershipVerified: null as boolean | null,
+        coordinateVerified: null as boolean | null,
+        egisLandRecordRef: null as string | null,
       },
     });
   } catch (error) {
