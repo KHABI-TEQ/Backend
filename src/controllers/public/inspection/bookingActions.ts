@@ -13,49 +13,20 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import sendEmail from "../../../common/send.email";
 import { duration } from "moment";
 import { getClientDashboardUrl } from "../../../utils/clientAppUrl";
+import {
+  calculateShortletPricingFromDates,
+  shortletPricingMeta,
+} from "../../../utils/shortletPricing";
 
 export class BookingController {
 
 
-    // ✅ Helper for duration and pricing (with discount support)
     private calculateShortletAmount(
         property: any,
         checkIn: Date,
         checkOut: Date
     ) {
-        const msInDay = 1000 * 60 * 60 * 24;
-        const diffMs = Math.max(0, checkOut.getTime() - checkIn.getTime());
-        const nights = diffMs > 0 ? Math.ceil(diffMs / msInDay) : 0;
-
-        const pricing = property.shortletDetails?.pricing || {};
-        const nightlyRate = typeof pricing.nightly === "number" ? pricing.nightly : property.price;
-
-        const base = nights * nightlyRate;
-        const cleaningFee = typeof pricing.cleaningFee === "number" ? pricing.cleaningFee : 0;
-        const weeklyDiscount = typeof pricing.weeklyDiscount === "number" ? pricing.weeklyDiscount : 0;
-        const monthlyDiscount = typeof pricing.monthlyDiscount === "number" ? pricing.monthlyDiscount : 0;
-        const securityDeposit = typeof pricing.securityDeposit === "number" ? pricing.securityDeposit : 0;
-
-        // ✅ Decide which discount applies
-        const discountPct = nights >= 30 ? monthlyDiscount : nights >= 7 ? weeklyDiscount : 0;
-        const discountAmount = Math.round((base * discountPct) / 100);
-
-        const subtotal = Math.max(0, base - discountAmount);
-        const serviceCharge = (8/100) * (subtotal + cleaningFee + securityDeposit);
-        const expectedAmount = subtotal + cleaningFee + securityDeposit + serviceCharge;
-
-        return {
-            nights,
-            duration: nights,
-            rate: nightlyRate,
-            base,
-            discountPct,
-            discountAmount,
-            subtotal,
-            cleaningFee,
-            securityDeposit,
-            expectedAmount,
-        };
+        return calculateShortletPricingFromDates(property, checkIn, checkOut);
     }
 
   /**
@@ -119,7 +90,8 @@ export class BookingController {
                 throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid check-in or check-out date");
             }
 
-            const { duration, expectedAmount, nights, cleaningFee, securityDeposit } = this.calculateShortletAmount(property, checkIn, checkOut);
+            const pricing = this.calculateShortletAmount(property, checkIn, checkOut);
+            const { expectedAmount, nights, cleaningFee, securityDeposit } = pricing;
 
             // ✅ Compare with paymentDetails
             if (expectedAmount !== paymentDetails.amountToBePaid) {
@@ -147,7 +119,6 @@ export class BookingController {
             let paymentResponse: any;
 
             if (bookingMode === "instant") {
-                // generate payment link
                 paymentResponse = await PaystackService.initializePayment({
                     email: buyer.email,
                     amount: expectedAmount,
@@ -156,6 +127,14 @@ export class BookingController {
                         item: new Types.ObjectId(buyer._id as Types.ObjectId),
                     },
                     transactionType: "shortlet-booking",
+                    metadata: {
+                        settlementModel: "escrow",
+                        hostBase: pricing.hostBase,
+                        guestServiceCharge: pricing.guestServiceCharge,
+                        hostCommission: pricing.hostCommission,
+                        hostPayout: pricing.hostPayout,
+                        platformTotalCommission: pricing.platformTotalCommission,
+                    },
                 });
             } 
         
@@ -170,14 +149,9 @@ export class BookingController {
                 ownerId: property.owner._id,
                 ownerModel: property.createdByRole === "user" ? "User" : "Admin",
                 meta: {
-                    duration,
-                    nights,
-                    pricePerNight: expectedAmount - (cleaningFee + securityDeposit),
-                    extralFees: {
-                        cleaningFee, 
-                        securityDeposit
-                    },
-                    totalPrice: expectedAmount,
+                    ...shortletPricingMeta(pricing),
+                    duration: pricing.duration,
+                    settlementModel: "escrow",
                 }
             });
 

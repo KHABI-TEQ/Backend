@@ -96,8 +96,7 @@ export const uploadFileToCloudinary = async (
 
     // ✅ Upload to Cloudinary with extension preserved
     const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
-    const filename =
-      Date.now() + "-" + fileFor + (fileExt ? `.${fileExt}` : "");
+    const filename = `${Date.now()}-${fileFor}`;
 
     const uploaded = await cloudinary.uploadFile(
       fileBase64,

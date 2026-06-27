@@ -346,7 +346,8 @@ export class DealSiteService {
       businessName,
       settlementBank: sortCode,
       accountNumber,
-      percentageCharge: 15,
+      // Platform commission is taken via transaction_charge on each booking; avoid double-split.
+      percentageCharge: 0,
       primaryContactEmail: primaryContactEmail || undefined,
       primaryContactName: primaryContactName || undefined,
       primaryContactPhone: primaryContactPhone || undefined,

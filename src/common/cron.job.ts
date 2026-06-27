@@ -10,6 +10,7 @@ import { sendInspectionConfirmationRequestEmails } from '../services/inspectionC
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
 import { processShortletViewingWhatsappReminders } from '../services/shortletViewingWhatsapp.cron.service';
+import { runShortletHostPayoutCron } from '../services/shortletHostPayout.cron.service';
 import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
 import { reconcileRunningDealSitesWithoutKycApproval } from '../services/dealSiteKycEligibility.service';
 import { computePaidSubscriptionExpiresAt } from '../services/agentSubscriptionIncentive.service';
@@ -479,6 +480,16 @@ cron.schedule('*/10 * * * *', async () => {
     }
   } catch (err) {
     console.error('[CRON] Shortlet viewing WhatsApp error:', err);
+  }
+  try {
+    const payout = await runShortletHostPayoutCron();
+    if (payout.processed > 0) {
+      console.log(
+        `[CRON] Shortlet host payouts: ${payout.completed} completed, ${payout.failed} failed, ${payout.skippedLegacy} legacy subaccount skip (${payout.processed} processed)`
+      );
+    }
+  } catch (err) {
+    console.error('[CRON] Shortlet host payout error:', err);
   }
 });
 

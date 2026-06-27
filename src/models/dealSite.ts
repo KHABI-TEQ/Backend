@@ -158,6 +158,7 @@ export interface IDealSite {
     primaryContactPhone?: string;
     sortCode?: string;
     percentageCharge?: number;
+    paystackTransferRecipientCode?: string;
     isVerified?: boolean;
     active?: boolean;
   };
@@ -359,6 +360,7 @@ export class DealSite {
           primaryContactName: { type: String },
           sortCode: { type: String },
           percentageCharge: { type: Number, default: 0 },
+          paystackTransferRecipientCode: { type: String },
           isVerified: { type: Boolean, default: false },
           active: { type: Boolean, default: false },
         },

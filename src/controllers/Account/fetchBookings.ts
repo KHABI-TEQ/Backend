@@ -229,7 +229,6 @@ export const respondToBookingRequest = async (
 
     if (response === "available") {
       if (booking.receiverMode.type === "general") {
-        // generate payment link
         paymentResponse = await PaystackService.initializePayment({
             email: buyer.email,
             amount: expectedAmount,
@@ -238,30 +237,38 @@ export const respondToBookingRequest = async (
                 item: new Types.ObjectId(buyer._id as Types.ObjectId),
             },
             transactionType: "shortlet-booking",
+            metadata: {
+              settlementModel: "escrow",
+              hostBase: booking.meta?.hostBase,
+              hostPayout: booking.meta?.hostPayout,
+            },
         });
       }
 
       if (booking.receiverMode.type === "dealSite") {
-
-        const paymentDetails = dealSite.paymentDetails;
         const publicPageUrl = dealSiteOriginFromPublicSlug(dealSite.publicSlug);
 
-        // Calculate 15%
-        const fifteenPercent = (expectedAmount * 10) / 100;
-
-        // generate payment link
-        paymentResponse = await PaystackService.initializeSplitPayment({
-            subAccount: paymentDetails.subAccountCode,
-            publicPageUrl: publicPageUrl,
-            amountCharge: fifteenPercent,
+        paymentResponse = await PaystackService.initializePayment({
             email: buyer.email,
             amount: expectedAmount,
+            callbackUrl: `${publicPageUrl}/payment-verification`,
             fromWho: {
                 kind: "Buyer",
                 item: new Types.ObjectId(buyer._id as Types.ObjectId),
             },
             transactionType: "shortlet-booking",
+            metadata: {
+              settlementModel: "escrow",
+              hostBase: booking.meta?.hostBase,
+              hostPayout: booking.meta?.hostPayout,
+              dealSiteSlug: dealSite.publicSlug,
+            },
         });
+
+        await DB.Models.Booking.updateOne(
+          { _id: booking._id },
+          { $set: { "meta.settlementModel": "escrow" } }
+        );
       }
         
 

@@ -13,46 +13,19 @@ import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { dealSiteOriginFromPublicSlug } from "../../../config/dealSitePublicHost";
 import { DealSiteService } from "../../../services/dealSite.service";
+import {
+  calculateShortletPricingFromDates,
+  shortletPricingMeta,
+} from "../../../utils/shortletPricing";
  
-    export const  calculateShortletAmount = (
+    /**
+     * @deprecated Use calculateShortletPricingFromDates from utils/shortletPricing
+     */
+    export const calculateShortletAmount = (
         property: any,
         checkIn: Date,
         checkOut: Date
-    ) => {
-        const msInDay = 1000 * 60 * 60 * 24;
-        const diffMs = Math.max(0, checkOut.getTime() - checkIn.getTime());
-        const nights = diffMs > 0 ? Math.ceil(diffMs / msInDay) : 0;
-
-        const pricing = property.shortletDetails?.pricing || {};
-        const nightlyRate = typeof pricing.nightly === "number" ? pricing.nightly : property.price;
-
-        const base = nights * nightlyRate;
-        const cleaningFee = typeof pricing.cleaningFee === "number" ? pricing.cleaningFee : 0;
-        const weeklyDiscount = typeof pricing.weeklyDiscount === "number" ? pricing.weeklyDiscount : 0;
-        const monthlyDiscount = typeof pricing.monthlyDiscount === "number" ? pricing.monthlyDiscount : 0;
-        const securityDeposit = typeof pricing.securityDeposit === "number" ? pricing.securityDeposit : 0;
-
-        // ✅ Decide which discount applies
-        const discountPct = nights >= 30 ? monthlyDiscount : nights >= 7 ? weeklyDiscount : 0;
-        const discountAmount = Math.round((base * discountPct) / 100);
-
-        const subtotal = Math.max(0, base - discountAmount);
-        const serviceCharge = (8/100) * (subtotal + cleaningFee + securityDeposit);
-        const expectedAmount = subtotal + cleaningFee + securityDeposit + serviceCharge;
-
-        return {
-            nights,
-            duration: nights,
-            rate: nightlyRate,
-            base,
-            discountPct,
-            discountAmount,
-            subtotal,
-            cleaningFee,
-            securityDeposit,
-            expectedAmount,
-        };
-    }
+    ) => calculateShortletPricingFromDates(property, checkIn, checkOut);
 
  
     /**
@@ -164,7 +137,8 @@ import { DealSiteService } from "../../../services/dealSite.service";
                 return;
             }
 
-            const { duration, expectedAmount, nights, cleaningFee, securityDeposit } = calculateShortletAmount(property, checkIn, checkOut);
+            const pricing = calculateShortletPricingFromDates(property, checkIn, checkOut);
+            const { expectedAmount, nights, cleaningFee, securityDeposit } = pricing;
 
             // ✅ Compare with paymentDetails
             if (expectedAmount !== paymentDetails.amountToBePaid) {
@@ -192,23 +166,26 @@ import { DealSiteService } from "../../../services/dealSite.service";
             let paymentResponse: any;
 
             if (bookingMode === "instant") {
-                const paymentDetails = dealSite.paymentDetails;
                 const publicPageUrl = dealSiteOriginFromPublicSlug(dealSite.publicSlug);
- 
-                // Calculate 15%
-                const fifteenPercent = (expectedAmount * 10) / 100;
-                // generate payment link
-                paymentResponse = await PaystackService.initializeSplitPayment({
-                    subAccount: paymentDetails.subAccountCode,
-                    publicPageUrl: publicPageUrl,
-                    amountCharge: fifteenPercent,
+
+                paymentResponse = await PaystackService.initializePayment({
                     email: buyer.email,
                     amount: expectedAmount,
+                    callbackUrl: `${publicPageUrl}/payment-verification`,
                     fromWho: {
                         kind: "Buyer",
                         item: new Types.ObjectId(buyer._id as Types.ObjectId),
                     },
                     transactionType: "shortlet-booking",
+                    metadata: {
+                        settlementModel: "escrow",
+                        hostBase: pricing.hostBase,
+                        guestServiceCharge: pricing.guestServiceCharge,
+                        hostCommission: pricing.hostCommission,
+                        hostPayout: pricing.hostPayout,
+                        platformTotalCommission: pricing.platformTotalCommission,
+                        dealSiteSlug: dealSite.publicSlug,
+                    },
                 });
             }
         
@@ -223,14 +200,9 @@ import { DealSiteService } from "../../../services/dealSite.service";
                 ownerId: property.owner._id,
                 ownerModel: property.createdByRole === "user" ? "User" : "Admin",
                 meta: {
-                    duration,
-                    nights,
-                    pricePerNight: expectedAmount - (cleaningFee + securityDeposit),
-                    extralFees: {
-                        cleaningFee, 
-                        securityDeposit
-                    },
-                    totalPrice: expectedAmount,
+                    ...shortletPricingMeta(pricing),
+                    duration: pricing.duration,
+                    settlementModel: "escrow",
                 },
                 receiverMode: {
                     type: "dealSite",

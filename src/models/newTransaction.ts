@@ -16,6 +16,7 @@ export type TransactionType =
   | 'subscription'
   | 'inspection'
   | 'shortlet-booking'
+  | 'shortlet-host-payout'
   | 'document-verification'
   | 'transaction-registration'
   | 'request-to-market'
@@ -89,6 +90,7 @@ export class NewTransaction {
             'subscription',
             'inspection',
             'shortlet-booking',
+            'shortlet-host-payout',
             'document-verification',
             'transaction-registration',
             'request-to-market',

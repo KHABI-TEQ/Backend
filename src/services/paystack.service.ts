@@ -26,6 +26,7 @@ import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from './buyerCo
 import { resumeAgentPolicyPausedDealSites } from './agentPublisherEligibility.service';
 import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.service';
 import { sendTransactionVoiceNote } from './voiceNote.service';
+import { shortletHostPayoutEligibleAt } from '../utils/shortletPricing';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -59,6 +60,7 @@ export class PaystackService {
     paymentMode = 'card',
     currency = 'NGN',
     metadata = {},
+    callbackUrl,
   }: {
     email: string;
     amount: number;
@@ -67,6 +69,7 @@ export class PaystackService {
     paymentMode?: string;
     currency?: string;
     metadata?: Record<string, any>;
+    callbackUrl?: string;
   }) {
 
     const reference = 'KT' + Math.floor(Math.random() * 9e14 + 1e14).toString();
@@ -84,6 +87,9 @@ export class PaystackService {
     });
  
     const paystackKey = await PaystackService.getPaystackSecretKey();
+    const resolvedCallback =
+      callbackUrl?.trim() ||
+      `${process.env.CLIENT_LINK}/payment-verification`;
 
     // Initialize Paystack payment
     const response = await axios.post(
@@ -91,7 +97,7 @@ export class PaystackService {
       {
         email,
         amount: amount * 100, // convert to kobo
-        callback_url: `${process.env.CLIENT_LINK}/payment-verification`,
+        callback_url: resolvedCallback,
         reference,
         currency,
         metadata: {
@@ -640,14 +646,27 @@ export class PaystackService {
                 console.warn(`Property ${propertyId} was already unavailable`);
             }
 
+            const hostDisbursementEligibleAt = shortletHostPayoutEligibleAt(
+              new Date(bookingRequest.bookingDetails.checkInDateTime)
+            );
+
             await DB.Models.Booking.updateOne(
               { _id: bookingRequest._id },
               {
-                status: "confirmed",
-                ownerResponse: {
-                  response: "accepted",
-                  respondedAt: new Date(),
-                  note: null,
+                $set: {
+                  status: "confirmed",
+                  ownerResponse: {
+                    response: "accepted",
+                    respondedAt: new Date(),
+                    note: null,
+                  },
+                  "meta.hostDisbursementEligibleAt": hostDisbursementEligibleAt,
+                  "meta.hostDisbursementStatus":
+                    bookingRequest.meta?.settlementModel === "split"
+                      ? "settled_via_subaccount"
+                      : "pending",
+                  "meta.settlementModel":
+                    bookingRequest.meta?.settlementModel || "escrow",
                 },
               }
             );
@@ -1364,6 +1383,111 @@ export class PaystackService {
       console.error('Error creating Paystack subaccount:', err?.response?.data || err.message);
       throw new Error(err?.response?.data?.message || 'Failed to create subaccount');
     }
+  }
+
+  /**
+   * Create (or reuse cached) Paystack transfer recipient for NUBAN payouts.
+   */
+  static async createTransferRecipient({
+    name,
+    accountNumber,
+    bankCode,
+    email,
+  }: {
+    name: string;
+    accountNumber: string;
+    bankCode: string;
+    email?: string;
+  }): Promise<{ recipientCode: string; details: Record<string, unknown> }> {
+    const paystackKey = await PaystackService.getPaystackSecretKey();
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/transferrecipient`,
+      {
+        type: 'nuban',
+        name,
+        account_number: accountNumber,
+        bank_code: bankCode,
+        currency: 'NGN',
+        ...(email ? { email } : {}),
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${paystackKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.data?.status) {
+      throw new Error(response.data?.message || 'Failed to create transfer recipient');
+    }
+
+    return {
+      recipientCode: response.data.data.recipient_code,
+      details: response.data.data,
+    };
+  }
+
+  /**
+   * Initiate a host payout from Paystack balance.
+   */
+  static async initiateTransfer({
+    amountNaira,
+    recipientCode,
+    reason,
+    reference,
+    metadata = {},
+  }: {
+    amountNaira: number;
+    recipientCode: string;
+    reason: string;
+    reference: string;
+    metadata?: Record<string, unknown>;
+  }) {
+    const paystackKey = await PaystackService.getPaystackSecretKey();
+    const response = await axios.post(
+      `${PAYSTACK_BASE_URL}/transfer`,
+      {
+        source: 'balance',
+        amount: Math.round(amountNaira * 100),
+        recipient: recipientCode,
+        reason,
+        reference,
+        currency: 'NGN',
+        metadata,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${paystackKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    if (!response.data?.status) {
+      throw new Error(response.data?.message || 'Paystack transfer failed');
+    }
+
+    return response.data.data as {
+      transfer_code: string;
+      reference: string;
+      status: string;
+      amount: number;
+    };
+  }
+
+  /**
+   * Verify a Paystack transfer by reference.
+   */
+  static async verifyTransfer(reference: string) {
+    const paystackKey = await PaystackService.getPaystackSecretKey();
+    const response = await axios.get(
+      `${PAYSTACK_BASE_URL}/transfer/verify/${encodeURIComponent(reference)}`,
+      {
+        headers: { Authorization: `Bearer ${paystackKey}` },
+      }
+    );
+    return response.data?.data ?? null;
   }
 
 
