@@ -5,11 +5,36 @@ import { DB } from "../..";
 
 const ALLOWED_STATUSES = ["submitted", "pending_completion", "completed", "rejected"] as const;
 const ALLOWED_TYPES = ["rental_agreement", "outright_sale", "off_plan_purchase", "joint_venture"] as const;
+const ALLOWED_SOURCES = ["platform_listing", "off_platform"] as const;
+
+function buildRegistrationSourceFilter(source: string): Record<string, unknown> | null {
+  if (!ALLOWED_SOURCES.includes(source as (typeof ALLOWED_SOURCES)[number])) return null;
+  if (source === "platform_listing") {
+    return {
+      $or: [
+        { registrationSource: "platform_listing" },
+        {
+          registrationSource: { $exists: false },
+          propertyId: { $exists: true, $ne: null },
+        },
+      ],
+    };
+  }
+  return {
+    $or: [
+      { registrationSource: "off_platform" },
+      {
+        registrationSource: { $exists: false },
+        $or: [{ propertyId: { $exists: false } }, { propertyId: null }],
+      },
+    ],
+  };
+}
 
 /**
  * GET /admin/transaction-registrations
  * Returns all registered transactions with details (property, inspection when present).
- * Query: page, limit, status, transactionType.
+ * Query: page, limit, status, transactionType, registrationSource.
  */
 export const getAllTransactionRegistrations = async (
   req: AppRequest,
@@ -22,11 +47,13 @@ export const getAllTransactionRegistrations = async (
       limit = "20",
       status,
       transactionType,
+      registrationSource,
     } = req.query as {
       page?: string;
       limit?: string;
       status?: string;
       transactionType?: string;
+      registrationSource?: string;
     };
 
     const pageNum = Math.max(parseInt(page, 10), 1);
@@ -40,6 +67,12 @@ export const getAllTransactionRegistrations = async (
     if (transactionType && ALLOWED_TYPES.includes(transactionType as any)) {
       filter.transactionType = transactionType;
     }
+    const sourceFilter = registrationSource
+      ? buildRegistrationSourceFilter(String(registrationSource))
+      : null;
+    if (sourceFilter) {
+      Object.assign(filter, sourceFilter);
+    }
 
     const [registrations, total] = await Promise.all([
       DB.Models.TransactionRegistration.find(filter)
@@ -48,6 +81,10 @@ export const getAllTransactionRegistrations = async (
         .limit(limitNum)
         .select("-paymentReceiptBase64 -buyerIdBase64")
         .populate("propertyId", "location price briefType propertyType status pictures additionalFeatures")
+        .populate({
+          path: "agentId",
+          populate: { path: "userId", select: "firstName lastName email phoneNumber" },
+        })
         .populate("inspectionId", "inspectionDate inspectionTime status stage")
         .lean(),
 
@@ -80,12 +117,33 @@ export const getTransactionRegistrationStats = async (
   next: NextFunction
 ) => {
   try {
-    const [byStatus, byType, total] = await Promise.all([
+    const [byStatus, byType, bySource, total] = await Promise.all([
       DB.Models.TransactionRegistration.aggregate([
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
       DB.Models.TransactionRegistration.aggregate([
         { $group: { _id: "$transactionType", count: { $sum: 1 } } },
+      ]),
+      DB.Models.TransactionRegistration.aggregate([
+        {
+          $addFields: {
+            effectiveSource: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ["$registrationSource", null] },
+                    { $ifNull: ["$registrationSource", false] },
+                  ],
+                },
+                "$registrationSource",
+                {
+                  $cond: [{ $ifNull: ["$propertyId", false] }, "platform_listing", "off_platform"],
+                },
+              ],
+            },
+          },
+        },
+        { $group: { _id: "$effectiveSource", count: { $sum: 1 } } },
       ]),
       DB.Models.TransactionRegistration.countDocuments(),
     ]);
@@ -98,6 +156,10 @@ export const getTransactionRegistrationStats = async (
       acc[r._id] = r.count;
       return acc;
     }, {});
+    const sourceCounts = bySource.reduce((acc: Record<string, number>, r: any) => {
+      if (r._id) acc[r._id] = r.count;
+      return acc;
+    }, {});
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -106,6 +168,7 @@ export const getTransactionRegistrationStats = async (
         total,
         byStatus: statusCounts,
         byTransactionType: typeCounts,
+        byRegistrationSource: sourceCounts,
       },
     });
   } catch (err) {
@@ -127,6 +190,10 @@ export const getTransactionRegistrationById = async (
 
     const registration = await DB.Models.TransactionRegistration.findById(registrationId)
       .populate("propertyId")
+      .populate({
+        path: "agentId",
+        populate: { path: "userId", select: "firstName lastName email phoneNumber" },
+      })
       .populate("inspectionId")
       .lean();
 

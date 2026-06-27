@@ -20,7 +20,11 @@ import {
   getProcessingFeeNaira,
 } from "../../../config/transactionRegistration.config";
 import type { TransactionRegistrationType } from "../../../models/transactionRegistration";
-import type { IPropertyIdentification } from "../../../models/transactionRegistration";
+import type {
+  IPropertyIdentification,
+  ITransactionPractitioner,
+  TransactionRegistrationSource,
+} from "../../../models/transactionRegistration";
 import { PaystackService } from "../../../services/paystack.service";
 import { notifyAllActiveAdmins } from "../../../services/adminNotification.service";
 
@@ -167,12 +171,79 @@ export const submitBuyerIntent = async (
   }
 };
 
+function normalizePractitioner(raw: any): ITransactionPractitioner | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const fullName = String(raw.fullName || "").trim();
+  const email = String(raw.email || "").trim();
+  const phoneNumber = String(raw.phoneNumber || "").trim();
+  if (!fullName && !email && !phoneNumber) return undefined;
+  return {
+    fullName,
+    email,
+    phoneNumber,
+    companyName: raw.companyName ? String(raw.companyName).trim() : undefined,
+    licenceNumber: raw.licenceNumber ? String(raw.licenceNumber).trim() : undefined,
+    isOnPlatform: raw.isOnPlatform === true,
+  };
+}
+
+function resolvePropertyId(raw?: string | null): string | undefined {
+  const id = raw != null ? String(raw).trim() : "";
+  if (!id) return undefined;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid propertyId format.");
+  }
+  return id;
+}
+
+async function assertNoDuplicateOffPlatformRegistration(
+  propertyIdentification: IPropertyIdentification,
+  transactionType: TransactionRegistrationType
+) {
+  const ors: Record<string, unknown>[] = [];
+  const addr =
+    propertyIdentification.type === "building"
+      ? propertyIdentification.exactAddress
+      : propertyIdentification.exactAddress;
+  if (addr && String(addr).trim()) {
+    ors.push({
+      "propertyIdentification.exactAddress": new RegExp(String(addr).trim(), "i"),
+    });
+  }
+  const gps =
+    propertyIdentification.type === "land"
+      ? propertyIdentification.gpsCoordinates
+      : propertyIdentification.gpsCoordinates;
+  if (gps?.lat != null && gps?.lng != null) {
+    ors.push({
+      "propertyIdentification.gpsCoordinates.lat": Number(gps.lat),
+      "propertyIdentification.gpsCoordinates.lng": Number(gps.lng),
+    });
+  }
+  if (ors.length === 0) return;
+
+  const existing = await DB.Models.TransactionRegistration.findOne({
+    $or: [{ propertyId: { $exists: false } }, { propertyId: null }],
+    status: { $in: ACTIVE_OR_COMPLETED_STATUSES },
+    transactionType,
+    $and: [{ $or: ors }],
+  }).lean();
+  if (existing) {
+    throw new RouteError(
+      HttpStatusCodes.CONFLICT,
+      "An active or completed registration already exists for this off-platform property location."
+    );
+  }
+}
+
 /**
  * Normalize frontend register payload to internal shape (transactionType + propertyIdentification).
  */
 function normalizeRegisterPayload(body: any): {
   transactionType: TransactionRegistrationType;
-  propertyId: string;
+  propertyId?: string;
+  agentId?: string;
+  practitioner?: ITransactionPractitioner;
   inspectionId?: string;
   buyer: { email: string; fullName: string; phoneNumber: string };
   transactionValue: number;
@@ -191,7 +262,9 @@ function normalizeRegisterPayload(body: any): {
     }
     return {
       transactionType: internalType,
-      propertyId: body.propertyId,
+      propertyId: resolvePropertyId(body.propertyId),
+      agentId: body.agentId ? String(body.agentId).trim() || undefined : undefined,
+      practitioner: normalizePractitioner(body.practitioner),
       inspectionId: body.inspectionId || undefined,
       buyer: body.buyer,
       transactionValue: body.transactionValue,
@@ -211,7 +284,9 @@ function normalizeRegisterPayload(body: any): {
   }
   return {
     transactionType: internalType,
-    propertyId: body.propertyId,
+    propertyId: resolvePropertyId(body.propertyId),
+    agentId: body.agentId ? String(body.agentId).trim() || undefined : undefined,
+    practitioner: normalizePractitioner(body.practitioner),
     inspectionId: body.inspectionId || undefined,
     buyer: body.buyer,
     transactionValue: body.transactionValue,
@@ -239,7 +314,9 @@ export const registerTransaction = async (
   try {
     let payload: {
       transactionType: TransactionRegistrationType;
-      propertyId: string;
+      propertyId?: string;
+      agentId?: string;
+      practitioner?: ITransactionPractitioner;
       inspectionId?: string;
       buyer: { email: string; fullName: string; phoneNumber: string };
       transactionValue: number;
@@ -283,7 +360,9 @@ export const registerTransaction = async (
       const d = validation.data!;
       payload = {
         transactionType: d.transactionType as TransactionRegistrationType,
-        propertyId: d.propertyId,
+        propertyId: resolvePropertyId(d.propertyId),
+        agentId: d.agentId ? String(d.agentId).trim() || undefined : undefined,
+        practitioner: normalizePractitioner(d.practitioner),
         inspectionId: d.inspectionId || undefined,
         buyer: d.buyer,
         transactionValue: d.transactionValue,
@@ -291,29 +370,56 @@ export const registerTransaction = async (
       };
     }
 
-    const { transactionType, propertyId, inspectionId, buyer, transactionValue, propertyIdentification } = payload;
+    const {
+      transactionType,
+      propertyId,
+      agentId,
+      practitioner,
+      inspectionId,
+      buyer,
+      transactionValue,
+      propertyIdentification,
+    } = payload;
 
-    const property = await DB.Models.Property.findById(propertyId).lean();
-    if (!property) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found.");
+    const registrationSource: TransactionRegistrationSource = propertyId
+      ? "platform_listing"
+      : "off_platform";
+
+    if (propertyId) {
+      const property = await DB.Models.Property.findById(propertyId).lean();
+      if (!property) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found.");
+      }
+
+      const existing = await DB.Models.TransactionRegistration.findOne({
+        propertyId,
+        status: { $in: ACTIVE_OR_COMPLETED_STATUSES },
+      }).lean();
+      if (existing) {
+        throw new RouteError(
+          HttpStatusCodes.CONFLICT,
+          "This property has an active or completed registered transaction. You cannot register another transaction for it."
+        );
+      }
+    } else {
+      await assertNoDuplicateOffPlatformRegistration(propertyIdentification, transactionType);
     }
 
-    const existing = await DB.Models.TransactionRegistration.findOne({
-      propertyId,
-      status: { $in: ACTIVE_OR_COMPLETED_STATUSES },
-    }).lean();
-    if (existing) {
-      throw new RouteError(
-        HttpStatusCodes.CONFLICT,
-        "This property has an active or completed registered transaction. You cannot register another transaction for it."
-      );
+    if (agentId) {
+      if (!mongoose.Types.ObjectId.isValid(agentId)) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid agentId format.");
+      }
+      const agent = await DB.Models.Agent.findById(agentId).lean();
+      if (!agent) {
+        throw new RouteError(HttpStatusCodes.NOT_FOUND, "Agent not found.");
+      }
     }
 
     const fee = getProcessingFeeNaira(transactionType, transactionValue);
 
-    const createPayload: any = {
+    const createPayload: Record<string, unknown> = {
       transactionType,
-      propertyId,
+      registrationSource,
       inspectionId: inspectionId || undefined,
       buyer: {
         email: buyer.email,
@@ -325,6 +431,9 @@ export const registerTransaction = async (
       status: "submitted",
       propertyIdentification,
     };
+    if (propertyId) createPayload.propertyId = propertyId;
+    if (agentId) createPayload.agentId = agentId;
+    if (practitioner) createPayload.practitioner = practitioner;
     if (paymentReceiptFileName != null) createPayload.paymentReceiptFileName = paymentReceiptFileName;
     if (paymentReceiptBase64 != null) createPayload.paymentReceiptBase64 = paymentReceiptBase64;
     if (paymentReceiptUrl != null) createPayload.paymentReceiptUrl = paymentReceiptUrl;
@@ -333,19 +442,29 @@ export const registerTransaction = async (
     if (buyerIdUrl != null) createPayload.buyerIdUrl = buyerIdUrl;
     const reg = await DB.Models.TransactionRegistration.create(createPayload);
 
-    await DB.Models.Property.findByIdAndUpdate(propertyId, {
-      status: "transaction_registered_pending",
-    });
+    if (propertyId) {
+      await DB.Models.Property.findByIdAndUpdate(propertyId, {
+        status: "transaction_registered_pending",
+      });
+    }
+
+    const propertyLabel = propertyId
+      ? `property ${propertyId}`
+      : propertyIdentification.type === "building"
+        ? `off-platform property at ${propertyIdentification.exactAddress}`
+        : "off-platform land transaction";
 
     void notifyAllActiveAdmins({
       type: "transaction_registration_submitted",
       title: "Transaction registration submitted",
-      message: `${buyer.fullName} (${buyer.email}) registered a ${transactionType} transaction (property ${propertyId}). Processing fee: ₦${fee.toLocaleString()}.`,
+      message: `${buyer.fullName} (${buyer.email}) registered a ${transactionType} transaction (${propertyLabel}). Processing fee: ₦${fee.toLocaleString()}.`,
       meta: {
         registrationId: String(reg._id),
-        propertyId,
+        propertyId: propertyId ?? null,
+        registrationSource,
         transactionType,
         buyerEmail: buyer.email,
+        practitionerEmail: practitioner?.email ?? null,
       },
     });
 
@@ -434,7 +553,7 @@ export const publicSearch = async (
     const registrations = await DB.Models.TransactionRegistration.find(
       conditions.length ? { $or: conditions } : {}
     )
-      .select("transactionType status propertyId propertyIdentification createdAt")
+      .select("transactionType status propertyId propertyIdentification createdAt registrationSource practitioner")
       .populate("propertyId", "status location")
       .lean();
 
@@ -471,6 +590,7 @@ export const publicSearch = async (
         lng: gps?.lng ?? null,
         hasRegisteredTransaction: true,
         registrationStatus,
+        registrationSource: r.registrationSource ?? (propId ? "platform_listing" : "off_platform"),
         propertyStatus: r.propertyId?.status ?? null,
         soldOrLeasedRegistered: r.status === "completed" || r.propertyId?.status === "sold_leased_registered",
         inspectionHistoryCount: propId ? inspectionCounts.get(propId) ?? 0 : 0,
@@ -507,13 +627,32 @@ export const checkPropertyRegistration = async (
       const errorMessage = queryValidation.errors.map((e) => `${e.field}: ${e.message}`).join(", ");
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, errorMessage || "propertyId is required.");
     }
-    const { propertyId } = queryValidation.data!;
+    const { propertyId, address, lat, lng } = queryValidation.data!;
+    const hasPropertyId = propertyId && String(propertyId).trim().length > 0;
+    const hasAddress = address && String(address).trim().length > 0;
+    const hasGps = lat != null && lng != null;
+
+    const conditions: Record<string, unknown>[] = [];
+    if (hasPropertyId) {
+      conditions.push({ propertyId: new mongoose.Types.ObjectId(String(propertyId).trim()) });
+    }
+    if (hasAddress) {
+      conditions.push({
+        "propertyIdentification.exactAddress": new RegExp(String(address).trim(), "i"),
+      });
+    }
+    if (hasGps) {
+      conditions.push({
+        "propertyIdentification.gpsCoordinates.lat": Number(lat),
+        "propertyIdentification.gpsCoordinates.lng": Number(lng),
+      });
+    }
 
     const existing = await DB.Models.TransactionRegistration.findOne({
-      propertyId,
       status: { $in: ACTIVE_OR_COMPLETED_STATUSES },
+      ...(conditions.length ? { $or: conditions } : {}),
     })
-      .select("status transactionType")
+      .select("status transactionType propertyId registrationSource propertyIdentification")
       .lean();
 
     const hasRegistration = !!existing;
@@ -528,6 +667,7 @@ export const checkPropertyRegistration = async (
       data: {
         hasRegistration,
         warning: hasRegistration ? warning : null,
+        registrationSource: existing?.registrationSource ?? null,
         titleStatus: null,
         ownershipVerified: null,
         coordinateVerified: null,

@@ -31,9 +31,26 @@ export interface IPropertyIdentificationLand {
 
 export type IPropertyIdentification = IPropertyIdentificationBuilding | IPropertyIdentificationLand;
 
+export type TransactionRegistrationSource = "platform_listing" | "off_platform";
+
+/** Real estate practitioner involved in the deal (on- or off-platform). */
+export interface ITransactionPractitioner {
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  companyName?: string;
+  licenceNumber?: string;
+  isOnPlatform?: boolean;
+}
+
 export interface ITransactionRegistration {
   transactionType: TransactionRegistrationType;
-  propertyId: Types.ObjectId;
+  /** Platform listing reference — optional for off-platform properties. */
+  propertyId?: Types.ObjectId;
+  /** Platform agent reference when known. */
+  agentId?: Types.ObjectId;
+  registrationSource?: TransactionRegistrationSource;
+  practitioner?: ITransactionPractitioner;
   inspectionId?: Types.ObjectId;
   buyer: {
     email: string;
@@ -92,7 +109,21 @@ export class TransactionRegistration {
           enum: TRANSACTION_TYPES,
           required: true,
         },
-        propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: true },
+        propertyId: { type: Schema.Types.ObjectId, ref: "Property", required: false },
+        agentId: { type: Schema.Types.ObjectId, ref: "Agent", required: false },
+        registrationSource: {
+          type: String,
+          enum: ["platform_listing", "off_platform"],
+          default: "platform_listing",
+        },
+        practitioner: {
+          fullName: { type: String, required: false },
+          email: { type: String, required: false },
+          phoneNumber: { type: String, required: false },
+          companyName: { type: String, required: false },
+          licenceNumber: { type: String, required: false },
+          isOnPlatform: { type: Boolean, required: false },
+        },
         inspectionId: { type: Schema.Types.ObjectId, ref: "InspectionBooking" },
         buyer: {
           email: { type: String, required: true },
@@ -121,7 +152,9 @@ export class TransactionRegistration {
       { timestamps: true }
     );
 
-    schema.index({ propertyId: 1 });
+    schema.index({ propertyId: 1 }, { sparse: true });
+    schema.index({ agentId: 1 }, { sparse: true });
+    schema.index({ registrationSource: 1 });
     schema.index({ inspectionId: 1 });
     schema.index({ status: 1 });
     schema.index({ "propertyIdentification.exactAddress": "text" });

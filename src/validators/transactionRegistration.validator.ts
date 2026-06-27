@@ -47,13 +47,31 @@ export const registerTransactionSchema = Joi.object({
   transactionType: Joi.string()
     .valid(...transactionTypes)
     .required(),
-  propertyId: Joi.string().required(),
+  propertyId: Joi.string().trim().allow("", null).optional(),
+  agentId: Joi.string().trim().allow("", null).optional(),
+  practitioner: Joi.object({
+    fullName: Joi.string().trim().min(2).max(200).required(),
+    email: Joi.string().email().trim().required(),
+    phoneNumber: Joi.string().trim().min(7).required(),
+    companyName: Joi.string().trim().allow("", null).optional(),
+    licenceNumber: Joi.string().trim().allow("", null).optional(),
+    isOnPlatform: Joi.boolean().optional(),
+  }).optional(),
   inspectionId: Joi.string().allow("", null).optional(),
   buyer: buyerSchema.required(),
   transactionValue: Joi.number().min(0).required(),
   propertyIdentification: Joi.alternatives()
     .try(propertyIdentificationBuilding, propertyIdentificationLand)
     .required(),
+});
+
+const practitionerFrontendSchema = Joi.object({
+  fullName: Joi.string().trim().min(2).max(200).required(),
+  email: Joi.string().email().trim().required(),
+  phoneNumber: Joi.string().trim().min(7).required(),
+  companyName: Joi.string().trim().allow("", null).optional(),
+  licenceNumber: Joi.string().trim().allow("", null).optional(),
+  isOnPlatform: Joi.boolean().optional(),
 });
 
 /** Frontend slugs for transaction type */
@@ -84,7 +102,9 @@ export const registerTransactionFrontendSchema = Joi.object({
   transactionType: Joi.string()
     .valid(...REGISTER_TYPE_SLUGS)
     .required(),
-  propertyId: Joi.string().required(),
+  propertyId: Joi.string().trim().allow("", null).optional(),
+  agentId: Joi.string().trim().allow("", null).optional(),
+  practitioner: practitionerFrontendSchema.optional(),
   inspectionId: Joi.string().allow("", null).optional(),
   buyer: buyerSchema.required(),
   transactionValue: Joi.number().min(0).required(),
@@ -98,8 +118,28 @@ export const registerTransactionFrontendSchema = Joi.object({
 })
   .or("paymentReceiptBase64", "paymentReceiptUrl")
   .or("buyerIdBase64", "buyerIdUrl")
+  .custom((value, helpers) => {
+    const propertyId =
+      value.propertyId != null && String(value.propertyId).trim().length > 0
+        ? String(value.propertyId).trim()
+        : "";
+    const pr = value.practitioner;
+    const hasPractitioner =
+      pr &&
+      String(pr.fullName || "").trim() &&
+      String(pr.email || "").trim() &&
+      String(pr.phoneNumber || "").trim();
+    if (!propertyId && !hasPractitioner) {
+      return helpers.error("any.custom", {
+        message:
+          "For properties not listed on KHABITEQ, practitioner (agent) contact details are required.",
+      });
+    }
+    return value;
+  })
   .messages({
     "object.missing": "Payment receipt and buyer ID document are required.",
+    "any.custom": "{{#message}}",
   });
 
 export const publicSearchSchema = Joi.object({
@@ -111,7 +151,20 @@ export const publicSearchSchema = Joi.object({
 
 /** Query params for GET /transaction-registration/check */
 export const checkPropertyQuerySchema = Joi.object({
-  propertyId: Joi.string().trim().required(),
+  propertyId: Joi.string().trim().optional(),
+  address: Joi.string().trim().optional(),
+  lat: Joi.number().min(-90).max(90).optional(),
+  lng: Joi.number().min(-180).max(180).optional(),
+}).custom((value, helpers) => {
+  const hasPropertyId = value.propertyId && String(value.propertyId).trim().length > 0;
+  const hasAddress = value.address && String(value.address).trim().length > 0;
+  const hasGps = value.lat != null && value.lng != null;
+  if (!hasPropertyId && !hasAddress && !hasGps) {
+    return helpers.error("any.custom", {
+      message: "Provide propertyId, address, or both lat and lng.",
+    });
+  }
+  return value;
 });
 
 /** Query params for GET /transaction-registration/egis-validate */
