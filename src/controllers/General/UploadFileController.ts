@@ -34,6 +34,13 @@ const fileTypeConfig: Record<
     resourceType: "raw",
     folder: "identity-docs",
   },
+  /** Transaction registration uploads (buyer ID, payment receipt, etc.) — any document type. */
+  "transaction-registration-doc": {
+    extensions: [],
+    maxSizeMB: 25,
+    resourceType: "raw",
+    folder: "transaction-registration-docs",
+  },
   "property-video": {
     extensions: ["mp4", "mov", "avi", "webm", "flv", "mkv"],
     maxSizeMB: 50,

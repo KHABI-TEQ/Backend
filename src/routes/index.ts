@@ -46,7 +46,10 @@ router.get("/agent/:agentId/ratings", getAgentRatingsPublic);
 
 // Configure Multer (Store file in memory before uploading)
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 },
+});
 
 /**
  * ******************************************************
