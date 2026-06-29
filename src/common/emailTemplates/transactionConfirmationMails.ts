@@ -57,3 +57,34 @@ export function transactionConfirmationFollowUpMail(options: {
     <p>The registration link above pre-fills your Property ID and Inspection ID when available. You can use the same page whether you are the buyer or the agent/developer. If you have any questions, please contact our support team.</p>
   `;
 }
+
+export function transactionRegistrationAcknowledgementMail(options: {
+  buyerName: string;
+  registrationId: string;
+  transactionTypeLabel: string;
+  processingFeeNaira: number;
+  paymentUrl?: string;
+}): string {
+  const { buyerName, registrationId, transactionTypeLabel, processingFeeNaira, paymentUrl } = options;
+  const feeLine =
+    processingFeeNaira > 0
+      ? `<p>Processing fee: <strong>₦${processingFeeNaira.toLocaleString("en-NG")}</strong>.</p>`
+      : `<p>No processing fee is due for this registration at this time.</p>`;
+  const paymentBlock =
+    paymentUrl && processingFeeNaira > 0
+      ? `<p style="margin: 24px 0;">
+      <a href="${paymentUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Complete processing fee payment</a>
+    </p>
+    <p>If the button does not work, copy and paste this link into your browser:<br/><a href="${paymentUrl}">${paymentUrl}</a></p>`
+      : "";
+  return `
+    <p>Hello ${buyerName},</p>
+    <p>Thank you for submitting your transaction registration with KHABITEQ. We have received your application and it is now in our review queue.</p>
+    <p><strong>Registration reference:</strong> ${registrationId}</p>
+    <p><strong>Transaction type:</strong> ${transactionTypeLabel}</p>
+    ${feeLine}
+    ${paymentBlock}
+    <p>Our team will review your submission and the documents you provided. You will be contacted if any additional information is required.</p>
+    <p>Please keep this email for your records.</p>
+  `;
+}

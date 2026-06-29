@@ -23,12 +23,64 @@ import type { TransactionRegistrationType } from "../../../models/transactionReg
 import type {
   IPropertyIdentification,
   ITransactionPractitioner,
+  OffPlatformPartyType,
   TransactionRegistrationSource,
 } from "../../../models/transactionRegistration";
 import { PaystackService } from "../../../services/paystack.service";
 import { notifyAllActiveAdmins } from "../../../services/adminNotification.service";
+import sendEmail from "../../../common/send.email";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { transactionRegistrationAcknowledgementMail } from "../../../common/emailTemplates/transactionConfirmationMails";
 
 const ACTIVE_OR_COMPLETED_STATUSES = ["submitted", "pending_completion", "completed"] as const;
+
+function pickTrimmedString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const s = String(value).trim();
+  return s.length > 0 ? s : undefined;
+}
+
+function applyOptionalRegistrationDoc(
+  payload: Record<string, unknown>,
+  prefix: "deedsOfAssignment" | "conveyance",
+  source: Record<string, unknown>
+) {
+  const fileName = pickTrimmedString(source[`${prefix}FileName`]);
+  const base64 = pickTrimmedString(source[`${prefix}Base64`]);
+  const url = pickTrimmedString(source[`${prefix}Url`]);
+  if (fileName) payload[`${prefix}FileName`] = fileName;
+  if (base64) payload[`${prefix}Base64`] = base64;
+  if (url) payload[`${prefix}Url`] = url;
+}
+
+async function sendRegistrationAcknowledgementEmail(options: {
+  buyer: { email: string; fullName: string };
+  registrationId: string;
+  transactionType: TransactionRegistrationType;
+  processingFeeNaira: number;
+  paymentUrl?: string;
+}) {
+  const { buyer, registrationId, transactionType, processingFeeNaira, paymentUrl } = options;
+  const typeConfig = TRANSACTION_TYPE_CONFIGS.find((c) => c.type === transactionType);
+  const transactionTypeLabel = typeConfig?.label ?? transactionType;
+  const htmlBody = transactionRegistrationAcknowledgementMail({
+    buyerName: buyer.fullName,
+    registrationId,
+    transactionTypeLabel,
+    processingFeeNaira,
+    paymentUrl,
+  });
+  try {
+    await sendEmail({
+      to: buyer.email,
+      subject: "Transaction registration received – KHABITEQ",
+      text: `Hello ${buyer.fullName}, we have received your transaction registration (reference ${registrationId}).`,
+      html: generalEmailLayout(htmlBody),
+    });
+  } catch (err) {
+    console.error("[transaction-registration] Buyer acknowledgement email failed:", err);
+  }
+}
 
 /** Frontend slug for each backend transaction type */
 const TYPE_TO_SLUG: Record<TransactionRegistrationType, string> = {
@@ -170,6 +222,11 @@ export const submitBuyerIntent = async (
     next(error);
   }
 };
+
+function normalizeOffPlatformPartyType(raw: unknown): OffPlatformPartyType | undefined {
+  if (raw === "agent" || raw === "property_owner") return raw;
+  return undefined;
+}
 
 function normalizePractitioner(raw: any): ITransactionPractitioner | undefined {
   if (!raw || typeof raw !== "object") return undefined;
@@ -328,6 +385,8 @@ export const registerTransaction = async (
     let buyerIdFileName: string | undefined;
     let buyerIdBase64: string | undefined;
     let buyerIdUrl: string | undefined;
+    let optionalDocSource: Record<string, unknown> | undefined;
+    let offPlatformPartyType: OffPlatformPartyType | undefined;
 
     const frontendValidation = JoiValidator.validate(registerTransactionFrontendSchema, req.body);
     if (frontendValidation.success && frontendValidation.data) {
@@ -351,6 +410,8 @@ export const registerTransaction = async (
       if (fd.buyerIdUrl != null && String(fd.buyerIdUrl).trim()) {
         buyerIdUrl = String(fd.buyerIdUrl).trim();
       }
+      optionalDocSource = fd as Record<string, unknown>;
+      offPlatformPartyType = normalizeOffPlatformPartyType(fd.offPlatformPartyType);
     } else {
       const validation = JoiValidator.validate(registerTransactionSchema, req.body);
       if (!validation.success) {
@@ -368,6 +429,7 @@ export const registerTransaction = async (
         transactionValue: d.transactionValue,
         propertyIdentification: d.propertyIdentification as IPropertyIdentification,
       };
+      offPlatformPartyType = normalizeOffPlatformPartyType(d.offPlatformPartyType);
     }
 
     const {
@@ -434,12 +496,19 @@ export const registerTransaction = async (
     if (propertyId) createPayload.propertyId = propertyId;
     if (agentId) createPayload.agentId = agentId;
     if (practitioner) createPayload.practitioner = practitioner;
+    if (offPlatformPartyType && practitioner?.isOnPlatform !== true) {
+      createPayload.offPlatformPartyType = offPlatformPartyType;
+    }
     if (paymentReceiptFileName != null) createPayload.paymentReceiptFileName = paymentReceiptFileName;
     if (paymentReceiptBase64 != null) createPayload.paymentReceiptBase64 = paymentReceiptBase64;
     if (paymentReceiptUrl != null) createPayload.paymentReceiptUrl = paymentReceiptUrl;
     if (buyerIdFileName != null) createPayload.buyerIdFileName = buyerIdFileName;
     if (buyerIdBase64 != null) createPayload.buyerIdBase64 = buyerIdBase64;
     if (buyerIdUrl != null) createPayload.buyerIdUrl = buyerIdUrl;
+    if (optionalDocSource) {
+      applyOptionalRegistrationDoc(createPayload, "deedsOfAssignment", optionalDocSource);
+      applyOptionalRegistrationDoc(createPayload, "conveyance", optionalDocSource);
+    }
     const reg = await DB.Models.TransactionRegistration.create(createPayload);
 
     if (propertyId) {
@@ -465,6 +534,7 @@ export const registerTransaction = async (
         transactionType,
         buyerEmail: buyer.email,
         practitionerEmail: practitioner?.email ?? null,
+        offPlatformPartyType: offPlatformPartyType ?? null,
       },
     });
 
@@ -496,6 +566,14 @@ export const registerTransaction = async (
         console.error("[transaction-registration] Paystack init failed:", err);
       }
     }
+
+    void sendRegistrationAcknowledgementEmail({
+      buyer,
+      registrationId: String(reg._id),
+      transactionType,
+      processingFeeNaira: fee,
+      paymentUrl: data.paymentUrl,
+    });
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

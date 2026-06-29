@@ -79,7 +79,7 @@ export const getAllTransactionRegistrations = async (
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNum)
-        .select("-paymentReceiptBase64 -buyerIdBase64")
+        .select("-paymentReceiptBase64 -buyerIdBase64 -deedsOfAssignmentBase64 -conveyanceBase64")
         .populate("propertyId", "location price briefType propertyType status pictures additionalFeatures")
         .populate({
           path: "agentId",

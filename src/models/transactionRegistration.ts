@@ -33,6 +33,9 @@ export type IPropertyIdentification = IPropertyIdentificationBuilding | IPropert
 
 export type TransactionRegistrationSource = "platform_listing" | "off_platform";
 
+/** Off-platform counterparty the buyer transacted with (when not on KHABITEQ). */
+export type OffPlatformPartyType = "agent" | "property_owner";
+
 /** Real estate practitioner involved in the deal (on- or off-platform). */
 export interface ITransactionPractitioner {
   fullName: string;
@@ -50,6 +53,8 @@ export interface ITransactionRegistration {
   /** Platform agent reference when known. */
   agentId?: Types.ObjectId;
   registrationSource?: TransactionRegistrationSource;
+  /** Set when the counterparty is not registered on KHABITEQ — agent or property owner. */
+  offPlatformPartyType?: OffPlatformPartyType;
   practitioner?: ITransactionPractitioner;
   inspectionId?: Types.ObjectId;
   buyer: {
@@ -73,6 +78,14 @@ export interface ITransactionRegistration {
   buyerIdBase64?: string;
   /** Cloudinary URL for buyer valid ID (preferred over base64). */
   buyerIdUrl?: string;
+  /** Deed of assignment file name (optional). */
+  deedsOfAssignmentFileName?: string;
+  deedsOfAssignmentBase64?: string;
+  deedsOfAssignmentUrl?: string;
+  /** Conveyance document file name (optional). */
+  conveyanceFileName?: string;
+  conveyanceBase64?: string;
+  conveyanceUrl?: string;
   /** Paystack transaction ID for the processing fee (set when payment link is generated). */
   paymentTransactionId?: Types.ObjectId;
 }
@@ -116,6 +129,11 @@ export class TransactionRegistration {
           enum: ["platform_listing", "off_platform"],
           default: "platform_listing",
         },
+        offPlatformPartyType: {
+          type: String,
+          enum: ["agent", "property_owner"],
+          required: false,
+        },
         practitioner: {
           fullName: { type: String, required: false },
           email: { type: String, required: false },
@@ -147,6 +165,12 @@ export class TransactionRegistration {
         buyerIdFileName: { type: String, required: false },
         buyerIdBase64: { type: String, required: false },
         buyerIdUrl: { type: String, required: false },
+        deedsOfAssignmentFileName: { type: String, required: false },
+        deedsOfAssignmentBase64: { type: String, required: false },
+        deedsOfAssignmentUrl: { type: String, required: false },
+        conveyanceFileName: { type: String, required: false },
+        conveyanceBase64: { type: String, required: false },
+        conveyanceUrl: { type: String, required: false },
         paymentTransactionId: { type: Schema.Types.ObjectId, ref: "newTransaction", required: false },
       },
       { timestamps: true }

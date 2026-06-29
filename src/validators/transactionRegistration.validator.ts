@@ -49,6 +49,7 @@ export const registerTransactionSchema = Joi.object({
     .required(),
   propertyId: Joi.string().trim().allow("", null).optional(),
   agentId: Joi.string().trim().allow("", null).optional(),
+  offPlatformPartyType: Joi.string().valid("agent", "property_owner").optional(),
   practitioner: Joi.object({
     fullName: Joi.string().trim().min(2).max(200).required(),
     email: Joi.string().email().trim().required(),
@@ -104,6 +105,7 @@ export const registerTransactionFrontendSchema = Joi.object({
     .required(),
   propertyId: Joi.string().trim().allow("", null).optional(),
   agentId: Joi.string().trim().allow("", null).optional(),
+  offPlatformPartyType: Joi.string().valid("agent", "property_owner").optional(),
   practitioner: practitionerFrontendSchema.optional(),
   inspectionId: Joi.string().allow("", null).optional(),
   buyer: buyerSchema.required(),
@@ -115,6 +117,12 @@ export const registerTransactionFrontendSchema = Joi.object({
   buyerIdFileName: Joi.string().trim().min(1).optional(),
   buyerIdBase64: Joi.string().trim().min(1).optional(),
   buyerIdUrl: Joi.string().uri().trim().optional(),
+  deedsOfAssignmentFileName: Joi.string().trim().min(1).optional(),
+  deedsOfAssignmentBase64: Joi.string().trim().min(1).optional(),
+  deedsOfAssignmentUrl: Joi.string().uri().trim().optional(),
+  conveyanceFileName: Joi.string().trim().min(1).optional(),
+  conveyanceBase64: Joi.string().trim().min(1).optional(),
+  conveyanceUrl: Joi.string().uri().trim().optional(),
 })
   .or("paymentReceiptBase64", "paymentReceiptUrl")
   .or("buyerIdBase64", "buyerIdUrl")
@@ -124,16 +132,31 @@ export const registerTransactionFrontendSchema = Joi.object({
         ? String(value.propertyId).trim()
         : "";
     const pr = value.practitioner;
+    const practitionerOnPlatform = pr?.isOnPlatform === true;
     const hasPractitioner =
       pr &&
       String(pr.fullName || "").trim() &&
       String(pr.email || "").trim() &&
       String(pr.phoneNumber || "").trim();
+    const partyType = value.offPlatformPartyType;
+    if (!propertyId && practitionerOnPlatform) {
+      return helpers.error("any.custom", {
+        message:
+          "For properties not listed on KHABITEQ, uncheck practitioner on KHABITEQ and provide the agent or property owner you transacted with.",
+      });
+    }
     if (!propertyId && !hasPractitioner) {
       return helpers.error("any.custom", {
         message:
-          "For properties not listed on KHABITEQ, practitioner (agent) contact details are required.",
+          "For properties not listed on KHABITEQ, contact details for the agent or property owner are required.",
       });
+    }
+    if (hasPractitioner && !practitionerOnPlatform) {
+      if (!partyType) {
+        return helpers.error("any.custom", {
+          message: "Select whether you transacted with a property owner or an agent.",
+        });
+      }
     }
     return value;
   })
