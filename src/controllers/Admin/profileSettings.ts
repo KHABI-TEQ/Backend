@@ -88,7 +88,7 @@ export const updateAdminProfile = async (
   next: NextFunction,
 ) => {
   try {
-    const adminId = req.user?._id;
+    const adminId = req.admin?._id;
     const updateData = req.body;
 
     const updated = await DB.Models.Admin.findByIdAndUpdate(adminId, updateData, {
@@ -116,7 +116,7 @@ export const changeAdminEmail = async (
   next: NextFunction,
 ) => {
   try {
-    const adminId = req.user?._id;
+    const adminId = req.admin?._id;
     const { newEmail } = req.body;
 
     if (!newEmail) {
@@ -155,7 +155,7 @@ export const changeAdminPassword = async (
   next: NextFunction,
 ) => {
   try {
-    const adminId = req.user?._id;
+    const adminId = req.admin?._id;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -191,7 +191,7 @@ export const requestAdminAccountDeletion = async (
   next: NextFunction,
 ) => {
   try {
-    const adminId = req.user?._id;
+    const adminId = req.admin?._id;
 
     const updated = await DB.Models.Admin.findByIdAndUpdate(
       adminId,

@@ -10,6 +10,7 @@ import {
   updateLasreraCertificateConfig,
   ILasreraCertificateConfig,
 } from "../../../services/lasreraSettings.service";
+import { buildCertificatePreviewPdf } from "../../../services/transactionRegistrationCertificate.service";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { transactionRegistrationCertificateIssuedMail } from "../../../common/emailTemplates/transactionConfirmationMails";
@@ -308,6 +309,41 @@ export const updateLasreraSettings = async (req: AppRequest, res: Response, next
       message: "LASRERA certificate settings updated",
       data: config,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /admin/lasrera/settings/preview
+ * Returns a sample certificate PDF using draft or saved branding settings.
+ */
+export const previewLasreraCertificate = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const body = (req.body || {}) as Partial<ILasreraCertificateConfig>;
+    const saved = await getLasreraCertificateConfig();
+
+    const draft: ILasreraCertificateConfig = {
+      logoUrl: body.logoUrl !== undefined ? body.logoUrl : saved.logoUrl,
+      stampUrl: body.stampUrl !== undefined ? body.stampUrl : saved.stampUrl,
+      signatureUrl:
+        body.signatureUrl !== undefined ? body.signatureUrl : saved.signatureUrl,
+      signatoryName: body.signatoryName?.trim() || saved.signatoryName,
+      signatoryTitle: body.signatoryTitle?.trim() || saved.signatoryTitle,
+    };
+
+    const pdfBuffer = await buildCertificatePreviewPdf(draft);
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      'inline; filename="lasrera-certificate-preview.pdf"'
+    );
+    return res.status(HttpStatusCodes.OK).send(pdfBuffer);
   } catch (err) {
     next(err);
   }

@@ -41,6 +41,12 @@ const fileTypeConfig: Record<
     resourceType: "raw",
     folder: "transaction-registration-docs",
   },
+  "lasrera-branding": {
+    extensions: ["jpg", "jpeg", "png", "webp"],
+    maxSizeMB: 5,
+    resourceType: "image",
+    folder: "lasrera/branding",
+  },
   "property-video": {
     extensions: ["mp4", "mov", "avi", "webm", "flv", "mkv"],
     maxSizeMB: 50,

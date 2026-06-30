@@ -23,7 +23,7 @@ export class Role {
           required: true,
           unique: true,
           trim: true,
-          enum: ['superAdmin', 'admin', 'manager', 'viewer', 'agent-reviewer', 'property-reviewer', 'inspector', 'field-agent-manager'],
+          enum: ['superAdmin', 'admin', 'manager', 'viewer', 'agent-reviewer', 'property-reviewer', 'inspector', 'field-agent-manager', 'lasrera-admin'],
         },
         description: {
           type: String,

@@ -63,6 +63,7 @@ import {
   issueTransactionRegistrationCertificate,
   getLasreraSettings,
   updateLasreraSettings,
+  previewLasreraCertificate,
   getLasreraRegistrationQueue,
   getKhabiteqRegistrationQueue,
 } from "../controllers/Admin/TransactionRegistration/transactionRegistrationWorkflow";
@@ -348,6 +349,11 @@ AdminRouter.put(
   "/lasrera/settings",
   requirePermission(PERMISSIONS.LASRERA_SETTINGS_MANAGE),
   updateLasreraSettings
+);
+AdminRouter.post(
+  "/lasrera/settings/preview",
+  requirePermission(PERMISSIONS.LASRERA_SETTINGS_MANAGE),
+  previewLasreraCertificate
 );
 
 // DEAL SITE MANAGEMENT ROUTES

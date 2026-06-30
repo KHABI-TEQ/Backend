@@ -6,6 +6,7 @@ import { ITransactionRegistrationDoc } from "../models/transactionRegistration";
 import {
   getLasreraCertificateConfig,
   ILasreraCertificateConfig,
+  readBundledLasreraLogo,
 } from "./lasreraSettings.service";
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
@@ -15,6 +16,17 @@ const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   joint_venture: "Joint Venture",
 };
 
+export const SAMPLE_CERTIFICATE_BUYER_NAME = "Adebayo Okonkwo";
+
+export interface CertificateDocumentInput {
+  buyerName: string;
+  transactionType: string;
+  propertyAddress: string;
+  transactionValue: number;
+  issuedAt: Date;
+  certificateNumber: string;
+}
+
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   if (!url?.trim()) return null;
   try {
@@ -23,6 +35,28 @@ async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   } catch {
     return null;
   }
+}
+
+async function resolveRemoteImage(url?: string): Promise<Buffer | null> {
+  const trimmed = url?.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("/")) {
+    const adminBase = (process.env.ADMIN_CLIENT_LINK || "").replace(/\/$/, "");
+    if (adminBase) {
+      const remote = await fetchImageBuffer(`${adminBase}${trimmed}`);
+      if (remote) return remote;
+    }
+    return null;
+  }
+
+  return fetchImageBuffer(trimmed);
+}
+
+async function resolveLogoBuffer(logoUrl?: string): Promise<Buffer | null> {
+  const remote = await resolveRemoteImage(logoUrl);
+  if (remote) return remote;
+  return readBundledLasreraLogo();
 }
 
 function formatCurrency(amount: number): string {
@@ -52,14 +86,38 @@ export function generateCertificateNumber(registrationId: Types.ObjectId | strin
   return `LASRERA/TRC/${year}/${suffix}`;
 }
 
-async function buildCertificatePdf(
+export function buildSampleCertificateInput(): CertificateDocumentInput {
+  return {
+    buyerName: SAMPLE_CERTIFICATE_BUYER_NAME,
+    transactionType: "rental_agreement",
+    propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos",
+    transactionValue: 4_500_000,
+    issuedAt: new Date(),
+    certificateNumber: `LASRERA/TRC/${new Date().getFullYear()}/SAMPLE01`,
+  };
+}
+
+function inputFromRegistration(
   reg: ITransactionRegistrationDoc,
-  certificateNumber: string,
+  certificateNumber: string
+): CertificateDocumentInput {
+  return {
+    buyerName: reg.buyer?.fullName?.trim() || "Registered Buyer",
+    transactionType: reg.transactionType,
+    propertyAddress: propertyAddress(reg),
+    transactionValue: reg.transactionValue,
+    issuedAt: reg.certificateIssuedAt || new Date(),
+    certificateNumber,
+  };
+}
+
+async function buildCertificatePdf(
+  input: CertificateDocumentInput,
   config: ILasreraCertificateConfig
 ): Promise<Buffer> {
-  const logoBuffer = await fetchImageBuffer(config.logoUrl);
-  const signatureBuffer = config.signatureUrl ? await fetchImageBuffer(config.signatureUrl) : null;
-  const issuedAt = reg.certificateIssuedAt || new Date();
+  const logoBuffer = await resolveLogoBuffer(config.logoUrl);
+  const signatureBuffer = await resolveRemoteImage(config.signatureUrl);
+  const stampBuffer = await resolveRemoteImage(config.stampUrl);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
@@ -70,25 +128,24 @@ async function buildCertificatePdf(
     doc.on("error", reject);
 
     const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
     const contentWidth = pageWidth - 100;
 
-    // Outer border
     doc
       .lineWidth(2)
       .strokeColor("#0B5D3B")
-      .rect(35, 35, pageWidth - 70, doc.page.height - 70)
+      .rect(35, 35, pageWidth - 70, pageHeight - 70)
       .stroke();
 
     doc
       .lineWidth(0.5)
       .strokeColor("#C9A227")
-      .rect(42, 42, pageWidth - 84, doc.page.height - 84)
+      .rect(42, 42, pageWidth - 84, pageHeight - 84)
       .stroke();
 
-    // Logo
     if (logoBuffer) {
-      doc.image(logoBuffer, pageWidth / 2 - 60, 58, { width: 120 });
-      doc.y = 145;
+      doc.image(logoBuffer, pageWidth / 2 - 70, 52, { width: 140 });
+      doc.y = 148;
     } else {
       doc.y = 70;
     }
@@ -127,25 +184,27 @@ async function buildCertificatePdf(
       .font("Helvetica")
       .fontSize(10)
       .fillColor("#666666")
-      .text(`Certificate No: ${certificateNumber}`, { width: contentWidth, align: "center" });
+      .text(`Certificate No: ${input.certificateNumber}`, {
+        width: contentWidth,
+        align: "center",
+      });
 
     doc.moveDown(1.5);
     doc
       .font("Helvetica")
       .fontSize(12)
       .fillColor("#222222")
-      .text("This is to certify that the following transaction has been duly registered with LASRERA through the KHABI-TEQ compliance platform:", {
-        width: contentWidth,
-        align: "center",
-      });
+      .text(
+        "This is to certify that the following transaction has been duly registered with LASRERA through the KHABI-TEQ compliance platform:",
+        { width: contentWidth, align: "center" }
+      );
 
     doc.moveDown(1.2);
-    const buyerName = reg.buyer?.fullName?.trim() || "Registered Buyer";
     doc
       .font("Helvetica-Bold")
       .fontSize(18)
       .fillColor("#0B5D3B")
-      .text(buyerName, { width: contentWidth, align: "center" });
+      .text(input.buyerName, { width: contentWidth, align: "center" });
 
     doc.moveDown(0.3);
     doc
@@ -157,10 +216,13 @@ async function buildCertificatePdf(
     doc.moveDown(1.5);
 
     const details: [string, string][] = [
-      ["Transaction Type", TRANSACTION_TYPE_LABELS[reg.transactionType] || reg.transactionType],
-      ["Property Address", propertyAddress(reg)],
-      ["Transaction Value", formatCurrency(reg.transactionValue)],
-      ["Registration Date", formatDate(issuedAt)],
+      [
+        "Transaction Type",
+        TRANSACTION_TYPE_LABELS[input.transactionType] || input.transactionType,
+      ],
+      ["Property Address", input.propertyAddress],
+      ["Transaction Value", formatCurrency(input.transactionValue)],
+      ["Registration Date", formatDate(input.issuedAt)],
     ];
 
     const labelX = 80;
@@ -189,8 +251,8 @@ async function buildCertificatePdf(
         { width: contentWidth - 20, align: "justify" }
       );
 
-    // Signature block
-    const signatureY = doc.page.height - 170;
+    const signatureY = pageHeight - 170;
+
     if (signatureBuffer) {
       doc.image(signatureBuffer, 80, signatureY - 45, { width: 120, height: 40, fit: [120, 40] });
     } else {
@@ -214,11 +276,19 @@ async function buildCertificatePdf(
       .fillColor("#555555")
       .text(config.signatoryTitle, 80, signatureY + 22, { width: 220 });
 
+    if (stampBuffer) {
+      doc.image(stampBuffer, pageWidth - 175, signatureY - 70, {
+        width: 110,
+        height: 110,
+        fit: [110, 110],
+      });
+    }
+
     doc
       .font("Helvetica")
       .fontSize(8)
       .fillColor("#888888")
-      .text(`Issued via KHABI-TEQ · ${formatDate(issuedAt)}`, 50, doc.page.height - 55, {
+      .text(`Issued via KHABI-TEQ · ${formatDate(input.issuedAt)}`, 50, pageHeight - 55, {
         width: contentWidth,
         align: "center",
       });
@@ -227,23 +297,28 @@ async function buildCertificatePdf(
   });
 }
 
+export async function buildCertificatePreviewPdf(
+  config: ILasreraCertificateConfig
+): Promise<Buffer> {
+  return buildCertificatePdf(buildSampleCertificateInput(), config);
+}
+
 export async function generateAndStoreRegistrationCertificate(
   reg: ITransactionRegistrationDoc,
   issuedByAdminId?: Types.ObjectId | string
 ): Promise<{ certificateNumber: string; certificateUrl: string }> {
   const config = await getLasreraCertificateConfig();
   const certificateNumber = reg.certificateNumber || generateCertificateNumber(String(reg._id));
-  const pdfBuffer = await buildCertificatePdf(reg, certificateNumber, config);
+  const pdfBuffer = await buildCertificatePdf(
+    inputFromRegistration(reg, certificateNumber),
+    config
+  );
   const base64 = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
   const filename = `lasrera-certificate-${String(reg._id).slice(-8)}`;
 
-  const upload = await uploadFile(
-    base64,
-    filename,
-    "lasrera/certificates",
-    "raw",
-    { format: "pdf" }
-  );
+  const upload = await uploadFile(base64, filename, "lasrera/certificates", "raw", {
+    format: "pdf",
+  });
 
   reg.certificateNumber = certificateNumber;
   reg.certificateUrl = upload.secure_url;

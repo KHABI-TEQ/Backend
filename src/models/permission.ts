@@ -25,7 +25,10 @@ export interface IPermission {
     | 'ads'
     | 'extra-pages'
     | 'public-access-page'
-    | 'email-subscriptions';
+    | 'email-subscriptions'
+    | 'khabiteq-registrations'
+    | 'lasrera-registrations'
+    | 'lasrera-settings';
   isActive: boolean;
 }
  
@@ -82,6 +85,9 @@ export class Permission {
             'extra-pages',
             'public-access-page',
             'email-subscriptions',
+            'khabiteq-registrations',
+            'lasrera-registrations',
+            'lasrera-settings',
           ],
         },
         isActive: {

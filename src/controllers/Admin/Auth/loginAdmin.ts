@@ -13,6 +13,7 @@ export const loginAdmin = async (
   try {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
+    const normalizedPassword = typeof password === "string" ? password.trim() : password;
 
     // Find admin and populate roles with their permissions
     const admin = await DB.Models.Admin.findOne({ email: normalizedEmail })
@@ -36,7 +37,7 @@ export const loginAdmin = async (
       );
     }
 
-    const isMatch = await bcrypt.compare(password, admin.password);
+    const isMatch = await bcrypt.compare(normalizedPassword, admin.password);
     if (!isMatch) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid password.");
     }
