@@ -12,6 +12,7 @@ import {
   publicSearchSchema,
   checkPropertyQuerySchema,
   egisValidateQuerySchema,
+  certificateDownloadSchema,
 } from "../../../validators/transactionRegistration.validator";
 import {
   TRANSACTION_TYPE_CONFIGS,
@@ -32,7 +33,33 @@ import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { transactionRegistrationAcknowledgementMail } from "../../../common/emailTemplates/transactionConfirmationMails";
 
-const ACTIVE_OR_COMPLETED_STATUSES = ["submitted", "pending_completion", "completed"] as const;
+const ACTIVE_OR_COMPLETED_STATUSES = [
+  "submitted",
+  "pending_completion",
+  "khabiteq_verified",
+  "forwarded_to_lasrera",
+  "info_requested",
+  "approved",
+  "certificate_issued",
+  "completed",
+] as const;
+
+const REGISTERED_STATUSES = new Set(["certificate_issued", "completed"]);
+
+function publicRegistrationStatusLabel(status: string): string {
+  if (REGISTERED_STATUSES.has(status)) return "Registered";
+  if (status === "submitted" || status === "pending_completion") return "Pending";
+  if (status === "rejected") return "Rejected";
+  if (
+    status === "khabiteq_verified" ||
+    status === "forwarded_to_lasrera" ||
+    status === "info_requested" ||
+    status === "approved"
+  ) {
+    return "Under review";
+  }
+  return status;
+}
 
 function pickTrimmedString(value: unknown): string | undefined {
   if (value == null) return undefined;
@@ -658,8 +685,7 @@ export const publicSearch = async (
       const ident = r.propertyIdentification;
       const addr = ident?.exactAddress ?? null;
       const gps = ident?.gpsCoordinates;
-      const registrationStatus =
-        r.status === "completed" ? "Registered" : r.status === "submitted" || r.status === "pending_completion" ? "Pending" : String(r.status);
+      const registrationStatus = publicRegistrationStatusLabel(String(r.status));
       return {
         address: addr,
         propertyId: propId ?? null,
@@ -670,7 +696,8 @@ export const publicSearch = async (
         registrationStatus,
         registrationSource: r.registrationSource ?? (propId ? "platform_listing" : "off_platform"),
         propertyStatus: r.propertyId?.status ?? null,
-        soldOrLeasedRegistered: r.status === "completed" || r.propertyId?.status === "sold_leased_registered",
+        soldOrLeasedRegistered:
+          REGISTERED_STATUSES.has(String(r.status)) || r.propertyId?.status === "sold_leased_registered",
         inspectionHistoryCount: propId ? inspectionCounts.get(propId) ?? 0 : 0,
         titleStatus: null as string | null,
         ownershipVerified: null as boolean | null,
@@ -797,6 +824,129 @@ export const egisValidate = async (
       success: true,
       data,
       message: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Shared buyer certificate access check (email + registration reference must match).
+ */
+async function resolveBuyerCertificateAccess(email: string, registrationId: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const id = registrationId.trim();
+
+  if (!normalizedEmail || !id || !mongoose.Types.ObjectId.isValid(id)) {
+    return {
+      ok: false as const,
+      status: HttpStatusCodes.BAD_REQUEST,
+      message: "Provide a valid registration reference and buyer email.",
+    };
+  }
+
+  const registration = await DB.Models.TransactionRegistration.findById(id)
+    .select("buyer status certificateUrl certificateNumber certificateIssuedAt")
+    .lean();
+
+  if (!registration || registration.buyer?.email?.toLowerCase() !== normalizedEmail) {
+    return {
+      ok: false as const,
+      status: HttpStatusCodes.NOT_FOUND,
+      message:
+        "No certificate found for the registration reference and email provided. Check your details and try again.",
+    };
+  }
+
+  if (!REGISTERED_STATUSES.has(String(registration.status)) || !registration.certificateUrl) {
+    return {
+      ok: false as const,
+      status: HttpStatusCodes.BAD_REQUEST,
+      message:
+        "Your certificate is not yet available. Your registration may still be under review by KHABITEQ or LASRERA.",
+    };
+  }
+
+  return {
+    ok: true as const,
+    data: {
+      certificateUrl: registration.certificateUrl,
+      certificateNumber: registration.certificateNumber,
+      issuedAt: registration.certificateIssuedAt,
+      buyerName: registration.buyer?.fullName,
+      registrationId: id,
+    },
+  };
+}
+
+/**
+ * POST /transaction-registration/certificate/download
+ * Secure buyer certificate download — requires registration reference and matching buyer email.
+ */
+export const requestRegistrationCertificateDownload = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const validation = JoiValidator.validate(certificateDownloadSchema, req.body);
+    if (!validation.success) {
+      const errorMessage = validation.errors.map((e) => e.message).join(" ");
+      return res.status(HttpStatusCodes.BAD_REQUEST).json({
+        success: false,
+        message: errorMessage || "Invalid request.",
+        data: null,
+      });
+    }
+
+    const { email, registrationId } = validation.data!;
+    const result = await resolveBuyerCertificateAccess(email, registrationId);
+
+    if (!result.ok) {
+      return res.status(result.status).json({
+        success: false,
+        message: result.message,
+        data: null,
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Certificate verified. You may download your certificate.",
+      data: result.data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /transaction-registration/:registrationId/certificate
+ * @deprecated Prefer POST /certificate/download — retained for backward compatibility.
+ */
+export const downloadRegistrationCertificate = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { registrationId } = req.params;
+    const email = String(req.query.email || "");
+
+    const result = await resolveBuyerCertificateAccess(email, registrationId);
+
+    if (!result.ok) {
+      return res.status(result.status).json({
+        success: false,
+        message: result.message,
+        data: null,
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Certificate available",
+      data: result.data,
     });
   } catch (error) {
     next(error);

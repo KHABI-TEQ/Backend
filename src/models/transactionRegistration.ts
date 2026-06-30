@@ -9,8 +9,19 @@ export type TransactionRegistrationType =
 export type TransactionRegistrationStatus =
   | "submitted"
   | "pending_completion"
+  | "khabiteq_verified"
+  | "forwarded_to_lasrera"
+  | "info_requested"
+  | "approved"
+  | "certificate_issued"
   | "completed"
   | "rejected";
+
+export interface IRegistrationWorkflowNotes {
+  khabiteqVerificationNote?: string;
+  lasreraReviewNote?: string;
+  infoRequestMessage?: string;
+}
 
 export interface IPropertyIdentificationBuilding {
   type: "building";
@@ -88,6 +99,17 @@ export interface ITransactionRegistration {
   conveyanceUrl?: string;
   /** Paystack transaction ID for the processing fee (set when payment link is generated). */
   paymentTransactionId?: Types.ObjectId;
+  workflowNotes?: IRegistrationWorkflowNotes;
+  khabiteqVerifiedAt?: Date;
+  khabiteqVerifiedBy?: Types.ObjectId;
+  forwardedToLasreraAt?: Date;
+  forwardedBy?: Types.ObjectId;
+  lasreraReviewedAt?: Date;
+  lasreraReviewedBy?: Types.ObjectId;
+  certificateNumber?: string;
+  certificateUrl?: string;
+  certificateIssuedAt?: Date;
+  certificateIssuedBy?: Types.ObjectId;
 }
 
 export interface ITransactionRegistrationDoc extends ITransactionRegistration, Document {
@@ -107,6 +129,11 @@ const TRANSACTION_TYPES: TransactionRegistrationType[] = [
 const STATUSES: TransactionRegistrationStatus[] = [
   "submitted",
   "pending_completion",
+  "khabiteq_verified",
+  "forwarded_to_lasrera",
+  "info_requested",
+  "approved",
+  "certificate_issued",
   "completed",
   "rejected",
 ];
@@ -172,6 +199,21 @@ export class TransactionRegistration {
         conveyanceBase64: { type: String, required: false },
         conveyanceUrl: { type: String, required: false },
         paymentTransactionId: { type: Schema.Types.ObjectId, ref: "newTransaction", required: false },
+        workflowNotes: {
+          khabiteqVerificationNote: { type: String, required: false },
+          lasreraReviewNote: { type: String, required: false },
+          infoRequestMessage: { type: String, required: false },
+        },
+        khabiteqVerifiedAt: { type: Date, required: false },
+        khabiteqVerifiedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
+        forwardedToLasreraAt: { type: Date, required: false },
+        forwardedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
+        lasreraReviewedAt: { type: Date, required: false },
+        lasreraReviewedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
+        certificateNumber: { type: String, required: false, index: true },
+        certificateUrl: { type: String, required: false },
+        certificateIssuedAt: { type: Date, required: false },
+        certificateIssuedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
       },
       { timestamps: true }
     );

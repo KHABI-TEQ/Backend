@@ -197,3 +197,14 @@ export const egisValidateQuerySchema = Joi.object({
   lat: Joi.number().min(-90).max(90).optional(),
   lng: Joi.number().min(-180).max(180).optional(),
 });
+
+/** Body for POST /transaction-registration/certificate/download */
+export const certificateDownloadSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    "string.email": "Enter a valid buyer email address.",
+    "any.required": "Buyer email is required.",
+  }),
+  registrationId: Joi.string().trim().required().messages({
+    "any.required": "Registration reference (transaction ID) is required.",
+  }),
+});

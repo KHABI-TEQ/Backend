@@ -88,3 +88,28 @@ export function transactionRegistrationAcknowledgementMail(options: {
     <p>Please keep this email for your records.</p>
   `;
 }
+
+export function transactionRegistrationCertificateIssuedMail(options: {
+  buyerName: string;
+  registrationId: string;
+  certificateNumber: string;
+  downloadPortalUrl: string;
+}): string {
+  const { buyerName, registrationId, certificateNumber, downloadPortalUrl } = options;
+  return `
+    <p>Hello ${buyerName},</p>
+    <p>Your property transaction registration has been <strong>approved by LASRERA</strong> and your official registration certificate is now available.</p>
+    <p><strong>Registration reference:</strong> <code style="font-size:13px;">${registrationId}</code></p>
+    <p><strong>Certificate number:</strong> ${certificateNumber}</p>
+    <p>To download your certificate securely, visit the KHABI-TEQ transaction registration portal and enter:</p>
+    <ul style="margin: 16px 0; padding-left: 24px;">
+      <li>The <strong>registration reference</strong> above</li>
+      <li>The <strong>buyer email address</strong> used when you registered</li>
+    </ul>
+    <p style="margin: 24px 0;">
+      <a href="${downloadPortalUrl}" style="display: inline-block; padding: 12px 24px; background-color: #0B5D3B; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Download your certificate</a>
+    </p>
+    <p>If the button does not work, copy and paste this link into your browser:<br/><a href="${downloadPortalUrl}">${downloadPortalUrl}</a></p>
+    <p>Please keep this certificate for your records. It may be presented as evidence of LASRERA compliance registration.</p>
+  `;
+}

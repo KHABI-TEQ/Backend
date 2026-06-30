@@ -57,6 +57,16 @@ import {
   getTransactionRegistrationById,
 } from "../controllers/Admin/TransactionRegistration/adminTransactionRegistration";
 import {
+  verifyTransactionRegistration,
+  forwardTransactionRegistrationToLasrera,
+  lasreraReviewTransactionRegistration,
+  issueTransactionRegistrationCertificate,
+  getLasreraSettings,
+  updateLasreraSettings,
+  getLasreraRegistrationQueue,
+  getKhabiteqRegistrationQueue,
+} from "../controllers/Admin/TransactionRegistration/transactionRegistrationWorkflow";
+import {
   bulkRegisterAgentsByAdmin,
   bulkRegisterDevelopersByAdmin,
   bulkRegisterLandlordsByAdmin,
@@ -294,9 +304,51 @@ AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
 
 // TRANSACTION REGISTRATION (LASRERA) MANAGEMENT ROUTES
+AdminRouter.get(
+  "/transaction-registrations/khabiteq-queue",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW),
+  getKhabiteqRegistrationQueue
+);
+AdminRouter.get(
+  "/transaction-registrations/lasrera-queue",
+  requirePermission(PERMISSIONS.LASRERA_REGISTRATIONS_VIEW),
+  getLasreraRegistrationQueue
+);
 AdminRouter.get("/transaction-registrations", getAllTransactionRegistrations);
 AdminRouter.get("/transaction-registrations/stats", getTransactionRegistrationStats);
+AdminRouter.patch(
+  "/transaction-registrations/:registrationId/verify",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VERIFY),
+  verifyTransactionRegistration
+);
+AdminRouter.patch(
+  "/transaction-registrations/:registrationId/forward",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_FORWARD),
+  forwardTransactionRegistrationToLasrera
+);
+AdminRouter.patch(
+  "/transaction-registrations/:registrationId/lasrera-review",
+  requirePermission(PERMISSIONS.LASRERA_REGISTRATIONS_REVIEW),
+  lasreraReviewTransactionRegistration
+);
+AdminRouter.post(
+  "/transaction-registrations/:registrationId/issue-certificate",
+  requirePermission(PERMISSIONS.LASRERA_REGISTRATIONS_CERTIFICATE),
+  issueTransactionRegistrationCertificate
+);
 AdminRouter.get("/transaction-registrations/:registrationId", getTransactionRegistrationById);
+
+// LASRERA certificate settings
+AdminRouter.get(
+  "/lasrera/settings",
+  requirePermission(PERMISSIONS.LASRERA_SETTINGS_MANAGE),
+  getLasreraSettings
+);
+AdminRouter.put(
+  "/lasrera/settings",
+  requirePermission(PERMISSIONS.LASRERA_SETTINGS_MANAGE),
+  updateLasreraSettings
+);
 
 // DEAL SITE MANAGEMENT ROUTES
 AdminRouter.get("/deal-sites/getAll", adminGetAllDealSites);

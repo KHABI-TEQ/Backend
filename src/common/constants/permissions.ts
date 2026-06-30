@@ -176,6 +176,17 @@ export const PERMISSIONS = {
   ADS_DELETE: 'ads.delete',
   ADS_MANAGE_STATUS: 'ads.manage_status',
   ADS_VIEW_ANALYTICS: 'ads.view_analytics',
+
+  // KHABITEQ transaction registration workflow
+  KHABITEQ_REGISTRATIONS_VIEW: 'khabiteq-registrations.read',
+  KHABITEQ_REGISTRATIONS_VERIFY: 'khabiteq-registrations.verify',
+  KHABITEQ_REGISTRATIONS_FORWARD: 'khabiteq-registrations.forward',
+
+  // LASRERA transaction registration workflow
+  LASRERA_REGISTRATIONS_VIEW: 'lasrera-registrations.read',
+  LASRERA_REGISTRATIONS_REVIEW: 'lasrera-registrations.review',
+  LASRERA_REGISTRATIONS_CERTIFICATE: 'lasrera-registrations.certificate',
+  LASRERA_SETTINGS_MANAGE: 'lasrera-settings.manage',
 } as const;
 
 export const PERMISSION_DESCRIPTIONS = {
@@ -320,6 +331,15 @@ export const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.ADS_DELETE]: 'Delete advertisements',
   [PERMISSIONS.ADS_MANAGE_STATUS]: 'Manage advertisement status',
   [PERMISSIONS.ADS_VIEW_ANALYTICS]: 'View advertisement analytics',
+
+  [PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW]: 'View KHABITEQ transaction registration queue',
+  [PERMISSIONS.KHABITEQ_REGISTRATIONS_VERIFY]: 'Verify transaction registration documents (KHABITEQ)',
+  [PERMISSIONS.KHABITEQ_REGISTRATIONS_FORWARD]: 'Forward verified registrations to LASRERA',
+
+  [PERMISSIONS.LASRERA_REGISTRATIONS_VIEW]: 'View LASRERA transaction registration queue',
+  [PERMISSIONS.LASRERA_REGISTRATIONS_REVIEW]: 'Review, approve, reject, or request info on registrations',
+  [PERMISSIONS.LASRERA_REGISTRATIONS_CERTIFICATE]: 'Issue LASRERA transaction registration certificates',
+  [PERMISSIONS.LASRERA_SETTINGS_MANAGE]: 'Manage LASRERA certificate branding and signature',
 } as const;
 
 // Role definitions with default permissions
@@ -451,6 +471,11 @@ export const DEFAULT_ROLES = {
       PERMISSIONS.ADS_DELETE,
       PERMISSIONS.ADS_MANAGE_STATUS,
       PERMISSIONS.ADS_VIEW_ANALYTICS,
+
+      // KHABITEQ transaction registrations
+      PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW,
+      PERMISSIONS.KHABITEQ_REGISTRATIONS_VERIFY,
+      PERMISSIONS.KHABITEQ_REGISTRATIONS_FORWARD,
     ],
   },
   MANAGER: {
@@ -607,7 +632,18 @@ export const DEFAULT_ROLES = {
       PERMISSIONS.FIELD_AGENTS_MANAGE_STATUS,
       PERMISSIONS.INSPECTIONS_VIEW,
       PERMISSIONS.INSPECTIONS_VIEW_DETAILS,
-      PERMISSIONS.ANALYTICS_VIEW_FIELD_AGENTS,
+      PERMISSIONS.ADS_VIEW_ANALYTICS,
+    ],
+  },
+  LASRERA_ADMIN: {
+    name: 'lasrera-admin',
+    description: 'LASRERA authority dashboard — review registrations and issue certificates',
+    level: 3,
+    permissions: [
+      PERMISSIONS.LASRERA_REGISTRATIONS_VIEW,
+      PERMISSIONS.LASRERA_REGISTRATIONS_REVIEW,
+      PERMISSIONS.LASRERA_REGISTRATIONS_CERTIFICATE,
+      PERMISSIONS.LASRERA_SETTINGS_MANAGE,
     ],
   },
 } as const;

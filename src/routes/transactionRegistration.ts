@@ -7,6 +7,8 @@ import {
   publicSearch,
   checkPropertyRegistration,
   egisValidate,
+  requestRegistrationCertificateDownload,
+  downloadRegistrationCertificate,
 } from "../controllers/public/transactionRegistration/transactionRegistrationController";
 
 const TransactionRegistrationRouter = express.Router();
@@ -31,5 +33,11 @@ TransactionRegistrationRouter.get("/check", checkPropertyRegistration);
 
 /** Optional E-GIS validate (stub for title/ownership verification) */
 TransactionRegistrationRouter.get("/egis-validate", egisValidate);
+
+/** Secure buyer certificate download (email + registration reference) */
+TransactionRegistrationRouter.post("/certificate/download", requestRegistrationCertificateDownload);
+
+/** @deprecated — use POST /certificate/download */
+TransactionRegistrationRouter.get("/:registrationId/certificate", downloadRegistrationCertificate);
 
 export default TransactionRegistrationRouter;

@@ -3,7 +3,17 @@ import { AppRequest } from "../../../types/express";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { DB } from "../..";
 
-const ALLOWED_STATUSES = ["submitted", "pending_completion", "completed", "rejected"] as const;
+const ALLOWED_STATUSES = [
+  "submitted",
+  "pending_completion",
+  "khabiteq_verified",
+  "forwarded_to_lasrera",
+  "info_requested",
+  "approved",
+  "certificate_issued",
+  "completed",
+  "rejected",
+] as const;
 const ALLOWED_TYPES = ["rental_agreement", "outright_sale", "off_plan_purchase", "joint_venture"] as const;
 const ALLOWED_SOURCES = ["platform_listing", "off_platform"] as const;
 

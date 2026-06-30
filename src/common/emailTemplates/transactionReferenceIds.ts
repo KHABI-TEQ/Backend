@@ -41,3 +41,9 @@ export function buildTransactionRegistrationPageUrl(
   if (inspectionId) url.searchParams.set("inspectionId", inspectionId);
   return url.toString();
 }
+
+export function buildCertificateDownloadPageUrl(clientLink: string): string {
+  const base = (clientLink || "").replace(/\/$/, "");
+  if (!base) return "#";
+  return `${base}/transaction-registration?tab=certificate`;
+}
