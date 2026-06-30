@@ -8,6 +8,7 @@ import {
   ILasreraCertificateConfig,
   readBundledLasreraLogo,
 } from "./lasreraSettings.service";
+import { normalizeImageForPdf } from "../utils/imageForPdf";
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   rental_agreement: "Rental Agreement",
@@ -55,8 +56,12 @@ async function resolveRemoteImage(url?: string): Promise<Buffer | null> {
 
 async function resolveLogoBuffer(logoUrl?: string): Promise<Buffer | null> {
   const remote = await resolveRemoteImage(logoUrl);
-  if (remote) return remote;
-  return readBundledLasreraLogo();
+  const raw = remote || readBundledLasreraLogo();
+  return normalizeImageForPdf(raw);
+}
+
+async function resolvePdfImage(url?: string): Promise<Buffer | null> {
+  return normalizeImageForPdf(await resolveRemoteImage(url));
 }
 
 function formatCurrency(amount: number): string {
@@ -116,8 +121,8 @@ async function buildCertificatePdf(
   config: ILasreraCertificateConfig
 ): Promise<Buffer> {
   const logoBuffer = await resolveLogoBuffer(config.logoUrl);
-  const signatureBuffer = await resolveRemoteImage(config.signatureUrl);
-  const stampBuffer = await resolveRemoteImage(config.stampUrl);
+  const signatureBuffer = await resolvePdfImage(config.signatureUrl);
+  const stampBuffer = await resolvePdfImage(config.stampUrl);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
