@@ -122,10 +122,10 @@ export function getProcessingFeeNaira(_type: TransactionRegistrationType, transa
 
 /**
  * Transaction registration processing fee by property/transaction value (LASRERA).
- * Below ₦5M → ₦30,000; ₦5M – ₦50M → ₦100,000; above ₦50M → ₦150,000.
+ * Below ₦5M → ₦50,000; ₦5M – ₦50M → ₦100,000; above ₦50M → ₦150,000.
  */
 export const TRANSACTION_REGISTRATION_FEE_BANDS: ValueBand[] = [
-  { minValueNaira: 1, maxValueNaira: 4_999_999, processingFeeNaira: 30_000, label: "Below ₦5M" },
+  { minValueNaira: 1, maxValueNaira: 4_999_999, processingFeeNaira: 50_000, label: "Below ₦5M" },
   { minValueNaira: 5_000_000, maxValueNaira: 50_000_000, processingFeeNaira: 100_000, label: "₦5M – ₦50M" },
   { minValueNaira: 50_000_001, maxValueNaira: Number.MAX_SAFE_INTEGER, processingFeeNaira: 150_000, label: "Above ₦50M" },
 ];
