@@ -158,6 +158,14 @@ export const registerTransactionFrontendSchema = Joi.object({
         });
       }
     }
+    const pi = value.propertyIdentification;
+    if (pi?.type === "land") {
+      if (pi.lat == null || pi.lng == null) {
+        return helpers.error("any.custom", {
+          message: "Latitude and longitude are required when property identification type is Land.",
+        });
+      }
+    }
     return value;
   })
   .messages({

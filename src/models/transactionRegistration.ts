@@ -23,6 +23,16 @@ export interface IRegistrationWorkflowNotes {
   infoRequestMessage?: string;
 }
 
+export type RegistrationEscalationParty = "khabiteq" | "lasrera";
+
+export interface IRegistrationEscalationMessage {
+  fromParty: RegistrationEscalationParty;
+  message: string;
+  authorName?: string;
+  createdBy?: Types.ObjectId;
+  createdAt: Date;
+}
+
 export interface IPropertyIdentificationBuilding {
   type: "building";
   exactAddress: string;
@@ -100,6 +110,7 @@ export interface ITransactionRegistration {
   /** Paystack transaction ID for the processing fee (set when payment link is generated). */
   paymentTransactionId?: Types.ObjectId;
   workflowNotes?: IRegistrationWorkflowNotes;
+  escalationMessages?: IRegistrationEscalationMessage[];
   khabiteqVerifiedAt?: Date;
   khabiteqVerifiedBy?: Types.ObjectId;
   forwardedToLasreraAt?: Date;
@@ -204,6 +215,15 @@ export class TransactionRegistration {
           lasreraReviewNote: { type: String, required: false },
           infoRequestMessage: { type: String, required: false },
         },
+        escalationMessages: [
+          {
+            fromParty: { type: String, enum: ["khabiteq", "lasrera"], required: true },
+            message: { type: String, required: true, trim: true },
+            authorName: { type: String, required: false, trim: true },
+            createdBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
+            createdAt: { type: Date, default: Date.now },
+          },
+        ],
         khabiteqVerifiedAt: { type: Date, required: false },
         khabiteqVerifiedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
         forwardedToLasreraAt: { type: Date, required: false },

@@ -65,11 +65,10 @@ async function resolvePdfImage(url?: string): Promise<Buffer | null> {
 }
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-NG", {
-    style: "currency",
-    currency: "NGN",
+  const formatted = new Intl.NumberFormat("en-NG", {
     maximumFractionDigits: 0,
   }).format(amount);
+  return `NGN ${formatted}`;
 }
 
 function formatDate(date: Date): string {

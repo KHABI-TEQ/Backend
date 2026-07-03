@@ -66,6 +66,7 @@ import {
   previewLasreraCertificate,
   getLasreraRegistrationQueue,
   getKhabiteqRegistrationQueue,
+  postRegistrationEscalation,
 } from "../controllers/Admin/TransactionRegistration/transactionRegistrationWorkflow";
 import {
   bulkRegisterAgentsByAdmin,
@@ -336,6 +337,10 @@ AdminRouter.post(
   "/transaction-registrations/:registrationId/issue-certificate",
   requirePermission(PERMISSIONS.LASRERA_REGISTRATIONS_CERTIFICATE),
   issueTransactionRegistrationCertificate
+);
+AdminRouter.post(
+  "/transaction-registrations/:registrationId/escalation",
+  postRegistrationEscalation
 );
 AdminRouter.get("/transaction-registrations/:registrationId", getTransactionRegistrationById);
 

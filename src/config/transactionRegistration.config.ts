@@ -113,18 +113,19 @@ export function getConfigForType(type: TransactionRegistrationType): Transaction
 }
 
 export function getProcessingFeeNaira(_type: TransactionRegistrationType, transactionValueNaira: number): number {
-  if (transactionValueNaira < TRANSACTION_REGISTRATION_FEE_BANDS[0].minValueNaira) return 0;
+  if (!Number.isFinite(transactionValueNaira) || transactionValueNaira <= 0) return 0;
   const band = TRANSACTION_REGISTRATION_FEE_BANDS.find(
     (b) => transactionValueNaira >= b.minValueNaira && transactionValueNaira <= b.maxValueNaira
   );
-  return band ? band.processingFeeNaira : TRANSACTION_REGISTRATION_FEE_BANDS[1].processingFeeNaira;
+  return band?.processingFeeNaira ?? 0;
 }
 
 /**
  * Transaction registration processing fee by property/transaction value (LASRERA).
- * 5M – 50M Naira → ₦100,000; above 50M → ₦150,000.
+ * Below ₦5M → ₦30,000; ₦5M – ₦50M → ₦100,000; above ₦50M → ₦150,000.
  */
 export const TRANSACTION_REGISTRATION_FEE_BANDS: ValueBand[] = [
+  { minValueNaira: 1, maxValueNaira: 4_999_999, processingFeeNaira: 30_000, label: "Below ₦5M" },
   { minValueNaira: 5_000_000, maxValueNaira: 50_000_000, processingFeeNaira: 100_000, label: "₦5M – ₦50M" },
   { minValueNaira: 50_000_001, maxValueNaira: Number.MAX_SAFE_INTEGER, processingFeeNaira: 150_000, label: "Above ₦50M" },
 ];

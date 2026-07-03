@@ -15,13 +15,39 @@ import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { transactionRegistrationCertificateIssuedMail } from "../../../common/emailTemplates/transactionConfirmationMails";
 import { buildCertificateDownloadPageUrl } from "../../../common/emailTemplates/transactionReferenceIds";
+import {
+  buildRegistrationSearchFilter,
+  mergeRegistrationFilters,
+} from "../../../utils/transactionRegistrationSearch";
+import { notifyAllActiveAdmins } from "../../../services/adminNotification.service";
+import { PERMISSIONS } from "../../../common/constants/permissions";
+import {
+  getAllPermissionNamesForAdmin,
+  hasAnyPermission,
+} from "../../../utils/permissionUtils";
+import type { RegistrationEscalationParty } from "../../../models/transactionRegistration";
+
+const KHABITEQ_ESCALATION_PERMISSIONS = [
+  PERMISSIONS.KHABITEQ_REGISTRATIONS_VERIFY,
+  PERMISSIONS.KHABITEQ_REGISTRATIONS_FORWARD,
+];
+
+const LASRERA_ESCALATION_PERMISSIONS = [PERMISSIONS.LASRERA_REGISTRATIONS_REVIEW];
 
 const KHABITEQ_VERIFY_FROM: TransactionRegistrationStatus[] = ["submitted", "pending_completion", "info_requested"];
 const KHABITEQ_FORWARD_FROM: TransactionRegistrationStatus[] = ["khabiteq_verified"];
 const LASRERA_REVIEW_FROM: TransactionRegistrationStatus[] = ["forwarded_to_lasrera", "info_requested"];
 
 async function loadRegistration(registrationId: string) {
-  return DB.Models.TransactionRegistration.findById(registrationId);
+  const lookup = decodeURIComponent(String(registrationId || "")).trim();
+  if (/^[a-fA-F0-9]{24}$/.test(lookup)) {
+    return DB.Models.TransactionRegistration.findById(lookup);
+  }
+
+  const searchFilter = buildRegistrationSearchFilter(lookup);
+  if (!searchFilter) return null;
+
+  return DB.Models.TransactionRegistration.findOne(searchFilter);
 }
 
 function badStatus(res: Response, message: string) {
@@ -364,11 +390,13 @@ export const getLasreraRegistrationQueue = async (
       limit = "20",
       status,
       transactionType,
+      search,
     } = req.query as {
       page?: string;
       limit?: string;
       status?: string;
       transactionType?: string;
+      search?: string;
     };
 
     const pageNum = Math.max(parseInt(page, 10), 1);
@@ -384,15 +412,16 @@ export const getLasreraRegistrationQueue = async (
       "rejected",
     ];
 
-    const filter: Record<string, unknown> = {
-      status: status && lasreraStatuses.includes(status as TransactionRegistrationStatus)
-        ? status
-        : { $in: lasreraStatuses },
-    };
+    const statusFilter =
+      status && lasreraStatuses.includes(status as TransactionRegistrationStatus)
+        ? { status }
+        : { status: { $in: lasreraStatuses } };
 
-    if (transactionType) {
-      filter.transactionType = transactionType;
-    }
+    const filter = mergeRegistrationFilters(
+      statusFilter,
+      transactionType ? { transactionType } : null,
+      search ? buildRegistrationSearchFilter(String(search)) : null
+    );
 
     const [registrations, total] = await Promise.all([
       DB.Models.TransactionRegistration.find(filter)
@@ -436,11 +465,13 @@ export const getKhabiteqRegistrationQueue = async (
       limit = "20",
       status,
       transactionType,
+      search,
     } = req.query as {
       page?: string;
       limit?: string;
       status?: string;
       transactionType?: string;
+      search?: string;
     };
 
     const pageNum = Math.max(parseInt(page, 10), 1);
@@ -454,15 +485,16 @@ export const getKhabiteqRegistrationQueue = async (
       "khabiteq_verified",
     ];
 
-    const filter: Record<string, unknown> = {
-      status: status && khabiteqStatuses.includes(status as TransactionRegistrationStatus)
-        ? status
-        : { $in: khabiteqStatuses },
-    };
+    const statusFilter =
+      status && khabiteqStatuses.includes(status as TransactionRegistrationStatus)
+        ? { status }
+        : { status: { $in: khabiteqStatuses } };
 
-    if (transactionType) {
-      filter.transactionType = transactionType;
-    }
+    const filter = mergeRegistrationFilters(
+      statusFilter,
+      transactionType ? { transactionType } : null,
+      search ? buildRegistrationSearchFilter(String(search)) : null
+    );
 
     const [registrations, total] = await Promise.all([
       DB.Models.TransactionRegistration.find(filter)
@@ -485,6 +517,95 @@ export const getKhabiteqRegistrationQueue = async (
         totalPages: Math.ceil(total / limitNum),
         limit: limitNum,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * POST /admin/transaction-registrations/:registrationId/escalation
+ * Cross-party escalation thread between KHABITEQ and LASRERA administrators.
+ */
+export const postRegistrationEscalation = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { registrationId } = req.params;
+    const { message, fromParty } = req.body as {
+      message?: string;
+      fromParty?: RegistrationEscalationParty;
+    };
+
+    const trimmedMessage = String(message || "").trim();
+    if (!trimmedMessage) {
+      return badStatus(res, "Escalation message is required.");
+    }
+    if (fromParty !== "khabiteq" && fromParty !== "lasrera") {
+      return badStatus(res, "fromParty must be khabiteq or lasrera.");
+    }
+
+    const admin = req.admin;
+    if (!admin) {
+      return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+        success: false,
+        message: "Authentication required",
+        data: null,
+      });
+    }
+
+    const permissionNames =
+      req.permissionNames || (await getAllPermissionNamesForAdmin(admin));
+    const allowedPermissions =
+      fromParty === "khabiteq" ? KHABITEQ_ESCALATION_PERMISSIONS : LASRERA_ESCALATION_PERMISSIONS;
+    if (!hasAnyPermission(admin, allowedPermissions, permissionNames)) {
+      return res.status(HttpStatusCodes.FORBIDDEN).json({
+        success: false,
+        message: "Insufficient permissions to post escalation for this party.",
+        data: null,
+      });
+    }
+
+    const registration = await loadRegistration(registrationId);
+    if (!registration) {
+      return res.status(HttpStatusCodes.NOT_FOUND).json({
+        success: false,
+        message: "Transaction registration not found",
+        data: null,
+      });
+    }
+
+    const authorName = [admin.firstName, admin.lastName].filter(Boolean).join(" ").trim() || admin.email;
+    const escalationEntry = {
+      fromParty,
+      message: trimmedMessage,
+      authorName,
+      createdBy: admin._id,
+      createdAt: new Date(),
+    };
+
+    registration.escalationMessages = registration.escalationMessages || [];
+    registration.escalationMessages.push(escalationEntry);
+    await registration.save();
+
+    const partyLabel = fromParty === "khabiteq" ? "KHABITEQ Realty" : "LASRERA";
+    void notifyAllActiveAdmins({
+      type: "general",
+      title: `Registration escalation (${partyLabel})`,
+      message: `${authorName} flagged an issue on registration ${String(registration._id).slice(-8).toUpperCase()}: ${trimmedMessage}`,
+      meta: {
+        registrationId: String(registration._id),
+        fromParty,
+        escalation: true,
+      },
+    });
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Escalation message posted",
+      data: escalationEntry,
     });
   } catch (err) {
     next(err);

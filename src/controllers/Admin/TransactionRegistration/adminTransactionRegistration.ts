@@ -2,6 +2,10 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { DB } from "../..";
+import {
+  buildRegistrationSearchFilter,
+  mergeRegistrationFilters,
+} from "../../../utils/transactionRegistrationSearch";
 
 const ALLOWED_STATUSES = [
   "submitted",
@@ -58,31 +62,32 @@ export const getAllTransactionRegistrations = async (
       status,
       transactionType,
       registrationSource,
+      search,
     } = req.query as {
       page?: string;
       limit?: string;
       status?: string;
       transactionType?: string;
       registrationSource?: string;
+      search?: string;
     };
 
     const pageNum = Math.max(parseInt(page, 10), 1);
     const limitNum = Math.min(Math.max(parseInt(limit, 10), 1), 100);
     const skip = (pageNum - 1) * limitNum;
 
-    const filter: Record<string, any> = {};
+    const baseFilter: Record<string, unknown> = {};
     if (status && ALLOWED_STATUSES.includes(status as any)) {
-      filter.status = status;
+      baseFilter.status = status;
     }
     if (transactionType && ALLOWED_TYPES.includes(transactionType as any)) {
-      filter.transactionType = transactionType;
+      baseFilter.transactionType = transactionType;
     }
     const sourceFilter = registrationSource
       ? buildRegistrationSourceFilter(String(registrationSource))
       : null;
-    if (sourceFilter) {
-      Object.assign(filter, sourceFilter);
-    }
+    const searchFilter = search ? buildRegistrationSearchFilter(String(search)) : null;
+    const filter = mergeRegistrationFilters(baseFilter, sourceFilter, searchFilter);
 
     const [registrations, total] = await Promise.all([
       DB.Models.TransactionRegistration.find(filter)
@@ -197,8 +202,22 @@ export const getTransactionRegistrationById = async (
 ) => {
   try {
     const { registrationId } = req.params;
+    const lookup = decodeURIComponent(String(registrationId || "")).trim();
 
-    const registration = await DB.Models.TransactionRegistration.findById(registrationId)
+    let resolvedId = lookup;
+    if (!/^[a-fA-F0-9]{24}$/.test(lookup)) {
+      const searchFilter = buildRegistrationSearchFilter(lookup);
+      if (searchFilter) {
+        const match = await DB.Models.TransactionRegistration.findOne(searchFilter)
+          .select("_id")
+          .lean();
+        if (match?._id) {
+          resolvedId = String(match._id);
+        }
+      }
+    }
+
+    const registration = await DB.Models.TransactionRegistration.findById(resolvedId)
       .populate("propertyId")
       .populate({
         path: "agentId",
