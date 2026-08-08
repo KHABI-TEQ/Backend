@@ -16,6 +16,7 @@ import {
  
 import { getLatestApprovedTestimonials } from "../controllers/public/testimonial";
 import { AuthRouter } from "./auth";
+import BuyerAuthRouter from "./buyerAuth";
 import { preferenceRouter } from "./preference";
 import AccountRouter from "./account";
 import thirdPartyRouter from "./thirdParty";
@@ -201,6 +202,9 @@ router.get("/features/getAll", getAllActiveFeatures);
 
 // All Auth Routes
 router.use("/auth", AuthRouter);
+
+// Buyer (mobile) Auth Routes
+router.use("/buyer/auth", BuyerAuthRouter);
 
 // All Properties Routes
 router.use("/properties", propertyRouter);

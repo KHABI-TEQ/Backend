@@ -16,6 +16,8 @@ build/
 Frontend/
 public-access/
 Khabiteq-admin-web/
+khabiteq-mobile/
+docs/
 
 # Ignore temporary files
 *.tmp

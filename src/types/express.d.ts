@@ -10,5 +10,6 @@ export interface AppRequest<
   user?: any;
   users?: any;
   admin?: any;
+  buyer?: any;
   subscriptionSnapshot?: IUserSubscriptionSnapshotDoc;
 }

@@ -2,7 +2,7 @@ import { Schema, model, Types, Document } from 'mongoose';
 
 export interface IPasswordResetToken extends Document {
   userId: Types.ObjectId;
-  userModel: 'User' | 'Admin';
+  userModel: 'User' | 'Admin' | 'Buyer';
   token: string;
   expiresAt: Date;
 }
@@ -10,7 +10,7 @@ export interface IPasswordResetToken extends Document {
 const passwordResetTokenSchema = new Schema<IPasswordResetToken>(
   {
     userId: { type: Schema.Types.ObjectId, required: true, refPath: 'userModel' },
-    userModel: { type: String, required: true, enum: ['User', 'Admin'] },
+    userModel: { type: String, required: true, enum: ['User', 'Admin', 'Buyer'] },
     token: { type: String, required: true }, // 6-digit token
     expiresAt: { type: Date, required: true },
   },
