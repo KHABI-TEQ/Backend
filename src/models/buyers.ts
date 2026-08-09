@@ -19,6 +19,7 @@ export interface IBuyer {
   whatsAppNumber?: string;
   devices?: IBuyerDevice[];
   enableNotifications?: boolean;
+  profilePicture?: string;
 }
 
 export interface IBuyerDoc extends IBuyer, Document {}
@@ -52,6 +53,7 @@ export class Buyer {
         whatsAppNumber: { type: String },
         devices: { type: [deviceSchema], default: [] },
         enableNotifications: { type: Boolean, default: true },
+        profilePicture: { type: String, default: "" },
       },
       {
         timestamps: true,

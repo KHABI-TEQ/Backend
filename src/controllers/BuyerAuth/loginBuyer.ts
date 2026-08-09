@@ -3,14 +3,7 @@ import bcrypt from "bcryptjs";
 import { DB } from "..";
 import { generateToken, RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
-
-const buyerPublic = (buyer: any) => ({
-  id: buyer._id,
-  fullName: buyer.fullName,
-  email: buyer.email,
-  phoneNumber: buyer.phoneNumber,
-  enableNotifications: buyer.enableNotifications !== false,
-});
+import { buyerPublic } from "./profile";
 
 export const loginBuyer = async (
   req: Request,

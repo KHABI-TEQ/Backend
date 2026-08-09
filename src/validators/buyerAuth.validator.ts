@@ -76,3 +76,12 @@ export const removeDeviceTokenSchema = Joi.object({
     "any.required": "Device ID is required.",
   }),
 });
+
+export const updateBuyerProfileSchema = Joi.object({
+  fullName: Joi.string().trim().min(2).optional(),
+  phoneNumber: Joi.string().trim().min(7).optional(),
+  email: Joi.string().trim().email().optional(),
+  whatsAppNumber: Joi.string().trim().allow("").optional(),
+  address: Joi.string().trim().allow("").optional(),
+  profilePicture: Joi.string().trim().uri({ allowRelative: false }).allow("").optional(),
+}).min(1);

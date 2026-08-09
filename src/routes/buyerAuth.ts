@@ -9,6 +9,7 @@ import {
   resetBuyerPasswordSchema,
   upsertDeviceTokenSchema,
   removeDeviceTokenSchema,
+  updateBuyerProfileSchema,
 } from "../validators/buyerAuth.validator";
 import { registerBuyer } from "../controllers/BuyerAuth/registerBuyer";
 import { loginBuyer } from "../controllers/BuyerAuth/loginBuyer";
@@ -20,6 +21,10 @@ import {
   upsertBuyerDeviceToken,
   removeBuyerDeviceToken,
 } from "../controllers/BuyerAuth/deviceToken";
+import {
+  getBuyerProfile,
+  updateBuyerProfile,
+} from "../controllers/BuyerAuth/profile";
 
 const BuyerAuthRouter = express.Router();
 
@@ -53,6 +58,15 @@ BuyerAuthRouter.post(
   "/resend-reset-code",
   validateJoi(buyerEmailSchema),
   resendBuyerPasswordResetCode
+);
+
+BuyerAuthRouter.get("/me", buyerAuth, getBuyerProfile);
+
+BuyerAuthRouter.put(
+  "/profile",
+  buyerAuth,
+  validateJoi(updateBuyerProfileSchema),
+  updateBuyerProfile
 );
 
 BuyerAuthRouter.post(
