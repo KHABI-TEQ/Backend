@@ -1,5 +1,9 @@
 import { DB } from "../controllers";
-import { sendToBuyerTokens } from "./firebaseAdmin.service";
+import {
+  isExpoPushToken,
+  isStubPushToken,
+  sendToBuyerTokens,
+} from "./firebaseAdmin.service";
 import type { BuyerNotificationType } from "../models/buyerNotification";
 
 function inferType(subject: string): BuyerNotificationType {
@@ -38,9 +42,68 @@ function cleanMessage(text: string, subject: string) {
   return trimmed.length > 600 ? `${trimmed.slice(0, 597)}…` : trimmed;
 }
 
+async function pruneInvalidBuyerTokens(
+  buyerId: unknown,
+  invalidTokens: string[]
+): Promise<void> {
+  if (!invalidTokens.length) return;
+  const set = new Set(invalidTokens);
+  await DB.Models.Buyer.updateOne(
+    { _id: buyerId },
+    {
+      $pull: {
+        devices: {
+          fcmToken: { $in: [...set] },
+        },
+      },
+    }
+  );
+}
+
+/**
+ * Push a notification to a buyer's registered devices (FCM / Expo).
+ * No-op when notifications disabled or no real tokens.
+ */
+export async function pushToBuyerDevices(input: {
+  buyerId: string;
+  title: string;
+  body: string;
+  type?: BuyerNotificationType;
+  data?: Record<string, string>;
+}): Promise<void> {
+  const buyer = await DB.Models.Buyer.findById(input.buyerId).select(
+    "devices enableNotifications"
+  );
+  if (!buyer || buyer.enableNotifications === false) return;
+
+  const tokens = (buyer.devices || [])
+    .map((d: any) => String(d.fcmToken || "").trim())
+    .filter((t: string) => t && !isStubPushToken(t));
+
+  if (!tokens.length) return;
+
+  try {
+    const result = await sendToBuyerTokens(tokens, {
+      title: input.title,
+      body: input.body,
+      data: {
+        type: input.type || "email",
+        screen: "notifications",
+        ...(input.data || {}),
+      },
+    });
+    if (result.invalidTokens.length) {
+      await pruneInvalidBuyerTokens(buyer._id, result.invalidTokens);
+    }
+  } catch (err) {
+    console.warn("[BuyerNotification] Push failed:", (err as Error).message);
+  }
+}
+
 /**
  * Mirror an outbound email into the buyer's in-app inbox (and push if devices exist).
  * No-op when the recipient is not a known Buyer.
+ * Auth/OTP emails are stored in-inbox but do not trigger device push (avoid OTP spam).
  */
 export async function mirrorEmailToBuyerInbox(input: {
   to: string;
@@ -71,27 +134,30 @@ export async function mirrorEmailToBuyerInbox(input: {
     meta: { source: "email" },
   });
 
+  // OTP / password-reset codes stay email + inbox only.
+  if (type === "auth") return;
   if (buyer.enableNotifications === false) return;
 
   const tokens = (buyer.devices || [])
-    .map((d: any) => d.fcmToken)
+    .map((d: any) => String(d.fcmToken || "").trim())
     .filter(
       (t: string) =>
         !!t &&
-        !t.startsWith("expo-go-token-") &&
-        !t.startsWith("dev-simulator-token-") &&
-        !t.startsWith("no-permission-token-") &&
-        !t.startsWith("fallback-token-")
+        !isStubPushToken(t) &&
+        (isExpoPushToken(t) || t.length > 20)
     );
 
   if (!tokens.length) return;
 
   try {
-    await sendToBuyerTokens(tokens, {
+    const result = await sendToBuyerTokens(tokens, {
       title,
       body: message,
       data: { type, screen: "notifications" },
     });
+    if (result.invalidTokens.length) {
+      await pruneInvalidBuyerTokens(buyer._id, result.invalidTokens);
+    }
   } catch (err) {
     console.warn(
       "[BuyerNotification] Push failed:",
