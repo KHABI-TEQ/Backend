@@ -1069,6 +1069,22 @@ export function ForgotPasswordTokenTemplate(userName: string, token: string): st
   `;
 }
 
+export function BuyerLoginOtpTemplate(userName: string, token: string): string {
+  return `
+    <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+      <p>Dear <strong>${userName}</strong>,</p>
+
+      <p>Use this code to continue in the Khabi-Teq app and track your requests:</p>
+
+      <div style="margin: 20px 0; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #0B3D2E;">
+        ${token}
+      </div>
+
+      <p>This code expires in <strong>10 minutes</strong>. If you did not request it, you can ignore this email.</p>
+    </div>
+  `;
+}
+
 
 export function PropertyApprovedOrDisapprovedTemplate(
 	name: string,

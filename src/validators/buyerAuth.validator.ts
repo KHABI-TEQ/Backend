@@ -49,6 +49,19 @@ export const verifyBuyerResetCodeSchema = Joi.object({
   }),
 });
 
+export const verifyBuyerLoginOtpSchema = Joi.object({
+  email: Joi.string().trim().email().required().messages({
+    "string.empty": "Email is required.",
+    "string.email": "Please enter a valid email address.",
+    "any.required": "Email is required.",
+  }),
+  token: Joi.string().trim().length(6).required().messages({
+    "string.empty": "Verification code is required.",
+    "string.length": "Verification code must be 6 digits.",
+    "any.required": "Verification code is required.",
+  }),
+});
+
 export const resetBuyerPasswordSchema = Joi.object({
   email: Joi.string().trim().email().required(),
   token: Joi.string().trim().required(),

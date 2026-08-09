@@ -7,6 +7,8 @@ export * from "./notification";
 export * from "./contactUs";
 export * from "./verificationToken";
 export * from "./passwordResetToken";
+export * from "./buyerEmailOtp";
+export * from "./buyerNotification";
 export * from "./matchedProperty";
 export * from "./property";
 export * from "./buyers";

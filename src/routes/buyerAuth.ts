@@ -7,6 +7,7 @@ import {
   buyerEmailSchema,
   verifyBuyerResetCodeSchema,
   resetBuyerPasswordSchema,
+  verifyBuyerLoginOtpSchema,
   upsertDeviceTokenSchema,
   removeDeviceTokenSchema,
   updateBuyerProfileSchema,
@@ -18,6 +19,11 @@ import { verifyBuyerPasswordResetCode } from "../controllers/BuyerAuth/verifyPas
 import { resetBuyerPassword } from "../controllers/BuyerAuth/resetPassword";
 import { resendBuyerPasswordResetCode } from "../controllers/BuyerAuth/resendPasswordResetCode";
 import {
+  requestBuyerLoginOtp,
+  resendBuyerLoginOtp,
+  verifyBuyerLoginOtp,
+} from "../controllers/BuyerAuth/otpLogin";
+import {
   upsertBuyerDeviceToken,
   removeBuyerDeviceToken,
 } from "../controllers/BuyerAuth/deviceToken";
@@ -25,6 +31,19 @@ import {
   getBuyerProfile,
   updateBuyerProfile,
 } from "../controllers/BuyerAuth/profile";
+import {
+  getMyPreferences,
+  getMyInspections,
+  getMyDocumentVerifications,
+  getMyTransactionRegistrations,
+  getMyActivitySummary,
+} from "../controllers/BuyerAuth/meActivity";
+import {
+  listMyNotifications,
+  getMyUnreadNotificationCount,
+  markMyNotificationRead,
+  markAllMyNotificationsRead,
+} from "../controllers/BuyerAuth/notifications";
 
 const BuyerAuthRouter = express.Router();
 
@@ -35,6 +54,24 @@ BuyerAuthRouter.post(
 );
 
 BuyerAuthRouter.post("/login", validateJoi(loginBuyerSchema), loginBuyer);
+
+BuyerAuthRouter.post(
+  "/otp/request",
+  validateJoi(buyerEmailSchema),
+  requestBuyerLoginOtp
+);
+
+BuyerAuthRouter.post(
+  "/otp/resend",
+  validateJoi(buyerEmailSchema),
+  resendBuyerLoginOtp
+);
+
+BuyerAuthRouter.post(
+  "/otp/verify",
+  validateJoi(verifyBuyerLoginOtpSchema),
+  verifyBuyerLoginOtp
+);
 
 BuyerAuthRouter.post(
   "/reset-password-request",
@@ -61,6 +98,44 @@ BuyerAuthRouter.post(
 );
 
 BuyerAuthRouter.get("/me", buyerAuth, getBuyerProfile);
+
+BuyerAuthRouter.get("/me/summary", buyerAuth, getMyActivitySummary);
+
+BuyerAuthRouter.get("/me/preferences", buyerAuth, getMyPreferences);
+
+BuyerAuthRouter.get("/me/inspections", buyerAuth, getMyInspections);
+
+BuyerAuthRouter.get(
+  "/me/document-verifications",
+  buyerAuth,
+  getMyDocumentVerifications
+);
+
+BuyerAuthRouter.get(
+  "/me/transaction-registrations",
+  buyerAuth,
+  getMyTransactionRegistrations
+);
+
+BuyerAuthRouter.get("/me/notifications", buyerAuth, listMyNotifications);
+
+BuyerAuthRouter.get(
+  "/me/notifications/unread-count",
+  buyerAuth,
+  getMyUnreadNotificationCount
+);
+
+BuyerAuthRouter.put(
+  "/me/notifications/mark-all-read",
+  buyerAuth,
+  markAllMyNotificationsRead
+);
+
+BuyerAuthRouter.put(
+  "/me/notifications/:notificationId/read",
+  buyerAuth,
+  markMyNotificationRead
+);
 
 BuyerAuthRouter.put(
   "/profile",

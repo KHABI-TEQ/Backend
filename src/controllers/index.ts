@@ -27,6 +27,8 @@ import {
   IContactUsModel,
   VerificationToken,
   PasswordResetToken,
+  BuyerEmailOtp,
+  BuyerNotification,
   IMatchedPreferencePropertyModel,
   MatchedPreferenceProperty,
   PropertyView,
@@ -113,6 +115,8 @@ declare interface IModels {
   ContactUs: IContactUsModel;
   VerificationToken: typeof VerificationToken;
   PasswordResetToken: typeof PasswordResetToken;
+  BuyerEmailOtp: typeof BuyerEmailOtp;
+  BuyerNotification: typeof BuyerNotification;
   MatchedPreferenceProperty: IMatchedPreferencePropertyModel;
   PropertyView: typeof PropertyView;
   ReferralLog: typeof ReferralLogModel;
@@ -179,6 +183,8 @@ export class DB {
       ContactUs: new ContactUs().model,
       VerificationToken: VerificationToken,
       PasswordResetToken: PasswordResetToken,
+      BuyerEmailOtp: BuyerEmailOtp,
+      BuyerNotification: BuyerNotification,
       MatchedPreferenceProperty: MatchedPreferenceProperty,
       PropertyView: PropertyView,
       ReferralLog: ReferralLogModel,
