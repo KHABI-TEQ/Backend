@@ -2,6 +2,8 @@ import { Schema, model, Document, Model, Types } from 'mongoose';
  
 export interface IDocumentVerification {
   buyerId: Types.ObjectId;
+  /** Assigned marketplace lawyer (User id) when buyer selects one. */
+  lawyerId?: Types.ObjectId;
   docCode: string;
   amountPaid: number;
   transaction: Types.ObjectId;
@@ -43,6 +45,7 @@ export class DocumentVerification {
     const schema = new Schema(
       {
         buyerId: { type: Schema.Types.ObjectId, ref: 'Buyer', required: true },
+        lawyerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 
         docCode: { type: String, required: true, index: true },
 

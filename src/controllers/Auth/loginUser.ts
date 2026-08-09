@@ -175,6 +175,42 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
+    if (user.userType === "Lawyer") {
+      const lawyerProfile = await DB.Models.LawyerProfile.findOne({
+        userId: user._id,
+      }).lean();
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          token,
+          user: {
+            ...userResponse,
+            isAccountApproved: user.accountApproved,
+            lawyerProfile: lawyerProfile || null,
+          },
+        },
+      });
+    }
+
+    if (user.userType === "Surveyor") {
+      const surveyorProfile = await DB.Models.SurveyorProfile.findOne({
+        userId: user._id,
+      }).lean();
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          token,
+          user: {
+            ...userResponse,
+            isAccountApproved: user.accountApproved,
+            surveyorProfile: surveyorProfile || null,
+          },
+        },
+      });
+    }
+
     // All other users (e.g. FieldAgent)
     return res.status(HttpStatusCodes.OK).json({
       success: true,

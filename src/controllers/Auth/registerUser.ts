@@ -96,6 +96,28 @@ export const registerUser = async (
       });
     }
 
+    if (userType === "Lawyer") {
+      await DB.Models.LawyerProfile.create({
+        userId: newUser._id,
+        verificationFee: 0,
+        kycStatus: "none",
+        isMarketplaceVisible: false,
+        firmName: req.body.firmName || "",
+      });
+    }
+
+    if (userType === "Surveyor") {
+      await DB.Models.SurveyorProfile.create({
+        userId: newUser._id,
+        surveyFee: 0,
+        kycStatus: "none",
+        isMarketplaceVisible: false,
+        firmName: req.body.firmName || "",
+        licenseNumber: req.body.licenseNumber || "",
+        serviceTypes: ["plan-verification"],
+      });
+    }
+
     if (isPublisherKycUserType(userType)) {
       await ensurePublisherProfile({ userId: String(newUser._id), userType });
     }

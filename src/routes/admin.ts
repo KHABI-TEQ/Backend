@@ -7,6 +7,12 @@ import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../con
 import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
 import { deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { reviewPublisherKyc } from "../controllers/Admin/Account/publisherKycReview";
+import {
+  reviewLawyerKyc,
+  reviewSurveyorKyc,
+  listPendingLawyers,
+  listPendingSurveyors,
+} from "../controllers/Admin/Account/professionalKycReview";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
 import {
   deleteDeveloperAccount,
@@ -198,6 +204,11 @@ AdminRouter.get("/agents/fetchAll/:type", getAgentsByType);
 AdminRouter.get("/agents/dashboard", getAgentDashboardStatistics);
 AdminRouter.post("/agents/:userId/reviewKycRequest", reviewPublisherKyc);
 AdminRouter.post("/users/:userId/reviewKycRequest", reviewPublisherKyc);
+
+AdminRouter.get("/lawyers/pending-kyc", listPendingLawyers);
+AdminRouter.post("/lawyers/:userId/reviewKycRequest", reviewLawyerKyc);
+AdminRouter.get("/surveyors/pending-kyc", listPendingSurveyors);
+AdminRouter.post("/surveyors/:userId/reviewKycRequest", reviewSurveyorKyc);
 
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
 

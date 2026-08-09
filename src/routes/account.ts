@@ -42,6 +42,22 @@ import {
   updateProfile,
   updateProfilePicture,
 } from "../controllers/Account/profileSettings";
+import {
+  getLawyerMe,
+  updateLawyerProfile,
+  submitLawyerKyc,
+  setupLawyerBank,
+  listLawyerVerificationJobs,
+  getLawyerVerificationJob,
+  submitLawyerVerificationReport,
+} from "../controllers/Account/Lawyer/lawyerAccount";
+import {
+  getSurveyorMe,
+  updateSurveyorProfile,
+  submitSurveyorKyc,
+  setupSurveyorBank,
+  listSurveyorJobs,
+} from "../controllers/Account/Surveyor/surveyorAccount";
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { fetchDealsitePreferences, fetchDealsitePreferenceById } from "../controllers/Account/Preference/fetchDealsitePreferences";
@@ -292,5 +308,24 @@ AccountRouter.put("/notifications/markAllRead", markAllNotificationsAsRead);
 AccountRouter.delete("/notifications/:notificationId/delete", deleteNotificationById);
 AccountRouter.delete("/notifications/deleteAll", deleteAllNotifications);
 AccountRouter.delete("/notifications/bulkDelete", bulkDeleteNotifications);
+
+// LAWYER
+AccountRouter.get("/lawyer/me", getLawyerMe);
+AccountRouter.put("/lawyer/profile", updateLawyerProfile);
+AccountRouter.put("/lawyer/kyc", submitLawyerKyc);
+AccountRouter.post("/lawyer/bank", setupLawyerBank);
+AccountRouter.get("/lawyer/verification-jobs", listLawyerVerificationJobs);
+AccountRouter.get("/lawyer/verification-jobs/:id", getLawyerVerificationJob);
+AccountRouter.post(
+  "/lawyer/verification-jobs/:id/report",
+  submitLawyerVerificationReport
+);
+
+// SURVEYOR
+AccountRouter.get("/surveyor/me", getSurveyorMe);
+AccountRouter.put("/surveyor/profile", updateSurveyorProfile);
+AccountRouter.put("/surveyor/kyc", submitSurveyorKyc);
+AccountRouter.post("/surveyor/bank", setupSurveyorBank);
+AccountRouter.get("/surveyor/jobs", listSurveyorJobs);
 
 export default AccountRouter;

@@ -7,7 +7,15 @@ import { IUserDoc } from '../models';
 interface TokenPayload {
   id: string;
   email: string;
-  userType?: "Agent" | "Landowners" | "Admin" | "FieldAgent" | "Developer" | "Buyer";
+  userType?:
+    | "Agent"
+    | "Landowners"
+    | "Admin"
+    | "FieldAgent"
+    | "Developer"
+    | "Buyer"
+    | "Lawyer"
+    | "Surveyor";
   role?: "buyer" | string;
   [key: string]: any; // Extendable for other optional fields like role, permissions, etc.
 }

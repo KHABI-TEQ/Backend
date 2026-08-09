@@ -23,6 +23,12 @@ import thirdPartyRouter from "./thirdParty";
 import { submitContactForm } from "../controllers/public/contactUs";
 import { receiveSyndicationUserAuthWebhook } from "../controllers/public/thirdParty/syndication/syndicationUserAuthWebhook";
 import { submitDocumentVerification } from "../controllers/public/submitVerificationDocuments";
+import {
+  listMarketplaceLawyers,
+  getMarketplaceLawyer,
+  listMarketplaceSurveyors,
+  createSurveyRequest,
+} from "../controllers/public/professionalMarketplace";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
@@ -181,6 +187,12 @@ router.post("/emailSubscription/unsubscribe", unsubscribeEmail);
  
 // Contact Form
 router.post("/submitVerificationDocs", submitDocumentVerification);
+
+// Professional marketplaces (buyers)
+router.get("/lawyers/marketplace", listMarketplaceLawyers);
+router.get("/lawyers/marketplace/:id", getMarketplaceLawyer);
+router.get("/surveyors/marketplace", listMarketplaceSurveyors);
+router.post("/survey-requests", createSurveyRequest);
 
 // Partner → hub: syndication user authentication callback (after partner validates hub user credentials)
 router.post("/syndication/user/authentication/webhook", receiveSyndicationUserAuthWebhook);

@@ -1258,16 +1258,30 @@ export class PaystackService {
           // Construct the setting key dynamically
           const settingKey = `${docType}_verification_email`;
 
-          let recipientEmail =
-            (await SystemSettingService.getSetting(settingKey))?.value ||
-            process.env.GENERAL_VERIFICATION_MAIL; // fallback
+          // Prefer assigned marketplace lawyer; fallback to legacy provider inbox
+          let recipientEmail: string | undefined;
+          let recipientName = docType === "survey-plan"
+            ? "Survey Plan Officer"
+            : "Verification Officer";
 
-          // Prepare third-party email
+          if (docVerification.lawyerId) {
+            const lawyerUser = await DB.Models.User.findById(docVerification.lawyerId);
+            if (lawyerUser?.email) {
+              recipientEmail = lawyerUser.email;
+              recipientName = `${lawyerUser.firstName || ""} ${lawyerUser.lastName || ""}`.trim() || "Lawyer";
+            }
+          }
+
+          if (!recipientEmail) {
+            recipientEmail =
+              (await SystemSettingService.getSetting(settingKey))?.value ||
+              process.env.GENERAL_VERIFICATION_MAIL;
+          }
+
+          // Prepare third-party / lawyer email
           const thirdPartyEmailHTML = generalEmailLayout(
             generateThirdPartyVerificationEmail({
-              recipientName: docType === "survey-plan"
-                ? "Survey Plan Officer"
-                : "Verification Officer",
+              recipientName,
               requesterName: buyerData?.fullName || "",
               message: "Please review the submitted documents and confirm verification status.",
               accessCode: accessCode,
@@ -1275,14 +1289,18 @@ export class PaystackService {
             })
           );
 
-          await sendEmail({
-            to: recipientEmail,
-            subject: docType === "survey-plan"
-              ? `New Survey Plan Verification Request - ${buyerData?.fullName}`
-              : `New Document Verification Request - ${buyerData?.fullName}`,
-            html: thirdPartyEmailHTML,
-            text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
-          });
+          if (recipientEmail) {
+            await sendEmail({
+              to: recipientEmail,
+              subject: docVerification.lawyerId
+                ? `Assigned Document Verification - ${buyerData?.fullName}`
+                : docType === "survey-plan"
+                  ? `New Survey Plan Verification Request - ${buyerData?.fullName}`
+                  : `New Document Verification Request - ${buyerData?.fullName}`,
+              html: thirdPartyEmailHTML,
+              text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+            });
+          }
 
         } else {
           // ✅ Save failed status

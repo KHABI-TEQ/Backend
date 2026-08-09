@@ -97,6 +97,12 @@ import {
   IPublisherProfileModel,
   ChannelSession,
   IChannelSessionModel,
+  LawyerProfile,
+  ILawyerProfileModel,
+  SurveyorProfile,
+  ISurveyorProfileModel,
+  SurveyRequest,
+  ISurveyRequestModel,
 } from "../models/index";
 
 
@@ -151,6 +157,9 @@ declare interface IModels {
   AdminNotification: IAdminNotificationModel;
   PublisherProfile: IPublisherProfileModel;
   ChannelSession: IChannelSessionModel;
+  LawyerProfile: ILawyerProfileModel;
+  SurveyorProfile: ISurveyorProfileModel;
+  SurveyRequest: ISurveyRequestModel;
 }
 
 export class DB {
@@ -220,6 +229,9 @@ export class DB {
       AdminNotification: new AdminNotification().model,
       PublisherProfile: new PublisherProfile().model,
       ChannelSession: new ChannelSession().model,
+      LawyerProfile: new LawyerProfile().model,
+      SurveyorProfile: new SurveyorProfile().model,
+      SurveyRequest: new SurveyRequest().model,
     };
   }
 

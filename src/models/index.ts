@@ -48,3 +48,6 @@ export * from "./channelSession";
 export * from "./syndicationPlatform";
 export * from "./syndicationPlatformApplication";
 export * from "./syndicationConnectionVerification";
+export * from "./lawyerProfile";
+export * from "./surveyorProfile";
+export * from "./surveyRequest";
