@@ -308,10 +308,22 @@ export const submitLawyerVerificationReport = async (
 
     const buyer = await DB.Models.Buyer.findById(job.buyerId);
     if (buyer?.email) {
+      const { buildBuyerDocumentMeta } = await import(
+        "../../../utils/notificationDeepLinks"
+      );
+      const docId = String(job._id || "");
       await sendEmail({
         to: buyer.email,
         subject: `Document verification result: ${status}`,
-        text: `Your ${job.docType} verification (code ${job.docCode}) was marked ${status}. ${description || ""}`,
+        text: `Your ${job.docType} verification (code ${job.docCode}) was marked ${status}. ${description || ""} Open Document verification in the Khabi-Teq app.`,
+        inboxMeta: docId
+          ? buildBuyerDocumentMeta(docId)
+          : {
+              source: "system",
+              audience: "buyer",
+              screen: "documents",
+              actionPath: "/documents",
+            },
       });
     }
 

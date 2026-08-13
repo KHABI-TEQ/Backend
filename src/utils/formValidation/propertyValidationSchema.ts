@@ -181,7 +181,10 @@ export const propertyValidationSchema = Joi.object({
 
   addtionalInfo: Joi.string().trim().allow("", null).optional().default(""),
 
-  isTenanted: Joi.string().valid("Yes", "No").required(),
+  // Clients may send Title Case (Yes/No) or storage enum (yes/no/i-live-in-it)
+  isTenanted: Joi.string()
+    .valid("Yes", "No", "yes", "no", "i-live-in-it", "I live in it")
+    .required(),
 
   status: Joi.string()
     .valid(

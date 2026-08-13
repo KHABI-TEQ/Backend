@@ -66,18 +66,22 @@ export const respondToInspectionRequest = async (
     const isDealSite = receiverMode?.type === "dealSite" && receiverMode?.dealSiteID;
     const marketedIds = collectMarketedAgentUserIds(propertyDoc || ({} as any));
     const userIsMarketer = marketedIds.includes(userId.toString());
+    const isAssignedLicensedRep =
+      Boolean((inspection as any).assignedFieldAgent) &&
+      String((inspection as any).assignedFieldAgent) === String(userId) &&
+      String((inspection as any).fieldAgentRequestStatus || "") === "accepted";
 
     if (isDealSite) {
-      if (!ownerMatch) {
+      if (!ownerMatch && !isAssignedLicensedRep) {
         throw new RouteError(
           HttpStatusCodes.FORBIDDEN,
-          "Only the operator of this public page can accept or reject this inspection request",
+          "Only the operator of this public page (or their assigned licensed Agent) can accept or reject this inspection request",
         );
       }
-    } else if (!ownerMatch && !userIsMarketer) {
+    } else if (!ownerMatch && !userIsMarketer && !isAssignedLicensedRep) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
-        "Only the property owner or an agent marketing this listing can respond to this inspection request",
+        "Only the property owner, an agent marketing this listing, or an assigned licensed Agent can respond to this inspection request",
       );
     }
     if ((inspection as any).status !== "pending_approval") {
@@ -85,6 +89,17 @@ export const respondToInspectionRequest = async (
         HttpStatusCodes.BAD_REQUEST,
         `This inspection is not awaiting your response (status: ${(inspection as any).status})`,
       );
+    }
+
+    // Property Scouts cannot accept — they must request a licensed Agent instead.
+    if (action === "accept") {
+      const { isPropertyScout } = await import("../../services/propertyScout.service");
+      if (await isPropertyScout(String(userId))) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Property Scouts cannot accept inspection requests. Request a licensed Agent to represent you on this inspection.",
+        );
+      }
     }
 
     const property =
@@ -140,6 +155,7 @@ export const respondToInspectionRequest = async (
         buyerName: buyer?.fullName || buyer?.email,
         propertyLocation,
         note,
+        inspectionId: String(inspectionId),
       });
       return res.status(HttpStatusCodes.OK).json({
         success: true,

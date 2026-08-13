@@ -19,6 +19,14 @@ import {
   requestFieldAgentForInspection,
   respondToFieldAgentRepresentationRequest,
 } from "../controllers/Account/fieldAgentRepresentation";
+import {
+  getLicensedAgentRepresentationTerms,
+  getMyPropertyScoutStatus,
+  listAvailableLicensedAgents,
+  listLicensedAgentRepresentationRequests,
+  requestLicensedAgentForInspection,
+  respondLicensedAgentRepresentation,
+} from "../controllers/Account/licensedAgentRepresentation";
  
 import {
   getAllNotifications,
@@ -198,7 +206,7 @@ AccountRouter.delete(
   cancelFieldAgentRequest,
 );
 
-// Field Agent representation (company staff — no Paystack payment from requesting Agent)
+// Field Agent representation (legacy — prefer licensed-agents routes below)
 AccountRouter.get("/field-agents/representation-terms", getFieldAgentRepresentationTerms);
 AccountRouter.get("/field-agents/available", listAvailableFieldAgents);
 AccountRouter.get(
@@ -208,6 +216,26 @@ AccountRouter.get(
 AccountRouter.post(
   "/inspectionsFieldAgent/:inspectionId/representation/respond",
   respondToFieldAgentRepresentationRequest,
+);
+
+// Property Scout → licensed Agent representation (replaces Field Agent request UX)
+AccountRouter.get("/property-scout/status", getMyPropertyScoutStatus);
+AccountRouter.get(
+  "/licensed-agents/representation-terms",
+  getLicensedAgentRepresentationTerms,
+);
+AccountRouter.get("/licensed-agents/available", listAvailableLicensedAgents);
+AccountRouter.get(
+  "/licensed-agents/representation-requests",
+  listLicensedAgentRepresentationRequests,
+);
+AccountRouter.post(
+  "/my-inspections/:inspectionId/request-licensed-agent",
+  requestLicensedAgentForInspection,
+);
+AccountRouter.post(
+  "/licensed-agents/:inspectionId/representation/respond",
+  respondLicensedAgentRepresentation,
 );
 
 // BOOKING REQUEST ROUTES

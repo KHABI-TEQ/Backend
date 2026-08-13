@@ -31,10 +31,12 @@ export const suggestPropertyForm = async (
     const result = await suggestFormFields("property", userInput);
     if (!result.success) {
       const err = result as { success: false; error: string };
-      const status =
-        err.error === "AI service is not configured"
-          ? HttpStatusCodes.SERVICE_UNAVAILABLE
-          : HttpStatusCodes.BAD_REQUEST;
+      const authFail = /authentication failed|OPENAI_API_KEY|not configured/i.test(
+        err.error
+      );
+      const status = authFail
+        ? HttpStatusCodes.SERVICE_UNAVAILABLE
+        : HttpStatusCodes.BAD_REQUEST;
       throw new RouteError(status, err.error);
     }
 
@@ -66,10 +68,12 @@ export const suggestPreferenceForm = async (
     const result = await suggestFormFields("preference", userInput);
     if (!result.success) {
       const err = result as { success: false; error: string };
-      const status =
-        err.error === "AI service is not configured"
-          ? HttpStatusCodes.SERVICE_UNAVAILABLE
-          : HttpStatusCodes.BAD_REQUEST;
+      const authFail = /authentication failed|OPENAI_API_KEY|not configured/i.test(
+        err.error
+      );
+      const status = authFail
+        ? HttpStatusCodes.SERVICE_UNAVAILABLE
+        : HttpStatusCodes.BAD_REQUEST;
       throw new RouteError(status, err.error);
     }
 

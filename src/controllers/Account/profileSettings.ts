@@ -663,6 +663,19 @@ export const getDashboardData = async (
       Object.assign(dashboardData, { completedDeals, totalCommission });
     }
 
+    if (user.userType === "Agent" || user.userType === "Developer") {
+      const { getPropertyScoutSnapshot } = await import(
+        "../../services/propertyScout.service"
+      );
+      const scout = await getPropertyScoutSnapshot(String(userId));
+      Object.assign(dashboardData, {
+        isPropertyScout: scout.isPropertyScout,
+        isLicensedPublisher: scout.isLicensedPublisher,
+        displayRoleLabel: scout.displayRoleLabel,
+        canAcceptInspectionRequests: !scout.isPropertyScout,
+      });
+    }
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Dashboard data fetched successfully",

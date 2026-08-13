@@ -25,6 +25,7 @@ import {
 } from "../../../services/agentSubscriptionIncentive.service";
 import { getPublisherListingSnapshot } from "../../../services/publisherListingEligibility.service";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
+import { getPropertyScoutSnapshot } from "../../../services/propertyScout.service";
 
 function daysUntil(deadline: Date | null): number | null {
   if (!deadline) return null;
@@ -52,15 +53,23 @@ export const getAgentEligibility = async (
       throw new RouteError(HttpStatusCodes.FORBIDDEN, "Eligibility applies to Agent accounts only.");
     }
 
-    const [kycStatus, ownedProperties, gate, paidSubscription, anyActiveSubscription, publisherListing] =
-      await Promise.all([
-        getPublisherKycStatus(String(userId)),
-        countAgentOwnedProperties(String(userId)),
-        getAgentAccessGate(String(userId)),
-        getActivePaidAgentSubscriptionSnapshot(String(userId)),
-        UserSubscriptionSnapshotService.getActiveSnapshot(String(userId)),
-        getPublisherListingSnapshot(String(userId), "Agent"),
-      ]);
+    const [
+      kycStatus,
+      ownedProperties,
+      gate,
+      paidSubscription,
+      anyActiveSubscription,
+      publisherListing,
+      propertyScout,
+    ] = await Promise.all([
+      getPublisherKycStatus(String(userId)),
+      countAgentOwnedProperties(String(userId)),
+      getAgentAccessGate(String(userId)),
+      getActivePaidAgentSubscriptionSnapshot(String(userId)),
+      UserSubscriptionSnapshotService.getActiveSnapshot(String(userId)),
+      getPublisherListingSnapshot(String(userId), "Agent"),
+      getPropertyScoutSnapshot(String(userId)),
+    ]);
 
     const kycApproved = kycStatus === "approved";
     const kycGraceActive = await isAgentKycGraceActive(String(userId));
@@ -128,6 +137,11 @@ export const getAgentEligibility = async (
         canUseDealSite: gate.ok,
         canRequestToMarket: gate.ok,
         canSubscribe: kycApproved,
+        isPropertyScout: propertyScout.isPropertyScout,
+        isLicensedPublisher: propertyScout.isLicensedPublisher,
+        displayRoleLabel: propertyScout.displayRoleLabel,
+        hasLicense: propertyScout.hasLicense,
+        canAcceptInspectionRequests: !propertyScout.isPropertyScout,
         gate:
           gate.ok === false
             ? { ok: false as const, reason: gate.reason, message: gate.message }

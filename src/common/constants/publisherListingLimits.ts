@@ -1,5 +1,8 @@
-/** Standard cap for Landlords, Agents, and Developers without the unlimited portfolio plan. */
+/** Standard cap for paid Premium publishers (Agents, Developers, Landlords) without Portfolio Unlimited. */
 export const PUBLISHER_STANDARD_LISTING_LIMIT = 25;
+
+/** Free / trial plan listing cap (Agents without a paid subscription during the trial window). */
+export const FREE_TRIAL_LISTING_LIMIT = 10;
 
 /** Hidden catalog plan — unlimited listings; surfaced only at the 26th listing attempt. */
 export const SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE = "PORTFOLIO_UNLIMITED";

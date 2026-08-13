@@ -8,12 +8,12 @@ import {
 } from "../../../common/constants/publisherListingLimits";
 import {
   getPublisherListingSnapshot,
-  publisherHasUnlimitedListings,
 } from "../../../services/publisherListingEligibility.service";
 import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
 import {
   resolveAgentSubscriptionBonusDays,
 } from "../../../services/agentSubscriptionIncentive.service";
+import { getPropertyScoutSnapshot, isScoutEligibleUserType } from "../../../services/propertyScout.service";
 
 /**
  * GET /account/publisher/listing-eligibility
@@ -39,11 +39,25 @@ export const getPublisherListingEligibility = async (
     }
 
     const snapshot = await getPublisherListingSnapshot(String(userId), userType!);
+    const propertyScout = isScoutEligibleUserType(userType)
+      ? await getPropertyScoutSnapshot(String(userId))
+      : null;
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Publisher listing eligibility fetched successfully",
-      data: snapshot,
+      data: {
+        ...snapshot,
+        ...(propertyScout
+          ? {
+              isPropertyScout: propertyScout.isPropertyScout,
+              isLicensedPublisher: propertyScout.isLicensedPublisher,
+              displayRoleLabel: propertyScout.displayRoleLabel,
+              hasLicense: propertyScout.hasLicense,
+              canAcceptInspectionRequests: !propertyScout.isPropertyScout,
+            }
+          : {}),
+      },
     });
   } catch (err) {
     next(err);
@@ -52,7 +66,9 @@ export const getPublisherListingEligibility = async (
 
 /**
  * GET /account/publisher/unlimited-listing-plan
- * Returns Portfolio Unlimited only when the user has hit the standard cap and lacks unlimited access.
+ * Returns Portfolio Unlimited for publishers who do not already have unlimited listings.
+ * `required` is true only after the standard 25-listing cap (26th listing needs this plan).
+ * Listing-allowance "View plans" can open this offer early as an upgrade path.
  */
 export const getUnlimitedListingPlanOffer = async (
   req: AppRequest,
@@ -74,18 +90,20 @@ export const getUnlimitedListingPlanOffer = async (
     }
 
     const snapshot = await getPublisherListingSnapshot(String(userId), userType!);
-    if (!snapshot?.requiresSpecialPlan) {
-      return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        data: null,
-        message: "Portfolio Unlimited is not required for this account yet.",
-      });
+    if (!snapshot) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Listing eligibility applies to landlord, agent, and developer accounts only."
+      );
     }
 
-    if (await publisherHasUnlimitedListings(String(userId))) {
+    // Only treat truly unlimited accounts as already upgraded — never a missing snapshot.
+    if (snapshot.unlimitedListings) {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         data: null,
+        alreadyUnlimited: true,
+        listingSnapshot: snapshot,
         message: "You already have unlimited listings.",
       });
     }
@@ -120,6 +138,7 @@ export const getUnlimitedListingPlanOffer = async (
         bonusDays,
         discountedPlans,
         listingSnapshot: snapshot,
+        required: !!snapshot.requiresSpecialPlan,
       },
     });
   } catch (err) {

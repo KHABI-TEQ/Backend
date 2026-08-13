@@ -2,6 +2,7 @@ import { EmailData, InspectionActionData } from "../types/inspection.types";
 import { generalTemplate } from "../common/email.template";
 import sendEmail from "../common/send.email";
 import { generateNegotiationEmailTemplate } from "../utils/emailTemplates/generateNegotiationEmailTemplate";
+import { buildBuyerInspectionMeta } from "../utils/notificationDeepLinks";
 
 interface EmailServiceParams {
   actionData: InspectionActionData;
@@ -43,19 +44,37 @@ export class InspectionEmailService {
         isInitiator: sellerIsInitiator,
       });
 
-      // Send both emails
+      const linkMatch = String(
+        (emailData as any)?.responseLink ||
+          (emailData as any)?.checkLink ||
+          ""
+      ).match(/\/secure-buyer-response\/[^/]+\/([^/?#]+)/i);
+      const inspectionId = String(
+        (emailData as any)?.inspectionId ||
+          (actionData as any)?.inspectionId ||
+          linkMatch?.[1] ||
+          ""
+      );
+      const buyerMeta = inspectionId
+        ? buildBuyerInspectionMeta(inspectionId)
+        : undefined;
+
+      // Send both emails — buyer inbox gets structured deep-link meta
       const emailResults = await Promise.allSettled([
         sendEmail({
           to: buyerData.email,
           subject: buyerEmailTemplate.subject,
           html: generalTemplate(buyerEmailTemplate.html),
           text: buyerEmailTemplate.text,
+          ...(buyerMeta ? { inboxMeta: buyerMeta } : {}),
         }),
         sendEmail({
           to: sellerData.email,
           subject: sellerEmailTemplate.subject,
           html: generalTemplate(sellerEmailTemplate.html),
           text: sellerEmailTemplate.text,
+          // Seller/practitioner emails are User accounts; skip buyer inbox
+          skipBuyerInbox: true,
         }),
       ]);
 

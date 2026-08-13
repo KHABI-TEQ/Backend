@@ -62,6 +62,8 @@ export const sendToVerificationProvider = async (
         : "New Document Verification Request",
       html: thirdPartyEmailHTML,
       text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${doc._id}`,
+      // Officer/admin inbox — not a buyer account
+      skipBuyerInbox: true,
     });
     
     res.json({

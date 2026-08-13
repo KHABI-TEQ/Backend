@@ -178,11 +178,15 @@ export const submitVerificationReport_old = async (
       })
     );
 
+    const { buildBuyerDocumentMeta } = await import(
+      "../../../../utils/notificationDeepLinks"
+    );
     await sendEmail({
       to: buyerData?.email,
       subject: `Your Verification Report has been ${formattedReport.status.toUpperCase()}`,
       html: buyerEmailHTML,
-      text: buyerEmailHTML
+      text: `Your verification report was ${formattedReport.status}. Open Document verification in the Khabi-Teq app.`,
+      inboxMeta: buildBuyerDocumentMeta(String(documentId || docVerification._id)),
     });
 
 
@@ -201,7 +205,8 @@ export const submitVerificationReport_old = async (
       to: process.env.DOCUMENT_ADMIN_MAIL,
       subject: `New Verification Report Submitted for Document ${docVerification._id}`,
       html: adminEmailHTML,
-      text: `New verification reports submitted for document ${docVerification._id}. Please check the admin panel at ${process.env.ADMIN_CLIENT_LINK}/verify_document/${docVerification.status}/${documentId}`
+      text: `New verification reports submitted for document ${docVerification._id}. Please check the admin panel at ${process.env.ADMIN_CLIENT_LINK}/verify_document/${docVerification.status}/${documentId}`,
+      skipBuyerInbox: true,
     });
 
     return res.status(HttpStatusCodes.OK).json({
@@ -290,11 +295,15 @@ export const submitVerificationReport = async (
       })
     );
 
+    const { buildBuyerDocumentMeta } = await import(
+      "../../../../utils/notificationDeepLinks"
+    );
     await sendEmail({
       to: buyerData.email,
       subject: `Your Verification Report has been ${formattedReport.status.toUpperCase()}`,
       html: buyerEmailHTML,
-      text: buyerEmailHTML,
+      text: `Your verification report was ${formattedReport.status}. Open Document verification in the Khabi-Teq app.`,
+      inboxMeta: buildBuyerDocumentMeta(String(documentId || docVerification._id)),
     });
 
     // 📧 Admin email
@@ -314,6 +323,7 @@ export const submitVerificationReport = async (
       subject: `New Verification Report Submitted for Document ${docVerification.docCode}`,
       html: adminEmailHTML,
       text: `New verification report submitted for document ${docVerification.docCode}`,
+      skipBuyerInbox: true,
     });
 
     return res.status(HttpStatusCodes.OK).json({

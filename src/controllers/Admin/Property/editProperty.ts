@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { propertyValidationSchema } from "../../../utils/formValidation/propertyValidationSchema";
+import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
 
 export const editPropertyAsAdmin = async (
   req: AppRequest,
@@ -32,8 +33,11 @@ export const editPropertyAsAdmin = async (
       );
     }
 
-    // Update
-    Object.assign(property, payload);
+    // Update (normalize isTenanted for Mongoose enum)
+    Object.assign(property, {
+      ...payload,
+      isTenanted: normalizeIsTenantedForDb(payload.isTenanted),
+    });
     property.status = payload.status || property.status;
 
     await property.save();

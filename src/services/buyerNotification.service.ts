@@ -5,6 +5,11 @@ import {
   sendToBuyerTokens,
 } from "./firebaseAdmin.service";
 import type { BuyerNotificationType } from "../models/buyerNotification";
+import {
+  extractDeepLinkMetaFromContent,
+  metaToPushData,
+  type InboxDeepLinkMeta,
+} from "../utils/notificationDeepLinks";
 
 function inferType(subject: string): BuyerNotificationType {
   const s = subject.toLowerCase();
@@ -101,14 +106,61 @@ export async function pushToBuyerDevices(input: {
 }
 
 /**
+ * Create a buyer inbox item + push with structured deep-link meta (no email required).
+ */
+export async function createBuyerInboxNotification(input: {
+  buyerId: string;
+  title: string;
+  message: string;
+  type?: BuyerNotificationType;
+  meta?: InboxDeepLinkMeta;
+}): Promise<void> {
+  const buyer = await DB.Models.Buyer.findById(input.buyerId).select(
+    "_id devices enableNotifications"
+  );
+  if (!buyer) return;
+
+  const title = String(input.title || "Khabi-Teq update").trim();
+  const message = cleanMessage(input.message, title);
+  const type = input.type || inferType(title);
+  const meta: InboxDeepLinkMeta = {
+    source: "system",
+    audience: "buyer",
+    ...(input.meta || {}),
+  };
+
+  await DB.Models.BuyerNotification.create({
+    buyer: buyer._id,
+    title,
+    message,
+    type,
+    emailSubject: title,
+    isRead: false,
+    meta,
+  });
+
+  if (type === "auth") return;
+  if (buyer.enableNotifications === false) return;
+
+  await pushToBuyerDevices({
+    buyerId: String(buyer._id),
+    title,
+    body: message,
+    type,
+    data: metaToPushData(meta, type),
+  });
+}
+
+/**
  * Mirror an outbound email into the buyer's in-app inbox (and push if devices exist).
- * No-op when the recipient is not a known Buyer.
- * Auth/OTP emails are stored in-inbox but do not trigger device push (avoid OTP spam).
+ * Deep-link meta is stored so the app can open the relevant screen instead of web email links.
  */
 export async function mirrorEmailToBuyerInbox(input: {
   to: string;
   subject: string;
   text: string;
+  html?: string;
+  meta?: InboxDeepLinkMeta;
 }): Promise<void> {
   const email = String(input.to || "")
     .toLowerCase()
@@ -124,6 +176,35 @@ export async function mirrorEmailToBuyerInbox(input: {
   const message = cleanMessage(input.text, title);
   const type = inferType(title);
 
+  const inferred = extractDeepLinkMetaFromContent(
+    `${input.html || ""}\n${input.text || ""}`,
+    title
+  );
+  const explicit = input.meta || {};
+  const meta: InboxDeepLinkMeta = {
+    ...inferred,
+    ...explicit,
+    source: explicit.source || inferred.source || "email",
+  };
+
+  // Never let a generic structured meta wipe a concrete link parsed from the email
+  if (inferred.inspectionId && !explicit.inspectionId) {
+    meta.inspectionId = inferred.inspectionId;
+    meta.actionPath = inferred.actionPath || meta.actionPath;
+    meta.screen = inferred.screen || meta.screen;
+  }
+  if (inferred.documentVerificationId && !explicit.documentVerificationId) {
+    meta.documentVerificationId = inferred.documentVerificationId;
+    meta.actionPath = inferred.actionPath || meta.actionPath;
+    meta.screen = inferred.screen || meta.screen;
+  }
+
+  // Prefer buyer-facing screens when audience is ambiguous
+  if (!meta.screen && type === "inspection") {
+    meta.screen = "inspection";
+    meta.actionPath = meta.actionPath || "/inspections";
+  }
+
   await DB.Models.BuyerNotification.create({
     buyer: buyer._id,
     title,
@@ -131,10 +212,9 @@ export async function mirrorEmailToBuyerInbox(input: {
     type,
     emailSubject: title,
     isRead: false,
-    meta: { source: "email" },
+    meta,
   });
 
-  // OTP / password-reset codes stay email + inbox only.
   if (type === "auth") return;
   if (buyer.enableNotifications === false) return;
 
@@ -153,7 +233,7 @@ export async function mirrorEmailToBuyerInbox(input: {
     const result = await sendToBuyerTokens(tokens, {
       title,
       body: message,
-      data: { type, screen: "notifications" },
+      data: metaToPushData(meta, type),
     });
     if (result.invalidTokens.length) {
       await pruneInvalidBuyerTokens(buyer._id, result.invalidTokens);

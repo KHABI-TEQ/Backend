@@ -34,6 +34,12 @@ const fileTypeConfig: Record<
     resourceType: "raw",
     folder: "identity-docs",
   },
+  "profile-picture": {
+    extensions: ["jpg", "jpeg", "png", "webp"],
+    maxSizeMB: 5,
+    resourceType: "image",
+    folder: "profile-pictures",
+  },
   /** Transaction registration uploads (buyer ID, payment receipt, etc.) — any document type. */
   "transaction-registration-doc": {
     extensions: [],

@@ -5,11 +5,11 @@ import { getActivePaidAgentSubscriptionSnapshot } from "./agentSubscriptionIncen
 /** Days after signup that an Agent may use listing/DealSite without approved KYC. */
 export const AGENT_KYC_GRACE_PERIOD_DAYS = 7;
 
-/** Total days from signup for the no-subscription listing/DealSite trial (includes KYC grace). */
+/** Total days from signup for the no-subscription listing/DealSite trial (includes KYC grace). ~4 weeks. */
 export const AGENT_TRIAL_PERIOD_DAYS = 28;
 
-/** Max owned properties an Agent may list without an active subscription during the trial window. */
-export const AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION = 25;
+/** Max owned properties an Agent may list without an active paid subscription during the Free trial window. */
+export const AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION = 10;
 
 /** Max owned properties an Agent may list during the 7-day KYC grace period before KYC approval. */
 export const AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL = 1;
@@ -23,7 +23,7 @@ export const AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE =
 export const AGENT_TRIAL_EXPIRED_MESSAGE =
   "Your 4-week trial period has ended. Subscribe to a plan to continue listing properties and using your public page.";
 
-export const AGENT_TRIAL_PROPERTY_LIMIT_MESSAGE = `You have reached the trial limit of ${AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION} properties. Subscribe to a plan to list more properties.`;
+export const AGENT_TRIAL_PROPERTY_LIMIT_MESSAGE = `You have reached the Free trial limit of ${AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION} properties. Subscribe to a Premium plan to list up to 25, or Portfolio Unlimited for no listing cap.`;
 
 function addCalendarDays(from: Date, days: number): Date {
   const deadline = new Date(from);
@@ -89,8 +89,9 @@ export async function countAgentOwnedProperties(userId: string): Promise<number>
 }
 
 /**
- * Subscription is required when the 4-week trial ended, or the agent already owns
- * {@link AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION} properties without a subscription.
+ * Subscription is required when the 4-week trial ended (regardless of listing count),
+ * or the agent already owns {@link AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION}
+ * properties without a paid subscription during the trial.
  */
 export async function isAgentSubscriptionRequired(userId: string): Promise<boolean> {
   if (!(await isAgentTrialPeriodActive(userId))) {
@@ -129,7 +130,7 @@ export async function getAgentAccessGate(userId: string): Promise<AgentAccessGat
 
 /**
  * During days 0–7, agents without approved KYC may own at most one property.
- * Once KYC is approved, normal trial limits apply (up to 10 without subscription).
+ * Once KYC is approved, Free trial limits apply (up to 10 without paid subscription).
  */
 export async function isAgentKycGraceListingLimitReached(userId: string): Promise<boolean> {
   if (!(await isAgentKycGraceActive(userId))) {

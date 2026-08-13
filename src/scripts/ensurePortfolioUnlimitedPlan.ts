@@ -1,5 +1,8 @@
 /**
- * Ensures Portfolio Unlimited exists and aligns standard plan LISTINGS features to 25.
+ * Ensures Portfolio Unlimited exists and aligns LISTINGS features:
+ * - Free / trial plans → 10
+ * - Paid Premium catalog plans → 25
+ * - Portfolio Unlimited → unlimited
  *
  * Run: npx ts-node -r tsconfig-paths/register src/scripts/ensurePortfolioUnlimitedPlan.ts
  */
@@ -7,6 +10,7 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { DB } from "../controllers";
 import {
+  FREE_TRIAL_LISTING_LIMIT,
   PORTFOLIO_UNLIMITED_PRICING,
   PUBLISHER_STANDARD_LISTING_LIMIT,
   SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
@@ -16,6 +20,18 @@ import {
 async function getListingsFeatureId(): Promise<string | null> {
   const feature = await DB.Models.PlanFeature.findOne({ key: "LISTINGS" }).lean();
   return feature?._id?.toString() ?? null;
+}
+
+function isFreeOrTrialPlan(plan: {
+  isTrial?: boolean;
+  price?: number;
+  name?: string;
+}): boolean {
+  return (
+    !!plan.isTrial ||
+    Number(plan.price) === 0 ||
+    /free/i.test(String(plan.name || ""))
+  );
 }
 
 async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
@@ -69,17 +85,25 @@ async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
   console.log(`Created ${SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME} plan.`);
 }
 
-async function capStandardPlansAt25(listingsFeatureId: string) {
+async function alignCatalogListingCaps(listingsFeatureId: string) {
   const plans = await DB.Models.SubscriptionPlan.find({
     code: { $ne: SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE },
     unlimitedListings: { $ne: true },
   }).populate("features.feature");
 
-  let updated = 0;
+  let freeUpdated = 0;
+  let premiumUpdated = 0;
+
   for (const plan of plans) {
+    const target = isFreeOrTrialPlan(plan)
+      ? FREE_TRIAL_LISTING_LIMIT
+      : PUBLISHER_STANDARD_LISTING_LIMIT;
     let changed = false;
+
     for (const assigned of plan.features) {
-      const featureDoc = assigned.feature as { key?: string; _id?: { toString(): string } } | null;
+      const featureDoc = assigned.feature as
+        | { key?: string; _id?: { toString(): string } }
+        | null;
       const isListings =
         featureDoc?.key === "LISTINGS" ||
         featureDoc?._id?.toString() === listingsFeatureId;
@@ -87,19 +111,24 @@ async function capStandardPlansAt25(listingsFeatureId: string) {
 
       if (assigned.type === "unlimited") {
         assigned.type = "count";
-        assigned.value = PUBLISHER_STANDARD_LISTING_LIMIT;
+        assigned.value = target;
         changed = true;
-      } else if (assigned.type === "count" && assigned.value !== PUBLISHER_STANDARD_LISTING_LIMIT) {
-        assigned.value = PUBLISHER_STANDARD_LISTING_LIMIT;
+      } else if (assigned.type === "count" && assigned.value !== target) {
+        assigned.value = target;
         changed = true;
       }
     }
+
     if (changed) {
       await plan.save();
-      updated += 1;
+      if (target === FREE_TRIAL_LISTING_LIMIT) freeUpdated += 1;
+      else premiumUpdated += 1;
     }
   }
-  console.log(`Aligned LISTINGS feature to ${PUBLISHER_STANDARD_LISTING_LIMIT} on ${updated} standard plan(s).`);
+
+  console.log(
+    `Aligned LISTINGS: Free/trial → ${FREE_TRIAL_LISTING_LIMIT} (${freeUpdated} plan(s)); Premium → ${PUBLISHER_STANDARD_LISTING_LIMIT} (${premiumUpdated} plan(s)).`
+  );
 }
 
 async function run() {
@@ -112,7 +141,7 @@ async function run() {
   }
 
   await ensurePortfolioUnlimitedPlan(listingsFeatureId);
-  await capStandardPlansAt25(listingsFeatureId);
+  await alignCatalogListingCaps(listingsFeatureId);
 
   await mongoose.disconnect();
   console.log("Done.");

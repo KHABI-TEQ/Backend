@@ -17,6 +17,7 @@ import { assertPropertyListingAllowedForOwner } from "../../../services/property
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
 import { notifyUserPropertyCreatedByAdmin } from "../../../services/userProvisioningNotifications.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
+import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
 
 export const postPropertyAsAdmin = async (
   req: AppRequest,
@@ -59,7 +60,7 @@ export const postPropertyAsAdmin = async (
       userType,
     });
 
-    const isTenanted = (payload.isTenanted ?? "no").toString().toLowerCase();
+    const isTenanted = normalizeIsTenantedForDb(payload.isTenanted);
     const allowCommission = userType === "Landowners" || userType === "Developer";
     const propertyData = {
       ...payload,

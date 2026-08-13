@@ -19,6 +19,7 @@ import { Types } from "mongoose";
 import { parseInspectionScheduledAt } from "../../../utils/inspectionSchedule";
 import { getPropertyTitleFromLocation } from "../../../utils/helper";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
+import { buildPractitionerInspectionMeta } from "../../../utils/notificationDeepLinks";
 
 class InspectionActionsController {
 
@@ -189,19 +190,25 @@ class InspectionActionsController {
       },
     });
 
-    // Create notifications for both buyer and seller
-    const recipientId = isSeller ? buyerId : ownerId;
-    await notificationService.createNotification({
-      user: recipientId,
-      title: emailSubject,
-      message: logMessage,
-      meta: {
-        inspectionId,
-        propertyTitle: (inspection.propertyId as any).title,
-        action: actionData.action,
-        inspectionType: actionData.inspectionType,
-      },
-    });
+    // Buyer inbox is filled by email mirror (inboxMeta / link extraction).
+    // Practitioners get User Notification with deep-link meta (seller email skips buyer inbox).
+    const propertyTitle = (inspection.propertyId as any)?.title || "";
+    (emailData as any).inspectionId = inspectionId;
+
+    if (!isSeller) {
+      await notificationService.createNotification({
+        user: ownerId,
+        title: emailSubject,
+        message: logMessage,
+        type: "inspection",
+        meta: {
+          ...buildPractitionerInspectionMeta(inspectionId),
+          propertyTitle,
+          action: actionData.action,
+          inspectionType: actionData.inspectionType,
+        },
+      });
+    }
 
     if (dateTimeChanged) {
       const propertyObj = inspection.propertyId as any;

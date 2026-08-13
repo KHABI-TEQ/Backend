@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import type { InboxDeepLinkMeta } from "../utils/notificationDeepLinks";
 
 type EmailAttachment = {
   filename: string;
@@ -14,6 +15,11 @@ type EmailOptions = {
   attachments?: EmailAttachment[];
   /** Set true to skip buyer in-app / push mirroring for this mail. */
   skipBuyerInbox?: boolean;
+  /**
+   * Structured deep-link meta mirrored into BuyerNotification + push.
+   * When omitted, meta is inferred from HTML/text links and subject.
+   */
+  inboxMeta?: InboxDeepLinkMeta;
 };
 
 const sendEmail = async (emailOptions: EmailOptions) => {
@@ -41,13 +47,14 @@ const sendEmail = async (emailOptions: EmailOptions) => {
     console.log("Message sent: %s", info.messageId);
 
     if (!emailOptions.skipBuyerInbox) {
-      // Dynamic import avoids circular deps with controllers/DB.
       void import("../services/buyerNotification.service")
         .then(({ mirrorEmailToBuyerInbox }) =>
           mirrorEmailToBuyerInbox({
             to: emailOptions.to,
             subject: emailOptions.subject,
             text: emailOptions.text,
+            html: emailOptions.html,
+            meta: emailOptions.inboxMeta,
           })
         )
         .catch((err) =>

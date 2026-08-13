@@ -18,6 +18,7 @@ import { validatePropertyPayload } from "../../../services/propertyValidation.se
 import mongoose from "mongoose";
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
+import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
 
 export const postProperty = async (
   req: AppRequest,
@@ -47,7 +48,7 @@ export const postProperty = async (
     const userType = (req.user as any)?.userType;
 
     // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"
-    const isTenanted = (payload.isTenanted ?? "no").toString().toLowerCase();
+    const isTenanted = normalizeIsTenantedForDb(payload.isTenanted);
 
     // Agent commission fields: only persist for Landlord or Developer (Sale, Rent, JV, Shortlet)
     const allowCommission = userType === "Landowners" || userType === "Developer";

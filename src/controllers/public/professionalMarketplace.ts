@@ -13,6 +13,9 @@ import {
   assertSurveyorFeeInRange,
   getSurveyorPlatformChargePercent,
 } from "../../services/professionalFee.service";
+import sendEmail from "../../common/send.email";
+import notificationService from "../../services/notification.service";
+import { buildSurveyorJobMeta } from "../../utils/notificationDeepLinks";
 
 export const listMarketplaceLawyers = async (
   _req: AppRequest,
@@ -228,6 +231,24 @@ export const createSurveyRequest = async (
       transaction: paymentResponse.transactionId,
       status: "pending",
     });
+
+    const jobMeta = buildSurveyorJobMeta(String(request._id));
+    await notificationService.createNotification({
+      user: String(surveyorId),
+      title: "New survey request",
+      message: `A buyer requested ${serviceType} at ${propertyAddress || "a property"}. Open Requests in the practitioners app.`,
+      type: "survey",
+      meta: jobMeta,
+    });
+
+    if (surveyorUser.email) {
+      void sendEmail({
+        to: surveyorUser.email,
+        subject: "New survey request",
+        text: `A buyer requested ${serviceType}. Open Requests in the Khabi-Teq Practitioners app.`,
+        skipBuyerInbox: true,
+      });
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

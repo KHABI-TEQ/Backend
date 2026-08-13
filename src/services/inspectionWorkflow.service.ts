@@ -8,6 +8,10 @@ import { getPropertyTitleFromLocation } from "../utils/helper";
 import { getClientBaseUrl, getClientDashboardUrl } from "../utils/clientAppUrl";
 import { dealSiteOriginFromPublicSlug } from "../config/dealSitePublicHost";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
+import {
+  buildBuyerInspectionMeta,
+  buildPractitionerInspectionMeta,
+} from "../utils/notificationDeepLinks";
 
 /** User IDs of agents accepted to market this property (Request To Market). */
 export function collectMarketedAgentUserIds(property: {
@@ -66,7 +70,13 @@ export async function notifyAgentOfInspectionRequest(params: {
     title,
     message,
     type: "inspection",
-    meta: { inspectionId, propertyId: propertyId?.toString?.() ?? "", status: "pending_approval" },
+    meta: {
+      inspectionId,
+      propertyId: propertyId?.toString?.() ?? "",
+      status: "pending_approval",
+      screen: "inspections",
+      actionPath: "/tools/inspections",
+    },
   });
 
   const link = getClientDashboardUrl();
@@ -81,13 +91,15 @@ export async function notifyAgentOfInspectionRequest(params: {
     <p>Preferred date: ${inspectionDate} at ${inspectionTime}</p>
     ${acceptLine}
     <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
+    <p style="font-size:13px;color:#555;">Prefer the app? Open <strong>Tools → Inspections</strong> in Khabi-Teq Practitioners.</p>
   `);
 
   await sendEmail({
     to: (owner as any).email,
     subject: "New inspection request – action required",
     html,
-    text: message,
+    text: `${message} Open Tools → Inspections in the practitioners app.`,
+    skipBuyerInbox: true,
   });
 
   const ownerPhone = String((owner as any).phoneNumber || "").replace(/\s/g, "");
@@ -403,6 +415,20 @@ export async function notifyBuyerPaymentLink(params: {
     subject: "Inspection accepted – complete your payment",
     html,
     text: `Your inspection was accepted. Pay ₦${amount?.toLocaleString()} here: ${paymentUrl}`,
+    inboxMeta: inspectionId
+      ? {
+          ...buildBuyerInspectionMeta(inspectionId),
+          paymentUrl,
+          propertyId: propertyId || undefined,
+        }
+      : {
+          source: "system",
+          audience: "buyer",
+          screen: "inspection",
+          actionPath: "/inspections",
+          paymentUrl,
+          propertyId: propertyId || undefined,
+        },
   });
 }
 
@@ -528,6 +554,18 @@ export async function notifyBuyerAcceptedNoPayment(params: {
     subject: "Inspection accepted – " + (propertyDetails?.title || propertyLocation),
     html,
     text: textParts.join(" "),
+    inboxMeta: inspectionId
+      ? {
+          ...buildBuyerInspectionMeta(inspectionId),
+          propertyId: propertyId || undefined,
+        }
+      : {
+          source: "system",
+          audience: "buyer",
+          screen: "inspection",
+          actionPath: "/inspections",
+          propertyId: propertyId || undefined,
+        },
   });
 }
 
@@ -539,19 +577,28 @@ export async function notifyBuyerRejected(params: {
   buyerName: string;
   propertyLocation: string;
   note?: string;
+  inspectionId?: string;
 }): Promise<void> {
-  const { buyerEmail, buyerName, propertyLocation, note } = params;
+  const { buyerEmail, buyerName, propertyLocation, note, inspectionId } = params;
   const html = generalEmailLayout(`
     <p>Hello ${buyerName || "there"},</p>
     <p>Unfortunately, the agent has declined your inspection request for <strong>${propertyLocation}</strong>.</p>
     ${note ? `<p>Message: ${note}</p>` : ""}
-    <p>You can browse other properties or submit a new request.</p>
+    <p>You can browse other properties or submit a new request in the Khabi-Teq app.</p>
   `);
   await sendEmail({
     to: buyerEmail,
     subject: "Inspection request declined",
     html,
-    text: `Your inspection request for ${propertyLocation} was declined.${note ? ` ${note}` : ""}`,
+    text: `Your inspection request for ${propertyLocation} was declined.${note ? ` ${note}` : ""} Open Inspections in the app.`,
+    inboxMeta: inspectionId
+      ? buildBuyerInspectionMeta(inspectionId)
+      : {
+          source: "system",
+          audience: "buyer",
+          screen: "inspection",
+          actionPath: "/inspections",
+        },
   });
 }
 
@@ -577,20 +624,24 @@ export async function notifyAgentPaymentReceived(params: {
     title,
     message,
     type: "inspection",
-    meta: { inspectionId, status: "payment_received" },
+    meta: {
+      ...buildPractitionerInspectionMeta(inspectionId),
+      status: "payment_received",
+    },
   });
 
   const html = generalEmailLayout(`
     <p>Hello ${(owner as any).firstName || (owner as any).lastName || "there"},</p>
     <p><strong>${buyerName}</strong> has completed payment for the inspection at <strong>${propertyLocation}</strong>.</p>
     <p>Amount received: ₦${amount?.toLocaleString() || ""}</p>
-    <p>The inspection is confirmed. Please coordinate with the buyer for the scheduled date and time.</p>
+    <p>The inspection is confirmed. Open <strong>Tools → Inspections</strong> in the practitioners app to coordinate.</p>
   `);
   await sendEmail({
     to: (owner as any).email,
     subject: "Inspection payment received",
     html,
-    text: message,
+    text: `${message} Open Tools → Inspections in the practitioners app.`,
+    skipBuyerInbox: true,
   });
 }
 
@@ -650,7 +701,8 @@ export async function sendInspectionRateReportEmailToBuyer(inspectionId: string)
     to: buyer.email,
     subject: "Inspection completed – rate your experience",
     html,
-    text: `Rate your experience: ${rateLink}\nTo report the agent: ${reportLink}`,
+    text: `Rate your experience in the app under Inspections. Web links: ${rateLink}\nReport: ${reportLink}`,
+    inboxMeta: buildBuyerInspectionMeta(String(inspectionId)),
   });
 
   const buyerLine = String(buyer.whatsAppNumber || buyer.phoneNumber || "").replace(/\s/g, "");

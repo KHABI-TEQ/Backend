@@ -12,6 +12,8 @@ import {
   getLawyerPlatformChargePercent,
 } from "../../services/professionalFee.service";
 import sendEmail from "../../common/send.email";
+import notificationService from "../../services/notification.service";
+import { buildLawyerJobMeta } from "../../utils/notificationDeepLinks";
 
 // Map of document names to their corresponding price setting keys (legacy fallback)
 const listDocNames: Record<string, string> = {
@@ -191,11 +193,30 @@ export const submitDocumentVerification = async (
 
     if (lawyerProfile && assignedLawyerId) {
       const lawyerUser = await DB.Models.User.findById(assignedLawyerId);
+      const firstDocId = String(createdDocs[0]?._id || "");
+      const jobMeta = firstDocId
+        ? buildLawyerJobMeta(firstDocId)
+        : {
+            source: "system" as const,
+            audience: "practitioner" as const,
+            screen: "lawyer_job",
+            actionPath: "/lawyer/jobs",
+          };
+
+      await notificationService.createNotification({
+        user: String(assignedLawyerId),
+        title: "New document verification assignment",
+        message: `A buyer selected you for document verification (code ${docCode}). Open Jobs in the practitioners app.`,
+        type: "document",
+        meta: { ...jobMeta, docCode },
+      });
+
       if (lawyerUser?.email) {
         void sendEmail({
           to: lawyerUser.email,
           subject: "New document verification assignment",
-          text: `A buyer selected you for document verification (code ${docCode}). Complete payment tracking and review the job in your practitioner app after payment succeeds.`,
+          text: `A buyer selected you for document verification (code ${docCode}). Open Jobs in the Khabi-Teq Practitioners app — no web link required.`,
+          skipBuyerInbox: true,
         });
       }
     }

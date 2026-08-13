@@ -8,6 +8,7 @@ import { notifySubscribersOfPropertyUpdate } from "../../../services/agentSubscr
 import { Types } from "mongoose";
 import { notifyPriceDropToMatchedPreferences } from "../../../services/whatsappPropertyPrice.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
+import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
 
 export const editProperty = async (
   req: AppRequest,
@@ -40,8 +41,11 @@ export const editProperty = async (
     }
 
     const oldPrice = Number((property as any).price);
-    // Merge and save updates
-    Object.assign(property, payload);
+    // Merge and save updates (normalize isTenanted for Mongoose enum)
+    Object.assign(property, {
+      ...payload,
+      isTenanted: normalizeIsTenantedForDb(payload.isTenanted),
+    });
     property.status = payload.status || property.status;
 
     await property.save();

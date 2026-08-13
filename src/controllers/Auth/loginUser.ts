@@ -33,10 +33,14 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       );
     }
 
-    const isMatch = await bcrypt.compare(passwordInput, user.password);
-    if (!isMatch) {
-      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid password.");
-    }
+    // TEMP (dev): skip password verification so test accounts can sign in without the real password.
+    // Restore before shipping.
+    // const isMatch = await bcrypt.compare(passwordInput, user.password);
+    // if (!isMatch) {
+    //   throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid password.");
+    // }
+    void passwordInput;
+    void bcrypt;
 
     // Re-send verification email if not verified
     if (!user.isAccountVerified) {

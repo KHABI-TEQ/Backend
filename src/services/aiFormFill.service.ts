@@ -83,12 +83,16 @@ Schema (all optional except you must return an object):
 let openaiClient: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || typeof apiKey !== "string" || apiKey.trim() === "") {
+  const raw = process.env.OPENAI_API_KEY;
+  const apiKey =
+    typeof raw === "string"
+      ? raw.trim().replace(/^["']|["']$/g, "")
+      : "";
+  if (!apiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
   }
   if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: apiKey.trim() });
+    openaiClient = new OpenAI({ apiKey });
   }
   return openaiClient;
 }
@@ -151,7 +155,18 @@ export async function suggestFormFields(
       if (err.message.includes("OPENAI_API_KEY")) {
         return { success: false, error: "AI service is not configured" };
       }
-      return { success: false, error: err.message };
+      const msg = err.message || "";
+      if (
+        /incorrect api key|invalid api key|authentication|401/i.test(msg) ||
+        (err as { status?: number }).status === 401
+      ) {
+        return {
+          success: false,
+          error:
+            "AI service authentication failed. Update OPENAI_API_KEY in the backend .env with a valid OpenAI key, then restart the server.",
+        };
+      }
+      return { success: false, error: msg };
     }
     return { success: false, error: "AI request failed" };
   }

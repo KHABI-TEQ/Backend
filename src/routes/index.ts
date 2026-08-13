@@ -44,6 +44,7 @@ import {
   getAgentRatingsPublic,
 } from "../controllers/Account/agentRatingReport";
 import { suggestPreferenceForm } from "../controllers/aiFormFill/aiFormFillController";
+import { listPublicLicensedAgentsDirectory } from "../controllers/Account/licensedAgentRepresentation";
 
 const router = express.Router();
 
@@ -232,6 +233,9 @@ router.use("/transaction-registration", TransactionRegistrationRouter);
 
 // LASRERA Market Place – properties list (optional auth for currentUserHasRequested; returns requestToMarketCount per property)
 router.get("/lasrera-marketplace/properties", optionalAccountAuth, listLasreraMarketplaceProperties);
+
+// Public licensed Agents directory (no contact info) — buyer app selection gate
+router.get("/licensed-agents", listPublicLicensedAgentsDirectory);
 
 // All Inspections Routes
 router.use("/inspections", inspectRouter);
