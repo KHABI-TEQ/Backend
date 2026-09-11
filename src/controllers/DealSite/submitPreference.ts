@@ -108,6 +108,7 @@ export const sendPreferenceRequest = async (
             type: 'dealSite',
             dealSiteID: dealSite._id
         },
+        submittedVia: payload.submittedVia === "app" ? "app" : "website",
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);

@@ -9,7 +9,7 @@ import { notifyAgentPaymentReceived } from './inspectionWorkflow.service';
 import sendEmail from '../common/send.email';
 import { generalEmailLayout } from '../common/emailTemplates/emailLayout';
 import { getKhabiteqEmailLogoUrl } from '../common/constants/emailBranding';
-import { generateThirdPartyVerificationEmail, GenerateVerificationEmailParams, generateVerificationSubmissionEmail } from '../common/emailTemplates/documentVerificationMails';
+import { generateThirdPartyVerificationEmail } from '../common/emailTemplates/documentVerificationMails';
 import { generateSubscriptionFailureEmail, generateSubscriptionReceiptEmail } from '../common/emailTemplates/subscriptionMails';
 import { SystemSettingService } from './systemSetting.service';
 import { PaymentMethodService } from './paymentMethod.service';
@@ -27,6 +27,8 @@ import { resumeAgentPolicyPausedDealSites } from './agentPublisherEligibility.se
 import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.service';
 import { sendTransactionVoiceNote } from './voiceNote.service';
 import { shortletHostPayoutEligibleAt } from '../utils/shortletPricing';
+import { isWhiteLabelingCategory } from '../common/constants/subscriptionCategories';
+import { isUnlimitedListingPlanCode } from '../common/constants/publisherListingLimits';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -434,6 +436,9 @@ export class PaystackService {
       case 'document-verification':
         return await PaystackService.handleDocumentVerificationPayment(tx);
 
+      case 'survey-request':
+        return await PaystackService.handleSurveyRequestPayment(tx);
+
       case 'subscription':
         return await PaystackService.handleSubscriptionPayment(tx);
 
@@ -445,6 +450,12 @@ export class PaystackService {
 
       case 'channel-registration-fee':
         return await PaystackService.handleChannelRegistrationFeeEffect(tx);
+
+      case 'custom-domain-package':
+        return await PaystackService.handleCustomDomainPackagePaymentEffect(tx);
+
+      case 'custom-domain-renewal':
+        return await PaystackService.handleCustomDomainRenewalPaymentEffect(tx);
 
       default:
         console.warn(`Unhandled transaction type: ${transactionType}`);
@@ -514,6 +525,26 @@ export class PaystackService {
         event: 'fee_paid',
       });
     }
+    return null;
+  }
+
+  static async handleCustomDomainPackagePaymentEffect(
+    tx: INewTransactionDoc
+  ): Promise<null> {
+    const { handleCustomDomainPackagePaid } = await import(
+      "./customDomain.service"
+    );
+    await handleCustomDomainPackagePaid(tx);
+    return null;
+  }
+
+  static async handleCustomDomainRenewalPaymentEffect(
+    tx: INewTransactionDoc
+  ): Promise<null> {
+    const { handleCustomDomainRenewalPaid } = await import(
+      "./customDomain.service"
+    );
+    await handleCustomDomainRenewalPaid(tx);
     return null;
   }
 
@@ -1003,6 +1034,15 @@ export class PaystackService {
       inspection.pendingResponseFrom = pendingResponseFrom;
       inspection.status = updatedStatus;
       inspection.stage = updatedStage;
+      if (
+        transaction.status === "success" &&
+        (inspection as any).inspectionFeeSplit?.subAccountCode
+      ) {
+        (inspection as any).inspectionFeeSplit = {
+          ...((inspection as any).inspectionFeeSplit || {}),
+          settledVia: "subaccount",
+        };
+      }
       await inspection.save();
 
       if (transaction.status === "success") {
@@ -1034,9 +1074,9 @@ export class PaystackService {
 
       let planDuration: number;
 
-      // calculating subscription snapshot dates also confirm if the plan is a discounted plan
-      const startDate = new Date();
-      
+      let startDate = new Date();
+      const isWhiteLabeling = isWhiteLabelingCategory(snapshot.meta?.category);
+
       if (snapshot.meta.planType === "discounted" && snapshot.meta.planCode) {
         // find exact discounted plan under this plan
         const discountedPlan = plan.discountedPlans?.find(
@@ -1052,11 +1092,25 @@ export class PaystackService {
         planDuration = plan.durationInDays;
       }
 
+      if (isWhiteLabeling && snapshot.meta?.isRenewal && snapshot.meta?.siteId) {
+        const site =
+          snapshot.meta.siteKind === "deal-site"
+            ? await DB.Models.DealSite.findById(snapshot.meta.siteId).select("customDomainExpiresAt")
+            : await DB.Models.ProfessionalSite.findById(snapshot.meta.siteId).select("customDomainExpiresAt");
+        const currentExpiry = site?.customDomainExpiresAt
+          ? new Date(site.customDomainExpiresAt)
+          : null;
+        if (currentExpiry && currentExpiry > startDate) {
+          startDate = currentExpiry;
+        }
+      }
+
       const { expiresAt: endDateWithBonus, bonusDays } = computePaidSubscriptionExpiresAt({
         startDate,
         baseDurationInDays: planDuration,
         planName: snapshot.meta.appliedPlanName ?? plan.name,
         planCode: snapshot.meta.planCode ?? plan.code,
+        category: snapshot.meta?.category,
       });
  
       // Map plan features into snapshot
@@ -1117,7 +1171,34 @@ export class PaystackService {
           }
         }
         
-        // Check if user has ANY past subscription (active or expired), excluding current pending one
+        if (isWhiteLabeling) {
+          const { handleCustomDomainPackagePaid, handleCustomDomainRenewalPaid } = await import(
+            "./customDomain.service"
+          );
+          if (snapshot.meta?.isRenewal) {
+            await handleCustomDomainRenewalPaid(transaction, {
+              expiresAt: snapshot.expiresAt,
+              durationInDays: planDuration,
+            });
+          } else {
+            await handleCustomDomainPackagePaid(transaction);
+          }
+        } else if (
+          isUnlimitedListingPlanCode(snapshot.meta?.planCode) ||
+          snapshot.meta?.includedWithPortfolioUnlimited
+        ) {
+          const { handleCustomDomainPackagePaid } = await import(
+            "./customDomain.service"
+          );
+          if (!transaction.meta?.customDomainRequestId && snapshot.meta?.customDomainRequestId) {
+            transaction.meta = {
+              ...(transaction.meta || {}),
+              customDomainRequestId: snapshot.meta.customDomainRequestId,
+            };
+          }
+          await handleCustomDomainPackagePaid(transaction);
+        }
+
         const previousSubscription = await DB.Models.UserSubscriptionSnapshot.exists({
           user: user._id,
           status: { $in: ["active", "inactive", "expired"] },
@@ -1212,104 +1293,131 @@ export class PaystackService {
 
     if (!docVerifications.length) return;
 
+    const {
+      emailBuyerPaymentReceived,
+      emailProfessionalBuyerContacts,
+    } = await import("./professionalRequest.service");
+
     for (const docVerification of docVerifications) {
-      if (docVerification.status === "pending") {
-        const newStatus = transaction.status === "success" ? "payment-approved" : "payment-failed";
-        docVerification.status = newStatus;
+      const payableStatuses = ["awaiting-payment", "pending"];
+      if (!payableStatuses.includes(String(docVerification.status))) continue;
 
-        const buyerData = docVerification.buyerId as any;
-  
-        if (transaction.status === "success") {
-          // Generate a 6-digit unique code
-          const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const newStatus =
+        transaction.status === "success" ? "payment-approved" : "payment-failed";
+      docVerification.status = newStatus;
 
-          docVerification.accessCode = {
-            token: accessCode,
-            status: 'pending',
-          };
-          
-          // ✅ SAVE FIRST - This ensures the access code is in the DB before emails are sent
-          await docVerification.save();
+      const buyerData = docVerification.buyerId as any;
 
-          // Send confirmation email to buyer
-          const emailParams: GenerateVerificationEmailParams = {
-            fullName: buyerData?.fullName || "",
-            phoneNumber: buyerData?.phoneNumber || "",
-            address: buyerData?.address || "",
-            amountPaid: docVerification.amountPaid,
-            documents: docVerification.documents,
-          };
+      if (transaction.status === "success") {
+        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+        docVerification.accessCode = {
+          token: accessCode,
+          status: "pending",
+        };
+        await docVerification.save();
 
-          const buyerMailBody = generalEmailLayout(
-            generateVerificationSubmissionEmail(emailParams)
-          );
+        await emailBuyerPaymentReceived({
+          buyer: buyerData || {},
+          amountPaid: Number(docVerification.amountPaid || transaction.amount || 0),
+          documents: docVerification.documents,
+          documentVerificationId: String(docVerification._id),
+        });
 
-          await sendEmail({
-            to: buyerData?.email,
-            subject: "Document Verification Submission Received – Under Review",
-            html: buyerMailBody,
-            text: buyerMailBody,
+        if (docVerification.lawyerId) {
+          await emailProfessionalBuyerContacts({
+            kind: "lawyer",
+            professionalUserId: docVerification.lawyerId,
+            buyer: buyerData || {},
+            referenceCode: docVerification.docCode,
+            amount: Number(docVerification.amountPaid || transaction.amount || 0),
+            jobId: String(docVerification._id),
           });
-
+        } else {
+          // Legacy third-party inbox path
           const docType = (docVerification.documents.documentType || "")
             .toLowerCase()
-            .trim(); // normalize
-
-          // Construct the setting key dynamically
+            .trim();
           const settingKey = `${docType}_verification_email`;
-
-          // Prefer assigned marketplace lawyer; fallback to legacy provider inbox
-          let recipientEmail: string | undefined;
-          let recipientName = docType === "survey-plan"
-            ? "Survey Plan Officer"
-            : "Verification Officer";
-
-          if (docVerification.lawyerId) {
-            const lawyerUser = await DB.Models.User.findById(docVerification.lawyerId);
-            if (lawyerUser?.email) {
-              recipientEmail = lawyerUser.email;
-              recipientName = `${lawyerUser.firstName || ""} ${lawyerUser.lastName || ""}`.trim() || "Lawyer";
-            }
-          }
-
-          if (!recipientEmail) {
-            recipientEmail =
-              (await SystemSettingService.getSetting(settingKey))?.value ||
-              process.env.GENERAL_VERIFICATION_MAIL;
-          }
-
-          // Prepare third-party / lawyer email
-          const thirdPartyEmailHTML = generalEmailLayout(
-            generateThirdPartyVerificationEmail({
-              recipientName,
-              requesterName: buyerData?.fullName || "",
-              message: "Please review the submitted documents and confirm verification status.",
-              accessCode: accessCode,
-              accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
-            })
-          );
-
+          const recipientEmail =
+            (await SystemSettingService.getSetting(settingKey))?.value ||
+            process.env.GENERAL_VERIFICATION_MAIL;
           if (recipientEmail) {
+            const thirdPartyEmailHTML = generalEmailLayout(
+              generateThirdPartyVerificationEmail({
+                recipientName: "Verification Officer",
+                requesterName: buyerData?.fullName || "",
+                message:
+                  "Please review the submitted documents and confirm verification status.",
+                accessCode,
+                accessLink: `${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+              })
+            );
             await sendEmail({
               to: recipientEmail,
-              subject: docVerification.lawyerId
-                ? `Assigned Document Verification - ${buyerData?.fullName}`
-                : docType === "survey-plan"
-                  ? `New Survey Plan Verification Request - ${buyerData?.fullName}`
-                  : `New Document Verification Request - ${buyerData?.fullName}`,
+              subject: `New Document Verification Request - ${buyerData?.fullName}`,
               html: thirdPartyEmailHTML,
-              text: `A new document verification request has been submitted.\n\nAccess Code: ${accessCode}\nAccess Link: ${process.env.CLIENT_LINK}/third-party-verification/${docVerification._id}`,
+              text: `Access Code: ${accessCode}`,
             });
           }
-
-        } else {
-          // ✅ Save failed status
-          await docVerification.save();
         }
+      } else {
+        await docVerification.save();
       }
     }
 
     return docVerifications;
+  }
+
+  static async handleSurveyRequestPayment(transaction: any) {
+    const requests = await DB.Models.SurveyRequest.find({
+      transaction: transaction._id,
+    }).populate("buyerId");
+
+    if (!requests.length) return;
+
+    const { emailProfessionalBuyerContacts } = await import(
+      "./professionalRequest.service"
+    );
+
+    for (const request of requests) {
+      const payableStatuses = ["awaiting-payment", "pending"];
+      if (!payableStatuses.includes(String(request.status))) continue;
+
+      if (transaction.status === "success") {
+        request.status = "payment-approved";
+        await request.save();
+
+        const buyerData = request.buyerId as any;
+        if (buyerData?.email) {
+          void sendEmail({
+            to: buyerData.email,
+            subject: "Survey payment received – work in progress",
+            text: "Your survey payment was received. The surveyor will contact you shortly.",
+            inboxMeta: {
+              source: "system",
+              audience: "buyer",
+              screen: "surveys",
+              actionPath: "/surveys",
+              surveyRequestId: String(request._id),
+            },
+          });
+        }
+
+        await emailProfessionalBuyerContacts({
+          kind: "surveyor",
+          professionalUserId: request.surveyorId,
+          buyer: buyerData || {},
+          referenceCode: String(request._id).slice(-8).toUpperCase(),
+          amount: Number(request.amountPaid || transaction.amount || 0),
+          jobId: String(request._id),
+        });
+      } else {
+        request.status = "payment-failed";
+        await request.save();
+      }
+    }
+
+    return requests;
   }
 
 

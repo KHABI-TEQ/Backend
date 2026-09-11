@@ -12,6 +12,11 @@ export type InboxDeepLinkMeta = {
   jobId?: string;
   surveyRequestId?: string;
   propertyId?: string;
+  matchedId?: string;
+  preferenceId?: string;
+  buyerId?: string;
+  hasMore?: boolean | string;
+  nextBatchSize?: number | string;
   audience?: "buyer" | "practitioner";
   [key: string]: unknown;
 };
@@ -53,6 +58,17 @@ export function extractDeepLinkMetaFromContent(
         meta.documentVerificationId = doc[1];
         meta.screen = "documents";
         meta.actionPath = `/documents/${doc[1]}`;
+        meta.audience = "buyer";
+        return meta;
+      }
+
+      // Buyer matched-properties page
+      const matches = path.match(/\/matched-properties\/([^/]+)\/([^/?#]+)/i);
+      if (matches) {
+        meta.matchedId = matches[1];
+        meta.preferenceId = matches[2];
+        meta.screen = "matches";
+        meta.actionPath = `/matches/${matches[1]}/${matches[2]}`;
         meta.audience = "buyer";
         return meta;
       }
@@ -168,6 +184,36 @@ export function buildSurveyorJobMeta(surveyRequestId: string): InboxDeepLinkMeta
   };
 }
 
+/** Map User.userType to the practitioners app role segment. */
+export function publisherRoleSlugFromUserType(
+  userType?: string | null
+): "agent" | "developer" | "landlord" | "lawyer" | "surveyor" {
+  const t = String(userType || "").trim();
+  if (t === "Developer") return "developer";
+  if (t === "Landowners" || t === "Landlord") return "landlord";
+  if (t === "Lawyer") return "lawyer";
+  if (t === "Surveyor") return "surveyor";
+  return "agent";
+}
+
+export function buildPractitionerListingMatchMeta(input: {
+  userType?: string | null;
+  propertyId: string;
+  preferenceId?: string;
+  matchedId?: string;
+}): InboxDeepLinkMeta {
+  const role = publisherRoleSlugFromUserType(input.userType);
+  return {
+    source: "system",
+    audience: "practitioner",
+    screen: "listing",
+    propertyId: String(input.propertyId),
+    preferenceId: input.preferenceId ? String(input.preferenceId) : undefined,
+    matchedId: input.matchedId ? String(input.matchedId) : undefined,
+    actionPath: `/${role}/listings/${input.propertyId}`,
+  };
+}
+
 /** Flatten meta for FCM/Expo (all values must be strings). */
 export function metaToPushData(
   meta: InboxDeepLinkMeta,
@@ -185,5 +231,11 @@ export function metaToPushData(
   if (meta.jobId) data.jobId = String(meta.jobId);
   if (meta.surveyRequestId) data.surveyRequestId = String(meta.surveyRequestId);
   if (meta.propertyId) data.propertyId = String(meta.propertyId);
+  if (meta.matchedId) data.matchedId = String(meta.matchedId);
+  if (meta.preferenceId) data.preferenceId = String(meta.preferenceId);
+  if (meta.buyerId) data.buyerId = String(meta.buyerId);
+  if (meta.audience) data.audience = String(meta.audience);
+  if (meta.hasMore != null) data.hasMore = String(meta.hasMore);
+  if (meta.nextBatchSize != null) data.nextBatchSize = String(meta.nextBatchSize);
   return data;
 }

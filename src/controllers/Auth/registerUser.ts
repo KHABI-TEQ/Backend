@@ -13,6 +13,7 @@ import { SystemSettingService } from "../../services/systemSetting.service";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
 import { ensurePublisherProfile } from "../../services/publisherKyc.service";
 import { isPublisherKycUserType } from "../../common/kycTypes";
+import { resolveActiveBrmId } from "../Account/assignBrm";
 
 /**
  * Traditional Registration
@@ -62,7 +63,15 @@ export const registerUser = async (
           "Invalid or inactive referral code.",
         );
       }
-    } 
+    }
+
+    let resolvedBrmId: Types.ObjectId | null = null;
+    if (
+      req.body.brmId &&
+      (userType === "Agent" || userType === "Developer")
+    ) {
+      resolvedBrmId = await resolveActiveBrmId(req.body.brmId);
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const accountId = await generateUniqueAccountId();
@@ -87,6 +96,7 @@ export const registerUser = async (
       isFlagged: false,
       isAccountVerified: false,
       accountApproved: false,
+      ...(resolvedBrmId ? { brmId: resolvedBrmId } : {}),
     });
 
     if (userType === "Agent") {

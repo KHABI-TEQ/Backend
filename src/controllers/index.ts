@@ -103,6 +103,16 @@ import {
   ISurveyorProfileModel,
   SurveyRequest,
   ISurveyRequestModel,
+  ProfessionalSite,
+  IProfessionalSiteModel,
+  CustomDomainRequest,
+  ICustomDomainRequestModel,
+  PreferenceReview,
+  IPreferenceReviewModel,
+  PropertyImageEmbedding,
+  IPropertyImageEmbeddingModel,
+  BusinessRelationManager,
+  IBusinessRelationManagerModel,
 } from "../models/index";
 
 
@@ -160,6 +170,11 @@ declare interface IModels {
   LawyerProfile: ILawyerProfileModel;
   SurveyorProfile: ISurveyorProfileModel;
   SurveyRequest: ISurveyRequestModel;
+  ProfessionalSite: IProfessionalSiteModel;
+  CustomDomainRequest: ICustomDomainRequestModel;
+  PreferenceReview: IPreferenceReviewModel;
+  PropertyImageEmbedding: IPropertyImageEmbeddingModel;
+  BusinessRelationManager: IBusinessRelationManagerModel;
 }
 
 export class DB {
@@ -232,6 +247,11 @@ export class DB {
       LawyerProfile: new LawyerProfile().model,
       SurveyorProfile: new SurveyorProfile().model,
       SurveyRequest: new SurveyRequest().model,
+      ProfessionalSite: new ProfessionalSite().model,
+      CustomDomainRequest: new CustomDomainRequest().model,
+      PreferenceReview: new PreferenceReview().model,
+      PropertyImageEmbedding: new PropertyImageEmbedding().model,
+      BusinessRelationManager: new BusinessRelationManager().model,
     };
   }
 

@@ -4,6 +4,10 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
+import {
+  getPropertyPriceLock,
+  userCanEditListedProperty,
+} from "../../../services/propertyPriceLock.service";
 
 export const fetchSingleProperty = async (
   req: AppRequest,
@@ -20,19 +24,25 @@ export const fetchSingleProperty = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
     }
 
-    const ownerId =
-      (property.owner as any)?._id?.toString() || property.owner.toString();
-
-    if (ownerId !== req.user._id.toString()) {
+    if (!userCanEditListedProperty(req.user._id, property, req.user.role)) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
         "You do not have permission to access this property",
       );
     }
 
+    const lock = await getPropertyPriceLock(property._id);
+    const data =
+      typeof (property as any).toObject === "function"
+        ? (property as any).toObject()
+        : property;
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: property,
+      data: {
+        ...data,
+        ...lock,
+      },
     });
   } catch (err) {
     next(err);
@@ -74,7 +84,11 @@ export const fetchAllProperties = async (
     // Same "owner" as request-to-market: property.owner = Publisher (user). Use ObjectId for reliable match.
     const ownerId = Types.ObjectId.isValid(userId) ? (userId as Types.ObjectId) : new Types.ObjectId(String(userId));
     const filter: any = {
-      owner: ownerId,
+      $or: [
+        { owner: ownerId },
+        { marketedByAgentId: ownerId },
+        { marketedByAgentIds: ownerId },
+      ],
       isDeleted: { $ne: true }, // include false or undefined; only exclude explicitly deleted
     };
 

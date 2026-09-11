@@ -1,5 +1,6 @@
 import { IProperty } from "../../models";
 import { Types } from "mongoose";
+import { listingCommissionFields } from "../../common/constants/listingCommission";
 
 const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
@@ -27,6 +28,7 @@ export const formatRentProperty = (
     localGovernment: payload.location?.localGovernment,
     area: payload.location?.area,
     streetAddress: payload.location?.streetAddress || "",
+    estate: payload.location?.estate || "",
   },
   docOnProperty: payload.docOnProperty || [],
   ...(payload.landSize
@@ -65,8 +67,7 @@ export const formatRentProperty = (
   status: payload.status || "approved",
   isPremium: false,
   inspectionFee: clampInspectionFee(payload.inspectionFee),
-  ...(payload.agentCommissionPercent != null && { agentCommissionPercent: Math.min(5, Math.max(0, Number(payload.agentCommissionPercent))) }),
-  ...(payload.agentCommissionAmount != null && payload.agentCommissionAmount >= 0 && { agentCommissionAmount: Math.round(Number(payload.agentCommissionAmount)) }),
+  ...listingCommissionFields(payload),
   isApproved: payload.isApproved ?? true,
   isAvailable: payload.isAvailable ?? true,
   isDeleted: false,

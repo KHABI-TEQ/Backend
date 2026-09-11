@@ -8,6 +8,13 @@ export interface IInspectionNotificationRepresentative {
   whatsappNumber?: string;
 }
 
+export interface IUserDevice {
+  deviceId: string;
+  fcmToken: string;
+  platform?: string;
+  updatedAt?: Date;
+}
+
 export interface IUser { 
   email: string;
   password?: string;
@@ -33,6 +40,7 @@ export interface IUser {
   googleId?: string;
   facebookId?: string;
   enableNotifications?: boolean;
+  devices?: IUserDevice[];
   referralCode?: string;
   referredBy?: string;
   deletionRequestedAt?: Date;
@@ -41,6 +49,8 @@ export interface IUser {
   mustChangePassword?: boolean;
   /** Landlords / Developers only: CC list for new inspection requests (email + WhatsApp). */
   inspectionNotificationRepresentatives?: IInspectionNotificationRepresentative[];
+  /** Optional Business Relation Manager (Agents / Developers). */
+  brmId?: Types.ObjectId;
 }
  
 export interface IUserDoc extends IUser, Document {
@@ -89,11 +99,27 @@ export class User {
         googleId: { type: String, unique: true, sparse: true },
         facebookId: { type: String, unique: true, sparse: true },
         enableNotifications: { type: Boolean, default: true },
+        devices: {
+          type: [
+            {
+              deviceId: { type: String, required: true },
+              fcmToken: { type: String, required: true },
+              platform: { type: String },
+              updatedAt: { type: Date, default: Date.now },
+            },
+          ],
+          default: [],
+        },
         referralCode: { type: String, unique: true, sparse: true },
         referredBy: { type: String },
         deletionRequestedAt: { type: Date },
         deletionGracePeriodDays: { type: Number, default: 7 },
         mustChangePassword: { type: Boolean, default: false },
+        brmId: {
+          type: Schema.Types.ObjectId,
+          ref: "BusinessRelationManager",
+          required: false,
+        },
         inspectionNotificationRepresentatives: {
           type: [
             {

@@ -14,6 +14,12 @@ import {
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
 import { INSPECTION_FEE_DEFAULT } from "../../services/propertyValidation.service";
+import {
+  computeInspectionFeeSplit,
+} from "../../common/constants/inspectionFeeSplit";
+import {
+  assertLicensedAgentPayoutReady,
+} from "../../services/licensedAgentInspectionPayout.service";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from "../../services/buyerConfirmationDevScheduler.service";
 
@@ -301,24 +307,73 @@ export const respondToInspectionRequest = async (
     }
 
     let paymentResponse: { authorization_url: string; transactionId: Types.ObjectId };
-    const result = await PaystackService.initializePayment({
-      email: buyer?.email,
-      amount,
-      fromWho: { kind: "Buyer", item: buyer._id },
-      transactionType: "inspection",
-      metadata: { inspectionId },
-    });
-    paymentResponse = { authorization_url: result.authorization_url, transactionId: result.transactionId as Types.ObjectId };
+    const licensedRepId = isAssignedLicensedRep
+      ? String(userId)
+      : (inspection as any).assignedFieldAgent &&
+          String((inspection as any).fieldAgentRequestStatus || "") === "accepted"
+        ? String((inspection as any).assignedFieldAgent)
+        : null;
 
-    await DB.Models.InspectionBooking.updateOne(
-      { _id: inspectionId },
-      {
-        $set: {
-          status: "pending_transaction",
-          transaction: paymentResponse.transactionId,
+    const split = computeInspectionFeeSplit(amount);
+    let paymentResult: { authorization_url: string; transactionId: unknown };
+    if (licensedRepId) {
+      const payout = await assertLicensedAgentPayoutReady(licensedRepId);
+      const publicPageUrl =
+        process.env.CLIENT_LINK?.replace(/\/$/, "") || "https://khabiteq.com";
+      paymentResult = await PaystackService.initializeSplitPayment({
+        subAccount: payout.subAccountCode,
+        publicPageUrl,
+        amountCharge: split.platformNaira,
+        email: buyer?.email,
+        amount,
+        fromWho: { kind: "Buyer", item: buyer._id },
+        transactionType: "inspection",
+        metadata: {
+          inspectionId,
+          inspectionFeeSplit: {
+            ...split,
+            subAccountCode: payout.subAccountCode,
+            dealSiteId: payout.dealSiteId,
+          },
+          settledVia: "subaccount",
         },
-      },
-    );
+      });
+      await DB.Models.InspectionBooking.updateOne(
+        { _id: inspectionId },
+        {
+          $set: {
+            status: "pending_transaction",
+            transaction: paymentResult.transactionId,
+            inspectionFeeSplit: {
+              ...split,
+              subAccountCode: payout.subAccountCode,
+              dealSiteId: payout.dealSiteId,
+            },
+          },
+        },
+      );
+    } else {
+      paymentResult = await PaystackService.initializePayment({
+        email: buyer?.email,
+        amount,
+        fromWho: { kind: "Buyer", item: buyer._id },
+        transactionType: "inspection",
+        metadata: { inspectionId },
+      });
+      await DB.Models.InspectionBooking.updateOne(
+        { _id: inspectionId },
+        {
+          $set: {
+            status: "pending_transaction",
+            transaction: paymentResult.transactionId,
+          },
+        },
+      );
+    }
+    paymentResponse = {
+      authorization_url: paymentResult.authorization_url,
+      transactionId: paymentResult.transactionId as Types.ObjectId,
+    };
 
     if (propertyIdStr) {
       const feeMessage =

@@ -3,6 +3,29 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
+import { attachReviewsToPreferences } from "../../../services/preferenceReview.service";
+
+const MARKETPLACE_TYPE_ALIASES: Record<string, string> = {
+  sale: "buy",
+  sell: "buy",
+  buy: "buy",
+  rent: "rent",
+  jv: "joint-venture",
+  "joint-venture": "joint-venture",
+  "jointventure": "joint-venture",
+  "off-plan": "off-plan",
+  offplan: "off-plan",
+  "off plan": "off-plan",
+  shortlet: "shortlet",
+};
+
+function normalizeMarketplacePreferenceType(raw: unknown): string | null {
+  const key = String(raw || "")
+    .trim()
+    .toLowerCase();
+  if (!key) return null;
+  return MARKETPLACE_TYPE_ALIASES[key] || null;
+}
 
 /**
  * Authenticated agents: list general (main-site) preferences for the marketplace dashboard.
@@ -30,7 +53,8 @@ export const fetchGeneralMarketplacePreferences = async (
     ];
 
     if (preferenceMode) andParts.push({ preferenceMode });
-    if (preferenceType) andParts.push({ preferenceType });
+    const typeFilter = normalizeMarketplacePreferenceType(preferenceType);
+    if (typeFilter) andParts.push({ preferenceType: typeFilter });
 
     if (keyword) {
       const regex = new RegExp(String(keyword), "i");
@@ -83,10 +107,14 @@ export const fetchGeneralMarketplacePreferences = async (
 
     const total = await DB.Models.Preference.countDocuments(filters);
 
-    const data = preferences.map((pref) => ({
+    const formatted = preferences.map((pref) => ({
       ...formatPreferenceForFrontend(pref as unknown as PreferencePayload),
       receiverMode: pref.receiverMode,
     }));
+    const data = await attachReviewsToPreferences(
+      formatted,
+      req.user?._id ? String(req.user._id) : undefined
+    );
 
     res.status(HttpStatusCodes.OK).json({
       success: true,

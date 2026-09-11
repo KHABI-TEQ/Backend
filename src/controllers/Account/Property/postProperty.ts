@@ -15,10 +15,17 @@ import { assertPropertyListingAllowedForOwner } from "../../../services/property
 import { agentHasUnlimitedPropertyListings } from "../../../services/agentSubscriptionIncentive.service";
 import { isAgentSubscriptionRequired } from "../../../services/agentPublisherEligibility.service";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
+import { listingCommissionFields } from "../../../common/constants/listingCommission";
 import mongoose from "mongoose";
 import { autoPairPreferencesForNewProperty } from "../../../services/autoPreferencePairing.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
+import { assertAgentListingPriceConsistent } from "../../../services/propertyDuplicatePrice.service";
+import {
+  persistPropertyImageEmbeddings,
+  resolveEmbeddingsForUrls,
+  syncPropertyImageEmbeddings,
+} from "../../../services/propertyImageEmbedding.service";
 
 export const postProperty = async (
   req: AppRequest,
@@ -50,7 +57,7 @@ export const postProperty = async (
     // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"
     const isTenanted = normalizeIsTenantedForDb(payload.isTenanted);
 
-    // Agent commission fields: only persist for Landlord or Developer (Sale, Rent, JV, Shortlet)
+    // Agent commission: Landlord/Developer only. Sale/off-plan 5%, rent 10%.
     const allowCommission = userType === "Landowners" || userType === "Developer";
     const propertyData = {
       ...payload,
@@ -59,7 +66,7 @@ export const postProperty = async (
       isApproved: true,
       isAvailable: true,
       ...(allowCommission
-        ? {}
+        ? listingCommissionFields(payload)
         : { agentCommissionPercent: undefined, agentCommissionAmount: undefined }),
     };
     if (!allowCommission) {
@@ -91,6 +98,22 @@ export const postProperty = async (
         userType: userType as string,
       });
       activeSnapshot = snap;
+    }
+
+    const pictureUrls = Array.isArray((formatted as any).pictures)
+      ? ((formatted as any).pictures as string[])
+      : [];
+    let preparedEmbeddings: Awaited<ReturnType<typeof resolveEmbeddingsForUrls>> = [];
+    if (userType === "Agent") {
+      try {
+        preparedEmbeddings = await resolveEmbeddingsForUrls(pictureUrls);
+      } catch (embedErr) {
+        console.warn("[postProperty] image embedding failed (identity check still runs):", embedErr);
+      }
+      await assertAgentListingPriceConsistent({
+        property: formatted,
+        incomingEmbeddings: preparedEmbeddings,
+      });
     }
 
     // ✅ Create property first (inside session)
@@ -194,6 +217,18 @@ export const postProperty = async (
     } catch (syndicationErr) {
       console.warn("[postProperty] enqueue syndication failed:", syndicationErr);
     }
+
+    void (async () => {
+      try {
+        if (preparedEmbeddings.length) {
+          await persistPropertyImageEmbeddings(String(createdProperty._id), preparedEmbeddings);
+        } else {
+          await syncPropertyImageEmbeddings(String(createdProperty._id), pictureUrls);
+        }
+      } catch (embedPersistErr) {
+        console.warn("[postProperty] persist image embeddings failed:", embedPersistErr);
+      }
+    })();
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

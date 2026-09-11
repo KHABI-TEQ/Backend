@@ -16,6 +16,13 @@ export type PublicLicensedAgentCard = {
   companyName?: string;
   publicSlug?: string | null;
   userType: "Agent" | "Developer";
+  /** Approved KYC + non-empty license. Buyers still see everyone as practitioners. */
+  isLicensed?: boolean;
+  /**
+   * True only when the practitioner has a running public DealSite.
+   * Paused (e.g. inactive subscription) or missing page → false ("Unreachable for now").
+   */
+  isPageReachable?: boolean;
 };
 
 function projectPublicCard(row: any): PublicLicensedAgentCard {
@@ -24,6 +31,13 @@ function projectPublicCard(row: any): PublicLicensedAgentCard {
     kyc.companyDetails?.companyName ||
     row.publisherProfile?.kycData?.companyDetails?.companyName ||
     undefined;
+  const licenseNumber = String(row.licenseNumber || "").trim();
+  const isLicensed =
+    row.resolvedKycStatus === "approved" && licenseNumber.length > 0;
+  const dealStatus = String(row.dealSite?.status || "");
+  const publicSlug = row.dealSite?.publicSlug
+    ? String(row.dealSite.publicSlug)
+    : null;
   return {
     _id: String(row._id),
     firstName: row.firstName || "",
@@ -39,13 +53,18 @@ function projectPublicCard(row: any): PublicLicensedAgentCard {
       undefined,
     practitionerType: kyc.practitionerType || kyc.agentType || undefined,
     companyName: company,
-    publicSlug: row.dealSite?.publicSlug || null,
+    publicSlug,
     userType: row.userType === "Developer" ? "Developer" : "Agent",
+    isLicensed,
+    isPageReachable: !!publicSlug && dealStatus === "running",
   };
 }
 
 /**
- * Licensed Agents (and optionally Developers) with approved KYC + license.
+ * Agents/Developers for directories.
+ * - requireLicense true (default): approved KYC + non-empty license (licensed Agents).
+ * - requireLicense false + requireKycApproved true: KYC-approved practitioners
+ *   (licensed or not / property scouts with approved KYC).
  * Public-safe projection — no email/phone/whatsapp.
  */
 export async function listLicensedPublishers(params: {
@@ -55,10 +74,16 @@ export async function listLicensedPublishers(params: {
   page?: number;
   limit?: number;
   userTypes?: Array<"Agent" | "Developer">;
+  /** Default true. Set false for buyer practitioner directory. */
+  requireLicense?: boolean;
+  /** When requireLicense is false, still require approved KYC (buyer directory). */
+  requireKycApproved?: boolean;
 }): Promise<{ data: PublicLicensedAgentCard[]; total: number; page: number; limit: number }> {
   const page = Math.max(1, params.page || 1);
   const limit = Math.min(50, Math.max(1, params.limit || 20));
   const skip = (page - 1) * limit;
+  const requireLicense = params.requireLicense !== false;
+  const requireKycApproved = params.requireKycApproved === true;
   const userTypes = params.userTypes?.length
     ? params.userTypes
     : (["Agent"] as Array<"Agent" | "Developer">);
@@ -72,11 +97,33 @@ export async function listLicensedPublishers(params: {
 
   if (params.search?.trim()) {
     const q = params.search.trim();
-    userFilter.$or = [
+    const or: Record<string, unknown>[] = [
       { firstName: new RegExp(q, "i") },
       { lastName: new RegExp(q, "i") },
       { fullName: new RegExp(q, "i") },
     ];
+
+    // Allow searching by public page slug (e.g. "realhomes"), including paused pages
+    const slugGuess = q
+      .toLowerCase()
+      .replace(/^https?:\/\//i, "")
+      .split(/[/?#]/)[0]
+      .split(".")[0]
+      .replace(/[^a-z0-9-]/g, "");
+    if (slugGuess.length >= 2) {
+      const site = await DB.Models.DealSite.findOne({
+        publicSlug: slugGuess,
+        status: { $in: ["running", "paused"] },
+        isDeleted: { $ne: true },
+      })
+        .select("createdBy")
+        .lean();
+      if (site?.createdBy) {
+        or.push({ _id: site.createdBy });
+      }
+    }
+
+    userFilter.$or = or;
   }
 
   const pipeline: any[] = [
@@ -131,13 +178,22 @@ export async function listLicensedPublishers(params: {
         },
       },
     },
-    {
+  ];
+
+  if (requireLicense) {
+    pipeline.push({
       $match: {
         resolvedKycStatus: "approved",
         licenseNumber: { $ne: "" },
       },
-    },
-  ];
+    });
+  } else if (requireKycApproved) {
+    pipeline.push({
+      $match: {
+        resolvedKycStatus: "approved",
+      },
+    });
+  }
 
   if (params.localGovernment?.trim()) {
     const lga = params.localGovernment.trim();
@@ -174,11 +230,20 @@ export async function listLicensedPublishers(params: {
           {
             $match: {
               $expr: { $eq: ["$createdBy", "$$uid"] },
-              status: "running",
+              // Include paused (e.g. inactive subscription) so buyers still see the practitioner
+              status: { $in: ["running", "paused"] },
               isDeleted: { $ne: true },
             },
           },
-          { $project: { publicSlug: 1 } },
+          {
+            $addFields: {
+              statusRank: {
+                $cond: [{ $eq: ["$status", "running"] }, 0, 1],
+              },
+            },
+          },
+          { $sort: { statusRank: 1, updatedAt: -1 } },
+          { $project: { publicSlug: 1, status: 1, pausedByPolicy: 1 } },
           { $limit: 1 },
         ],
         as: "dealSiteArr",

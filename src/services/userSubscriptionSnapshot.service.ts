@@ -185,29 +185,59 @@ export class UserSubscriptionSnapshotService {
   }
 
   /**
-   * Get active snapshot for a user
+   * Get all currently valid snapshots for a user.
    */
-  static async getActiveSnapshot(
-    userId: string
-  ): Promise<IUserSubscriptionSnapshotDoc | null> {
-    return this.SnapshotModel.findOne({
+  static async getActiveSnapshots(
+    userId: string,
+    options?: { category?: "standard" | "white-labeling" }
+  ): Promise<IUserSubscriptionSnapshotDoc[]> {
+    const filter: FilterQuery<IUserSubscriptionSnapshotDoc> = {
       user: userId,
       status: "active",
       expiresAt: { $gte: new Date() },
-    }).sort({ createdAt: -1 });
+    };
+
+    if (options?.category === "white-labeling") {
+      filter["meta.category"] = "white-labeling";
+    } else if (options?.category === "standard") {
+      filter["meta.category"] = { $nin: ["white-labeling"] };
+    }
+
+    return this.SnapshotModel.find(filter).sort({ createdAt: -1 });
+  }
+
+  /**
+   * Get the current practitioner-eligible snapshot.
+   * Standard and white-labeling both count. Pass `category` to scope the lookup.
+   */
+  static async getActiveSnapshot(
+    userId: string,
+    options?: { category?: "standard" | "white-labeling" }
+  ): Promise<IUserSubscriptionSnapshotDoc | null> {
+    const snapshots = await this.getActiveSnapshots(userId, options);
+    return snapshots[0] || null;
   }
 
   static async getActiveSnapshotWithFeatures(
-    userId: string
+    userId: string,
+    options?: { category?: "standard" | "white-labeling" }
   ): Promise<IUserSubscriptionSnapshotDoc | null> {
-    return this.SnapshotModel.findOne({
+    const filter: FilterQuery<IUserSubscriptionSnapshotDoc> = {
       user: userId,
       status: "active",
       expiresAt: { $gte: new Date() },
-    })
+    };
+
+    if (options?.category === "white-labeling") {
+      filter["meta.category"] = "white-labeling";
+    } else if (options?.category === "standard") {
+      filter["meta.category"] = { $nin: ["white-labeling"] };
+    }
+
+    return this.SnapshotModel.findOne(filter)
       .sort({ createdAt: -1 })
-      .populate("features.feature", "key label isActive") // bring in PlanFeature fields
-      .populate("plan", "name code");
+      .populate("features.feature", "key label isActive")
+      .populate("plan", "name code category benefits billingInterval");
   }
 
  

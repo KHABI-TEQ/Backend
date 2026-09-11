@@ -1,4 +1,12 @@
 import { Schema, model, Document, Model, Types } from "mongoose";
+import {
+  SUBSCRIPTION_BILLING_INTERVALS,
+  SUBSCRIPTION_PLAN_AUDIENCES,
+  SUBSCRIPTION_PLAN_CATEGORIES,
+  type SubscriptionBillingInterval,
+  type SubscriptionPlanAudience,
+  type SubscriptionPlanCategory,
+} from "../common/constants/subscriptionCategories";
 
 export type FeatureLimitType = "boolean" | "count" | "unlimited";
 
@@ -14,6 +22,8 @@ export interface IDiscountedPlan {
   price: number;
   durationInDays: number;
   discountPercentage?: number;
+  billingInterval?: SubscriptionBillingInterval;
+  benefits?: string[];
 }
 
 export interface ISubscriptionPlan {
@@ -29,6 +39,13 @@ export interface ISubscriptionPlan {
   hiddenFromCatalog?: boolean;
   /** When true, subscribers may list properties without the standard 25-property cap. */
   unlimitedListings?: boolean;
+  /** Catalog grouping: Standard (practitioner) vs Custom Domain / White Labeling. */
+  category?: SubscriptionPlanCategory;
+  /** licensed = Agent/Developer with a license; scout = no license (students). */
+  audience?: SubscriptionPlanAudience;
+  billingInterval?: SubscriptionBillingInterval;
+  /** Marketing / package benefits shown on subscription pages. */
+  benefits?: string[];
   discountedPlans?: IDiscountedPlan[];
 }  
 
@@ -46,6 +63,11 @@ export class SubscriptionPlan {
         price: { type: Number, required: true },
         durationInDays: { type: Number, required: true },
         discountPercentage: { type: Number, default: 0 },
+        billingInterval: {
+          type: String,
+          enum: Object.values(SUBSCRIPTION_BILLING_INTERVALS),
+        },
+        benefits: { type: [String], default: [] },
       },
       { _id: false }
     );
@@ -75,6 +97,23 @@ export class SubscriptionPlan {
         isTrial: { type: Boolean, default: false },
         hiddenFromCatalog: { type: Boolean, default: false },
         unlimitedListings: { type: Boolean, default: false },
+        category: {
+          type: String,
+          enum: Object.values(SUBSCRIPTION_PLAN_CATEGORIES),
+          default: SUBSCRIPTION_PLAN_CATEGORIES.STANDARD,
+          index: true,
+        },
+        audience: {
+          type: String,
+          enum: Object.values(SUBSCRIPTION_PLAN_AUDIENCES),
+          default: SUBSCRIPTION_PLAN_AUDIENCES.LICENSED,
+          index: true,
+        },
+        billingInterval: {
+          type: String,
+          enum: Object.values(SUBSCRIPTION_BILLING_INTERVALS),
+        },
+        benefits: { type: [String], default: [] },
         discountedPlans: { type: [discountedPlanSchema], default: [] },
       },
       { timestamps: true }

@@ -149,12 +149,20 @@ export const matchedPropertiesMail = (mailData: {
   };
   matchCount: number;
   matchLink: string;
+  totalMatchCount?: number;
+  revealedCount?: number;
+  remainingCount?: number;
+  nextBatchLink?: string;
 }): string => {
   const {
     contactInfo,
     preferenceSummary,
     matchCount,
     matchLink,
+    totalMatchCount,
+    revealedCount,
+    remainingCount,
+    nextBatchLink,
   } = mailData;
 
   const buyerName =
@@ -169,12 +177,19 @@ export const matchedPropertiesMail = (mailData: {
     landSize = "N/A"
   } = preferenceSummary;
 
+  const total = totalMatchCount ?? matchCount;
+  const shown = revealedCount ?? matchCount;
+  const remaining = remainingCount ?? Math.max(0, total - shown);
+
   return `
     <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
-        Great news! We’ve found <strong>${matchCount}</strong> property match${matchCount === 1 ? "" : "es"} based on your submitted preferences on <strong>Khabi-Teq</strong>.
+        Great news! We’ve found <strong>${total}</strong> property match${total === 1 ? "" : "es"} based on your submitted preferences on <strong>Khabi-Teq</strong>.
+        ${total > matchCount
+          ? ` We’re sending them in small batches so they’re easier to review — <strong>${matchCount}</strong> ${matchCount === 1 ? "is" : "are"} ready now (${shown} of ${total} shown so far).`
+          : ""}
       </p>
 
       <div style="background-color: #f0f8f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
@@ -189,7 +204,7 @@ export const matchedPropertiesMail = (mailData: {
         </ul>
       </div>
 
-      <p style="font-size: 16px;">To view the matched properties, please click the button below:</p>
+      <p style="font-size: 16px;">To view this batch of matched properties, please click the button below:</p>
 
       <div style="text-align: center; margin: 30px 0;">
         <a href="${matchLink}" style="background-color: #007B55; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
@@ -197,7 +212,19 @@ export const matchedPropertiesMail = (mailData: {
         </a>
       </div>
 
-      <p style="font-size: 16px;">If these matches don’t meet your expectations, feel free to update your preferences or reach out for assistance.</p>
+      ${
+        nextBatchLink && remaining > 0
+          ? `
+      <p style="font-size: 16px;">If none of these feel right, you can pull the next batch without waiting for a new email:</p>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${nextBatchLink}" style="background-color: #09391C; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+          Show next ${Math.min(5, remaining)} matches
+        </a>
+      </div>
+      <p style="font-size: 13px; color: #5A5D63;">${remaining} more match${remaining === 1 ? "" : "es"} remaining.</p>
+      `
+          : `<p style="font-size: 16px;">If these matches don’t meet your expectations, feel free to update your preferences or reach out for assistance.</p>`
+      }
 
       <p style="font-size: 16px;">Best regards,<br>
       <strong>The Khabi-Teq Team</strong></p>
@@ -346,7 +373,7 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
       ${browseOrSubmit}
 
       <p style="font-size: 16px;">
-        Alternatively, you can <strong>wait</strong>: when new properties are listed that fit your preference, we will try to match them automatically and email you if listings are found.
+        Alternatively, you can <strong>wait</strong>: we will keep searching as new properties are listed. You will receive a reminder every <strong>48 hours</strong> while we are still looking, and we will notify you as soon as a match is found.
       </p>
 
       <p style="font-size: 16px;">
@@ -354,6 +381,111 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
       </p>
 
       <p style="font-size: 16px;">Best regards,<br/>
+      <strong>The Khabi-Teq Team</strong></p>
+    </div>
+  `;
+};
+
+/** Sent every 48 hours while an approved preference still has no matches. */
+export const stillSearchingPreferenceMail = (mailData: {
+  buyerName: string;
+  preferenceSummary?: string;
+}): string => {
+  const { buyerName, preferenceSummary } = mailData;
+  const summaryBlock = preferenceSummary
+    ? `<p style="font-size: 16px;">We are still matching this preference:</p>
+      <p style="font-size: 16px; background-color: #F5F7F6; padding: 12px 16px; border-radius: 8px;">
+        ${preferenceSummary}
+      </p>`
+    : "";
+
+  return `
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
+
+      <p style="font-size: 16px;">
+        We are <strong>still actively searching</strong> for a listing that matches your submitted preference.
+      </p>
+
+      ${summaryBlock}
+
+      <p style="font-size: 16px;">
+        As soon as an approved property fits your criteria, we will send you the matches (a few at a time) by email and in the app.
+      </p>
+
+      <p style="font-size: 16px;">
+        No action is needed from you. We will check in again in 48 hours if we have not found a match yet.
+      </p>
+
+      <p style="font-size: 16px;">Best regards,<br/>
+      <strong>The Khabi-Teq Team</strong></p>
+    </div>
+  `;
+};
+
+/** Practitioner: one or more of their listings matched a submitted buyer preference. */
+export const listingMatchedPreferenceMail = (mailData: {
+  practitionerName: string;
+  properties: { title: string; propertyType?: string }[];
+  preferenceSummary: {
+    propertyType?: string;
+    locationString?: string;
+    priceRange?: string;
+  };
+  dashboardLink: string;
+}): string => {
+  const {
+    practitionerName,
+    properties,
+    preferenceSummary,
+    dashboardLink,
+  } = mailData;
+  const count = properties.length;
+  const listingLabel = count === 1 ? "listing" : "listings";
+  const rows = properties
+    .map((p) => {
+      const type = p.propertyType ? ` (${p.propertyType})` : "";
+      return `<li style="margin-bottom: 8px;"><strong>${p.title}</strong>${type}</li>`;
+    })
+    .join("");
+
+  return `
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p style="font-size: 16px;">Hi <strong>${practitionerName}</strong>,</p>
+
+      <p style="font-size: 16px;">
+        Good news — <strong>${count}</strong> of your ${listingLabel} automatically matched a buyer preference on <strong>Khabi-Teq</strong>.
+      </p>
+
+      <div style="background-color: #f0f8f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="font-weight: bold; margin: 0 0 10px;">Matched listing${count === 1 ? "" : "s"}</p>
+        <ul style="padding-left: 20px; margin: 0; font-size: 15px; list-style-type: disc;">
+          ${rows}
+        </ul>
+      </div>
+
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="font-weight: bold; margin: 0 0 10px;">Buyer preference (summary)</p>
+        <ul style="padding-left: 20px; margin: 0; font-size: 15px; list-style-type: disc;">
+          <li><strong>Looking to:</strong> ${preferenceSummary.propertyType || "N/A"}</li>
+          <li><strong>Location:</strong> ${preferenceSummary.locationString || "N/A"}</li>
+          <li><strong>Budget:</strong> ${preferenceSummary.priceRange || "N/A"}</li>
+        </ul>
+      </div>
+
+      <p style="font-size: 16px;">
+        The buyer has been notified. Open your listing in the app or dashboard to follow up when they request an inspection.
+      </p>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${dashboardLink}" style="background-color: #007B55; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+          Open dashboard
+        </a>
+      </div>
+
+      <p style="font-size: 13px; color: #5A5D63;">Prefer the app? Open <strong>Listings</strong> in Khabi-Teq Practitioners.</p>
+
+      <p style="font-size: 16px;">Best regards,<br>
       <strong>The Khabi-Teq Team</strong></p>
     </div>
   `;

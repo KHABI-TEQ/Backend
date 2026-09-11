@@ -1,24 +1,43 @@
 import { Schema, model, Document, Model, Types } from 'mongoose';
- 
+
+export type DocumentVerificationStatus =
+  | 'awaiting-acceptance'
+  | 'awaiting-payment'
+  | 'declined'
+  | 'pending'
+  | 'registered'
+  | 'unregistered'
+  | 'in-progress'
+  | 'payment-approved'
+  | 'payment-failed';
+
 export interface IDocumentVerification {
   buyerId: Types.ObjectId;
   /** Assigned marketplace lawyer (User id) when buyer selects one. */
   lawyerId?: Types.ObjectId;
   docCode: string;
-  amountPaid: number;
-  transaction: Types.ObjectId;
+  amountPaid?: number;
+  transaction?: Types.ObjectId;
   documents: {
     documentType: string;
     documentNumber?: string;
     documentUrl: string;
-  }; 
-  accessCode?: { 
+  };
+  accessCode?: {
     token?: string;
     status?: 'pending' | 'approved';
   };
-  status: 'pending' | 'registered' | 'unregistered' | 'in-progress' | 'payment-approved' | 'payment-failed';
-  docType: 'certificate-of-occupancy' | 'deed-of-partition' | 'deed-of-assignment' | 'governors-consent' | 'survey-plan' | 'deed-of-lease' | 'deed-of-conveyance-or-sale' | 'land-certificate';
-  verificationReports?: { 
+  status: DocumentVerificationStatus;
+  docType:
+    | 'certificate-of-occupancy'
+    | 'deed-of-partition'
+    | 'deed-of-assignment'
+    | 'governors-consent'
+    | 'survey-plan'
+    | 'deed-of-lease'
+    | 'deed-of-conveyance-or-sale'
+    | 'land-certificate';
+  verificationReports?: {
     originalDocumentType?: string;
     newDocumentUrl?: string;
     description?: string;
@@ -26,21 +45,25 @@ export interface IDocumentVerification {
     verifiedAt?: Date;
     selfVerification: boolean;
   };
-   additionalDocuments?: {
+  additionalDocuments?: {
     name: string;
     documentFile: string;
     comment?: string;
     uploadedAt?: Date;
   }[];
+  respondedAt?: Date;
+  declineReason?: string;
+  /** marketplace = accept-then-pay; public-page = immediate Paystack */
+  source?: "marketplace" | "public-page";
 }
 
 export interface IDocumentVerificationDoc extends IDocumentVerification, Document {}
 
 export type IDocumentVerificationModel = Model<IDocumentVerificationDoc>;
- 
+
 export class DocumentVerification {
   private generalModel: Model<IDocumentVerificationDoc>;
- 
+
   constructor() {
     const schema = new Schema(
       {
@@ -49,11 +72,10 @@ export class DocumentVerification {
 
         docCode: { type: String, required: true, index: true },
 
-        amountPaid: { type: Number, required: true },
+        amountPaid: { type: Number, min: 0 },
         transaction: {
           type: Schema.Types.ObjectId,
           ref: 'NewTransaction',
-          required: true,
         },
 
         documents: {
@@ -61,7 +83,7 @@ export class DocumentVerification {
           documentNumber: { type: String },
           documentUrl: { type: String },
         },
- 
+
         accessCode: {
           token: { type: String },
           status: {
@@ -73,8 +95,19 @@ export class DocumentVerification {
 
         status: {
           type: String,
-          enum: ['pending', 'registered', 'in-progress', 'unregistered', 'payment-approved', 'payment-failed'],
-          default: 'pending',
+          enum: [
+            'awaiting-acceptance',
+            'awaiting-payment',
+            'declined',
+            'pending',
+            'registered',
+            'in-progress',
+            'unregistered',
+            'payment-approved',
+            'payment-failed',
+          ],
+          default: 'awaiting-acceptance',
+          index: true,
         },
 
         docType: {
@@ -87,7 +120,7 @@ export class DocumentVerification {
             'survey-plan',
             'deed-of-lease',
             'deed-of-conveyance-or-sale',
-            'land-certificate'
+            'land-certificate',
           ],
           required: true,
         },
@@ -95,7 +128,11 @@ export class DocumentVerification {
           originalDocumentType: { type: String },
           newDocumentUrl: { type: String },
           description: { type: String },
-          status: { type: String, enum: ['registered', 'unregistered', 'pending'], default: 'pending', },
+          status: {
+            type: String,
+            enum: ['registered', 'unregistered', 'pending'],
+            default: 'pending',
+          },
           verifiedAt: { type: Date },
           selfVerification: { type: Boolean, default: false },
         },
@@ -109,6 +146,14 @@ export class DocumentVerification {
           },
         ],
 
+        respondedAt: { type: Date },
+        declineReason: { type: String, trim: true },
+        source: {
+          type: String,
+          enum: ["marketplace", "public-page"],
+          default: "marketplace",
+          index: true,
+        },
       },
       { timestamps: true }
     );
@@ -121,7 +166,10 @@ export class DocumentVerification {
       next();
     });
 
-    this.generalModel = model<IDocumentVerificationDoc>('DocumentVerification', schema);
+    this.generalModel = model<IDocumentVerificationDoc>(
+      'DocumentVerification',
+      schema
+    );
   }
 
   public get model(): Model<IDocumentVerificationDoc> {

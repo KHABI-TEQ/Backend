@@ -4,52 +4,82 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { AppRequest } from "../../types/express";
 import { RouteError } from "../../common/classes";
 import {
+  assertSurveyorFeeInRange,
   getLawyerFeeBounds,
   getSurveyorFeeBounds,
 } from "../../services/professionalFee.service";
-import { PaystackService } from "../../services/paystack.service";
-import { Types } from "mongoose";
 import {
-  assertSurveyorFeeInRange,
-  getSurveyorPlatformChargePercent,
-} from "../../services/professionalFee.service";
-import sendEmail from "../../common/send.email";
-import notificationService from "../../services/notification.service";
-import { buildSurveyorJobMeta } from "../../utils/notificationDeepLinks";
+  assertProfessionalPayoutReady,
+  initializeDocumentVerificationPayment,
+  initializeSurveyRequestPayment,
+  marketplaceSearchRegex,
+  notifyProfessionalOfNewRequest,
+} from "../../services/professionalRequest.service";
+
+function mapLawyerCard(p: any) {
+  return {
+    id: String(p.userId?._id || p.userId),
+    profileId: String(p._id),
+    firstName: p.userId?.firstName || "",
+    lastName: p.userId?.lastName || "",
+    fullName: `${p.userId?.firstName || ""} ${p.userId?.lastName || ""}`.trim(),
+    profilePhoto: p.profilePhoto || p.userId?.profile_picture || "",
+    bio: p.bio || "",
+    firmName: p.firmName || "",
+    practiceAreas: p.practiceAreas || [],
+    verificationFee: p.verificationFee,
+  };
+}
+
+function mapSurveyorCard(p: any) {
+  return {
+    id: String(p.userId?._id || p.userId),
+    profileId: String(p._id),
+    firstName: p.userId?.firstName || "",
+    lastName: p.userId?.lastName || "",
+    fullName: `${p.userId?.firstName || ""} ${p.userId?.lastName || ""}`.trim(),
+    profilePhoto: p.profilePhoto || p.userId?.profile_picture || "",
+    bio: p.bio || "",
+    firmName: p.firmName || "",
+    serviceTypes: p.serviceTypes || [],
+    surveyFee: p.surveyFee,
+  };
+}
 
 export const listMarketplaceLawyers = async (
-  _req: AppRequest,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const bounds = await getLawyerFeeBounds();
-    const profiles = await DB.Models.LawyerProfile.find({
+    const filter: Record<string, unknown> = {
       isMarketplaceVisible: true,
       kycStatus: "approved",
       verificationFee: { $gte: bounds.min, $lte: bounds.max },
-    })
-      .populate("userId", "firstName lastName email profile_picture")
+      paystackSubaccountCode: { $exists: true, $nin: [null, ""] },
+    };
+
+    const searchRe = marketplaceSearchRegex(req.query.search as string);
+    let profiles = await DB.Models.LawyerProfile.find(filter)
+      .populate("userId", "firstName lastName profile_picture")
       .sort({ verificationFee: 1 })
       .lean();
 
-    const data = profiles.map((p: any) => ({
-      id: String(p.userId?._id || p.userId),
-      profileId: String(p._id),
-      firstName: p.userId?.firstName || "",
-      lastName: p.userId?.lastName || "",
-      fullName: `${p.userId?.firstName || ""} ${p.userId?.lastName || ""}`.trim(),
-      email: p.userId?.email || "",
-      profilePhoto: p.profilePhoto || p.userId?.profile_picture || "",
-      bio: p.bio || "",
-      firmName: p.firmName || "",
-      practiceAreas: p.practiceAreas || [],
-      verificationFee: p.verificationFee,
-    }));
+    if (searchRe) {
+      profiles = profiles.filter((p: any) => {
+        const name = `${p.userId?.firstName || ""} ${p.userId?.lastName || ""}`;
+        return (
+          searchRe.test(name) ||
+          searchRe.test(p.firmName || "") ||
+          searchRe.test(p.bio || "")
+        );
+      });
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data,
+      data: profiles.map(mapLawyerCard),
       feeBounds: bounds,
     });
   } catch (err) {
@@ -67,27 +97,16 @@ export const getMarketplaceLawyer = async (
       userId: req.params.id,
       isMarketplaceVisible: true,
       kycStatus: "approved",
+      paystackSubaccountCode: { $exists: true, $nin: [null, ""] },
     })
-      .populate("userId", "firstName lastName email profile_picture phoneNumber")
+      .populate("userId", "firstName lastName profile_picture")
       .lean();
     if (!profile) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Lawyer not found.");
     }
-    const u: any = profile.userId;
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: {
-        id: String(u?._id || profile.userId),
-        firstName: u?.firstName,
-        lastName: u?.lastName,
-        fullName: `${u?.firstName || ""} ${u?.lastName || ""}`.trim(),
-        email: u?.email,
-        profilePhoto: profile.profilePhoto || u?.profile_picture || "",
-        bio: profile.bio,
-        firmName: profile.firmName,
-        practiceAreas: profile.practiceAreas,
-        verificationFee: profile.verificationFee,
-      },
+      data: mapLawyerCard(profile),
     });
   } catch (err) {
     next(err);
@@ -95,39 +114,66 @@ export const getMarketplaceLawyer = async (
 };
 
 export const listMarketplaceSurveyors = async (
-  _req: AppRequest,
+  req: AppRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const bounds = await getSurveyorFeeBounds();
-    const profiles = await DB.Models.SurveyorProfile.find({
+    const filter: Record<string, unknown> = {
       isMarketplaceVisible: true,
       kycStatus: "approved",
       surveyFee: { $gte: bounds.min, $lte: bounds.max },
-    })
-      .populate("userId", "firstName lastName email profile_picture")
+      paystackSubaccountCode: { $exists: true, $nin: [null, ""] },
+    };
+
+    const searchRe = marketplaceSearchRegex(req.query.search as string);
+    let profiles = await DB.Models.SurveyorProfile.find(filter)
+      .populate("userId", "firstName lastName profile_picture")
       .sort({ surveyFee: 1 })
       .lean();
 
-    const data = profiles.map((p: any) => ({
-      id: String(p.userId?._id || p.userId),
-      profileId: String(p._id),
-      firstName: p.userId?.firstName || "",
-      lastName: p.userId?.lastName || "",
-      fullName: `${p.userId?.firstName || ""} ${p.userId?.lastName || ""}`.trim(),
-      email: p.userId?.email || "",
-      profilePhoto: p.profilePhoto || p.userId?.profile_picture || "",
-      bio: p.bio || "",
-      firmName: p.firmName || "",
-      serviceTypes: p.serviceTypes || [],
-      surveyFee: p.surveyFee,
-    }));
+    if (searchRe) {
+      profiles = profiles.filter((p: any) => {
+        const name = `${p.userId?.firstName || ""} ${p.userId?.lastName || ""}`;
+        return (
+          searchRe.test(name) ||
+          searchRe.test(p.firmName || "") ||
+          searchRe.test(p.bio || "")
+        );
+      });
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data,
+      data: profiles.map(mapSurveyorCard),
       feeBounds: bounds,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMarketplaceSurveyor = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const profile = await DB.Models.SurveyorProfile.findOne({
+      userId: req.params.id,
+      isMarketplaceVisible: true,
+      kycStatus: "approved",
+      paystackSubaccountCode: { $exists: true, $nin: [null, ""] },
+    })
+      .populate("userId", "firstName lastName profile_picture")
+      .lean();
+    if (!profile) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Surveyor not found.");
+    }
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: mapSurveyorCard(profile),
     });
   } catch (err) {
     next(err);
@@ -147,10 +193,9 @@ export const createSurveyRequest = async (
       propertyAddress,
       surveyPlanUrl,
       notes,
-      amountPaid,
     } = req.body;
 
-    if (!contactInfo?.email || !surveyorId || !serviceType || amountPaid == null) {
+    if (!contactInfo?.email || !surveyorId || !serviceType) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Missing required fields.");
     }
     if (!["plan-verification", "site-survey"].includes(serviceType)) {
@@ -172,53 +217,22 @@ export const createSurveyRequest = async (
         "Surveyor is not available on the marketplace."
       );
     }
-
+    assertProfessionalPayoutReady(profile);
     await assertSurveyorFeeInRange(profile.surveyFee);
-    if (Number(amountPaid) !== Number(profile.surveyFee)) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        `Invalid payment amount. Expected ${profile.surveyFee}.`
-      );
-    }
 
     const buyer = await DB.Models.Buyer.findOneAndUpdate(
       { email: String(contactInfo.email).toLowerCase().trim() },
-      { $setOnInsert: contactInfo },
+      {
+        $set: {
+          fullName: contactInfo.fullName || undefined,
+          phoneNumber: contactInfo.phoneNumber || undefined,
+        },
+        $setOnInsert: {
+          email: String(contactInfo.email).toLowerCase().trim(),
+        },
+      },
       { upsert: true, new: true }
     );
-
-    const platformPct = await getSurveyorPlatformChargePercent();
-    const platformCharge = Math.round((profile.surveyFee * platformPct) / 100);
-    const publicPageUrl =
-      process.env.CLIENT_LINK?.replace(/\/$/, "") || "https://khabiteq.com";
-
-    let paymentResponse;
-    if (profile.paystackSubaccountCode) {
-      paymentResponse = await PaystackService.initializeSplitPayment({
-        subAccount: profile.paystackSubaccountCode,
-        publicPageUrl,
-        amountCharge: platformCharge,
-        email: contactInfo.email,
-        amount: profile.surveyFee,
-        fromWho: {
-          kind: "Buyer",
-          item: new Types.ObjectId(buyer._id as Types.ObjectId),
-        },
-        transactionType: "survey-request",
-        metadata: { surveyorId: String(surveyorId), serviceType },
-      });
-    } else {
-      paymentResponse = await PaystackService.initializePayment({
-        email: contactInfo.email,
-        amount: profile.surveyFee,
-        fromWho: {
-          kind: "Buyer",
-          item: new Types.ObjectId(buyer._id as Types.ObjectId),
-        },
-        transactionType: "survey-request",
-        metadata: { surveyorId: String(surveyorId), serviceType },
-      });
-    }
 
     const request = await DB.Models.SurveyRequest.create({
       buyerId: buyer._id,
@@ -228,36 +242,100 @@ export const createSurveyRequest = async (
       surveyPlanUrl,
       notes,
       amountPaid: profile.surveyFee,
-      transaction: paymentResponse.transactionId,
-      status: "pending",
+      status: "awaiting-acceptance",
     });
 
-    const jobMeta = buildSurveyorJobMeta(String(request._id));
-    await notificationService.createNotification({
-      user: String(surveyorId),
-      title: "New survey request",
-      message: `A buyer requested ${serviceType} at ${propertyAddress || "a property"}. Open Requests in the practitioners app.`,
-      type: "survey",
-      meta: jobMeta,
-    });
+    const surveyorName =
+      `${surveyorUser.firstName || ""} ${surveyorUser.lastName || ""}`.trim() ||
+      "Surveyor";
 
-    if (surveyorUser.email) {
-      void sendEmail({
-        to: surveyorUser.email,
-        subject: "New survey request",
-        text: `A buyer requested ${serviceType}. Open Requests in the Khabi-Teq Practitioners app.`,
-        skipBuyerInbox: true,
-      });
-    }
+    await notifyProfessionalOfNewRequest({
+      kind: "surveyor",
+      professionalUserId: String(surveyorId),
+      professionalEmail: surveyorUser.email,
+      professionalName: surveyorName,
+      referenceCode: String(request._id).slice(-8).toUpperCase(),
+      jobId: String(request._id),
+      summary: `Service: ${serviceType}. Address: ${propertyAddress || "N/A"}. Fee: ₦${Number(profile.surveyFee).toLocaleString()}.`,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Survey request submitted.",
+      message:
+        "Survey request submitted. The surveyor will accept or decline. You will be notified when payment is due.",
       data: {
         request,
+        status: "awaiting-acceptance",
+        payment: null,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const payDocumentVerification = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+    const jobId = req.params.id;
+    if (!email || !jobId) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "email and request id are required."
+      );
+    }
+    const payment = await initializeDocumentVerificationPayment({
+      jobId,
+      buyerEmail: email,
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Payment initialized.",
+      data: {
         payment: {
-          authorization_url: paymentResponse.authorization_url,
-          reference: paymentResponse.reference,
+          authorization_url: payment.authorization_url,
+          reference: payment.reference,
+        },
+        transaction: {
+          authorization_url: payment.authorization_url,
+          reference: payment.reference,
+        },
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const paySurveyRequest = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+    const jobId = req.params.id;
+    if (!email || !jobId) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "email and request id are required."
+      );
+    }
+    const payment = await initializeSurveyRequestPayment({
+      jobId,
+      buyerEmail: email,
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Payment initialized.",
+      data: {
+        payment: {
+          authorization_url: payment.authorization_url,
+          reference: payment.reference,
         },
       },
     });

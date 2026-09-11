@@ -41,12 +41,23 @@ export class DealSiteService {
 
     await assertDealSiteKycAllowed(userId);
 
-    // Ensure publicSlug is unique
+    // Ensure publicSlug is unique across DealSite + ProfessionalSite
     const existingSlug = await DB.Models.DealSite.findOne({
       publicSlug: payload.publicSlug,
     });
 
     if (existingSlug) {
+      throw new RouteError(
+        HttpStatusCodes.CONFLICT,
+        "Public slug is already taken. Please choose another."
+      );
+    }
+
+    const existingProSlug = await DB.Models.ProfessionalSite.findOne({
+      publicSlug: payload.publicSlug,
+      status: { $ne: "deleted" },
+    }).select("_id");
+    if (existingProSlug) {
       throw new RouteError(
         HttpStatusCodes.CONFLICT,
         "Public slug is already taken. Please choose another."
@@ -400,19 +411,10 @@ export class DealSiteService {
    * Check if a publicSlug is available
    */
   static async isSlugAvailable(publicSlug: string): Promise<{ available: boolean; message: string }> {
-    const existingSlug = await DB.Models.DealSite.findOne({ publicSlug }).lean();
-
-    if (existingSlug) {
-      return {
-        available: false,
-        message: "This slug is already taken. Please choose another.",
-      };
-    }
-
-    return {
-      available: true,
-      message: "This slug is available.",
-    };
+    const { isPublicSlugGloballyAvailable } = await import(
+      "./professionalSite.service"
+    );
+    return isPublicSlugGloballyAvailable(publicSlug);
   }
 
 

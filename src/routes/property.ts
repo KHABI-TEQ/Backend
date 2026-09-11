@@ -4,7 +4,7 @@ import {
   getRandomProperties,
   getSingleProperty,
 } from "../controllers/public/property/fetchProperty";
-import { getPaginatedMatchedProperties } from "../controllers/public/preference/fetchMatchedProperties";
+import { getPaginatedMatchedProperties, pullNextMatchedPropertiesBatch } from "../controllers/public/preference/fetchMatchedProperties";
 
  
 // Init shared
@@ -14,6 +14,10 @@ propertyRouter.get("/all", getAllProperties);
 propertyRouter.get("/featuredProps", getRandomProperties);
 propertyRouter.get("/:propertyId/getOne", getSingleProperty);
 propertyRouter.get("/:matchedId/:preferenceId/matches", getPaginatedMatchedProperties);
+propertyRouter.post(
+  "/:matchedId/:preferenceId/matches/next-batch",
+  pullNextMatchedPropertiesBatch
+);
 
 
 export default propertyRouter;

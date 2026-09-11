@@ -13,6 +13,7 @@ export const buyerPublic = (buyer: any) => ({
   address: buyer.address || "",
   profilePicture: buyer.profilePicture || "",
   enableNotifications: buyer.enableNotifications !== false,
+  brmId: buyer.brmId || null,
 });
 
 export const getBuyerProfile = async (

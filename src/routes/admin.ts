@@ -13,6 +13,23 @@ import {
   listPendingLawyers,
   listPendingSurveyors,
 } from "../controllers/Admin/Account/professionalKycReview";
+import {
+  listCustomDomainRequests,
+  forwardCustomDomainRequestAdmin,
+  markCustomDomainLiveAdmin,
+  rejectCustomDomainRequestAdmin,
+} from "../controllers/Admin/Account/customDomainAdmin";
+import {
+  listBrmsAdmin,
+  getBrmAdmin,
+  createBrmAdmin,
+  updateBrmAdmin,
+  deleteBrmAdmin,
+} from "../controllers/Admin/Account/brmAdmin";
+import {
+  createBrmSchema,
+  updateBrmSchema,
+} from "../validators/brm.validator";
 import { deleteLandlordAction, flagOrUnflagLandownerAccount, getAllLandlordProperties, getAllLandlords, getLandlordDashboardStatistics, getSingleLandlord } from "../controllers/Admin/Account/landlords";
 import {
   deleteDeveloperAccount,
@@ -210,6 +227,20 @@ AdminRouter.post("/lawyers/:userId/reviewKycRequest", reviewLawyerKyc);
 AdminRouter.get("/surveyors/pending-kyc", listPendingSurveyors);
 AdminRouter.post("/surveyors/:userId/reviewKycRequest", reviewSurveyorKyc);
 
+AdminRouter.get("/custom-domain-requests", listCustomDomainRequests);
+AdminRouter.post(
+  "/custom-domain-requests/:id/forward",
+  forwardCustomDomainRequestAdmin
+);
+AdminRouter.post(
+  "/custom-domain-requests/:id/mark-live",
+  markCustomDomainLiveAdmin
+);
+AdminRouter.post(
+  "/custom-domain-requests/:id/reject",
+  rejectCustomDomainRequestAdmin
+);
+
 AdminRouter.get("/agents/upgrade-requests", getAllAgentUpgradeRequests);
 
 AdminRouter.get("/agents/:userId", getSingleAgentProfile);
@@ -247,6 +278,12 @@ AdminRouter.delete("/field-agents/:userId/delete", deleteFieldAgentAccount);
 AdminRouter.put("/field-agents/:userId/flag-account", flagOrUnflagFieldAgentAccount);
 AdminRouter.put("/field-agents/:userId/update-account", updateFieldAgent);
 AdminRouter.get("/field-agents/:userId/allAssignedInspections", getFieldAgentAssignedInspections);
+
+AdminRouter.get("/brms", listBrmsAdmin);
+AdminRouter.get("/brms/:id", getBrmAdmin);
+AdminRouter.post("/brms", validateJoi(createBrmSchema), createBrmAdmin);
+AdminRouter.put("/brms/:id", validateJoi(updateBrmSchema), updateBrmAdmin);
+AdminRouter.delete("/brms/:id", deleteBrmAdmin);
 
  
 // PREFERENCE MANAGEMENT ROUTES

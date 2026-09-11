@@ -1,0 +1,457 @@
+{
+  "_meta": {
+    "description": "Estates / gated communities nested under State → LGA → Area for preference forms and AI. Areas should match nigeria-locations.json keys where possible. Inventory is curated (not exhaustive); free-text customLocation remains for unlisted estates.",
+    "primaryMarket": "Lagos",
+    "updatedAt": "2026-08-25",
+    "sources": [
+      "Curated from common Lagos listing demand (Ikoyi, VI, Lekki, Ikeja, Ajah, Ibeju-Lekki, Magodo, etc.)",
+      "Cross-checked against public estate directories (e.g. Nigerian Queries, market articles)"
+    ]
+  },
+  "Lagos": {
+    "Eti-Osa": {
+      "Ikoyi": [
+        "Banana Island",
+        "Parkview Estate",
+        "Osborne Foreshore Estate",
+        "Dolphin Estate",
+        "Old Ikoyi",
+        "Southwest Ikoyi",
+        "Bourdillon",
+        "Glover Road",
+        "Awolowo Road",
+        "Ilubirin Estate",
+        "1004 Estate (Ikoyi side)",
+        "Falomo"
+      ],
+      "Ikoyi I": [
+        "Parkview Estate",
+        "Osborne Foreshore Estate",
+        "Banana Island",
+        "Dolphin Estate"
+      ],
+      "Ikoyi II": [
+        "Parkview Estate",
+        "Osborne Foreshore Estate",
+        "Banana Island",
+        "Dolphin Estate"
+      ],
+      "Victoria Island": [
+        "1004 Estate",
+        "Oniru Estate",
+        "Eko Atlantic",
+        "Kofo Abayomi",
+        "Adeola Odeku corridor",
+        "Ahmadu Bello Way corridor"
+      ],
+      "Victoria Island II": [
+        "1004 Estate",
+        "Oniru Estate",
+        "Eko Atlantic"
+      ],
+      "Lekki": [
+        "Lekki Phase 1",
+        "Lekki Phase 1 Right",
+        "Lekki Phase 1 Left",
+        "Osapa London",
+        "Agungi",
+        "Chevron Drive / Chevy View Estate",
+        "Nicon Town",
+        "Pinnock Beach Estate",
+        "Friends Colony Estate",
+        "Bourdillon Court Estate",
+        "Northern Foreshore Estate",
+        "Milverton Court Estate",
+        "Lekki Gardens Estate",
+        "Orchid Road / Orchid Court",
+        "Ikate Elegushi",
+        "Idado",
+        "Mayfair Gardens",
+        "Ocean Bay Estate",
+        "Crown Estate",
+        "Femi Okunnu Estate"
+      ],
+      "Ikate": [
+        "Ikate Elegushi",
+        "Nicon Town",
+        "Chevy View Estate",
+        "Pinnock Beach Estate",
+        "Friends Colony Estate"
+      ],
+      "Ikota": [
+        "Ikota Villa Estate",
+        "Ikota GRA",
+        "Royal Gardens Estate",
+        "Atlantic View Estate"
+      ],
+      "Ikota GRA": [
+        "Ikota Villa Estate",
+        "Royal Gardens Estate"
+      ],
+      "Ajah": [
+        "Victoria Garden City (VGC)",
+        "Thomas Estate",
+        "Abraham Adesanya Estate",
+        "Ado",
+        "Sangotedo",
+        "Lekki Gardens Estate",
+        "Crown Estate Ajah",
+        "Pearl Gardens",
+        "Grace Court Estate"
+      ],
+      "Ajah/Sangotedo": [
+        "Victoria Garden City (VGC)",
+        "Sangotedo Estate",
+        "Lekki Gardens Estate",
+        "Abraham Adesanya Estate"
+      ],
+      "Sangotedo": [
+        "Sangotedo Estate",
+        "Victoria Garden City (VGC)",
+        "Lekki Gardens Estate"
+      ],
+      "Badore": [
+        "Badore Estate",
+        "United Estate / Mayfair",
+        "Grace Court Estate"
+      ],
+      "Ogombo": [
+        "Ogombo Estate",
+        "Havana Estate"
+      ],
+      "Ilasan Housing Estate": [
+        "Ilasan Housing Estate"
+      ],
+      "Dolphin Estate": [
+        "Dolphin Estate"
+      ]
+    },
+    "Ibeju-Lekki": {
+      "Lakowe": [
+        "Lakowe Lakes Golf & Country Estate",
+        "Beechwood Estate",
+        "Amen Estate",
+        "Carlton Gate Estate"
+      ],
+      "Awoyaya": [
+        "Mayfair Gardens",
+        "Amen Estate Phase 2",
+        "Beechwood Estate",
+        "Coral Court Estate"
+      ],
+      "Bogije": [
+        "Bogije Estate",
+        "Lakewood Estate",
+        "Green Springs Estate"
+      ],
+      "Eleko": [
+        "Eleko Beach Estate",
+        "Dangote Refinery corridor estates"
+      ],
+      "Ibeju": [
+        "Diamond Estate",
+        "Green Spring Estate",
+        "Lakewood Estate",
+        "Amen Estate"
+      ],
+      "Dangote Refinery Area": [
+        "Host community estates",
+        "Industrial corridor estates"
+      ]
+    },
+    "Ikeja": {
+      "Ikeja GRA": [
+        "Ikeja GRA",
+        "Orchid Court Estate",
+        "GRA Ikeja Extension"
+      ],
+      "Alausa": [
+        "Alausa Estate",
+        "Secretariat corridor"
+      ],
+      "Allen Avenue": [
+        "Allen Avenue residential blocks"
+      ],
+      "Ogba": [
+        "Ogba Estate",
+        "Acme Road estates"
+      ],
+      "Maryland": [
+        "Shonibare Estate",
+        "Maryland Estate",
+        "Mende Maryland"
+      ],
+      "Magodo (partly in Ikeja LCDA)": [
+        "Magodo GRA Phase 1",
+        "Magodo GRA Phase 2 (Shangisha)",
+        "Isheri Magodo"
+      ],
+      "Omole": [
+        "Omole Phase 1 Estate",
+        "Omole Phase 2 Estate",
+        "Ojodu Estate"
+      ],
+      "Adeniyi Jones": [
+        "Adeniyi Jones residential"
+      ],
+      "Agidingbi": [
+        "Agidingbi Estate"
+      ]
+    },
+    "Kosofe": {
+      "Ogudu": [
+        "Ogudu GRA",
+        "Ogudu Country Club Estate"
+      ],
+      "Ojota": [
+        "Ojota residential estates"
+      ],
+      "Ketu": [
+        "Ketu Alapere estates",
+        "Mile 12 corridor"
+      ],
+      "Magodo": [
+        "Magodo GRA Phase 1",
+        "Magodo GRA Phase 2 (Shangisha)"
+      ],
+      "Isheri": [
+        "Isheri North Estate",
+        "OPIC Estate Isheri"
+      ]
+    },
+    "Alimosho": {
+      "Egbeda": [
+        "Egbeda Estate",
+        "Idimu corridor estates"
+      ],
+      "Ikotun": [
+        "Ikotun Estate",
+        "Ijegun estates"
+      ],
+      "Ipaja": [
+        "Ipaja Estate",
+        "Ayobo estates"
+      ],
+      "Igando": [
+        "Igando Estate"
+      ],
+      "Akowonjo": [
+        "Akowonjo Estate"
+      ]
+    },
+    "Amuwo-Odofin": {
+      "Festac Town": [
+        "Festac Town",
+        "1st–7th Avenue blocks"
+      ],
+      "Satellite Town": [
+        "Satellite Town Estate",
+        "Amuwo Odofin Housing Estate"
+      ],
+      "Mile 2": [
+        "Mile 2 residential"
+      ]
+    },
+    "Surulere": {
+      "Surulere": [
+        "Bode Thomas",
+        "Adeniran Ogunsanya corridor",
+        "Aguda Estate",
+        "Ijesha Estate"
+      ],
+      "Eric Moore": [
+        "Eric Moore Estate"
+      ],
+      "Iponri": [
+        "Iponri Housing Estate"
+      ]
+    },
+    "Lagos Island": {
+      "Lagos Island": [
+        "CMS / Marina residential",
+        "Isale Eko"
+      ],
+      "Onikan": [
+        "Onikan Estate"
+      ]
+    },
+    "Apapa": {
+      "Apapa GRA": [
+        "Apapa GRA"
+      ],
+      "Ajegunle": [
+        "Boundary residential"
+      ]
+    },
+    "Oshodi-Isolo": {
+      "Isolo": [
+        "Isolo Estate",
+        "Okota Estate"
+      ],
+      "Okota": [
+        "Okota Estate",
+        "Ajao Estate"
+      ],
+      "Ajao Estate": [
+        "Ajao Estate"
+      ]
+    },
+    "Shomolu": {
+      "Palmgrove": [
+        "Palmgrove Estate"
+      ],
+      "Gbagada": [
+        "Gbagada Phase 1",
+        "Gbagada Phase 2",
+        "Medina Estate"
+      ],
+      "Bariga": [
+        "Bariga residential"
+      ]
+    },
+    "Ifako-Ijaiye": {
+      "Ogba": [
+        "Ogba Estate"
+      ],
+      "Ojodu Berger": [
+        "Omole Phase 1 Estate",
+        "Ojodu Estate"
+      ]
+    },
+    "Agege": {
+      "Agege": [
+        "Dopemu estates",
+        "Oko Oba estates"
+      ],
+      "Pen Cinema": [
+        "Pen Cinema corridor"
+      ]
+    },
+    "Ikorodu": {
+      "Ikorodu": [
+        "Ikorodu GRA",
+        "Agric Estate",
+        "Ibeshe Estate",
+        "Imagbon estates"
+      ],
+      "Odogunyan": [
+        "Odogunyan Estate"
+      ]
+    },
+    "Epe": {
+      "Epe": [
+        "Epe Township estates",
+        "Lekki Free Trade Zone corridor"
+      ]
+    },
+    "Badagry": {
+      "Badagry": [
+        "Badagry GRA",
+        "Aradagun estates"
+      ]
+    },
+    "Ojo": {
+      "Alaba": [
+        "Alaba residential"
+      ],
+      "Iba": [
+        "Iba Housing Estate"
+      ]
+    },
+    "Mushin": {
+      "Mushin": [
+        "Mushin residential blocks"
+      ]
+    },
+    "Ajeromi-Ifelodun": {
+      "Ajegunle": [
+        "Boundary / Tolu estates"
+      ]
+    }
+  },
+  "FCT": {
+    "Municipal Area Council": {
+      "Maitama": [
+        "Maitama District",
+        "Aso Drive corridor"
+      ],
+      "Asokoro": [
+        "Asokoro District",
+        "Nile University corridor"
+      ],
+      "Wuse": [
+        "Wuse Zone 1–7 residential"
+      ],
+      "Garki": [
+        "Garki Area 1–11"
+      ],
+      "Jabi": [
+        "Jabi Lake estates",
+        "Life Camp adjacent"
+      ],
+      "Utako": [
+        "Utako residential"
+      ],
+      "Gwarinpa": [
+        "Gwarinpa Estate",
+        "1st–7th Avenue Gwarinpa"
+      ],
+      "Kubwa": [
+        "Kubwa Estate",
+        "Phase 1–4 Kubwa"
+      ],
+      "Lugbe": [
+        "Lugbe Estate",
+        "FHA Lugbe"
+      ],
+      "Lokogoma": [
+        "Lokogoma Estate",
+        "Games Village adjacent"
+      ],
+      "Katampe": [
+        "Katampe Extension estates"
+      ],
+      "Jahi": [
+        "Jahi District estates"
+      ],
+      "Karsana": [
+        "Karsana Estate"
+      ]
+    },
+    "Bwari": {
+      "Bwari": [
+        "Bwari Township estates"
+      ]
+    }
+  },
+  "Ogun": {
+    "Obafemi Owode": {
+      "Arepo": [
+        "Grenadine Homes Citiview Estate",
+        "OPIC Estate Arepo",
+        "Orange Island adjacent"
+      ]
+    },
+    "Ifo": {
+      "Agbara": [
+        "Agbara Estate"
+      ]
+    }
+  },
+  "Rivers": {
+    "Port Harcourt": {
+      "GRA Phase 1": [
+        "Port Harcourt GRA Phase 1"
+      ],
+      "GRA Phase 2": [
+        "Port Harcourt GRA Phase 2"
+      ],
+      "Trans Amadi": [
+        "Trans Amadi residential"
+      ],
+      "Ada George": [
+        "Ada George estates"
+      ]
+    }
+  }
+}

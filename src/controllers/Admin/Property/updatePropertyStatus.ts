@@ -11,6 +11,10 @@ import {
   isPropertyListedAndMatchable,
 } from "../../../services/autoPreferencePairing.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
+import {
+  isLivePropertyStatus,
+  isRemovedPropertyStatus,
+} from "../../../utils/liveListingFilter";
 
 export const updatePropertyStatusAsAdmin = async (
   req: AppRequest,
@@ -25,38 +29,24 @@ export const updatePropertyStatusAsAdmin = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Status is required");
     }
 
+    if (isRemovedPropertyStatus(status)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Listing status 'active'/'inactive' is not used. On-market listings use status 'approved' with isAvailable true.",
+      );
+    }
+
     const property = await DB.Models.Property.findById(propertyId);
     if (!property) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
     }
 
-    const inactiveStatuses = [
-      "withdrawn",
-      "expired",
-      "coming_soon",
-      "under_contract",
-      "sold",
-      "flagged",
-      "cancelled",
-      "temporarily_off_market",
-      "hold",
-      "failed",
-      "never_listed",
-      "rejected",
-      "deleted",
-      "pending",
-    ];
-
-    const activeStatuses = ["approved", "active", "back_on_market"];
-
-    // Update property status and reason
     property.status = status;
     property.reason = reason ?? property.reason;
 
-    // Set availability and approval flags
-    const isActive = activeStatuses.includes(status);
-    property.isAvailable = isActive;
-    property.isApproved = isActive;
+    const isLive = isLivePropertyStatus(status);
+    property.isAvailable = isLive;
+    property.isApproved = isLive;
 
     // Set rejection flag
     property.isRejected = status === "rejected";

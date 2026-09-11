@@ -7,6 +7,11 @@ export interface ILocation {
   lgasWithAreas?: {
     lgaName: string;
     areas: string[];
+    /** Optional estates nested under selected areas within this LGA. */
+    areasWithEstates?: {
+      areaName: string;
+      estates: string[];
+    }[];
   }[];
   customLocation?: string;
 }
@@ -158,6 +163,18 @@ export interface IPreference {
     dealSiteID?: Types.ObjectId;
   };
 
+  /** Channel used to submit the preference — drives match notification (in-app vs email). */
+  submittedVia?: "app" | "website";
+
+  /**
+   * Last time we told the buyer we found no match / are still searching.
+   * Used to space unmatched search reminders every 48 hours.
+   */
+  lastUnmatchedNotifyAt?: Date;
+
+  /** Set when this preference was created by editing an earlier one. */
+  clonedFromPreference?: Types.ObjectId;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -193,6 +210,12 @@ export class Preference {
             {
               lgaName: String,
               areas: [String],
+              areasWithEstates: [
+                {
+                  areaName: String,
+                  estates: [String],
+                },
+              ],
             },
           ],
           customLocation: String,
@@ -324,9 +347,22 @@ export class Preference {
           },
           dealSiteID: { type: Schema.Types.ObjectId, ref: "DealSite" }
         },
+
+        submittedVia: {
+          type: String,
+          enum: ["app", "website"],
+          default: "website",
+        },
+
+        lastUnmatchedNotifyAt: { type: Date },
+
+        clonedFromPreference: { type: Schema.Types.ObjectId, ref: "Preference" },
       },
       { timestamps: true },
     );
+
+    schema.index({ status: 1, lastUnmatchedNotifyAt: 1 });
+    schema.index({ status: 1, createdAt: 1 });
 
     // Ensure the model is not recompiled if already exists
     this.PreferenceModel =

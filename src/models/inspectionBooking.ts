@@ -35,6 +35,15 @@ export interface IInspectionBooking {
   reason?: string;
   assignedFieldAgent?: Types.ObjectId;
 
+  /** When a licensed Agent represents a scout inspection, fee split for Paystack. */
+  inspectionFeeSplit?: {
+    platformNaira?: number;
+    licensedAgentNaira?: number;
+    scoutNaira?: number;
+    subAccountCode?: string;
+    dealSiteId?: string;
+  };
+
   /** Agent-initiated request for a company Field Agent (no Paystack payment). */
   fieldAgentRequestStatus?: "none" | "pending" | "accepted" | "rejected" | "cancelled";
   fieldAgentRequestTargetId?: Types.ObjectId;
@@ -161,6 +170,14 @@ export class InspectionBooking {
         letterOfIntention: { type: String },
         reason: { type: String },
         assignedFieldAgent: { type: Schema.Types.ObjectId, ref: "User" },
+        inspectionFeeSplit: {
+          platformNaira: { type: Number, min: 0 },
+          licensedAgentNaira: { type: Number, min: 0 },
+          scoutNaira: { type: Number, min: 0, default: 0 },
+          subAccountCode: { type: String, trim: true },
+          dealSiteId: { type: String, trim: true },
+          settledVia: { type: String, trim: true },
+        },
         fieldAgentRequestStatus: {
           type: String,
           enum: ["none", "pending", "accepted", "rejected", "cancelled"],

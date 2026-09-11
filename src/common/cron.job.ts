@@ -16,6 +16,8 @@ import { reconcileRunningDealSitesWithoutKycApproval } from '../services/dealSit
 import { computePaidSubscriptionExpiresAt } from '../services/agentSubscriptionIncentive.service';
 import { dispatchPendingSyndicationJobs } from '../services/propertySyndication.service';
 import { sendPendingFieldAgentRepresentationDigest } from '../services/fieldAgentRepresentationAlert.service';
+import { runCustomDomainRenewalCron, syncCustomDomainExpiryFromSubscription } from '../services/customDomain.service';
+import { processUnmatchedPreferenceSearchReminders } from '../services/preferenceUnmatchedNotify.service';
 
 // ───────────────────────────────
 // 1. DELETE OLD PENDING ITEMS
@@ -76,17 +78,13 @@ const expireSubscriptions = async () => {
 
       const user = sub.user as any;
 
-      const plan = await DB.Models.SubscriptionPlan.findOne({
-        code: sub.plan,
-        isActive: true,
-      });
+      const plan = await DB.Models.SubscriptionPlan.findById(sub.plan);
 
       if (!plan) {
-        console.log(`[CRON] Subscription plan not found for code ${sub.plan}`);
+        console.log(`[CRON] Subscription plan not found for ${sub.plan}`);
         continue;
       }
 
-      // Check if the user has any other active subscriptions
       const activeCount = await DB.Models.UserSubscriptionSnapshot.countDocuments({
         user: user._id,
         status: 'active',
@@ -330,6 +328,7 @@ const autoRenewSubscriptionsCronJob = async () => {
           baseDurationInDays: durationInDays,
           planName: appliedPlanName,
           planCode: sub.meta.planCode,
+          category: sub.meta?.category,
         });
 
         // Map plan features into snapshot
@@ -351,6 +350,8 @@ const autoRenewSubscriptionsCronJob = async () => {
           };
         }
         await sub.save();
+
+        await syncCustomDomainExpiryFromSubscription(sub);
 
         console.log(
           `[CRON] Subscription ${sub._id} auto-renewed successfully for ${appliedPlanName}`
@@ -420,6 +421,18 @@ cron.schedule('0 0 * * *', () => {
   reconcileDealSiteSubscriptionState();
   reconcileDealSiteKycState();
   notifyExpiringSubscriptions();
+  void (async () => {
+    try {
+      const result = await runCustomDomainRenewalCron();
+      if (result.reminded || result.disabled) {
+        console.log(
+          `[CRON] Custom domain renewal: reminded=${result.reminded} disabled=${result.disabled}`
+        );
+      }
+    } catch (err) {
+      console.error('[CRON] Custom domain renewal error:', err);
+    }
+  })();
 });
 
 // Runs every day at 1:00 AM
@@ -513,6 +526,34 @@ cron.schedule('0 8 * * *', async () => {
     }
   } catch (err) {
     console.error('[CRON] Field Agent representation digest error:', err);
+  }
+});
+
+cron.schedule('0 * * * *', async () => {
+  try {
+    const { sent } = await processUnmatchedPreferenceSearchReminders();
+    if (sent > 0) {
+      console.log(`[CRON] Unmatched preference search reminders: ${sent} sent`);
+    }
+  } catch (err) {
+    console.error('[CRON] Unmatched preference search reminders error:', err);
+  }
+});
+
+// Daily 03:15 – slow CLIP backfill for live listing photos (Atlas vector search)
+cron.schedule('15 3 * * *', async () => {
+  try {
+    const {
+      ensurePropertyImageVectorIndex,
+      backfillLiveListingImageEmbeddings,
+    } = await import('../services/propertyImageEmbedding.service');
+    await ensurePropertyImageVectorIndex();
+    const result = await backfillLiveListingImageEmbeddings({ limit: 20 });
+    console.log(
+      `[CRON] Property image embeddings: processed=${result.processed} embedded=${result.embedded} skipped=${result.skipped}`,
+    );
+  } catch (err) {
+    console.error('[CRON] Property image embeddings error:', err);
   }
 });
 

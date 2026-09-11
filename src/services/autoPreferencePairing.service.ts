@@ -2,13 +2,13 @@ import { DB } from "../controllers";
 import { Types } from "mongoose";
 import { calculateDetailedMatchScore } from "../controllers/Admin/preference/findMatchProerty";
 import { persistMatchedPreferenceProperties } from "./matchedPreferencePersistence.service";
-import sendEmail from "../common/send.email";
-import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
-import { noMatchesPreferenceFeedbackMail } from "../common/emailTemplates/preference";
 import { preferencePhysicalTypeMatches } from "../utils/preferencePhysicalTypeMatch";
-import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 import { getAgentAccessGate } from "./agentPublisherEligibility.service";
-import { dealSiteBaseUrlFromPublicSlug } from "../utils/matchedPropertiesDealSiteUrl";
+import { notifyPreferenceNoMatches } from "./preferenceUnmatchedNotify.service";
+import {
+  dedupeScoredPropertiesByPhysicalIdentity,
+  toObjectIds,
+} from "../utils/propertyPhysicalFingerprint";
 import { resolveLeanRefToObjectId } from "../utils/mongooseId";
 
 const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
@@ -118,6 +118,44 @@ function propertyMatchesSubmittedAreas(preference: any, property: any): boolean 
 
   const nPropArea = normLoc(propArea);
   return areas.some((a) => normLoc(a) === nPropArea);
+}
+
+/**
+ * When the buyer selected estates for the property's area, the listing must match
+ * via location.estate, exact area name, or street/area text containing the estate.
+ */
+function propertyMatchesSubmittedEstates(preference: any, property: any): boolean {
+  const propLga = property.location?.localGovernment;
+  const propArea = property.location?.area;
+  const lgasWith = preference.location?.lgasWithAreas as
+    | {
+        lgaName?: string;
+        areasWithEstates?: { areaName?: string; estates?: string[] }[];
+      }[]
+    | undefined;
+
+  if (!lgasWith?.length) return true;
+
+  const entry = lgasWith.find((x) => normLoc(x.lgaName) === normLoc(propLga));
+  if (!entry?.areasWithEstates?.length) return true;
+
+  const areaRow = entry.areasWithEstates.find(
+    (r) => normLoc(r.areaName) === normLoc(propArea),
+  );
+  // Estates selected for other areas only — don't hard-block this area.
+  if (!areaRow) return true;
+
+  const estates = (areaRow.estates || []).map(normLoc).filter(Boolean);
+  if (!estates.length) return true;
+
+  const propEstate = normLoc(property.location?.estate);
+  if (propEstate && estates.includes(propEstate)) return true;
+
+  const propAreaN = normLoc(propArea);
+  if (propAreaN && estates.includes(propAreaN)) return true;
+
+  const haystack = `${propEstate} ${propAreaN} ${normLoc(property.location?.streetAddress)}`;
+  return estates.some((e) => e.length >= 3 && haystack.includes(e));
 }
 
 function preferenceHasMinimumLocationForPairing(preference: any): boolean {
@@ -235,6 +273,7 @@ async function scoreAndFilterPropertyDocs(
     if (!isPropertyListedAndMatchable(p)) return false;
     if (!preferencePhysicalTypeMatches(preference, p)) return false;
     if (!propertyMatchesSubmittedAreas(preference, p)) return false;
+    if (!propertyMatchesSubmittedEstates(preference, p)) return false;
     const pr = p.price;
     if (pr == null || !Number.isFinite(Number(pr))) return false;
     if (!propertyPriceMatchesPreferenceRelaxed(Number(pr), preference)) return false;
@@ -250,10 +289,10 @@ async function scoreAndFilterPropertyDocs(
 
   scored.sort((a, b) => b.matchScore - a.matchScore);
 
-  return scored
-    .filter((x) => x.matchScore >= MIN_MATCH_SCORE)
-    .slice(0, MAX_AUTO_MATCHED_PROPERTIES)
-    .map((x) => new Types.ObjectId(x.property._id));
+  const aboveFloor = scored.filter((x) => x.matchScore >= MIN_MATCH_SCORE);
+  const deduped = dedupeScoredPropertiesByPhysicalIdentity(aboveFloor);
+
+  return toObjectIds(deduped.slice(0, MAX_AUTO_MATCHED_PROPERTIES));
 }
 
 /**
@@ -321,108 +360,10 @@ export async function preferenceMatchesPropertyForReversePair(
   return score >= MIN_MATCH_SCORE;
 }
 
-async function resolvePreferenceRecipientEmail(preference: any): Promise<string | undefined> {
-  let email: string | undefined;
-
-  if (preference.buyer) {
-    const buyer = await DB.Models.Buyer.findById(preference.buyer).select("email").lean();
-    email = (buyer as any)?.email;
-  }
-
-  if (!email) {
-    email = (preference.contactInfo as any)?.email;
-  }
-
-  const normalized = String(email || "").trim();
-  if (!normalized || normalized === "unknown@example.com") {
-    return undefined;
-  }
-
-  return normalized;
-}
-
-async function resolveSubmitPreferenceUrl(preference: any): Promise<string | undefined> {
-  const receiverMode = preference?.receiverMode;
-  if (receiverMode?.type === "dealSite" && receiverMode.dealSiteID) {
-    const dealSite = await DB.Models.DealSite.findById(receiverMode.dealSiteID)
-      .select("publicSlug")
-      .lean();
-    const slug = String((dealSite as any)?.publicSlug || "").trim();
-    if (slug) {
-      const base = dealSiteBaseUrlFromPublicSlug(slug).replace(/\/$/, "");
-      return `${base}/submit-preference`;
-    }
-  }
-
-  const clientBase = (process.env.CLIENT_LINK || process.env.APP_URL || "").replace(/\/$/, "");
-  return clientBase ? `${clientBase}/preferences/submit` : undefined;
-}
-
-async function sendPreferenceNoMatchesEmail(preferenceId: string): Promise<void> {
-  const preference = await DB.Models.Preference.findById(preferenceId).lean();
-  if (!preference) return;
-
-  const email = await resolvePreferenceRecipientEmail(preference);
-  if (!email) {
-    console.warn(
-      "[autoPairPreference] No-match email skipped — no recipient email for preference",
-      preferenceId,
-    );
-    return;
-  }
-
-  const buyerName =
-    (preference.contactInfo as any)?.fullName ||
-    (preference.contactInfo as any)?.contactPerson ||
-    "there";
-
-  const clientBase = (process.env.CLIENT_LINK || process.env.APP_URL || "")
-    .replace(/\/$/, "");
-  const submitPreferenceUrl = await resolveSubmitPreferenceUrl(preference);
-
-  const inner = noMatchesPreferenceFeedbackMail({
-    buyerName,
-    submitPreferenceUrl,
-  });
-  const html = generalEmailLayout(inner);
-  const text =
-    `Hi ${buyerName}, we did not find matching approved listings for your preference yet. ` +
-    `You can submit an updated preference or wait for new listings—we will email you when matches are found.`;
-
-  await sendEmail({
-    to: email,
-    subject: "No matching listings yet – Khabi-Teq",
-    html,
-    text,
-  });
-
-  let phone: string | undefined = (preference.contactInfo as any)?.phoneNumber;
-  if (!phone && preference.buyer) {
-    const b = await DB.Models.Buyer.findById(preference.buyer)
-      .select("phoneNumber whatsAppNumber")
-      .lean();
-    phone = (b as any)?.whatsAppNumber || (b as any)?.phoneNumber;
-  }
-  const phoneLine = String(phone || "").replace(/\s/g, "");
-  const appLink = clientBase || "Khabi-Teq app or website";
-
-  if (isLikelyE164CapableLocalPhone(phoneLine)) {
-    void runWhatsapp("preference_no_match", async (wa) => {
-      const r = await wa.sendPreferenceNoMatchesYet({
-        user: { name: buyerName, phone: phoneLine, id: String(preference.buyer || "") },
-        appLink,
-      });
-      if (!r.success) {
-        console.warn("[autoPairPreference] no-match WhatsApp failed:", r.error);
-      }
-    });
-  }
-}
-
 /**
  * Find approved briefs, rank by optional criteria, persist MatchedPreferenceProperty (+ notify).
  * If there are no matches (including preferences missing state/LGA for search), sends the no-match
- * feedback email so submit flows consistently deliver a second email alongside the submission ack.
+ * email + in-app notification so submit flows consistently follow the submission ack.
  */
 export async function autoPairPreferenceById(
   preferenceId: string,
@@ -456,9 +397,9 @@ export async function autoPairPreferenceById(
 
   if (sendNoMatchEmail) {
     try {
-      await sendPreferenceNoMatchesEmail(preferenceId);
+      await notifyPreferenceNoMatches(preferenceId);
     } catch (e) {
-      console.warn("[autoPairPreferenceById] No-match email failed:", e);
+      console.warn("[autoPairPreferenceById] No-match notify failed:", e);
     }
   }
 
@@ -508,6 +449,7 @@ export async function autoPairPreferencesForNewProperty(propertyId: string): Pro
         notes: "Automatically matched when a new listing met your preference.",
         sendMatchEmail: true,
         forceSendMatchEmail: false,
+        notifyChannels: "all",
       });
       if (result?.matchedRecord) paired += 1;
     } catch (e) {

@@ -18,9 +18,12 @@ export type TransactionType =
   | 'shortlet-booking'
   | 'shortlet-host-payout'
   | 'document-verification'
+  | 'survey-request'
   | 'transaction-registration'
   | 'request-to-market'
-  | 'channel-registration-fee';
+  | 'channel-registration-fee'
+  | 'custom-domain-package'
+  | 'custom-domain-renewal';
 
 export interface INewTransaction {
   reference: string;
@@ -92,9 +95,12 @@ export class NewTransaction {
             'shortlet-booking',
             'shortlet-host-payout',
             'document-verification',
+            'survey-request',
             'transaction-registration',
             'request-to-market',
             'channel-registration-fee',
+            'custom-domain-package',
+            'custom-domain-renewal',
           ],
           required: true,
         },

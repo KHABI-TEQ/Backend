@@ -1,6 +1,81 @@
 import { Types } from "mongoose";
 import { DB } from "../controllers";
 import { ISubscriptionPlanDoc } from "../models";
+import {
+  SUBSCRIPTION_PLAN_CATEGORIES,
+  SUBSCRIPTION_PLAN_AUDIENCES,
+  assertWhiteLabelingBillingInterval,
+  audienceLabel,
+  categoryLabel,
+  isRetiredStandardBenefit,
+  isRetiredStandardFeatureKey,
+  isWhiteLabelingCategory,
+  resolveBillingIntervalFromDuration,
+  resolvePlanAudience,
+  resolvePlanCategory,
+  withoutRetiredStandardBenefits,
+  SUBSCRIPTION_BILLING_INTERVAL_LABELS,
+  type SubscriptionBillingInterval,
+  type SubscriptionPlanAudience,
+  type SubscriptionPlanCategory,
+} from "../common/constants/subscriptionCategories";
+
+export type ResolvedSubscriptionPlan = {
+  plan: ISubscriptionPlanDoc;
+  planType: "standard" | "discounted";
+  planCode: string;
+  appliedPlanName: string;
+  price: number;
+  durationInDays: number;
+  billingInterval: SubscriptionBillingInterval | null;
+  category: SubscriptionPlanCategory;
+  benefits: string[];
+};
+
+function normalizeBenefits(benefits?: string[]): string[] {
+  if (!Array.isArray(benefits)) return [];
+  return benefits.map((b) => String(b || "").trim()).filter(Boolean);
+}
+
+function formatAssignedFeatureBenefit(assigned: any): string | null {
+  const featureDoc = assigned?.feature;
+  const key =
+    typeof featureDoc === "object" ? String(featureDoc?.key || "") : "";
+  if (isRetiredStandardFeatureKey(key)) return null;
+  const label =
+    (typeof featureDoc === "object" && (featureDoc?.label || featureDoc?.key)) ||
+    null;
+  if (!label) return null;
+  if (isRetiredStandardBenefit(String(label))) return null;
+  if (assigned.type === "unlimited") return `Unlimited ${label}`;
+  if (assigned.type === "count") {
+    const n = Number(assigned.value);
+    return Number.isFinite(n) && n > 0 ? `${n} ${label}` : label;
+  }
+  if (assigned.type === "boolean" && Number(assigned.value) === 0) return null;
+  return String(label);
+}
+
+export function listPlanBenefits(plan: {
+  benefits?: string[];
+  features?: any[];
+}): string[] {
+  const stored = withoutRetiredStandardBenefits(normalizeBenefits(plan.benefits));
+  if (stored.length) return stored;
+  return (plan.features || [])
+    .map(formatAssignedFeatureBenefit)
+    .filter((b): b is string => Boolean(b));
+}
+
+function resolveInterval(
+  billingInterval?: string,
+  durationInDays?: number
+): SubscriptionBillingInterval | null {
+  if (billingInterval && SUBSCRIPTION_BILLING_INTERVAL_LABELS[billingInterval as SubscriptionBillingInterval]) {
+    return billingInterval as SubscriptionBillingInterval;
+  }
+  return resolveBillingIntervalFromDuration(durationInDays);
+}
 
 export class SubscriptionPlanService {
   private static PlanModel = DB.Models.SubscriptionPlan;
@@ -20,6 +95,10 @@ export class SubscriptionPlanService {
     isTrial = false,
     hiddenFromCatalog = false,
     unlimitedListings = false,
+    category = SUBSCRIPTION_PLAN_CATEGORIES.STANDARD,
+    audience = SUBSCRIPTION_PLAN_AUDIENCES.LICENSED,
+    billingInterval,
+    benefits = [],
     discountedPlans = []
   }: {
     name: string;
@@ -36,14 +115,31 @@ export class SubscriptionPlanService {
     isTrial?: boolean;
     hiddenFromCatalog?: boolean;
     unlimitedListings?: boolean;
+    category?: SubscriptionPlanCategory;
+    audience?: SubscriptionPlanAudience;
+    billingInterval?: SubscriptionBillingInterval;
+    benefits?: string[];
     discountedPlans?: {
       name: string;
       code: string;
       price: number;
       durationInDays: number;
       discountPercentage?: number;
+      billingInterval?: SubscriptionBillingInterval;
+      benefits?: string[];
     }[];
   }): Promise<ISubscriptionPlanDoc> {
+    const resolvedCategory = resolvePlanCategory(category);
+    const resolvedInterval =
+      billingInterval || resolveBillingIntervalFromDuration(durationInDays) || undefined;
+
+    this.assertCategoryIntervals({
+      category: resolvedCategory,
+      billingInterval: resolvedInterval,
+      durationInDays,
+      discountedPlans,
+    });
+
     // ✅ Ensure main code is unique
     const existing = await this.PlanModel.findOne({ code });
     if (existing) throw new Error(`Plan with code "${code}" already exists`);
@@ -80,9 +176,18 @@ export class SubscriptionPlanService {
       isTrial,
       hiddenFromCatalog,
       unlimitedListings,
+      category: resolvedCategory,
+      audience: resolvePlanAudience(audience),
+      billingInterval: resolvedInterval,
+      benefits: normalizeBenefits(benefits),
       discountedPlans: discountedPlans.map(dp => ({
         ...dp,
-        code: dp.code.toUpperCase().trim()
+        code: dp.code.toUpperCase().trim(),
+        benefits: normalizeBenefits(dp.benefits),
+        billingInterval:
+          dp.billingInterval ||
+          resolveBillingIntervalFromDuration(dp.durationInDays) ||
+          undefined,
       }))
     });
 
@@ -109,12 +214,18 @@ export class SubscriptionPlanService {
       isTrial: boolean;
       hiddenFromCatalog: boolean;
       unlimitedListings: boolean;
+      category: SubscriptionPlanCategory;
+      audience: SubscriptionPlanAudience;
+      billingInterval: SubscriptionBillingInterval;
+      benefits: string[];
       discountedPlans: {
         name: string;
         code: string;
         price: number;
         durationInDays: number;
         discountPercentage?: number;
+        billingInterval?: SubscriptionBillingInterval;
+        benefits?: string[];
       }[];
     }>
   ): Promise<ISubscriptionPlanDoc> {
@@ -135,6 +246,10 @@ export class SubscriptionPlanService {
     if (updates.isTrial !== undefined) plan.isTrial = updates.isTrial;
     if (updates.hiddenFromCatalog !== undefined) plan.hiddenFromCatalog = updates.hiddenFromCatalog;
     if (updates.unlimitedListings !== undefined) plan.unlimitedListings = updates.unlimitedListings;
+    if (updates.category !== undefined) plan.category = resolvePlanCategory(updates.category);
+    if (updates.audience !== undefined) plan.audience = resolvePlanAudience(updates.audience);
+    if (updates.billingInterval !== undefined) plan.billingInterval = updates.billingInterval;
+    if (updates.benefits !== undefined) plan.benefits = normalizeBenefits(updates.benefits);
 
     if (updates.discountedPlans !== undefined) {
       const codes = updates.discountedPlans.map(dp => dp.code.toUpperCase().trim());
@@ -159,8 +274,20 @@ export class SubscriptionPlanService {
       plan.discountedPlans = updates.discountedPlans.map(dp => ({
         ...dp,
         code: dp.code.toUpperCase().trim(),
+        benefits: normalizeBenefits(dp.benefits),
+        billingInterval:
+          dp.billingInterval ||
+          resolveBillingIntervalFromDuration(dp.durationInDays) ||
+          undefined,
       }));
     }
+
+    this.assertCategoryIntervals({
+      category: resolvePlanCategory(plan.category),
+      billingInterval: plan.billingInterval,
+      durationInDays: plan.durationInDays,
+      discountedPlans: plan.discountedPlans,
+    });
 
     return plan.save();
   }
@@ -192,15 +319,208 @@ export class SubscriptionPlanService {
    */
   static async getAllActivePlans(options?: {
     includeHiddenFromCatalog?: boolean;
+    category?: SubscriptionPlanCategory | "all";
+    audience?: SubscriptionPlanAudience | "all";
   }): Promise<ISubscriptionPlanDoc[]> {
     const filter: Record<string, unknown> = { isActive: true };
-    if (!options?.includeHiddenFromCatalog) {
+    const and: Record<string, unknown>[] = [];
+    const category = options?.category ?? SUBSCRIPTION_PLAN_CATEGORIES.STANDARD;
+
+    if (category !== "all") {
+      if (category === SUBSCRIPTION_PLAN_CATEGORIES.STANDARD) {
+        and.push({
+          $or: [
+            { category: SUBSCRIPTION_PLAN_CATEGORIES.STANDARD },
+            { category: { $exists: false } },
+            { category: null },
+          ],
+        });
+      } else {
+        and.push({ category });
+      }
+    }
+
+    const audience = options?.audience ?? SUBSCRIPTION_PLAN_AUDIENCES.LICENSED;
+    if (audience !== "all") {
+      if (audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT) {
+        and.push({ audience: SUBSCRIPTION_PLAN_AUDIENCES.SCOUT });
+      } else {
+        and.push({
+          $or: [
+            { audience: SUBSCRIPTION_PLAN_AUDIENCES.LICENSED },
+            { audience: { $exists: false } },
+            { audience: null },
+          ],
+        });
+      }
+    }
+
+    if (and.length) filter.$and = and;
+
+    if (
+      !options?.includeHiddenFromCatalog &&
+      category !== SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING
+    ) {
       filter.hiddenFromCatalog = { $ne: true };
       filter.unlimitedListings = { $ne: true };
     }
     return this.PlanModel.find(filter)
       .populate("features.feature")
       .lean();
+  }
+
+  /**
+   * Resolve a live plan (or discounted variant) by code.
+   */
+  static async resolveActivePlanByCode(
+    planCode: string
+  ): Promise<ResolvedSubscriptionPlan> {
+    const code = String(planCode || "").trim().toUpperCase();
+    if (!code) {
+      throw new Error("Plan code is required");
+    }
+
+    let plan = await this.PlanModel.findOne({
+      code,
+      isActive: true,
+    }).populate("features.feature");
+
+    let planType: "standard" | "discounted" = "standard";
+    let appliedPlanName: string;
+    let price: number;
+    let durationInDays: number;
+    let billingInterval: SubscriptionBillingInterval | null;
+    let benefits: string[];
+
+    if (plan) {
+      appliedPlanName = plan.name;
+      price = plan.price;
+      durationInDays = plan.durationInDays;
+      billingInterval = resolveInterval(plan.billingInterval, durationInDays);
+      benefits = listPlanBenefits(plan);
+    } else {
+      plan = await this.PlanModel.findOne({
+        "discountedPlans.code": code,
+        isActive: true,
+      }).populate("features.feature");
+
+      if (!plan) {
+        throw new Error("Subscription plan not found");
+      }
+
+      const discounted = plan.discountedPlans?.find((dp) => dp.code === code);
+      if (!discounted) {
+        throw new Error("Discounted plan not found in this subscription");
+      }
+
+      planType = "discounted";
+      appliedPlanName = discounted.name;
+      price = discounted.price;
+      durationInDays = discounted.durationInDays;
+      billingInterval = resolveInterval(
+        discounted.billingInterval,
+        durationInDays
+      );
+      benefits = listPlanBenefits({
+        benefits: discounted.benefits,
+        features: plan.features,
+      });
+    }
+
+    const category = resolvePlanCategory(plan.category);
+    if (isWhiteLabelingCategory(category)) {
+      assertWhiteLabelingBillingInterval({
+        billingInterval: billingInterval || undefined,
+        durationInDays,
+        label: appliedPlanName,
+      });
+    }
+
+    return {
+      plan,
+      planType,
+      planCode: code,
+      appliedPlanName,
+      price,
+      durationInDays,
+      billingInterval,
+      category,
+      benefits,
+    };
+  }
+
+  static enrichPlanForCatalog(plan: any) {
+    const category = resolvePlanCategory(plan.category);
+    const audience = resolvePlanAudience(plan.audience);
+    const grantsListingEligibility = true;
+    const grantsCustomDomain =
+      isWhiteLabelingCategory(category) || !!plan.unlimitedListings;
+    const billingInterval = resolveInterval(
+      plan.billingInterval,
+      plan.durationInDays
+    );
+    const discountedPlans = (plan.discountedPlans || []).map((dp: any) => {
+      const interval = resolveInterval(dp.billingInterval, dp.durationInDays);
+      return {
+        ...dp,
+        category,
+        categoryLabel: categoryLabel(category),
+        audience,
+        audienceLabel: audienceLabel(audience),
+        billingInterval: interval,
+        billingIntervalLabel: interval
+          ? SUBSCRIPTION_BILLING_INTERVAL_LABELS[interval]
+          : null,
+        grantsListingEligibility,
+        grantsCustomDomain,
+        benefits: listPlanBenefits({
+          benefits: dp.benefits,
+          features: plan.features,
+        }),
+      };
+    });
+
+    return {
+      ...plan,
+      category,
+      categoryLabel: categoryLabel(category),
+      audience,
+      audienceLabel: audienceLabel(audience),
+      billingInterval,
+      billingIntervalLabel: billingInterval
+        ? SUBSCRIPTION_BILLING_INTERVAL_LABELS[billingInterval]
+        : null,
+      grantsListingEligibility,
+      grantsCustomDomain,
+      benefits: listPlanBenefits(plan),
+      discountedPlans,
+    };
+  }
+
+  private static assertCategoryIntervals(input: {
+    category: SubscriptionPlanCategory;
+    billingInterval?: SubscriptionBillingInterval;
+    durationInDays: number;
+    discountedPlans?: Array<{
+      name?: string;
+      billingInterval?: SubscriptionBillingInterval;
+      durationInDays?: number;
+    }>;
+  }) {
+    if (!isWhiteLabelingCategory(input.category)) return;
+
+    assertWhiteLabelingBillingInterval({
+      billingInterval: input.billingInterval,
+      durationInDays: input.durationInDays,
+    });
+
+    for (const dp of input.discountedPlans || []) {
+      assertWhiteLabelingBillingInterval({
+        billingInterval: dp.billingInterval,
+        durationInDays: dp.durationInDays,
+        label: dp.name,
+      });
+    }
   }
 
   /**

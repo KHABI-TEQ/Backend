@@ -6,6 +6,10 @@ export interface IMatchedPreferenceProperty {
   matchedProperties: Types.ObjectId[]; // Array of matched property IDs
   status: "pending" | "notified" | "interested" | "closed" | "inspection-requested"; // Status of this match set
   notes?: string;
+  /** How many listings from `matchedProperties` (in order) have been shown to the buyer. */
+  revealedCount?: number;
+  /** Opaque token for email "show next 5" links. */
+  batchAccessToken?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +39,8 @@ const MatchedPreferencePropertySchema =
         default: "pending",
       },
       notes: { type: String },
+      revealedCount: { type: Number, default: 0 },
+      batchAccessToken: { type: String },
     },
     { timestamps: true },
   );

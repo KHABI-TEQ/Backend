@@ -5,6 +5,7 @@ import { DealSiteService } from "../../../services/dealSite.service";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import mongoose from "mongoose";
 import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
+import { recordListingViewFromRequest } from "../../../services/propertyView.service";
 
 export const getSingleDealSiteProperty = async (
   req: AppRequest,
@@ -76,6 +77,8 @@ export const getSingleDealSiteProperty = async (
         data: null,
       });
     }
+
+    recordListingViewFromRequest(req, property, "practitioner_page", String(creatorId));
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

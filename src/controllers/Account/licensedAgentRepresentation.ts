@@ -23,12 +23,20 @@ import {
   getPropertyScoutSnapshot,
   isPropertyScout,
 } from "../../services/propertyScout.service";
+import {
+  INSPECTION_PLATFORM_SHARE_NAIRA,
+  LICENSED_AGENT_BANK_SETUP_PATH,
+} from "../../common/constants/inspectionFeeSplit";
+import {
+  assertLicensedAgentPayoutReady,
+  resolveLicensedAgentPayoutAccount,
+} from "../../services/licensedAgentInspectionPayout.service";
 
 const LICENSED_AGENT_REQUEST_DISCLOSURE =
-  "By requesting a licensed Agent, you ask them to handle this inspection on your behalf. They may contact the buyer and manage site access. Agree only if you understand and accept their professional representation.";
+  "By requesting a licensed Agent, you ask them to handle this inspection on your behalf. They may contact the buyer and manage site access. After the buyer pays the inspection fee, Khabiteq keeps ₦1,000 and the remainder is paid automatically to the licensed Agent's bank. You (the Property Scout) receive none of the inspection fee.";
 
 const LICENSED_AGENT_REQUEST_CHECKBOX =
-  "I understand I am requesting a licensed Agent to represent this inspection.";
+  "I understand I am requesting a licensed Agent to represent this inspection, and that they receive the inspection fee minus ₦1,000.";
 
 function inspectionPropertyId(inspection: { propertyId?: unknown }): string {
   const p = inspection.propertyId as { _id?: unknown } | unknown;
@@ -58,15 +66,24 @@ async function publisherCanManageInspection(
 }
 
 export async function getLicensedAgentRepresentationTerms(
-  _req: AppRequest,
+  req: AppRequest,
   res: Response
 ) {
+  const userId = req.user?._id;
+  const payout = userId
+    ? await resolveLicensedAgentPayoutAccount(String(userId))
+    : null;
   return res.status(HttpStatusCodes.OK).json({
     success: true,
     data: {
       commissionDisclosure: LICENSED_AGENT_REQUEST_DISCLOSURE,
       commissionCheckboxAck: LICENSED_AGENT_REQUEST_CHECKBOX,
       paymentRequired: false,
+      bankRequired: true,
+      bankConnected: Boolean(payout?.subAccountCode),
+      bankSetupPath: LICENSED_AGENT_BANK_SETUP_PATH,
+      platformShareNaira: INSPECTION_PLATFORM_SHARE_NAIRA,
+      scoutShareNaira: 0,
       replacesFieldAgentRequest: true,
     },
   });
@@ -120,7 +137,10 @@ export async function listAvailableLicensedAgents(
   }
 }
 
-/** Public buyer directory — licensed Agents only, no contact info. */
+/**
+ * Public buyer directory — KYC-approved Agents & Developers (license optional).
+ * Missing/paused public pages are included but marked unreachable. No contact info.
+ */
 export async function listPublicLicensedAgentsDirectory(
   req: AppRequest,
   res: Response,
@@ -136,7 +156,10 @@ export async function listPublicLicensedAgentsDirectory(
       search,
       page: Number(page) || 1,
       limit: Number(limit) || 20,
-      userTypes: ["Agent"],
+      userTypes: ["Agent", "Developer"],
+      // KYC-approved only; license not required. Paused/missing pages stay listed as unreachable.
+      requireLicense: false,
+      requireKycApproved: true,
     });
 
     return res.status(HttpStatusCodes.OK).json({
@@ -378,6 +401,8 @@ export async function respondLicensedAgentRepresentation(
       });
     }
 
+    const payout = await assertLicensedAgentPayoutReady(String(userId));
+
     await assignLicensedAgentUserToInspection({
       inspectionId: String(inspection._id),
       licensedAgentUserId: String(userId),
@@ -389,6 +414,12 @@ export async function respondLicensedAgentRepresentation(
     if (updated) {
       updated.fieldAgentRequestStatus = "accepted";
       updated.fieldAgentRespondedAt = new Date();
+      (updated as any).inspectionFeeSplit = {
+        ...((updated as any).inspectionFeeSplit || {}),
+        scoutNaira: 0,
+        subAccountCode: payout.subAccountCode,
+        dealSiteId: payout.dealSiteId,
+      };
       await updated.save();
     }
 

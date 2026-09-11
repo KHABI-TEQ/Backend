@@ -36,10 +36,29 @@ export const getBuyerPreferenceById = async (
       );
     }
 
+    const match = await DB.Models.MatchedPreferenceProperty.findOne({
+      preference: preferenceId,
+      buyer: buyerId,
+    })
+      .select("_id revealedCount matchedProperties")
+      .lean();
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Preference fetched successfully",
-      data: preference,
+      data: {
+        ...preference,
+        matchedId: match?._id || null,
+        matchBatch: match
+          ? {
+              revealedCount: match.revealedCount ?? (match.matchedProperties || []).length,
+              total: (match.matchedProperties || []).length,
+              hasMore:
+                (match.revealedCount ?? (match.matchedProperties || []).length) <
+                (match.matchedProperties || []).length,
+            }
+          : null,
+      },
     });
   } catch (err) {
     next(err);

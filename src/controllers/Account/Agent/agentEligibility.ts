@@ -136,7 +136,7 @@ export const getAgentEligibility = async (
         canListProperties: gate.ok && (publisherListing?.canListProperties ?? true),
         canUseDealSite: gate.ok,
         canRequestToMarket: gate.ok,
-        canSubscribe: kycApproved,
+        canSubscribe: kycApproved || propertyScout.isPropertyScout,
         isPropertyScout: propertyScout.isPropertyScout,
         isLicensedPublisher: propertyScout.isLicensedPublisher,
         displayRoleLabel: propertyScout.displayRoleLabel,

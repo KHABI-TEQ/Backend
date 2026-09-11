@@ -12,8 +12,9 @@ runWhatsAppBootValidation();
 ensureFirebaseAdmin();
 // Start the server
 const port = Number(process.env.PORT || 3000);
-const server = app.listen(port, () => {
-  console.log('express server 🚀 started on port: ' + port);
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log("express server 🚀 started on port: " + port);
+  console.log(`API reachable at http://127.0.0.1:${port}/api`);
   console.log(
     isFirebaseReady()
       ? '[Firebase] Push notifications ready (FCM Admin).'

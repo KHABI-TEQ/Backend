@@ -24,6 +24,8 @@ export const formatPropertyDataForTable = (property: any) => {
       state: property.location?.state,
       localGovernment: property.location?.localGovernment,
       area: property.location?.area,
+      streetAddress: property.location?.streetAddress,
+      estate: property.location?.estate,
     },
 
     landSize: {

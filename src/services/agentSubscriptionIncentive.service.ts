@@ -82,6 +82,7 @@ export function resolveAgentSubscriptionBonusDays(input: {
   planName?: string;
   planCode?: string;
   durationInDays?: number;
+  category?: string;
 }): number {
   const tier = resolveAgentSubscriptionPlanTier(input);
   if (!tier) {
@@ -96,11 +97,13 @@ export function computePaidSubscriptionExpiresAt(input: {
   baseDurationInDays: number;
   planName?: string;
   planCode?: string;
+  category?: string;
 }): { expiresAt: Date; bonusDays: number } {
   const bonusDays = resolveAgentSubscriptionBonusDays({
     planName: input.planName,
     planCode: input.planCode,
     durationInDays: input.baseDurationInDays,
+    category: input.category,
   });
   const expiresAt = addCalendarDays(input.startDate, input.baseDurationInDays + bonusDays);
   return { expiresAt, bonusDays };
@@ -143,16 +146,13 @@ export async function isComplimentaryAgentSubscriptionSnapshot(
 export async function getActivePaidAgentSubscriptionSnapshot(
   userId: string
 ): Promise<IUserSubscriptionSnapshotDoc | null> {
-  const snapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
-  if (!snapshot) {
-    return null;
+  const snapshots = await UserSubscriptionSnapshotService.getActiveSnapshots(userId);
+  for (const snapshot of snapshots) {
+    if (!(await isComplimentaryAgentSubscriptionSnapshot(snapshot))) {
+      return snapshot;
+    }
   }
-
-  if (await isComplimentaryAgentSubscriptionSnapshot(snapshot)) {
-    return null;
-  }
-
-  return snapshot;
+  return null;
 }
 
 import { publisherHasUnlimitedListings } from "./publisherListingEligibility.service";

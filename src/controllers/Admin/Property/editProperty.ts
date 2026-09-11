@@ -4,7 +4,12 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { propertyValidationSchema } from "../../../utils/formValidation/propertyValidationSchema";
+import { listingCommissionFields } from "../../../common/constants/listingCommission";
 import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
+import {
+  assertPropertyPriceChangeAllowed,
+  listingPriceFieldsChanged,
+} from "../../../services/propertyPriceLock.service";
 
 export const editPropertyAsAdmin = async (
   req: AppRequest,
@@ -32,6 +37,19 @@ export const editPropertyAsAdmin = async (
         "Only admin can perform this action",
       );
     }
+
+    if (listingPriceFieldsChanged(property as any, payload)) {
+      await assertPropertyPriceChangeAllowed(propertyId);
+    }
+
+    Object.assign(
+      payload,
+      listingCommissionFields({
+        ...payload,
+        propertyType: payload.propertyType || (property as any).propertyType,
+        price: payload.price ?? (property as any).price,
+      }),
+    );
 
     // Update (normalize isTenanted for Mongoose enum)
     Object.assign(property, {

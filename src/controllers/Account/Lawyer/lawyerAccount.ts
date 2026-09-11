@@ -218,6 +218,25 @@ export const setupLawyerBank = async (
   }
 };
 
+function redactBuyerUntilPaid(job: any) {
+  const paid = ["payment-approved", "in-progress", "registered", "unregistered"].includes(
+    String(job?.status || "")
+  );
+  if (paid) return job;
+  const buyer = job?.buyerId;
+  if (buyer && typeof buyer === "object") {
+    return {
+      ...job,
+      buyerId: {
+        _id: buyer._id,
+        fullName: buyer.fullName || "Buyer",
+        // contacts hidden until payment
+      },
+    };
+  }
+  return job;
+}
+
 export const listLawyerVerificationJobs = async (
   req: AppRequest,
   res: Response,
@@ -234,7 +253,10 @@ export const listLawyerVerificationJobs = async (
       .sort({ createdAt: -1 })
       .lean();
 
-    return res.status(HttpStatusCodes.OK).json({ success: true, data: jobs });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: jobs.map(redactBuyerUntilPaid),
+    });
   } catch (err) {
     next(err);
   }
@@ -256,7 +278,40 @@ export const getLawyerVerificationJob = async (
     if (!job) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Job not found.");
     }
-    return res.status(HttpStatusCodes.OK).json({ success: true, data: job });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: redactBuyerUntilPaid(job),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const respondLawyerVerificationJob = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireLawyer(req);
+    const accept = req.body?.accept === true;
+    const reason = req.body?.reason as string | undefined;
+    const { respondToLawyerRequest } = await import(
+      "../../../services/professionalRequest.service"
+    );
+    const job = await respondToLawyerRequest({
+      jobId: req.params.id,
+      lawyerUserId: String(user._id),
+      accept,
+      reason,
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: accept
+        ? "Request accepted. Buyer has been asked to pay."
+        : "Request declined.",
+      data: job,
+    });
   } catch (err) {
     next(err);
   }

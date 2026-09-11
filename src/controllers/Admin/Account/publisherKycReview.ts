@@ -134,6 +134,7 @@ export const reviewPublisherKyc = async (
                 planType: "Free Plan",
                 planCode: getActiveFreePlan.code,
                 appliedPlanName: getActiveFreePlan.name,
+                category: "standard",
               },
             });
 
@@ -149,6 +150,7 @@ export const reviewPublisherKyc = async (
                 planType: "Free Plan",
                 planCode: getActiveFreePlan.code,
                 appliedPlanName: getActiveFreePlan.name,
+                category: "standard",
               },
             });
 

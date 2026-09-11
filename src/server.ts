@@ -50,7 +50,11 @@ KeepAlive();
 
 // Add APIs
 
-app.use('/api', BaseRouter);
+app.use("/api", (req, _res, next) => {
+  console.log(`[API] ${req.method} ${req.originalUrl}`);
+  next();
+});
+app.use("/api", BaseRouter);
 
 app.get('/', (req: Request, res: Response) => {
   return res.sendFile('welcome.html', { root: path.join(__dirname, '../public') });
@@ -60,7 +64,9 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   console.error('Error Handler:', err);
   if (err instanceof RouteError) {
     return res.status(err.status).json({
+      success: false,
       error: err.message,
+      message: err.message,
       details: err.message2 || null, // Include `message2` if available
     });
   }

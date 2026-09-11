@@ -5,10 +5,16 @@ export function compareLocationLabels(a: string, b: string): number {
   });
 }
 
-export type LgaWithAreas = { lgaName: string; areas: string[] };
+export type AreaWithEstates = { areaName: string; estates: string[] };
+
+export type LgaWithAreas = {
+  lgaName: string;
+  areas: string[];
+  areasWithEstates?: AreaWithEstates[];
+};
 
 /**
- * Sort LGAs and nested areas A→Z for API responses and persisted preference location.
+ * Sort LGAs, nested areas, and estates A→Z for API responses and persisted preference location.
  */
 export function sortPreferenceLocationAlphabetically<T extends {
   localGovernmentAreas?: string[];
@@ -27,12 +33,30 @@ export function sortPreferenceLocationAlphabetically<T extends {
 
   if (Array.isArray(out.lgasWithAreas) && out.lgasWithAreas.length > 0) {
     out.lgasWithAreas = [...out.lgasWithAreas]
-      .map((entry) => ({
-        lgaName: String(entry?.lgaName || "").trim(),
-        areas: Array.isArray(entry?.areas)
+      .map((entry) => {
+        const areas = Array.isArray(entry?.areas)
           ? [...entry.areas].map((a) => String(a).trim()).filter(Boolean).sort(compareLocationLabels)
-          : [],
-      }))
+          : [];
+        const areasWithEstates = Array.isArray(entry?.areasWithEstates)
+          ? [...entry.areasWithEstates]
+              .map((row) => ({
+                areaName: String(row?.areaName || "").trim(),
+                estates: Array.isArray(row?.estates)
+                  ? [...row.estates]
+                      .map((e) => String(e).trim())
+                      .filter(Boolean)
+                      .sort(compareLocationLabels)
+                  : [],
+              }))
+              .filter((r) => r.areaName && r.estates.length > 0)
+              .sort((a, b) => compareLocationLabels(a.areaName, b.areaName))
+          : [];
+        return {
+          lgaName: String(entry?.lgaName || "").trim(),
+          areas,
+          ...(areasWithEstates.length ? { areasWithEstates } : {}),
+        };
+      })
       .filter((e) => e.lgaName)
       .sort((a, b) => compareLocationLabels(a.lgaName, b.lgaName));
   }

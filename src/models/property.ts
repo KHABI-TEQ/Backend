@@ -28,6 +28,8 @@ export interface IProperty {
     localGovernment?: string;
     area?: string;
     streetAddress?: string;
+    /** Optional estate / gated community within the area. */
+    estate?: string;
   }; 
   landSize?: {
     measurementType?: string;
@@ -101,7 +103,6 @@ export interface IProperty {
     | "available"
     | "unavailable"
     | "sold"
-    | "active"
     | "contingent"
     | "under_contract"
     | "coming_soon"
@@ -121,7 +122,7 @@ export interface IProperty {
   isPremium: boolean;
   /** Inspection fee in Naira. Min ₦1,000, max ₦50,000. */
   inspectionFee?: number;
-  /** Agent commission as percentage (0–5). Set by Landlord/Developer for Sale, Rent, JV, Shortlet. */
+  /** Agent commission as percentage (sale/off-plan 5, rent 10, JV/shortlet 0–5). */
   agentCommissionPercent?: number;
   /** Agent commission amount in Naira. Set by Landlord/Developer for Sale, Rent, JV, Shortlet. */
   agentCommissionAmount?: number;
@@ -165,6 +166,7 @@ export class Property {
           localGovernment: { type: String },
           area: { type: String },
           streetAddress: { type: String },
+          estate: { type: String },
         },
         landSize: {
           measurementType: { type: String },
@@ -246,7 +248,6 @@ export class Property {
             "unavailable",
             "flagged",
             "sold",
-            "active",
             "contingent",
             "under_contract",
             "coming_soon",
@@ -271,7 +272,7 @@ export class Property {
         briefType: { type: String },
         isPremium: { type: Boolean, default: false },
         inspectionFee: { type: Number, default: 5000, min: 1000, max: 50000 },
-        agentCommissionPercent: { type: Number, min: 0, max: 5 },
+        agentCommissionPercent: { type: Number, min: 0, max: 10 },
         agentCommissionAmount: { type: Number, min: 0 },
         listingScope: { type: String, enum: ["agent_listing", "lasrera_marketplace"], default: "agent_listing" },
         marketedByAgentId: { type: Schema.Types.ObjectId, ref: "User", default: null },

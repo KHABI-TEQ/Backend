@@ -3,7 +3,7 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
-import { logPropertyView } from "../../../services/propertyView.service";
+import { recordListingViewFromRequest } from "../../../services/propertyView.service";
 import { ignoreWords } from "../../../utils/ignoreWords";
 
 // Fetch All Properties with Filters & Pagination (Public)
@@ -234,13 +234,7 @@ export const getSingleProperty = async (
       );
     }
 
-    // ✅ Log the property view
-    await logPropertyView({
-      propertyId,
-      viewerId: req.user?._id || null, // viewer is optional
-      ipAddress: req.ip,
-      userAgent: req.headers["user-agent"] || "Unknown",
-    });
+    recordListingViewFromRequest(req, property, "website");
 
     const { briefType, location } = property;
 

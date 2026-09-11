@@ -25,20 +25,22 @@ export async function countPublisherOwnedProperties(
 async function snapshotGrantsUnlimitedListings(
   userId: string
 ): Promise<boolean> {
-  const snapshot = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
-  if (!snapshot) return false;
+  const snapshots = await UserSubscriptionSnapshotService.getActiveSnapshots(userId);
+  if (!snapshots.length) return false;
 
-  const plan = await DB.Models.SubscriptionPlan.findById(snapshot.plan)
-    .select("code unlimitedListings hiddenFromCatalog")
-    .lean();
-
-  if (!plan) return false;
-  if (plan.unlimitedListings || isUnlimitedListingPlanCode(plan.code)) {
-    return true;
+  for (const snapshot of snapshots) {
+    const plan = await DB.Models.SubscriptionPlan.findById(snapshot.plan)
+      .select("code unlimitedListings hiddenFromCatalog")
+      .lean();
+    if (!plan) continue;
+    if (plan.unlimitedListings || isUnlimitedListingPlanCode(plan.code)) {
+      return true;
+    }
+    const planCode = snapshot.meta?.planCode ?? plan.code;
+    if (isUnlimitedListingPlanCode(planCode)) return true;
   }
 
-  const planCode = snapshot.meta?.planCode ?? plan.code;
-  return isUnlimitedListingPlanCode(planCode);
+  return false;
 }
 
 export async function publisherHasUnlimitedListings(userId: string): Promise<boolean> {

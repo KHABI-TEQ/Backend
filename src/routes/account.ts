@@ -39,6 +39,10 @@ import {
   markNotificationAsUnRead,
 } from "../controllers/Account/notifications";
 import {
+  upsertAccountDeviceToken,
+  removeAccountDeviceToken,
+} from "../controllers/Account/deviceToken";
+import {
   cancelAccountDeletion,
   changeEmail,
   changePassword,
@@ -50,6 +54,8 @@ import {
   updateProfile,
   updateProfilePicture,
 } from "../controllers/Account/profileSettings";
+import { updateAccountBrm } from "../controllers/Account/assignBrm";
+import { assignBrmSchema } from "../validators/brm.validator";
 import {
   getLawyerMe,
   updateLawyerProfile,
@@ -57,6 +63,7 @@ import {
   setupLawyerBank,
   listLawyerVerificationJobs,
   getLawyerVerificationJob,
+  respondLawyerVerificationJob,
   submitLawyerVerificationReport,
 } from "../controllers/Account/Lawyer/lawyerAccount";
 import {
@@ -65,7 +72,25 @@ import {
   submitSurveyorKyc,
   setupSurveyorBank,
   listSurveyorJobs,
+  getSurveyorJob,
+  respondSurveyorJob,
+  submitSurveyorJobReport,
 } from "../controllers/Account/Surveyor/surveyorAccount";
+import {
+  getLawyerPublicPage,
+  putLawyerPublicPage,
+  checkLawyerPublicPageSlug,
+  getSurveyorPublicPage,
+  putSurveyorPublicPage,
+  checkSurveyorPublicPageSlug,
+} from "../controllers/Account/professionalPublicPage";
+import {
+  getMyCustomDomain,
+  upsertMyCustomDomainRequest,
+  payCustomDomainPackage,
+  renewCustomDomain,
+  submitIncludedCustomDomainRequest,
+} from "../controllers/Account/customDomainAccount";
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { fetchDealsitePreferences, fetchDealsitePreferenceById } from "../controllers/Account/Preference/fetchDealsitePreferences";
@@ -82,6 +107,10 @@ import {
 } from "../controllers/Account/Publisher/publisherListingEligibility";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
+import {
+  upsertDeviceTokenSchema,
+  removeDeviceTokenSchema,
+} from "../validators/buyerAuth.validator";
 import { fetchReferralRecords, fetchReferralStats } from "../controllers/Account/referrals";
 import { getDealSiteDetailsBySlug, getDealSiteDetailsByUser, getDealSiteLogsBySlug } from "../controllers/DealSite/verifyPublicAccessID";
 import { bankList, checkSlugAvailability, createDealSite } from "../controllers/DealSite/setUp";
@@ -91,6 +120,10 @@ import { agentSubscriptionFeatureChecker } from "../middlewares/agentSubscriptio
 import { fetchMyDealSitePreference } from "../controllers/DealSite/fetchDealSitePreferences";
 import { fetchGeneralMarketplacePreferences } from "../controllers/Account/Preference/fetchGeneralMarketplacePreferences";
 import { agentInitiatePreferenceMatch } from "../controllers/Account/Preference/agentInitiatePreferenceMatch";
+import {
+  getMarketplacePreferenceReview,
+  upsertMarketplacePreferenceReview,
+} from "../controllers/Account/Preference/preferenceReviewAccount";
 import { createRequestToMarket, listRequestToMarket, respondToRequestToMarket, registerSaleForRequestToMarket } from "../controllers/requestToMarket/requestToMarketController";
 import { suggestPropertyForm } from "../controllers/aiFormFill/aiFormFillController";
 import {
@@ -119,6 +152,7 @@ AccountRouter.use(accountAuth);
  
 // PROFILE ROUTES
 AccountRouter.get("/profile", getProfile);
+AccountRouter.put("/brm", validateJoi(assignBrmSchema), updateAccountBrm);
 AccountRouter.get("/dashboard", getDashboardData);
 AccountRouter.patch("/updateAccount", updateProfile)
 AccountRouter.patch("/updateProfilePicture", updateProfilePicture);
@@ -128,6 +162,16 @@ AccountRouter.delete("/deleteAccountImmediately", deleteAccountImmediately);
 AccountRouter.put("/changePassword", changePassword);
 AccountRouter.put("/changeEmail", changeEmail);
 AccountRouter.put("/notificationStatus", updateNotificationSettings);
+AccountRouter.post(
+  "/device-token",
+  validateJoi(upsertDeviceTokenSchema),
+  upsertAccountDeviceToken
+);
+AccountRouter.delete(
+  "/device-token",
+  validateJoi(removeDeviceTokenSchema),
+  removeAccountDeviceToken
+);
 
 AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
@@ -169,6 +213,8 @@ AccountRouter.post("/properties/create", postProperty);
 AccountRouter.post("/preferences/:preferenceId/properties", postProperty);
 
 AccountRouter.patch("/properties/:propertyId/edit", editProperty);
+AccountRouter.put("/properties/:propertyId/update", editProperty);
+AccountRouter.patch("/properties/:propertyId/update", editProperty);
 AccountRouter.patch("/properties/:propertyId/updateStatus", updatePropertyStatus);
 AccountRouter.get("/properties/:propertyId/getOne", fetchSingleProperty);
 AccountRouter.delete("/properties/:propertyId/delete", deleteProperty);
@@ -310,8 +356,16 @@ AccountRouter.post("/inspectionsFieldAgent/:inspectionId/submitReport", submitIn
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/startInspection", startInspection);
 AccountRouter.post("/inspectionsFieldAgent/:inspectionId/stopInspection", completeInspection);
 
-// MARKETPLACE — general (main-site) preferences for agent dashboard + agent-initiated matching
+// MARKETPLACE — general (main-site) preferences for agent dashboard (review-only)
 AccountRouter.get("/marketplace/general-preferences", fetchGeneralMarketplacePreferences);
+AccountRouter.get(
+  "/marketplace/preferences/:preferenceId/review",
+  getMarketplacePreferenceReview
+);
+AccountRouter.put(
+  "/marketplace/preferences/:preferenceId/review",
+  upsertMarketplacePreferenceReview
+);
 AccountRouter.post("/marketplace/preferences/:preferenceId/match", agentInitiatePreferenceMatch);
 
 // SYNDICATION (USER)
@@ -345,9 +399,16 @@ AccountRouter.post("/lawyer/bank", setupLawyerBank);
 AccountRouter.get("/lawyer/verification-jobs", listLawyerVerificationJobs);
 AccountRouter.get("/lawyer/verification-jobs/:id", getLawyerVerificationJob);
 AccountRouter.post(
+  "/lawyer/verification-jobs/:id/respond",
+  respondLawyerVerificationJob
+);
+AccountRouter.post(
   "/lawyer/verification-jobs/:id/report",
   submitLawyerVerificationReport
 );
+AccountRouter.get("/lawyer/public-page", getLawyerPublicPage);
+AccountRouter.put("/lawyer/public-page", putLawyerPublicPage);
+AccountRouter.post("/lawyer/public-page/slug-availability", checkLawyerPublicPageSlug);
 
 // SURVEYOR
 AccountRouter.get("/surveyor/me", getSurveyorMe);
@@ -355,5 +416,24 @@ AccountRouter.put("/surveyor/profile", updateSurveyorProfile);
 AccountRouter.put("/surveyor/kyc", submitSurveyorKyc);
 AccountRouter.post("/surveyor/bank", setupSurveyorBank);
 AccountRouter.get("/surveyor/jobs", listSurveyorJobs);
+AccountRouter.get("/surveyor/jobs/:id", getSurveyorJob);
+AccountRouter.post("/surveyor/jobs/:id/respond", respondSurveyorJob);
+AccountRouter.post("/surveyor/jobs/:id/report", submitSurveyorJobReport);
+AccountRouter.get("/surveyor/public-page", getSurveyorPublicPage);
+AccountRouter.put("/surveyor/public-page", putSurveyorPublicPage);
+AccountRouter.post(
+  "/surveyor/public-page/slug-availability",
+  checkSurveyorPublicPageSlug
+);
+
+// Custom domain package (DealSite or ProfessionalSite)
+AccountRouter.get("/custom-domain", getMyCustomDomain);
+AccountRouter.post("/custom-domain", upsertMyCustomDomainRequest);
+AccountRouter.post(
+  "/custom-domain/submit-included",
+  submitIncludedCustomDomainRequest
+);
+AccountRouter.post("/custom-domain/pay", payCustomDomainPackage);
+AccountRouter.post("/custom-domain/renew", renewCustomDomain);
 
 export default AccountRouter;

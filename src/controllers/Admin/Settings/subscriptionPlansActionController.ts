@@ -92,7 +92,7 @@ export const getAllSubscriptionPlans = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: plans,
+      data: plans.map((plan) => SubscriptionPlanService.enrichPlanForCatalog(plan)),
     });
   } catch (err) {
     next(err);
@@ -117,7 +117,7 @@ export const getSubscriptionPlan = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: plan,
+      data: SubscriptionPlanService.enrichPlanForCatalog(plan),
     });
   } catch (err) {
     next(err);

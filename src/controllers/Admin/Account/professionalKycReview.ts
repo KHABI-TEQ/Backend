@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import sendEmail from "../../../common/send.email";
+import { provisionProfessionalSiteOnKycApprove } from "../../../services/professionalSite.service";
 
 type Kind = "Lawyer" | "Surveyor";
 
@@ -39,6 +40,19 @@ async function reviewProfessional(
   }
   await user.save();
 
+  let professionalSite = null;
+  if (approved) {
+    professionalSite = await provisionProfessionalSiteOnKycApprove({
+      kind: kind === "Lawyer" ? "lawyer" : "surveyor",
+      ownerId: String(user._id),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      firmName: profile.firmName,
+      logoUrl: profile.profilePhoto || user.profile_picture,
+      about: profile.bio,
+    });
+  }
+
   if (user.email) {
     await sendEmail({
       to: user.email,
@@ -46,12 +60,12 @@ async function reviewProfessional(
         ? `Your ${kind.toLowerCase()} account is activated`
         : `Your ${kind.toLowerCase()} KYC was rejected`,
       text: approved
-        ? `Congratulations ${user.firstName}. Your ${kind.toLowerCase()} profile is approved and now visible on the Khabi-Teq marketplace.`
+        ? `Congratulations ${user.firstName}. Your ${kind.toLowerCase()} profile is approved and now visible on the Khabi-Teq marketplace. Set up your personal public page in the Practitioners app when you are ready.`
         : `Hello ${user.firstName}. Your ${kind.toLowerCase()} KYC was rejected. ${note || "Please update your documents and resubmit."}`,
     });
   }
 
-  return { user, profile };
+  return { user, profile, professionalSite };
 }
 
 export const reviewLawyerKyc = async (

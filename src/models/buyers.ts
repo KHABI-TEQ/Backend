@@ -1,4 +1,4 @@
-import { Schema, model, Document, Model } from 'mongoose';
+import { Schema, model, Document, Model, Types } from 'mongoose';
 
 export interface IBuyerDevice {
   deviceId: string;
@@ -20,6 +20,8 @@ export interface IBuyer {
   devices?: IBuyerDevice[];
   enableNotifications?: boolean;
   profilePicture?: string;
+  /** Optional Business Relation Manager. */
+  brmId?: Types.ObjectId;
 }
 
 export interface IBuyerDoc extends IBuyer, Document {}
@@ -54,6 +56,11 @@ export class Buyer {
         devices: { type: [deviceSchema], default: [] },
         enableNotifications: { type: Boolean, default: true },
         profilePicture: { type: String, default: "" },
+        brmId: {
+          type: Schema.Types.ObjectId,
+          ref: "BusinessRelationManager",
+          required: false,
+        },
       },
       {
         timestamps: true,

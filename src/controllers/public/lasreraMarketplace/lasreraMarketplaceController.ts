@@ -3,11 +3,13 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { Types } from "mongoose";
+import { liveListingMongoFilter } from "../../../utils/liveListingFilter";
 
 /**
  * GET /lasrera-marketplace/properties
  * Public list of LASRERA Market Place properties. No landlord/developer contact is returned.
  * Each property includes requestToMarketCount and currentUserHasRequested (when an Agent is logged in).
+ * Multiple agents may request the same listing; currentUserHasRequested is only for the logged-in agent.
  */
 export const listLasreraMarketplaceProperties = async (
   req: AppRequest,
@@ -17,13 +19,17 @@ export const listLasreraMarketplaceProperties = async (
   try {
     const { page = "1", limit = "20", briefType, state, minPrice, maxPrice } = req.query as Record<string, string>;
 
+    const soldViaRequest = await DB.Models.RequestToMarket.distinct("propertyId", {
+      saleRegisteredAt: { $exists: true, $ne: null },
+    });
+
     const query: any = {
+      ...liveListingMongoFilter(),
       listingScope: "lasrera_marketplace",
-      isApproved: true,
-      isDeleted: false,
-      isAvailable: true,
-      status: "approved",
     };
+    if (soldViaRequest.length) {
+      query._id = { $nin: soldViaRequest };
+    }
 
     if (briefType) query.briefType = briefType;
     if (state) query["location.state"] = new RegExp(state.trim(), "i");
@@ -59,18 +65,22 @@ export const listLasreraMarketplaceProperties = async (
     const countByPropertyId = new Map<string, number>();
     countAgg.forEach((row) => countByPropertyId.set(String(row._id), row.count));
 
-    // When logged-in user is an Agent, which of these properties have they requested (any status)?
+    // Logged-in agent only — other agents' requests must not block this user.
     let currentUserRequestedPropertyIds = new Set<string>();
     const currentUserId = req.user?._id;
-    const userType = (req.user as any)?.userType;
-    if (currentUserId && userType === "Agent") {
+    const userType = String((req.user as any)?.userType || "");
+    if (currentUserId && userType.toLowerCase() === "agent") {
       const myRequests = await DB.Models.RequestToMarket.find({
         propertyId: { $in: propertyIds },
         requestedByAgentId: currentUserId,
       })
-        .select("propertyId")
+        .select("propertyId requestedByAgentId")
         .lean();
-      myRequests.forEach((r) => currentUserRequestedPropertyIds.add(String((r as any).propertyId)));
+      const me = String(currentUserId);
+      myRequests.forEach((r) => {
+        if (String((r as any).requestedByAgentId) !== me) return;
+        currentUserRequestedPropertyIds.add(String((r as any).propertyId));
+      });
     }
 
     const data = (properties as any[]).map((p) => ({

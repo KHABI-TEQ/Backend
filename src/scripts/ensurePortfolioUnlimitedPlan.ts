@@ -2,7 +2,7 @@
  * Ensures Portfolio Unlimited exists and aligns LISTINGS features:
  * - Free / trial plans → 10
  * - Paid Premium catalog plans → 25
- * - Portfolio Unlimited → unlimited
+ * - Portfolio Unlimited → unlimited listings + custom domain / white-labeling
  *
  * Run: npx ts-node -r tsconfig-paths/register src/scripts/ensurePortfolioUnlimitedPlan.ts
  */
@@ -11,15 +11,40 @@ import mongoose from "mongoose";
 import { DB } from "../controllers";
 import {
   FREE_TRIAL_LISTING_LIMIT,
+  PORTFOLIO_UNLIMITED_BENEFITS,
   PORTFOLIO_UNLIMITED_PRICING,
   PUBLISHER_STANDARD_LISTING_LIMIT,
+  SCOUT_PORTFOLIO_UNLIMITED_PRICING,
   SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
   SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME,
 } from "../common/constants/publisherListingLimits";
+import {
+  SUBSCRIPTION_PLAN_AUDIENCES,
+  WHITE_LABELING_FEATURE_KEYS,
+  withoutRetiredStandardBenefits,
+} from "../common/constants/subscriptionCategories";
 
 async function getListingsFeatureId(): Promise<string | null> {
   const feature = await DB.Models.PlanFeature.findOne({ key: "LISTINGS" }).lean();
   return feature?._id?.toString() ?? null;
+}
+
+async function ensureWhiteLabelingFeatureIds(): Promise<string[]> {
+  const ids: string[] = [];
+  for (const feature of WHITE_LABELING_FEATURE_KEYS) {
+    const existing = await DB.Models.PlanFeature.findOne({ key: feature.key });
+    if (existing) {
+      ids.push(String(existing._id));
+      continue;
+    }
+    const created = await DB.Models.PlanFeature.create({
+      key: feature.key,
+      label: feature.label,
+      isActive: true,
+    });
+    ids.push(String(created._id));
+  }
+  return ids;
 }
 
 function isFreeOrTrialPlan(plan: {
@@ -34,7 +59,28 @@ function isFreeOrTrialPlan(plan: {
   );
 }
 
-async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
+function portfolioUnlimitedFeatures(
+  listingsFeatureId: string,
+  whiteLabelFeatureIds: string[]
+) {
+  return [
+    {
+      feature: listingsFeatureId,
+      type: "unlimited" as const,
+      value: 0,
+    },
+    ...whiteLabelFeatureIds.map((id) => ({
+      feature: id,
+      type: "boolean" as const,
+      value: 1,
+    })),
+  ];
+}
+
+async function ensurePortfolioUnlimitedPlan(
+  listingsFeatureId: string,
+  whiteLabelFeatureIds: string[]
+) {
   const existing = await DB.Models.SubscriptionPlan.findOne({
     code: SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
   });
@@ -49,13 +95,11 @@ async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
     isTrial: false,
     hiddenFromCatalog: true,
     unlimitedListings: true,
-    features: [
-      {
-        feature: listingsFeatureId,
-        type: "unlimited" as const,
-        value: 0,
-      },
-    ],
+    category: "standard" as const,
+    audience: SUBSCRIPTION_PLAN_AUDIENCES.LICENSED,
+    billingInterval: "monthly" as const,
+    benefits: [...PORTFOLIO_UNLIMITED_BENEFITS],
+    features: portfolioUnlimitedFeatures(listingsFeatureId, whiteLabelFeatureIds),
     discountedPlans: [
       {
         name: `${SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME} — Quarterly`,
@@ -63,6 +107,8 @@ async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
         price: PORTFOLIO_UNLIMITED_PRICING.quarterly,
         durationInDays: PORTFOLIO_UNLIMITED_PRICING.quarterlyDays,
         discountPercentage: 11,
+        billingInterval: "quarterly" as const,
+        benefits: [...PORTFOLIO_UNLIMITED_BENEFITS],
       },
       {
         name: `${SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME} — Annual`,
@@ -70,6 +116,8 @@ async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
         price: PORTFOLIO_UNLIMITED_PRICING.annual,
         durationInDays: PORTFOLIO_UNLIMITED_PRICING.annualDays,
         discountPercentage: 22,
+        billingInterval: "yearly" as const,
+        benefits: [...PORTFOLIO_UNLIMITED_BENEFITS],
       },
     ],
   };
@@ -85,10 +133,45 @@ async function ensurePortfolioUnlimitedPlan(listingsFeatureId: string) {
   console.log(`Created ${SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME} plan.`);
 }
 
+async function stripRetiredStandardBenefits() {
+  const plans = await DB.Models.SubscriptionPlan.find({
+    unlimitedListings: { $ne: true },
+    category: { $ne: "white-labeling" },
+  });
+
+  let updated = 0;
+  for (const plan of plans) {
+    let changed = false;
+    const next = withoutRetiredStandardBenefits(plan.benefits);
+    if (next.length !== (plan.benefits || []).length) {
+      plan.benefits = next;
+      changed = true;
+    }
+    for (const dp of plan.discountedPlans || []) {
+      const dpNext = withoutRetiredStandardBenefits(dp.benefits);
+      if (dpNext.length !== (dp.benefits || []).length) {
+        dp.benefits = dpNext;
+        changed = true;
+      }
+    }
+    if (changed) {
+      await plan.save();
+      updated += 1;
+    }
+  }
+  console.log(`Stripped retired Standard benefits from ${updated} plan(s).`);
+}
+
 async function alignCatalogListingCaps(listingsFeatureId: string) {
   const plans = await DB.Models.SubscriptionPlan.find({
-    code: { $ne: SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE },
+    code: {
+      $nin: [
+        SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
+        SCOUT_PORTFOLIO_UNLIMITED_PRICING.monthlyCode,
+      ],
+    },
     unlimitedListings: { $ne: true },
+    category: { $ne: "white-labeling" },
   }).populate("features.feature");
 
   let freeUpdated = 0;
@@ -140,8 +223,10 @@ async function run() {
     throw new Error("LISTINGS PlanFeature not found. Seed plan features first.");
   }
 
-  await ensurePortfolioUnlimitedPlan(listingsFeatureId);
+  const whiteLabelFeatureIds = await ensureWhiteLabelingFeatureIds();
+  await ensurePortfolioUnlimitedPlan(listingsFeatureId, whiteLabelFeatureIds);
   await alignCatalogListingCaps(listingsFeatureId);
+  await stripRetiredStandardBenefits();
 
   await mongoose.disconnect();
   console.log("Done.");

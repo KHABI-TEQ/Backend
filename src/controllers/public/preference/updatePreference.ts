@@ -4,9 +4,19 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { preferenceValidationSchema } from "../../../validators/preference.validator";
+import sendEmail from "../../../common/send.email";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import { preferenceMail } from "../../../common/emailTemplates/preference";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
 import { preferencePayloadToUserPreferences } from "../../../utils/preferenceUserPreferencesForWhatsapp";
+import { sortPreferenceLocationAlphabetically } from "../../../utils/sortLocationAlphabetically";
+import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.service";
+import { dealSiteBaseUrlFromPublicSlug } from "../../../utils/matchedPropertiesDealSiteUrl";
 
+/**
+ * Edit an existing preference by submitting it as a new preference (original is left unchanged).
+ * Triggers the same approval, email, and auto-matching flow as a fresh submit.
+ */
 export const updateBuyerPreferenceById = async (
   req: AppRequest,
   res: Response,
@@ -22,31 +32,12 @@ export const updateBuyerPreferenceById = async (
       });
     }
 
-    // Validate Payload
-    const payload = await preferenceValidationSchema.validateAsync(req.body, {
-      abortEarly: false,
-    });
-
-    const before = await DB.Models.Preference.findOne({
+    const original = await DB.Models.Preference.findOne({
       _id: preferenceId,
       buyer: buyerId,
-    })
-      .select("assignedAgent")
-      .lean();
+    }).lean();
 
-    const oldAgentId = before?.assignedAgent
-      ? String(before.assignedAgent)
-      : "";
-
-    const updatedPreference = await DB.Models.Preference.findOneAndUpdate(
-      { _id: preferenceId, buyer: buyerId },
-      { $set: payload },
-      { new: true },
-    )
-      .populate("buyer")
-      .populate({ path: "assignedAgent", populate: { path: "userId", select: "firstName lastName phoneNumber" } });
-
-    if (!updatedPreference) {
+    if (!original) {
       return next(
         new RouteError(
           HttpStatusCodes.NOT_FOUND,
@@ -55,61 +46,130 @@ export const updateBuyerPreferenceById = async (
       );
     }
 
-    const up: any = updatedPreference;
-    const contact = up.contactInfo || {};
-    const contactPhone = String(
-      (up.buyer as any)?.whatsAppNumber ||
-        (up.buyer as any)?.phoneNumber ||
-        contact.phoneNumber ||
-        ""
-    ).replace(/\s/g, "");
+    const payload = await preferenceValidationSchema.validateAsync(req.body, {
+      abortEarly: false,
+    });
+
+    const rawContactInfo = payload.contactInfo || {};
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      companyName,
+      contactPerson,
+      cacRegistrationNumber,
+    } = rawContactInfo;
+
+    const normalizedBuyerPayload = {
+      fullName: fullName || companyName || "Unnamed Buyer",
+      email: email || "unknown@example.com",
+      phoneNumber: phoneNumber || "00000000000",
+      ...(companyName && { companyName }),
+      ...(contactPerson && { contactPerson }),
+      ...(cacRegistrationNumber && { cacRegistrationNumber }),
+    };
+
+    const buyer = await DB.Models.Buyer.findById(buyerId);
+    if (!buyer) {
+      return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Buyer not found"));
+    }
+
+    const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
+    const submittedVia =
+      payload.submittedVia === "app" || payload.submittedVia === "website"
+        ? payload.submittedVia
+        : original.submittedVia === "app"
+          ? "app"
+          : "website";
+
+    const preferenceData = {
+      ...payload,
+      location: sortedLocation ?? payload.location,
+      contactInfo: normalizedBuyerPayload,
+      buyer: buyer._id,
+      status: "pending",
+      receiverMode: original.receiverMode || { type: "general" as const },
+      submittedVia,
+      clonedFromPreference: original._id,
+    };
+
+    const createdPreference = await DB.Models.Preference.create(preferenceData);
+    createdPreference.status = "approved";
+    await createdPreference.save();
+
+    const userMailBody = preferenceMail({ ...preferenceData, status: "approved" });
+    const userGeneralMail = generalEmailLayout(userMailBody);
+    await sendEmail({
+      to: buyer.email || normalizedBuyerPayload.email,
+      subject: "Preference Submitted Successfully",
+      text: userGeneralMail,
+      html: userGeneralMail,
+    });
+
+    const contactPhone = (
+      (buyer as any).whatsAppNumber ||
+      (buyer as any).phoneNumber ||
+      phoneNumber ||
+      ""
+    )
+      .toString()
+      .replace(/\s/g, "");
     if (isLikelyE164CapableLocalPhone(contactPhone)) {
-      const prefs = preferencePayloadToUserPreferences(payload);
-      void runWhatsapp("preference_update_whatsapp", async (wa) => {
-        await wa.sendPreferencesUpdated({
+      void runWhatsapp("preference_submitted_whatsapp", async (wa) => {
+        const prefs = preferencePayloadToUserPreferences(preferenceData as any);
+        await wa.sendPreferencesSaved({
           user: {
-            name: (up.buyer as any)?.fullName || contact.fullName || "there",
+            name: (buyer as any).fullName || "there",
             phone: contactPhone,
-            id: String(buyerId),
+            id: String(buyer._id),
           },
           preferences: prefs,
         });
       });
     }
 
-    const newAgentId = up.assignedAgent?._id
-      ? String(up.assignedAgent._id)
-      : "";
-    if (newAgentId && newAgentId !== oldAgentId && up.assignedAgent?.userId) {
-      const u = up.assignedAgent.userId as {
-        firstName?: string;
-        lastName?: string;
-        phoneNumber?: string;
-      };
-      const agentName = [u.firstName, u.lastName].filter(Boolean).join(" ");
-      const agentPhone = (u.phoneNumber || "").replace(/\s/g, "");
-      if (isLikelyE164CapableLocalPhone(contactPhone) && isLikelyE164CapableLocalPhone(agentPhone)) {
-        void runWhatsapp("preference_agent_assignment_whatsapp", async (wa) => {
-          const prefs = preferencePayloadToUserPreferences(payload);
-          await wa.sendAgentAssignment({
-            user: {
-              name: (up.buyer as any)?.fullName || contact.fullName || "there",
-              phone: contactPhone,
-              id: String(buyerId),
-              preferences: prefs,
-            },
-            agent: { name: agentName || "Agent", phone: agentPhone, id: newAgentId },
-            property: undefined,
-            reason: "preference update",
-          });
-        });
+    let matchEmailBaseUrlOverride: string | undefined;
+    if (
+      original.receiverMode?.type === "dealSite" &&
+      original.receiverMode.dealSiteID
+    ) {
+      const dealSite = await DB.Models.DealSite.findById(
+        original.receiverMode.dealSiteID,
+      )
+        .select("publicSlug")
+        .lean();
+      const slug = String((dealSite as any)?.publicSlug || "").trim();
+      if (slug) {
+        matchEmailBaseUrlOverride = dealSiteBaseUrlFromPublicSlug(slug);
       }
     }
 
-    return res.status(HttpStatusCodes.OK).json({
+    try {
+      await autoPairPreferenceById(createdPreference._id.toString(), {
+        sendMatchEmail: true,
+        sendNoMatchEmail: true,
+        matchEmailBaseUrlOverride,
+      });
+    } catch (matchErr) {
+      console.warn("[Preference clone] Auto pairing failed (non-fatal):", matchErr);
+    }
+
+    const responseData = createdPreference.toObject
+      ? createdPreference.toObject()
+      : createdPreference;
+    if (responseData?.location) {
+      responseData.location =
+        sortPreferenceLocationAlphabetically(responseData.location) ??
+        responseData.location;
+    }
+
+    return res.status(HttpStatusCodes.CREATED).json({
       success: true,
-      message: "Preference updated successfully",
-      data: updatedPreference,
+      message: "Preference submitted as a new preference",
+      data: {
+        ...responseData,
+        clonedFromPreferenceId: String(original._id),
+      },
     });
   } catch (err: any) {
     if (err?.isJoi) {

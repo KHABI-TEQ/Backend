@@ -12,6 +12,15 @@ import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 import { getPublisherKycStatus } from "../../services/publisherKyc.service";
+import {
+  dashboardListingCountFilters,
+  INACTIVE_LISTING_STATUSES,
+  SOLD_LISTING_STATUSES,
+} from "../../utils/liveListingFilter";
+import {
+  countListingViewsForUser,
+  sumAgentCommissionForUser,
+} from "../../services/propertyView.service";
 
 /** Subscription snapshot, DealSite, and Agent collection row — same shape for Agent and Developer (see loginUser). Landowners get the same keys; agentData is usually null. */
 async function buildPublisherProfileExtensions(user: { _id: unknown; accountApproved?: boolean }) {
@@ -65,7 +74,8 @@ export const getProfile = async (
       isFlagged: user.isFlagged,
       accountId: user.accountId,
       referralCode: user.referralCode,
-      createdAt: user.createdAt
+      createdAt: user.createdAt,
+      brmId: user.brmId || null,
     };
 
     let responseData: any = userResponse;
@@ -73,6 +83,26 @@ export const getProfile = async (
     if (ut === "Agent" || ut === "Developer" || ut === "Landowners") {
       const extra = await buildPublisherProfileExtensions(user);
       responseData = { ...userResponse, ...extra };
+    }
+
+    if (
+      (ut === "Agent" || ut === "Developer") &&
+      user.brmId
+    ) {
+      const brm = await DB.Models.BusinessRelationManager.findById(user.brmId)
+        .select("fullName profilePicture phoneNumber gender serviceMessage isActive")
+        .lean();
+      if (brm) {
+        responseData.brm = {
+          id: brm._id,
+          fullName: brm.fullName,
+          profilePicture: brm.profilePicture,
+          phoneNumber: brm.phoneNumber,
+          gender: brm.gender,
+          serviceMessage: brm.serviceMessage,
+          isActive: brm.isActive,
+        };
+      }
     }
 
     return res.status(HttpStatusCodes.OK).json({
@@ -583,20 +613,24 @@ export const getDashboardData = async (
     }
 
     // Other user types (Landowners, Agent) keep their existing logic
-    const basePropertyQuery = {
-      owner: userId,
-      isDeleted: { $ne: true },
-    };
+    const listingFilters = dashboardListingCountFilters(userId);
+    const basePropertyQuery = listingFilters.total;
 
-    const totalBriefs = await DB.Models.Property.countDocuments(basePropertyQuery);
-    const totalActiveBriefs = await DB.Models.Property.countDocuments({
-      ...basePropertyQuery,
-      status: "active",
-    });
-    const totalPendingBriefs = await DB.Models.Property.countDocuments({
-      ...basePropertyQuery,
-      status: "pending",
-    });
+    const [
+      totalBriefs,
+      totalActiveBriefs,
+      totalPendingBriefs,
+      totalSoldBriefs,
+      totalUnpublishedBriefs,
+      totalInactiveBriefs,
+    ] = await Promise.all([
+      DB.Models.Property.countDocuments(listingFilters.total),
+      DB.Models.Property.countDocuments(listingFilters.onMarket),
+      DB.Models.Property.countDocuments(listingFilters.pending),
+      DB.Models.Property.countDocuments(listingFilters.sold),
+      DB.Models.Property.countDocuments(listingFilters.unpublished),
+      DB.Models.Property.countDocuments(listingFilters.inactive),
+    ]);
 
     const newPendingBriefs = await DB.Models.Property.find({
       ...basePropertyQuery,
@@ -608,7 +642,7 @@ export const getDashboardData = async (
         "_id briefType status createdAt pictures price location.area location.localGovernment location.state"
       );
 
-    const totalViews = 0; // Placeholder for when view tracking is implemented
+    const totalViews = await countListingViewsForUser(String(userId));
     const totalInspectionRequests = await DB.Models.InspectionBooking.countDocuments({
       owner: userId,
     });
@@ -634,10 +668,30 @@ export const getDashboardData = async (
       referralData.totalEarnings = totalEarnings;
     }
 
+    const listingOverview = {
+      total: totalBriefs,
+      onMarket: totalActiveBriefs,
+      pending: totalPendingBriefs,
+      sold: totalSoldBriefs,
+      unpublished: totalUnpublishedBriefs,
+      inactive: totalInactiveBriefs,
+      statuses: {
+        onMarket: ["approved", "available", "back_on_market"],
+        pending: ["pending"],
+        sold: [...SOLD_LISTING_STATUSES],
+        unpublished: ["unavailable"],
+        inactive: [...INACTIVE_LISTING_STATUSES],
+      },
+    };
+
     const dashboardData: Record<string, any> = {
       totalBriefs,
       totalActiveBriefs,
       totalPendingBriefs,
+      totalSoldBriefs,
+      totalUnpublishedBriefs,
+      totalInactiveBriefs,
+      listingOverview,
       newPendingBriefs,
       totalViews,
       totalInspectionRequests,
@@ -646,20 +700,18 @@ export const getDashboardData = async (
     };
 
     if (user.userType === "Landowners") {
-      const propertySold = await DB.Models.Property.countDocuments({
-        ...basePropertyQuery,
-        status: "sold",
-      });
-      dashboardData.propertySold = propertySold;
+      dashboardData.propertySold = totalSoldBriefs;
     }
 
     if (user.userType === "Agent") {
-      const completedDeals = await DB.Models.NewTransaction.countDocuments({
-        "fromWho.item": userId,
-        "fromWho.kind": "User",
-        status: "completed",
-      });
-      const totalCommission = 0; // Replace with actual commission logic
+      const [completedDeals, totalCommission] = await Promise.all([
+        DB.Models.RequestToMarket.countDocuments({
+          requestedByAgentId: userId,
+          status: "accepted",
+          saleRegisteredAt: { $exists: true, $ne: null },
+        }),
+        sumAgentCommissionForUser(String(userId)),
+      ]);
       Object.assign(dashboardData, { completedDeals, totalCommission });
     }
 

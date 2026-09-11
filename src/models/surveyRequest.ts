@@ -1,5 +1,16 @@
 import { Schema, model, models, Document, Model, Types } from "mongoose";
 
+export type SurveyRequestStatus =
+  | "awaiting-acceptance"
+  | "awaiting-payment"
+  | "declined"
+  | "pending"
+  | "payment-approved"
+  | "payment-failed"
+  | "in-progress"
+  | "completed"
+  | "cancelled";
+
 export interface ISurveyRequest {
   buyerId: Types.ObjectId;
   surveyorId: Types.ObjectId;
@@ -7,20 +18,18 @@ export interface ISurveyRequest {
   propertyAddress?: string;
   surveyPlanUrl?: string;
   notes?: string;
-  amountPaid: number;
+  amountPaid?: number;
   transaction?: Types.ObjectId;
-  status:
-    | "pending"
-    | "payment-approved"
-    | "payment-failed"
-    | "in-progress"
-    | "completed"
-    | "cancelled";
+  status: SurveyRequestStatus;
   report?: {
     description?: string;
     documentUrl?: string;
     completedAt?: Date;
   };
+  respondedAt?: Date;
+  declineReason?: string;
+  /** marketplace = accept-then-pay; public-page = immediate Paystack */
+  source?: "marketplace" | "public-page";
 }
 
 export interface ISurveyRequestDoc extends ISurveyRequest, Document {
@@ -55,11 +64,14 @@ export class SurveyRequest {
         propertyAddress: { type: String, trim: true },
         surveyPlanUrl: { type: String, trim: true },
         notes: { type: String, trim: true },
-        amountPaid: { type: Number, required: true, min: 0 },
+        amountPaid: { type: Number, min: 0 },
         transaction: { type: Schema.Types.ObjectId, ref: "NewTransaction" },
         status: {
           type: String,
           enum: [
+            "awaiting-acceptance",
+            "awaiting-payment",
+            "declined",
             "pending",
             "payment-approved",
             "payment-failed",
@@ -67,13 +79,21 @@ export class SurveyRequest {
             "completed",
             "cancelled",
           ],
-          default: "pending",
+          default: "awaiting-acceptance",
           index: true,
         },
         report: {
           description: { type: String },
           documentUrl: { type: String },
           completedAt: { type: Date },
+        },
+        respondedAt: { type: Date },
+        declineReason: { type: String, trim: true },
+        source: {
+          type: String,
+          enum: ["marketplace", "public-page"],
+          default: "marketplace",
+          index: true,
         },
       },
       { timestamps: true }

@@ -4,7 +4,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { DB } from "../..";
 import { RouteError } from "../../../common/classes";
 import { PaystackService } from "../../../services/paystack.service";
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { generateAutoRenewalStoppedEmail, generateSubscriptionCancellationEmail } from "../../../common/emailTemplates/subscriptionMails";
 import sendEmail from "../../../common/send.email";
@@ -17,6 +17,21 @@ import {
   resolveAgentSubscriptionBonusDays,
 } from "../../../services/agentSubscriptionIncentive.service";
 import { isUnlimitedListingPlanCode } from "../../../common/constants/publisherListingLimits";
+import {
+  isWhiteLabelingCategory,
+  SUBSCRIPTION_PLAN_AUDIENCES,
+  SUBSCRIPTION_PLAN_CATEGORIES,
+  type SubscriptionPlanCategory,
+} from "../../../common/constants/subscriptionCategories";
+import { isPropertyScout } from "../../../services/propertyScout.service";
+import {
+  resolveCatalogAudienceForUser,
+  assertUserCanPurchasePlanAudience,
+} from "../../../services/subscriptionPlanAudience.service";
+import {
+  linkCustomDomainRequestToUnlimitedCheckout,
+  prepareCustomDomainRequestForUnlimitedCheckout,
+} from "../../../services/customDomain.service";
 
 
 /**
@@ -37,11 +52,14 @@ export const createSubscription = async (
       throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only registered agents, developers, or landlords can create subscriptions.");
     }
 
-    if (userType === "Agent" && !(await isPublisherKycApproved(userId))) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Your account must be KYC-approved before creating a subscription."
-      );
+    if (userType === "Agent") {
+      const scout = await isPropertyScout(String(userId));
+      if (!scout && !(await isPublisherKycApproved(userId))) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Your account must be KYC-approved before creating a subscription."
+        );
+      }
     }
 
     if (userType === "Agent") {
@@ -63,50 +81,47 @@ export const createSubscription = async (
       );
     }
 
-    // 1. Try to find a standard plan by code
-    let plan = await DB.Models.SubscriptionPlan.findOne({
-      code: planCode,
-      isActive: true,
+    let resolved;
+    try {
+      resolved = await SubscriptionPlanService.resolveActivePlanByCode(planCode);
+    } catch (err: any) {
+      throw new RouteError(
+        HttpStatusCodes.NOT_FOUND,
+        err?.message || "Subscription plan not found"
+      );
+    }
+
+    if (isWhiteLabelingCategory(resolved.category)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Custom Domain / White Labeling plans are purchased from the custom domain page."
+      );
+    }
+
+    await assertUserCanPurchasePlanAudience({
+      userId: String(userId),
+      planAudience: (resolved.plan as any).audience,
+      planCode: resolved.planCode,
     });
 
-    let appliedPlanName: string;
-    let price: number;
-    let durationInDays: number;
-    let planType: "standard" | "discounted" = "standard";
+    const {
+      plan,
+      planType,
+      appliedPlanName,
+      price,
+      durationInDays,
+      planCode: resolvedCode,
+      category,
+      benefits,
+    } = resolved;
 
-    if (plan) {
-      // ✅ Found a normal plan
-      appliedPlanName = plan.name;
-      price = plan.price;
-      durationInDays = plan.durationInDays;
-    } else {
-      // 2. Try to find inside discountedPlans
-      plan = await DB.Models.SubscriptionPlan.findOne({
-        "discountedPlans.code": planCode,
-        isActive: true,
-      });
-
-      if (!plan) {
-        throw new RouteError(
-          HttpStatusCodes.NOT_FOUND,
-          "Subscription plan not found"
-        );
-      }
-
-      const discounted = plan.discountedPlans.find((dp) => dp.code === planCode);
-
-      if (!discounted) {
-        throw new RouteError(
-          HttpStatusCodes.NOT_FOUND,
-          "Discounted plan not found in this subscription"
-        );
-      }
-
-      // ✅ Use discounted values
-      appliedPlanName = discounted.name;
-      price = discounted.price;
-      durationInDays = discounted.durationInDays;
-      planType = "discounted";
+    const isPortfolioUnlimited = isUnlimitedListingPlanCode(resolvedCode);
+    let customDomainRequestId: string | null = null;
+    if (isPortfolioUnlimited) {
+      const domain = await prepareCustomDomainRequestForUnlimitedCheckout(
+        String(userId)
+      );
+      customDomainRequestId = domain.request ? String(domain.request._id) : null;
     }
 
     // 3. Generate payment link
@@ -118,6 +133,14 @@ export const createSubscription = async (
         item: new Types.ObjectId(userId as Types.ObjectId),
       },
       transactionType: "subscription",
+      metadata: {
+        category,
+        planCode: resolvedCode,
+        planType,
+        ...(customDomainRequestId
+          ? { customDomainRequestId, includedWithPortfolioUnlimited: true }
+          : {}),
+      },
     });
 
     // 4. Create subscription snapshot (pending until payment success)
@@ -126,7 +149,8 @@ export const createSubscription = async (
       startDate,
       baseDurationInDays: durationInDays,
       planName: appliedPlanName,
-      planCode,
+      planCode: resolvedCode,
+      category,
     });
  
     const subscriptionSnapshot =
@@ -139,12 +163,25 @@ export const createSubscription = async (
         autoRenew: autoRenewal ?? false,
         meta: {
           planType,
-          planCode,
+          planCode: resolvedCode,
           appliedPlanName,
           durationInDays,
+          category,
+          benefits,
           ...(bonusDays > 0 ? { bonusDays, baseDurationInDays: durationInDays } : {}),
+          ...(customDomainRequestId
+            ? { customDomainRequestId, includedWithPortfolioUnlimited: true }
+            : {}),
         },
       });
+
+    if (isPortfolioUnlimited) {
+      await linkCustomDomainRequestToUnlimitedCheckout(String(userId), {
+        snapshotId: String(subscriptionSnapshot._id),
+        transactionId: String(paymentResponse.transactionId),
+        planCode: resolvedCode,
+      });
+    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
@@ -155,6 +192,8 @@ export const createSubscription = async (
         planName: appliedPlanName,
         amount: price,
         planType,
+        category,
+        benefits,
         bonusDays,
         expiresAt: endDate,
       },
@@ -175,10 +214,11 @@ export const fetchUserSubscriptions = async (
   next: NextFunction
 ) => {
   try {
-    const { page = 1, limit = 10, status } = req.query as {
+    const { page = 1, limit = 10, status, category } = req.query as {
       page?: string;
       limit?: string;
       status?: string;
+      category?: string;
     };
 
     const userId = req.user?._id;
@@ -200,6 +240,12 @@ export const fetchUserSubscriptions = async (
     };
 
     if (status) filters.status = status;
+    const rawCategory = String(category || "").trim().toLowerCase();
+    if (rawCategory === "white-labeling" || rawCategory === "custom-domain") {
+      filters["meta.category"] = SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING;
+    } else if (rawCategory === "standard") {
+      filters["meta.category"] = { $nin: [SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING] };
+    }
 
     // pagination
     const skip = (Number(page) - 1) * Number(limit);
@@ -218,7 +264,7 @@ export const fetchUserSubscriptions = async (
           },
           {
             path: "plan",
-            select: "name code",
+            select: "name code category benefits billingInterval",
           },
         ],
       });
@@ -266,7 +312,7 @@ export const getUserSubscriptionDetails = async (
       })
       .populate({
         path: "plan",
-        select: "name code",
+        select: "name code category benefits billingInterval",
       })
       .lean();
 
@@ -438,26 +484,51 @@ export const getAllActiveSubscriptionPlans = async (
   res: Response,
   next: NextFunction
 ) => {
-  try {  
+  try {
+    const rawCategory = String(req.query.category || SUBSCRIPTION_PLAN_CATEGORIES.STANDARD)
+      .trim()
+      .toLowerCase();
+    const category: SubscriptionPlanCategory | "all" =
+      rawCategory === "all"
+        ? "all"
+        : rawCategory === "white-labeling" || rawCategory === "custom-domain"
+          ? SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING
+          : SUBSCRIPTION_PLAN_CATEGORIES.STANDARD;
 
-    const plans = await SubscriptionPlanService.getAllActivePlans();
+    const rawAudience = String(req.query.audience || "").trim().toLowerCase();
+    const audience =
+      rawAudience === "all"
+        ? "all" as const
+        : rawAudience === "scout"
+          ? SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
+          : rawAudience === "licensed"
+            ? SUBSCRIPTION_PLAN_AUDIENCES.LICENSED
+            : await resolveCatalogAudienceForUser(req.user?._id ? String(req.user._id) : null);
+
+    const plans = await SubscriptionPlanService.getAllActivePlans({
+      category,
+      audience,
+    });
 
     const enriched = (plans as any[]).map((plan) => {
+      const catalog = SubscriptionPlanService.enrichPlanForCatalog(plan);
       const bonusDays = resolveAgentSubscriptionBonusDays({
         planName: plan.name,
         planCode: plan.code,
         durationInDays: plan.durationInDays,
+        category: catalog.category,
       });
-      const discountedPlans = (plan.discountedPlans || []).map((dp: any) => ({
+      const discountedPlans = (catalog.discountedPlans || []).map((dp: any) => ({
         ...dp,
         bonusDays: resolveAgentSubscriptionBonusDays({
           planName: dp.name ?? plan.name,
           planCode: dp.code,
           durationInDays: dp.durationInDays,
+          category: catalog.category,
         }),
       }));
       return {
-        ...plan,
+        ...catalog,
         bonusDays,
         discountedPlans,
       };
@@ -466,6 +537,22 @@ export const getAllActiveSubscriptionPlans = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: enriched,
+      meta: {
+        category,
+        categoryLabel:
+          category === "all"
+            ? "All"
+            : category === SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING
+              ? "Custom Domain / White Labeling"
+              : "Standard",
+        audience,
+        audienceLabel:
+          audience === "all"
+            ? "All"
+            : audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
+              ? "Property Scout"
+              : "Licensed Agent / Developer",
+      },
     });
   } catch (err) {
     next(err);

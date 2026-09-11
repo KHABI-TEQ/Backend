@@ -32,6 +32,7 @@ export const registerUserSchema = Joi.object({
   referralCode: Joi.string().allow("").optional(),
   firmName: Joi.string().trim().allow("").optional(),
   licenseNumber: Joi.string().trim().allow("").optional(),
+  brmId: Joi.string().trim().allow("", null).optional(),
 });
 
 export const oauthRegisterSchema = Joi.object({

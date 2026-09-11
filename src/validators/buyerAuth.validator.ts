@@ -19,6 +19,7 @@ export const registerBuyerSchema = Joi.object({
     "string.min": "Password must be at least 6 characters.",
     "any.required": "Password is required.",
   }),
+  brmId: Joi.string().trim().allow("", null).optional(),
 });
 
 export const loginBuyerSchema = Joi.object({

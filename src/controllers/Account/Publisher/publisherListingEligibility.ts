@@ -4,6 +4,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import {
   isPublisherUserType,
+  SCOUT_PORTFOLIO_UNLIMITED_PRICING,
   SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
 } from "../../../common/constants/publisherListingLimits";
 import {
@@ -14,6 +15,8 @@ import {
   resolveAgentSubscriptionBonusDays,
 } from "../../../services/agentSubscriptionIncentive.service";
 import { getPropertyScoutSnapshot, isScoutEligibleUserType } from "../../../services/propertyScout.service";
+import { resolveCatalogAudienceForUser } from "../../../services/subscriptionPlanAudience.service";
+import { SUBSCRIPTION_PLAN_AUDIENCES } from "../../../common/constants/subscriptionCategories";
 
 /**
  * GET /account/publisher/listing-eligibility
@@ -108,7 +111,12 @@ export const getUnlimitedListingPlanOffer = async (
       });
     }
 
-    const plan = await SubscriptionPlanService.getPlan(SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE);
+    const audience = await resolveCatalogAudienceForUser(String(userId));
+    const planCode =
+      audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
+        ? SCOUT_PORTFOLIO_UNLIMITED_PRICING.monthlyCode
+        : SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE;
+    const plan = await SubscriptionPlanService.getPlan(planCode);
     if (!plan || !plan.isActive) {
       throw new RouteError(
         HttpStatusCodes.NOT_FOUND,
@@ -121,7 +129,8 @@ export const getUnlimitedListingPlanOffer = async (
       planCode: plan.code,
       durationInDays: plan.durationInDays,
     });
-    const discountedPlans = (plan.discountedPlans || []).map((dp: any) => ({
+    const enriched = SubscriptionPlanService.enrichPlanForCatalog(plan);
+    const discountedPlans = (enriched.discountedPlans || []).map((dp: any) => ({
       ...dp,
       bonusDays: resolveAgentSubscriptionBonusDays({
         planName: dp.name ?? plan.name,
@@ -134,11 +143,12 @@ export const getUnlimitedListingPlanOffer = async (
       success: true,
       message: "Portfolio Unlimited plan fetched successfully",
       data: {
-        ...plan,
+        ...enriched,
         bonusDays,
         discountedPlans,
         listingSnapshot: snapshot,
         required: !!snapshot.requiresSpecialPlan,
+        includesCustomDomain: true,
       },
     });
   } catch (err) {

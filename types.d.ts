@@ -3,3 +3,6 @@ declare namespace Express {
     user?: any;
   }
 }
+
+declare module "@xenova/transformers";
+

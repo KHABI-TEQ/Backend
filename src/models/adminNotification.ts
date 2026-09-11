@@ -9,6 +9,9 @@ export type AdminNotificationType =
   | "syndication_application_submitted"
   | "dealsite_reported"
   | "field_agent_representation_pending"
+  | "custom_domain_package_paid"
+  | "custom_domain_renewal_paid"
+  | "custom_domain_renewal_due"
   | "general";
 
 export interface IAdminNotification {
@@ -33,6 +36,9 @@ const TYPE_ENUM: AdminNotificationType[] = [
   "syndication_application_submitted",
   "dealsite_reported",
   "field_agent_representation_pending",
+  "custom_domain_package_paid",
+  "custom_domain_renewal_paid",
+  "custom_domain_renewal_due",
   "general",
 ];
 

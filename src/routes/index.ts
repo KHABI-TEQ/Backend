@@ -27,12 +27,18 @@ import {
   listMarketplaceLawyers,
   getMarketplaceLawyer,
   listMarketplaceSurveyors,
+  getMarketplaceSurveyor,
   createSurveyRequest,
+  payDocumentVerification,
+  paySurveyRequest,
 } from "../controllers/public/professionalMarketplace";
+import { getBrmPicture, listActiveBrms } from "../controllers/public/listBrms";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
+import ProfessionalSiteRouter from "./professionalSite";
+import { resolvePublicSite } from "../controllers/public/resolvePublicSite";
 import TransactionRegistrationRouter from "./transactionRegistration";
 import { listLasreraMarketplaceProperties } from "../controllers/public/lasreraMarketplace/lasreraMarketplaceController";
 import { optionalAccountAuth } from "../middlewares/accountAuth";
@@ -193,7 +199,10 @@ router.post("/submitVerificationDocs", submitDocumentVerification);
 router.get("/lawyers/marketplace", listMarketplaceLawyers);
 router.get("/lawyers/marketplace/:id", getMarketplaceLawyer);
 router.get("/surveyors/marketplace", listMarketplaceSurveyors);
+router.get("/surveyors/marketplace/:id", getMarketplaceSurveyor);
 router.post("/survey-requests", createSurveyRequest);
+router.post("/document-verifications/:id/pay", payDocumentVerification);
+router.post("/survey-requests/:id/pay", paySurveyRequest);
 
 // Partner → hub: syndication user authentication callback (after partner validates hub user credentials)
 router.post("/syndication/user/authentication/webhook", receiveSyndicationUserAuthWebhook);
@@ -203,6 +212,8 @@ router.use("/third-party", thirdPartyRouter);
 
 // All Properties Routes
 router.use("/deal-site", DealSiteRouter);
+router.use("/professional-site", ProfessionalSiteRouter);
+router.get("/public-site/resolve", resolvePublicSite);
 
 // Contact Form
 router.post("/contact-us/submit", submitContactForm);
@@ -236,6 +247,10 @@ router.get("/lasrera-marketplace/properties", optionalAccountAuth, listLasreraMa
 
 // Public licensed Agents directory (no contact info) — buyer app selection gate
 router.get("/licensed-agents", listPublicLicensedAgentsDirectory);
+
+// Business Relation Managers (optional signup picker)
+router.get("/brms/:id/picture", getBrmPicture);
+router.get("/brms", listActiveBrms);
 
 // All Inspections Routes
 router.use("/inspections", inspectRouter);

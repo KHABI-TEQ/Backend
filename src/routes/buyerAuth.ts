@@ -31,10 +31,13 @@ import {
   getBuyerProfile,
   updateBuyerProfile,
 } from "../controllers/BuyerAuth/profile";
+import { updateBuyerBrm } from "../controllers/BuyerAuth/assignBrm";
+import { assignBrmSchema } from "../validators/brm.validator";
 import {
   getMyPreferences,
   getMyInspections,
   getMyDocumentVerifications,
+  getMySurveyRequests,
   getMyTransactionRegistrations,
   getMyActivitySummary,
 } from "../controllers/BuyerAuth/meActivity";
@@ -111,6 +114,8 @@ BuyerAuthRouter.get(
   getMyDocumentVerifications
 );
 
+BuyerAuthRouter.get("/me/survey-requests", buyerAuth, getMySurveyRequests);
+
 BuyerAuthRouter.get(
   "/me/transaction-registrations",
   buyerAuth,
@@ -142,6 +147,13 @@ BuyerAuthRouter.put(
   buyerAuth,
   validateJoi(updateBuyerProfileSchema),
   updateBuyerProfile
+);
+
+BuyerAuthRouter.put(
+  "/me/brm",
+  buyerAuth,
+  validateJoi(assignBrmSchema),
+  updateBuyerBrm
 );
 
 BuyerAuthRouter.post(

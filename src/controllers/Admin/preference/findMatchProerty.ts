@@ -317,29 +317,45 @@ export function calculateDetailedMatchScore(property: any, preference: any): num
   // OPTIONAL CRITERIA - BONUS POINTS
   // ============================================================================
 
-  // ✅ 1. LOCATION AREA BONUS (0-10 points)
+  // ✅ 1. LOCATION AREA / ESTATE BONUS (0-15 points)
   // State and LGA already matched at DB level (must-match)
-  // Award bonus if property is in a preferred area within the LGA
   let locationScore = 0;
-  
+  const n = (s: unknown) => String(s ?? "").trim().toLowerCase();
+
   if (preference.location?.lgasWithAreas?.length) {
     const allPreferredAreas = preference.location.lgasWithAreas.flatMap(
       (lga: any) => lga.areas || []
     );
-    
+    const preferredEstates = preference.location.lgasWithAreas.flatMap(
+      (lga: any) =>
+        (lga.areasWithEstates || []).flatMap((row: any) => row.estates || [])
+    );
+
+    const propertyArea = property.location?.area;
+    const propertyEstate = property.location?.estate;
+    const nArea = n(propertyArea);
+    const nEstate = n(propertyEstate);
+
     if (allPreferredAreas.length > 0) {
-      const propertyArea = property.location?.area;
-      if (propertyArea && allPreferredAreas.includes(propertyArea)) {
-        locationScore = 10; // Property in preferred area - full bonus!
+      if (nArea && allPreferredAreas.some((a: string) => n(a) === nArea)) {
+        locationScore = 10;
       }
-      // If not in preferred area, 0 bonus (but still valid since LGA matched)
     } else {
-      locationScore = 10; // No specific areas specified - full bonus
+      locationScore = 10;
+    }
+
+    if (preferredEstates.length > 0) {
+      const hay = `${nEstate} ${nArea} ${n(property.location?.streetAddress)}`;
+      const estateHit = preferredEstates.some((e: string) => {
+        const ne = n(e);
+        return ne && (ne === nEstate || ne === nArea || hay.includes(ne));
+      });
+      if (estateHit) locationScore = Math.min(15, locationScore + 5);
     }
   } else {
-    locationScore = 10; // No area preference - full bonus
+    locationScore = 10;
   }
-  
+
   score += locationScore;
 
   // ✅ 2. BEDROOM MATCH (0-10 points)

@@ -83,6 +83,26 @@ export const getMyDocumentVerifications = async (
   }
 };
 
+export const getMySurveyRequests = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyerId = requireBuyerId(req);
+    const surveys = await DB.Models.SurveyRequest.find({ buyerId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: { surveys },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMyTransactionRegistrations = async (
   req: AppRequest,
   res: Response,
@@ -136,7 +156,7 @@ export const getMyActivitySummary = async (
       .toLowerCase()
       .trim();
 
-    const [preferences, inspections, documents, transactions] =
+    const [preferences, inspections, documents, surveys, transactions] =
       await Promise.all([
         DB.Models.Preference.find({ buyer: buyerId })
           .select(
@@ -158,6 +178,13 @@ export const getMyActivitySummary = async (
           .sort({ createdAt: -1 })
           .limit(20)
           .lean(),
+        DB.Models.SurveyRequest.find({ buyerId })
+          .select(
+            "serviceType status amountPaid propertyAddress createdAt updatedAt"
+          )
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean(),
         DB.Models.TransactionRegistration.find({ "buyer.email": email })
           .select(
             "status transactionType transactionValue propertyIdentification createdAt updatedAt"
@@ -174,11 +201,13 @@ export const getMyActivitySummary = async (
           preferences: preferences.length,
           inspections: inspections.length,
           documents: documents.length,
+          surveys: surveys.length,
           transactions: transactions.length,
         },
         preferences,
         inspections,
         documents,
+        surveys,
         transactions,
       },
     });

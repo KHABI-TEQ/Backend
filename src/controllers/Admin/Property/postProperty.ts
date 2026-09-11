@@ -18,6 +18,7 @@ import { autoPairPreferencesForNewProperty } from "../../../services/autoPrefere
 import { notifyUserPropertyCreatedByAdmin } from "../../../services/userProvisioningNotifications.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
+import { listingCommissionFields } from "../../../common/constants/listingCommission";
 
 export const postPropertyAsAdmin = async (
   req: AppRequest,
@@ -66,7 +67,7 @@ export const postPropertyAsAdmin = async (
       ...payload,
       isTenanted,
       ...(allowCommission
-        ? {}
+        ? listingCommissionFields(payload)
         : { agentCommissionPercent: undefined, agentCommissionAmount: undefined }),
     };
     if (!allowCommission) {

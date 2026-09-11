@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { listingCommissionFields } from "../common/constants/listingCommission";
 import { propertyValidationSchema } from "../utils/formValidation/propertyValidationSchema";
 
 const INSPECTION_FEE_MIN = 1000;
@@ -66,6 +67,8 @@ function normalizePropertyPayload(payload: any): any {
   if (!Array.isArray(normalized.docOnProperty)) {
     normalized.docOnProperty = [];
   }
+
+  Object.assign(normalized, listingCommissionFields(normalized));
 
   return normalized;
 }

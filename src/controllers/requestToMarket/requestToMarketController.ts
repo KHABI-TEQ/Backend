@@ -58,6 +58,20 @@ export const createRequestToMarket = async (
       );
     }
 
+    const propertyStatus = String((property as any).status || "").toLowerCase();
+    if (
+      (property as any).isAvailable === false ||
+      (property as any).isDeleted === true ||
+      ["sold", "sold_leased_registered", "withdrawn", "unavailable", "cancelled"].includes(
+        propertyStatus
+      )
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "This property is no longer available to market."
+      );
+    }
+
     const publisherId = (property as any).owner;
     const publisher = await DB.Models.User.findById(publisherId).lean();
     if (!publisher) {
@@ -407,8 +421,7 @@ export const respondToRequestToMarket = async (
  * Publisher registers the actual sale price and commission %. Payment to the Agent happens outside the app;
  * optional receipt URL can be uploaded (via existing upload endpoint) and sent here for admin verification.
  * Body: { actualSalePriceNaira: number, commissionPercent?: number, commissionReceiptUrl?: string }
- * - Landlord: commissionPercent is automatically 5.
- * - Developer: commissionPercent 1–5 (required in body).
+ * - Landlord and Developer: commissionPercent is automatically 5.
  * - commissionReceiptUrl: optional; use URL from upload-single-file (or similar) to confirm payment to Agent.
  */
 export const registerSaleForRequestToMarket = async (
@@ -457,17 +470,7 @@ export const registerSaleForRequestToMarket = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Sale has already been registered for this request.");
     }
 
-    const publisherType = (request as any).publisherType as "Landowners" | "Developer";
-    let commissionPercent: number;
-    if (publisherType === "Landowners") {
-      commissionPercent = 5;
-    } else {
-      const percent = Number(bodyCommissionPercent);
-      if (!Number.isFinite(percent) || percent < 1 || percent > 5) {
-        throw new RouteError(HttpStatusCodes.BAD_REQUEST, "commissionPercent is required for Developer and must be between 1 and 5.");
-      }
-      commissionPercent = percent;
-    }
+    const commissionPercent = 5;
 
     const agentCommissionAmount = Math.round((actualPrice * commissionPercent) / 100);
     if (agentCommissionAmount <= 0) {
@@ -487,6 +490,16 @@ export const registerSaleForRequestToMarket = async (
       { _id: requestId },
       { $set: updatePayload }
     );
+
+    const propertyOid =
+      resolveLeanRefToObjectId((request as any).propertyId) ||
+      (request as any).propertyId?._id ||
+      (request as any).propertyId;
+    if (propertyOid) {
+      await DB.Models.Property.findByIdAndUpdate(propertyOid, {
+        $set: { status: "sold", isAvailable: false },
+      });
+    }
 
     const agent = (request as any).requestedByAgentId;
     const agentName =

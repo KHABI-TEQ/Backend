@@ -166,6 +166,11 @@ export interface IDealSite {
   /** Set when paused by KYC/subscription policy enforcement; cleared on manual pause or auto-resume. */
   pausedByPolicy?: "kyc" | "subscription";
   createdBy: Types.ObjectId;
+  customDomain?: string;
+  customDomainStatus?: "none" | "pending" | "live" | "disabled";
+  customDomainExpiresAt?: Date;
+  customDomainGraceEndsAt?: Date;
+  customDomainLastRenewedAt?: Date;
 }
 
 export interface IDealSiteDoc extends IDealSite, Document {}
@@ -374,6 +379,23 @@ export class DealSite {
           enum: ["kyc", "subscription"],
           required: false,
         },
+
+        customDomain: {
+          type: String,
+          trim: true,
+          lowercase: true,
+          sparse: true,
+          unique: true,
+        },
+        customDomainStatus: {
+          type: String,
+          enum: ["none", "pending", "live", "disabled"],
+          default: "none",
+          index: true,
+        },
+        customDomainExpiresAt: { type: Date },
+        customDomainGraceEndsAt: { type: Date },
+        customDomainLastRenewedAt: { type: Date },
 
         createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
       },

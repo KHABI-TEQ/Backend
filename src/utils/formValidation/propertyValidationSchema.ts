@@ -51,6 +51,7 @@ export const propertyValidationSchema = Joi.object({
     localGovernment: Joi.string().required(),
     area: Joi.string().required(),
     streetAddress: Joi.string().trim().allow("").optional(),
+    estate: Joi.string().trim().allow("").optional(),
   }).required(),
 
   landSize: Joi.when("propertyCategory", {
@@ -194,7 +195,6 @@ export const propertyValidationSchema = Joi.object({
       "deleted",
       "flagged",
       "sold",
-      "active",
       "contingent",
       "under_contract",
       "coming_soon",
@@ -217,8 +217,8 @@ export const propertyValidationSchema = Joi.object({
   /** Only Landlords and Developers may set "lasrera_marketplace" (property visible only on LASRERA Market Place, no contact). */
   listingScope: Joi.string().valid("agent_listing", "lasrera_marketplace").default("agent_listing").optional(),
 
-  /** Agent commission: 0–5%. Accepted for Sale, Rent, JV, Shortlet, Off-plan (Landlord/Developer). */
-  agentCommissionPercent: Joi.number().min(0).max(5).optional(),
+  /** Agent commission: sale/off-plan 5%, rent 10% (server-enforced). JV/shortlet 0–5%. */
+  agentCommissionPercent: Joi.number().min(0).max(10).optional(),
   /** Agent commission amount in Naira. */
   agentCommissionAmount: Joi.number().min(0).optional(),
 

@@ -78,6 +78,7 @@ export const postPreference = async (
       buyer: buyer._id,
       status: payload.status || "pending",
       receiverMode: { type: "general" as const },
+      submittedVia: payload.submittedVia === "app" ? "app" : "website",
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);

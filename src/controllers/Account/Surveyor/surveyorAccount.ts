@@ -213,6 +213,24 @@ export const setupSurveyorBank = async (
   }
 };
 
+function redactBuyerUntilPaid(job: any) {
+  const paid = ["payment-approved", "in-progress", "completed"].includes(
+    String(job?.status || "")
+  );
+  if (paid) return job;
+  const buyer = job?.buyerId;
+  if (buyer && typeof buyer === "object") {
+    return {
+      ...job,
+      buyerId: {
+        _id: buyer._id,
+        fullName: buyer.fullName || "Buyer",
+      },
+    };
+  }
+  return job;
+}
+
 export const listSurveyorJobs = async (
   req: AppRequest,
   res: Response,
@@ -224,7 +242,126 @@ export const listSurveyorJobs = async (
       .populate("buyerId", "fullName email phoneNumber")
       .sort({ createdAt: -1 })
       .lean();
-    return res.status(HttpStatusCodes.OK).json({ success: true, data: jobs });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: jobs.map(redactBuyerUntilPaid),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSurveyorJob = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireSurveyor(req);
+    const job = await DB.Models.SurveyRequest.findOne({
+      _id: req.params.id,
+      surveyorId: user._id,
+    })
+      .populate("buyerId", "fullName email phoneNumber")
+      .lean();
+    if (!job) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Job not found.");
+    }
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: redactBuyerUntilPaid(job),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const respondSurveyorJob = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireSurveyor(req);
+    const accept = req.body?.accept === true;
+    const reason = req.body?.reason as string | undefined;
+    const { respondToSurveyorRequest } = await import(
+      "../../../services/professionalRequest.service"
+    );
+    const job = await respondToSurveyorRequest({
+      jobId: req.params.id,
+      surveyorUserId: String(user._id),
+      accept,
+      reason,
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: accept
+        ? "Request accepted. Buyer has been asked to pay."
+        : "Request declined.",
+      data: job,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const submitSurveyorJobReport = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireSurveyor(req);
+    const { description, documentUrl } = req.body as {
+      description?: string;
+      documentUrl?: string;
+    };
+
+    const job = await DB.Models.SurveyRequest.findOne({
+      _id: req.params.id,
+      surveyorId: user._id,
+    });
+    if (!job) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Job not found.");
+    }
+    if (!["payment-approved", "in-progress"].includes(job.status)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Job is not ready for a report."
+      );
+    }
+
+    job.status = "completed";
+    job.report = {
+      description: description || "",
+      documentUrl: documentUrl || "",
+      completedAt: new Date(),
+    };
+    await job.save();
+
+    const buyer = await DB.Models.Buyer.findById(job.buyerId);
+    if (buyer?.email) {
+      const sendEmail = (await import("../../../common/send.email")).default;
+      void sendEmail({
+        to: buyer.email,
+        subject: "Survey request completed",
+        text: `Your ${job.serviceType} request has been completed. ${description || ""} Open Survey services in the Khabi-Teq app.`,
+        inboxMeta: {
+          source: "system",
+          audience: "buyer",
+          screen: "surveys",
+          actionPath: "/surveys",
+          surveyRequestId: String(job._id),
+        },
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Survey report submitted.",
+      data: job,
+    });
   } catch (err) {
     next(err);
   }

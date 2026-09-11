@@ -9,7 +9,7 @@ Schema (all optional except you must return an object):
   "propertyCondition": "New" | "Renovated" | "Fairly Used" | "Old" etc,
   "typeOfBuilding": "Duplex" | "Bungalow" | "Flat" | "Terrace" | "Self Contain" | "Shop" | "Warehouse" | "Land" etc,
   "price": number (in Naira),
-  "location": { "state": string, "localGovernment": string, "area": string, "streetAddress": string | null },
+  "location": { "state": string, "localGovernment": string, "area": string, "streetAddress": string | null, "estate": string | null },
   "landSize": { "measurementType": "SQM" | "SQFT" | "Acres" etc, "size": number } | null,
   "additionalFeatures": { "noOfBedroom": number, "noOfBathroom": number, "noOfToilet": number, "noOfCarPark": number },
   "description": string (short property description),
@@ -20,11 +20,11 @@ Schema (all optional except you must return an object):
   "holdDuration": string | null (if jv),
   "isTenanted": "yes" | "no",
   "inspectionFee": number | null (1000-50000 Naira),
-  "agentCommissionPercent": number | null (0-5),
+  "agentCommissionPercent": number | null (rent 10, sale/off-plan 5, jv/shortlet 0-5),
   "agentCommissionAmount": number | null (Naira)
 }`;
 
-const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant in Nigeria. The user will describe what kind of property they are looking for (buy, rent, shortlet, off-plan, or joint venture). They may send one short answer per field OR a long compound message with many details at once — extract every field you can infer from the full text in a single JSON response. Use Nigerian locations. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
+const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant in Nigeria. The user will describe what kind of property they are looking for (buy, rent, shortlet, off-plan, or joint venture). They may send one short answer per field OR a long compound message with many details at once — extract every field you can infer from the full text in a single JSON response. Use Nigerian locations (state, LGA, area, and estate/gated community when named). When the user names an estate (e.g. Banana Island, VGC, Magodo GRA Phase 2), put it under lgasWithAreas[].areasWithEstates for the matching area. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
 
 Schema (all optional except you must return an object):
 {
@@ -33,7 +33,11 @@ Schema (all optional except you must return an object):
   "location": {
     "state": string,
     "localGovernmentAreas": string[],
-    "lgasWithAreas": [{ "lgaName": string, "areas": string[] }],
+    "lgasWithAreas": [{
+      "lgaName": string,
+      "areas": string[],
+      "areasWithEstates": [{ "areaName": string, "estates": string[] }]
+    }],
     "customLocation": string
   },
   "budget": { "minPrice": number, "maxPrice": number, "currency": "NGN" },

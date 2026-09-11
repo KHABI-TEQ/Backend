@@ -4,6 +4,7 @@ import { DB } from "..";
 import { generateToken, RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { buyerPublic } from "./profile";
+import { resolveActiveBrmId } from "../Account/assignBrm";
 
 export const registerBuyer = async (
   req: Request,
@@ -11,7 +12,7 @@ export const registerBuyer = async (
   next: NextFunction
 ) => {
   try {
-    const { fullName, phoneNumber, email, password } = req.body;
+    const { fullName, phoneNumber, email, password, brmId } = req.body;
     const normalizedEmail = String(email || "").toLowerCase().trim();
 
     const existing = await DB.Models.Buyer.findOne({ email: normalizedEmail });
@@ -23,6 +24,7 @@ export const registerBuyer = async (
     }
 
     const hashedPassword = await bcrypt.hash(String(password), 10);
+    const resolvedBrmId = brmId ? await resolveActiveBrmId(brmId) : null;
 
     const buyer = await DB.Models.Buyer.create({
       fullName: String(fullName).trim(),
@@ -31,6 +33,7 @@ export const registerBuyer = async (
       password: hashedPassword,
       enableNotifications: true,
       devices: [],
+      ...(resolvedBrmId ? { brmId: resolvedBrmId } : {}),
     });
 
     const token = generateToken({

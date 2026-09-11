@@ -36,6 +36,14 @@ export const preferenceValidationSchema = Joi.object({
         Joi.object({
           lgaName: Joi.string().required(),
           areas: Joi.array().items(Joi.string()).default([]),
+          areasWithEstates: Joi.array()
+            .items(
+              Joi.object({
+                areaName: Joi.string().required(),
+                estates: Joi.array().items(Joi.string()).default([]),
+              }),
+            )
+            .default([]),
         }),
       )
       .default([]),
@@ -158,4 +166,6 @@ export const preferenceValidationSchema = Joi.object({
   status: Joi.string()
     .valid("pending", "approved", "matched", "closed")
     .optional(),
+
+  submittedVia: Joi.string().valid("app", "website").optional(),
 });
