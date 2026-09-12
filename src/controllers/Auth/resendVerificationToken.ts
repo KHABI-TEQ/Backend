@@ -33,12 +33,19 @@ export const resendVerificationToken = async (req: Request, res: Response, next:
     const mailBody = verifyEmailTemplate(user.firstName || user.email, verificationLink);
     const html = generalTemplate(mailBody);
 
-    await sendEmail({
-      to: user.email,
-      subject: 'Verify Your Email Address',
-      text: 'Please verify your email.',
-      html,
-    });
+    try {
+      await sendEmail({
+        to: user.email,
+        subject: 'Verify Your Email Address',
+        text: 'Please verify your email.',
+        html,
+      });
+    } catch {
+      throw new RouteError(
+        HttpStatusCodes.BAD_GATEWAY,
+        'Unable to send verification email. Please try again shortly.',
+      );
+    }
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

@@ -163,12 +163,19 @@ export const registerUser = async (
     const mailBody = verifyEmailTemplate(newUser.firstName, verificationLink);
     const html = generalTemplate(mailBody);
 
-    await sendEmail({
-      to: newUser.email,
-      subject: "Verify Your Email Address",
-      text: "Verify Your Email Address",
-      html,
-    });
+    try {
+      await sendEmail({
+        to: newUser.email,
+        subject: "Verify Your Email Address",
+        text: "Verify Your Email Address",
+        html,
+      });
+    } catch (emailErr) {
+      console.error(
+        "Registration verification email failed:",
+        (emailErr as Error).message
+      );
+    }
 
     const regPhone = String(phoneNumber || "")
       .trim()

@@ -58,12 +58,19 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       const emailBody = verifyEmailTemplate(user.firstName, verificationLink);
       const mail = generalTemplate(emailBody);
 
-      await sendEmail({
-        to: user.email,
-        subject: "Verify Your Email Address",
-        text: "Please verify your email to log in",
-        html: mail,
-      });
+      try {
+        await sendEmail({
+          to: user.email,
+          subject: "Verify Your Email Address",
+          text: "Please verify your email to log in",
+          html: mail,
+        });
+      } catch (emailErr) {
+        console.error(
+          "Login verification email failed:",
+          (emailErr as Error).message
+        );
+      }
 
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,

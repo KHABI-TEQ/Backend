@@ -140,12 +140,19 @@ const sendVerificationMail = async (newUser: any) => {
   const mailBody = verifyEmailTemplate(newUser.firstName, verificationLink);
   const html = generalEmailLayout(mailBody);
 
-  await sendEmail({
-    to: newUser.email,
-    subject: "Verify Your Email Address",
-    text: "Verify Your Email Address",
-    html,
-  });
+  try {
+    await sendEmail({
+      to: newUser.email,
+      subject: "Verify Your Email Address",
+      text: "Verify Your Email Address",
+      html,
+    });
+  } catch (emailErr) {
+    console.error(
+      "Social auth verification email failed:",
+      (emailErr as Error).message
+    );
+  }
 }
 
 // ✅ UPDATED GOOGLE AUTH HANDLER
