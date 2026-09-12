@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { getResendFromAddress } from "./resendFrom";
 import type { InboxDeepLinkMeta } from "../utils/notificationDeepLinks";
 
 type EmailAttachment = {
@@ -23,24 +24,15 @@ type EmailOptions = {
   inboxMeta?: InboxDeepLinkMeta;
 };
 
-function getFromAddress(useResend: boolean): string {
+function getSmtpFromAddress(): string {
   const name = process.env.FROM_NAME || "Khabiteq";
-  if (useResend) {
-    const resendFrom = process.env.RESEND_FROM?.trim();
-    if (resendFrom) {
-      return resendFrom.includes("<") ? resendFrom : `${name} <${resendFrom}>`;
-    }
-    const email =
-      process.env.EMAIL_USER_FOR_RESEND || "notifications@khabiteq.com";
-    return `${name} <${email}>`;
-  }
   return `${name} <${process.env.EMAIL_USER}>`;
 }
 
 async function sendViaResend(emailOptions: EmailOptions, apiKey: string) {
   const resend = new Resend(apiKey);
   const { data, error } = await resend.emails.send({
-    from: getFromAddress(true),
+    from: getResendFromAddress(),
     to: [emailOptions.to],
     subject: emailOptions.subject,
     text: emailOptions.text,
@@ -76,7 +68,7 @@ async function sendViaSmtp(emailOptions: EmailOptions) {
   });
 
   const info = await transporter.sendMail({
-    from: getFromAddress(false),
+    from: getSmtpFromAddress(),
     to: emailOptions.to,
     subject: emailOptions.subject,
     text: emailOptions.text,

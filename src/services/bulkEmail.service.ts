@@ -1,15 +1,8 @@
 import { Resend } from "resend";
+import { getResendFromAddress } from "../common/resendFrom";
 import sendEmail from "../common/send.email";
 
 const RESEND_BATCH_SIZE = 100;
-
-function getBulkFrom(): string {
-  const from = process.env.RESEND_FROM?.trim();
-  if (from) return from;
-  const name = process.env.FROM_NAME || "Khabiteq";
-  const email = process.env.EMAIL_USER_FOR_RESEND || "notifications@khabiteq.com";
-  return `${name} <${email}>`;
-}
 
 /**
  * Send the same logical message to many recipients, with optional per-recipient HTML.
@@ -29,7 +22,7 @@ export async function sendBulkEmail(options: {
   html?: string;
 }): Promise<{ emailsSent: number; provider: "resend" | "smtp" }> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = getBulkFrom();
+  const from = getResendFromAddress();
 
   const hasPerRecipient = options.recipients && options.recipients.length > 0;
   const toList = options.toList || (hasPerRecipient ? options.recipients!.map((r) => r.to) : []);
