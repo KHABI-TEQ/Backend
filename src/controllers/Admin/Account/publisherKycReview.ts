@@ -77,11 +77,25 @@ export const reviewPublisherKyc = async (
       await agent.save();
     }
 
+    const existingProfile = await DB.Models.PublisherProfile.findOne({
+      userId: userAcct._id,
+    })
+      .select("advancedKyc advancedKycStatus")
+      .lean();
+    const hasAdvancedSubmission = Boolean(
+      existingProfile?.advancedKyc?.projectName ||
+        existingProfile?.advancedKycStatus === "pending" ||
+        existingProfile?.advancedKycStatus === "in_review"
+    );
+
     const profile = await DB.Models.PublisherProfile.findOneAndUpdate(
       { userId: userAcct._id },
       {
         $set: {
           kycStatus: approved ? "approved" : "rejected",
+          ...(hasAdvancedSubmission
+            ? { advancedKycStatus: approved ? "approved" : "rejected" }
+            : {}),
           ...(note?.trim() ? { kycNote: note.trim() } : {}),
         },
         $setOnInsert: {

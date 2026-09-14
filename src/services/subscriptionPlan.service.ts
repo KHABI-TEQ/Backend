@@ -344,6 +344,8 @@ export class SubscriptionPlanService {
     if (audience !== "all") {
       if (audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT) {
         and.push({ audience: SUBSCRIPTION_PLAN_AUDIENCES.SCOUT });
+      } else if (audience === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER) {
+        and.push({ audience: SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER });
       } else {
         and.push({
           $or: [

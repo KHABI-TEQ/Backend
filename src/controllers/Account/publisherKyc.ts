@@ -53,6 +53,14 @@ export const completePublisherKYC = async (
       payload,
     });
 
+    if (payload.kycTier === "basic") {
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Developer profile saved. You can list completed properties now.",
+        data: { profile, kycStatus: profile.kycStatus },
+      });
+    }
+
     const roleLabel = KYC_USER_TYPE_LABEL[authUser.userType] || authUser.userType;
 
     const emailBody = generalEmailLayout(kycSubmissionAcknowledgement(authUser?.firstName));

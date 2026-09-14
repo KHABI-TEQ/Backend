@@ -105,6 +105,7 @@ import {
   getPublisherListingEligibility,
   getUnlimitedListingPlanOffer,
 } from "../controllers/Account/Publisher/publisherListingEligibility";
+import { getDeveloperPlanEntitlementController } from "../controllers/Account/Developer/developerEntitlement";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import {
@@ -180,6 +181,7 @@ AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completePublisherKY
 AccountRouter.get("/agent/eligibility", getAgentEligibility);
 AccountRouter.get("/publisher/listing-eligibility", getPublisherListingEligibility);
 AccountRouter.get("/publisher/unlimited-listing-plan", getUnlimitedListingPlanOffer);
+AccountRouter.get("/developer/plan-entitlement", getDeveloperPlanEntitlementController);
 
 // Agent broadcast to DealSite email subscribers (guests subscribe with email on DealSite)
 AccountRouter.post("/agent/broadcast", broadcastToMySubscribers);

@@ -96,10 +96,11 @@ export const WHITE_LABELING_YEARLY_BENEFITS: string[] = [
   "Better value than paying quarterly",
 ];
 
-/** Who a catalog plan is sold to. Licensed = Agent/Developer with a license on KYC. */
+/** Who a catalog plan is sold to. Licensed = Agent with a license on KYC. */
 export const SUBSCRIPTION_PLAN_AUDIENCES = {
   LICENSED: "licensed",
   SCOUT: "scout",
+  DEVELOPER: "developer",
 } as const;
 
 export type SubscriptionPlanAudience =
@@ -111,6 +112,7 @@ export const SUBSCRIPTION_PLAN_AUDIENCE_LABELS: Record<
 > = {
   licensed: "Licensed Agent / Developer",
   scout: "Property Scout",
+  developer: "Developer",
 };
 
 export const SCOUT_STANDARD_PLAN_NAME = "Standard — Property Scout";
@@ -147,12 +149,73 @@ export const SCOUT_CATALOG_PRICE_MULTIPLIER = 0.5;
 export const SCOUT_PLAN_CALLOUT =
   "Priced for Property Scouts — students and practitioners without a license.";
 
+export const DEVELOPER_DISTRIBUTION_PLAN_NAME = "Developer Property Distribution";
+export const DEVELOPER_OFFPLAN_PLAN_NAME = "Off-Plan";
+export const DEVELOPER_OFFPLAN_ANNUAL_PLAN_NAME = "Off-Plan Annual";
+
+export const DEVELOPER_PLAN_PRICING = {
+  distribution: 50_000,
+  distributionDays: 90,
+  distributionCode: "DEV_DISTRIBUTION_QTR",
+  distributionProfessionals: 10,
+  offPlan: 130_000,
+  offPlanDays: 90,
+  offPlanCode: "DEV_OFFPLAN_QTR",
+  offPlanProfessionals: 30,
+  offPlanAnnual: 390_000,
+  offPlanAnnualDays: 365,
+  offPlanAnnualCode: "DEV_OFFPLAN_YEARLY",
+  offPlanAnnualProfessionals: 100,
+} as const;
+
+export const DEVELOPER_DISTRIBUTION_BENEFITS = [
+  "Developer Profile",
+  "Showcase Your Properties",
+  "Accept Up To 10 Professionals",
+  "Expand Your Marketing Reach",
+  "Manage The Professionals You Work With",
+  "Reach More Potential Buyers",
+];
+
+export const DEVELOPER_OFFPLAN_BENEFITS = [
+  "Everything In The Developer Property Distribution Plan",
+  "Activate Off-Plan Sales",
+  "Complete Advanced KYC",
+  "Accept Up To 30 Professionals To Market Your Project",
+  "Wider Professional Distribution",
+  "Stronger Buyer Confidence Proposition",
+  "Participation In Khabiteq's Structured Trust Framework",
+  "Reach More Serious Local And Diaspora Buyers",
+];
+
+export const DEVELOPER_OFFPLAN_ANNUAL_BENEFITS = [
+  "Full Off-Plan Access",
+  "Advanced KYC",
+  "Accept Up To 100 Professionals To Market Your Projects",
+  "Maximum Professional Distribution",
+  "Continuous Project Visibility",
+  "Stronger Long-Term Buyer Confidence Proposition",
+  "Participation In Khabiteq's Structured Trust Framework",
+  "Reach Serious Local And Diaspora Buyers",
+];
+
+export function isDeveloperPlanCode(planCode: string | undefined | null): boolean {
+  if (!planCode) return false;
+  const code = planCode.trim().toUpperCase();
+  return (
+    code === DEVELOPER_PLAN_PRICING.distributionCode ||
+    code === DEVELOPER_PLAN_PRICING.offPlanCode ||
+    code === DEVELOPER_PLAN_PRICING.offPlanAnnualCode
+  );
+}
+
 export function isSubscriptionPlanAudience(
   value: unknown
 ): value is SubscriptionPlanAudience {
   return (
     value === SUBSCRIPTION_PLAN_AUDIENCES.LICENSED ||
-    value === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
+    value === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT ||
+    value === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER
   );
 }
 

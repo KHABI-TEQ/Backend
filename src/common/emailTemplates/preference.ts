@@ -54,81 +54,71 @@ export const preferenceMail = (mailData: any): string => {
     contactInfo,
     location,
     budget,
-    preferenceMode,
+    preferenceType,
     propertyDetails,
     developmentDetails,
     bookingDetails,
-    features,
   } = mailData;
 
   const buyerName =
     contactInfo?.fullName || contactInfo?.contactPerson || "Valued Buyer";
+  const firstName = String(buyerName).trim().split(/\s+/)[0] || "there";
   const propertyType =
     propertyDetails?.propertyType ||
     developmentDetails?.propertyType ||
     bookingDetails?.propertyType ||
-    "N/A";
+    "";
 
-  // const locationString = location
-  //   ? `${location.state || ""}${location.localGovernmentAreas?.length ? ", " + location.localGovernmentAreas.join(", ") : ""}${location.customLocation ? ", " + location.customLocation : ""}`
-  //   : "N/A";
-  
   const stateLocation = location?.state || "";
-
   const lgasLocation = location?.localGovernmentAreas?.length
     ? location.localGovernmentAreas.join(", ")
     : "";
+  const locationString = [stateLocation, lgasLocation].filter(Boolean).join(", ");
 
-  const customLocation = location?.customLocation || "N/A";
-
-  const locationString = location
-    ? [stateLocation, lgasLocation].filter(Boolean).join(", ")
-    : "N/A";
-
-
-  const priceRange = budget
+  const hasBudget =
+    budget &&
+    (Number.isFinite(Number(budget.minPrice)) || Number.isFinite(Number(budget.maxPrice)));
+  const priceRange = hasBudget
     ? `${formatMoneyForEmail(budget.minPrice)} - ${formatMoneyForEmail(budget.maxPrice)} ${budget.currency || "NGN"}`
-    : "N/A";
+    : "";
 
-  const usageOption = preferenceMode ? preferenceMode : "N/A";
+  const preferenceKind = String(preferenceType || "").trim();
 
-  const allFeatures = [
-    ...(Array.isArray(features?.baseFeatures) ? features.baseFeatures : []),
-    ...(Array.isArray(features?.premiumFeatures) ? features.premiumFeatures : []),
-  ].filter(Boolean);
-  const propertyFeatures = allFeatures.length ? allFeatures.join(", ") : "Not specified";
+  const summaryItems = [
+    preferenceKind && `Preference: <strong>${preferenceKind}</strong>`,
+    propertyType && `Property Type: <strong>${propertyType}</strong>`,
+    locationString && `Location: <strong>${locationString}</strong>`,
+    priceRange && `Budget: <strong>${priceRange}</strong>`,
+  ].filter(Boolean) as string[];
 
-  const landSizeLine = buildPreferenceLandSizeEmailLine({
-    propertyDetails,
-    developmentDetails,
-    bookingDetails,
-  });
+  const summaryHtml = summaryItems.length
+    ? summaryItems
+        .map(
+          (item, index) =>
+            `<li style="margin-bottom: ${index === summaryItems.length - 1 ? "0" : "8px"};">${item}</li>`,
+        )
+        .join("")
+    : `<li style="margin-bottom: 0;">Details captured from your submission.</li>`;
 
   return `
     <div style="font-family: Arial, sans-serif; background-color: white; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
+      <p style="font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
 
-      <p style="font-size: 16px;">Thank you for sharing your preferences with <strong>Khabi-Teq</strong>!<br>
-      We'll match you with property briefs tailored to your needs.</p>
+      <p style="font-size: 16px;">Thank you for sharing your property preference with <strong>Khabiteq</strong>.</p>
+
+      <p style="font-size: 16px;">We'll review your request through our professional network to identify relevant property opportunities.</p>
 
       <div style="background-color: #e9f3ee; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <p style="font-weight: bold; margin: 0 0 10px;">Submitted Preference</p>
         <ul style="padding-left: 20px; margin: 0; font-size: 15px; list-style-type: disc;">
-          <li style="margin-bottom: 8px;">Property Type: <strong>${propertyType}</strong></li>
-          <li style="margin-bottom: 8px;">Location: <strong>${locationString}</strong></li>
-          <li style="margin-bottom: 8px;">Custom Location: <strong>${customLocation}</strong></li>
-          <li style="margin-bottom: 8px;">Price Range: <strong>${priceRange}</strong></li>
-          <li style="margin-bottom: 8px;">Usage Options: <strong>${usageOption}</strong></li>
-          <li style="margin-bottom: 8px;">Property Features: <strong>${propertyFeatures}</strong></li>
-          <li style="margin-bottom: 0;">Land Size: <strong>${landSizeLine}</strong></li>
+          ${summaryHtml}
         </ul>
       </div>
 
-      <p style="font-size: 16px;">Our team will get back to you with the necessary feedback.<br>
-      Thank you for trusting <strong>Khabi-Teq</strong> with your property listing.</p>
+      <p style="font-size: 16px;">We'll keep you updated.</p>
 
       <p style="font-size: 16px;">Best regards,<br>
-      <strong>The Khabi-Teq Team</strong></p>
+      <strong>The Khabiteq Team</strong></p>
     </div>
   `;
 };
@@ -348,40 +338,26 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
   buyerName: string;
   submitPreferenceUrl?: string;
 }): string => {
-  const { buyerName, submitPreferenceUrl } = mailData;
-  const browseOrSubmit = submitPreferenceUrl
-    ? `<p style="font-size: 16px;">You can <strong>submit a new or updated preference</strong> (for example, a wider location or budget) using our form:</p>
-      <div style="text-align: center; margin: 24px 0;">
-        <a href="${submitPreferenceUrl}" style="background-color: #007B55; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
-          Submit a preference
-        </a>
-      </div>`
-    : `<p style="font-size: 16px;">You can <strong>submit a new or updated preference</strong> anytime from our website (for example, a wider location or budget) to run another search.</p>`;
+  const firstName = String(mailData.buyerName || "").trim().split(/\s+/)[0] || "there";
 
   return `
     <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
+      <p style="font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
+
+      <p style="font-size: 16px;">Thank you for your patience while we reviewed your property preference.</p>
 
       <p style="font-size: 16px;">
-        Thank you again for sharing your preferences with <strong>Khabi-Teq</strong>.
+        At this time, we have not identified a suitable match based on your current requirements. Your preference will now be reviewed through our professional network, where relevant agents can provide market insight based on factors such as availability, location and budget expectations.
       </p>
 
       <p style="font-size: 16px;">
-        We searched our current <strong>approved, available listings</strong> against your criteria and <strong>did not find a match</strong> at this time.
+        This feedback may help you better understand the market and, where necessary, refine your preference to improve your chances of finding a suitable property.
       </p>
 
-      ${browseOrSubmit}
-
-      <p style="font-size: 16px;">
-        Alternatively, you can <strong>wait</strong>: we will keep searching as new properties are listed. You will receive a reminder every <strong>48 hours</strong> while we are still looking, and we will notify you as soon as a match is found.
-      </p>
-
-      <p style="font-size: 16px;">
-        If you have questions, reply to our support channels or visit your dashboard.
-      </p>
+      <p style="font-size: 16px;">We'll continue to keep you informed as relevant opportunities become available.</p>
 
       <p style="font-size: 16px;">Best regards,<br/>
-      <strong>The Khabi-Teq Team</strong></p>
+      <strong>The Khabiteq Team</strong></p>
     </div>
   `;
 };

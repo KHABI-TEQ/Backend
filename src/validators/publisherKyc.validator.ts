@@ -3,6 +3,16 @@ import { DB } from "../controllers";
 
 /** KYC payload for Agent, Developer, and Landowner accounts. */
 export const publisherKycSchema = Joi.object({
+  kycTier: Joi.string().valid("basic", "advanced").optional(),
+  advancedKyc: Joi.object({
+    companyName: Joi.string().trim().optional().allow(""),
+    cacNumber: Joi.string().trim().optional().allow(""),
+    projectName: Joi.string().trim().optional().allow(""),
+    projectLocation: Joi.string().trim().optional().allow(""),
+    projectStage: Joi.string().trim().optional().allow(""),
+    expectedCompletion: Joi.string().trim().optional().allow(""),
+    supportingDocs: Joi.array().items(Joi.string().uri()).optional(),
+  }).optional(),
   meansOfId: Joi.array()
     .items(
       Joi.object({
@@ -16,10 +26,9 @@ export const publisherKycSchema = Joi.object({
       })
     )
     .min(1)
-    .required()
+    .optional()
     .messages({
       "array.min": "At least one means of ID is required.",
-      "any.required": "Means of ID is required.",
     }),
 
   /** Agent-specific alias; stored as licenseOrRegistrationNumber. */
@@ -69,9 +78,7 @@ export const publisherKycSchema = Joi.object({
     homeNo: Joi.string().trim().required().messages({ "string.empty": "Home number is required." }),
     state: Joi.string().trim().required().messages({ "string.empty": "State is required." }),
     localGovtArea: Joi.string().trim().required().messages({ "string.empty": "Local government area is required." }),
-  })
-    .required()
-    .messages({ "any.required": "Address is required." }),
+  }).optional(),
 
   regionOfOperation: Joi.array().items(Joi.string().trim()).min(1).required().messages({
     "array.min": "At least one region of operation is required.",
@@ -93,6 +100,44 @@ export const publisherKycSchema = Joi.object({
       return helpers.error("any.custom", {
         message: "practitionerType (or agentType) must be Individual or Company.",
       });
+    }
+    const tier = value.kycTier || "full";
+    if (tier !== "basic") {
+      if (!value.meansOfId?.length) {
+        return helpers.error("any.custom", {
+          message: "At least one means of ID is required.",
+        });
+      }
+      if (!value.address?.street || !value.address?.state || !value.address?.localGovtArea) {
+        return helpers.error("any.custom", {
+          message: "Address is required.",
+        });
+      }
+    }
+    if (tier === "advanced") {
+      const advanced = value.advancedKyc || {};
+      const companyName = value.companyDetails?.companyName || advanced.companyName;
+      const cacNumber = value.companyDetails?.cacNumber || advanced.cacNumber;
+      if (!companyName || !cacNumber) {
+        return helpers.error("any.custom", {
+          message: "Company name and CAC number are required for Advanced KYC.",
+        });
+      }
+      if (
+        !advanced.projectName ||
+        !advanced.projectLocation ||
+        !advanced.projectStage ||
+        !advanced.expectedCompletion
+      ) {
+        return helpers.error("any.custom", {
+          message: "Project name, location, stage, and expected completion are required for Advanced KYC.",
+        });
+      }
+      if (!advanced.supportingDocs?.length) {
+        return helpers.error("any.custom", {
+          message: "At least one supporting project document is required for Advanced KYC.",
+        });
+      }
     }
     return value;
   })

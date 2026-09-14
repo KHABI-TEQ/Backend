@@ -29,6 +29,7 @@ function emailTemplateAgentSupportEmail(): string {
 
 interface EmailBrandingOptions {
   companyName?: string;
+  signOffName?: string;
   logoUrl?: string;
   address?: string;
   facebookUrl?: string;
@@ -42,6 +43,7 @@ export const generalTemplate = (body: string, options: EmailBrandingOptions = {}
   const footerLogoUrl = getKhabiteqEmailFooterLogoUrl();
   const {
     companyName = "Khabiteq",
+    signOffName = "The Khabiteq Team",
     logoUrl = headerLogoUrl,
     address = "Block B, Suite 8SF Goldrim Plaza, Yaya Abatan, Ogba Lagos.",
     facebookUrl = "https://www.facebook.com/profile.php?id=61568584928290&mibextid=ZbWKwL",
@@ -78,7 +80,7 @@ export const generalTemplate = (body: string, options: EmailBrandingOptions = {}
                             <td style="padding: 40px; font-family: Arial, sans-serif; font-size: 16px; color: #333; line-height: 1.6;">
                                 ${body}
                                 <p>Best regards,</p>
-                                <p><strong>${companyName}</strong></p>
+                                <p><strong>${signOffName}</strong></p>
                             </td>
                         </tr>
                     </table>
@@ -388,18 +390,22 @@ export const inspectionScheduledTemplate = (
 export const verifyEmailTemplate = (name: string, verificationLink: string): string => {
   return `
     <div style="font-family: Arial, sans-serif; color: #333; padding: 20px; line-height: 1.6;">
-      <h2 style="color: #0F52BA;">Welcome to Khabi-Teq, ${name} 👋</h2>
+      <h2 style="color: #09391C; font-size: 22px; margin: 0 0 16px;">Welcome to Khabiteq, ${name}</h2>
 
-      <p>We're excited to have you on board. To secure your account and complete your registration, please verify your email address:</p>
+      <p>We're excited to have you on board. Please verify your email address to secure your account and complete your registration.</p>
 
       <div style="margin: 20px 0;">
-        <a href="${verificationLink}" style="display: inline-block; padding: 12px 20px; background-color: #0F52BA; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">
-          ✅ Verify Email
+        <a href="${verificationLink}" style="display: inline-block; padding: 12px 20px; background-color: #09391C; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">
+          Verify Email
         </a>
       </div>
 
-      <p>If the button above doesn’t work, copy and paste the link below into your browser:</p>
-      <p style="word-break: break-all;"><a href="${verificationLink}">${verificationLink}</a></p>
+      <p>If the button doesn't work, copy and paste the following link into your browser:</p>
+      <p style="margin: 8px 0 0; font-size: 12px; line-height: 1.5; word-break: break-word; overflow-wrap: anywhere;">
+        <a href="${verificationLink}" style="color: #0B423D; font-size: 12px; word-break: break-word; overflow-wrap: anywhere;">${verificationLink}</a>
+      </p>
+
+      <p style="margin-top: 20px; font-size: 14px; color: #5A5D63;">For security, this verification link expires in 24 hours.</p>
 
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;" />
 

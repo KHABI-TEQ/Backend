@@ -64,7 +64,7 @@ function cloneFeatures(
 async function tagLicensedAudience() {
   const result = await DB.Models.SubscriptionPlan.updateMany(
     {
-      audience: { $nin: [SUBSCRIPTION_PLAN_AUDIENCES.SCOUT] },
+      audience: { $nin: [SUBSCRIPTION_PLAN_AUDIENCES.SCOUT, SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER] },
       code: {
         $nin: [
           SCOUT_STANDARD_PRICING.monthlyCode,

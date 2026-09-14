@@ -165,20 +165,23 @@ export async function notifyPreferenceNoMatches(preferenceId: string): Promise<v
   const email = await resolvePreferenceRecipientEmail(preference);
   const buyerName = buyerNameFromPreference(preference);
   const submitPreferenceUrl = await resolveSubmitPreferenceUrl(preference);
+  const firstName = String(buyerName).trim().split(/\s+/)[0] || "there";
   const inner = noMatchesPreferenceFeedbackMail({ buyerName, submitPreferenceUrl });
   const text =
-    `Hi ${buyerName}, we did not find matching approved listings for your preference yet. ` +
-    `We will keep searching and remind you every 48 hours until a match is found.`;
+    `Hi ${firstName}, thank you for your patience while we reviewed your property preference. ` +
+    `At this time, we have not identified a suitable match based on your current requirements. ` +
+    `Your preference will now be reviewed through our professional network. ` +
+    `We'll continue to keep you informed as relevant opportunities become available.`;
 
   await deliverUnmatchedChannels({
     preference,
     email,
-    subject: "No matching listings yet – Khabi-Teq",
+    subject: "Update on Your Property Preference",
     htmlInner: inner,
     text,
-    inboxTitle: "No matches yet",
+    inboxTitle: "Update on your property preference",
     inboxMessage:
-      "We did not find a matching listing for your preference yet. We are still searching and will notify you when we do.",
+      "We have not identified a suitable match based on your current requirements. Your preference is being reviewed through our professional network.",
   });
 
   await sendNoMatchWhatsApp(preference, buyerName);

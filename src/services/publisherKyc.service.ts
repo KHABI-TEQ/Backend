@@ -21,6 +21,16 @@ export type PublisherKycSubmitPayload = {
     dateAwarded?: Date | string;
   }[];
   companyDetails?: { companyName?: string; cacNumber?: string };
+  kycTier?: "basic" | "advanced";
+  advancedKyc?: {
+    companyName?: string;
+    cacNumber?: string;
+    projectName?: string;
+    projectLocation?: string;
+    projectStage?: string;
+    expectedCompletion?: string;
+    supportingDocs?: string[];
+  };
 };
 
 /** Resolve KYC status: PublisherProfile is canonical; Agent collection is legacy fallback. */
@@ -77,6 +87,8 @@ export function normalizePublisherKycPayload(body: Record<string, unknown>): Pub
     servicesOffered: body.servicesOffered as string[] | undefined,
     achievements: body.achievements as PublisherKycSubmitPayload["achievements"],
     companyDetails: body.companyDetails as PublisherKycSubmitPayload["companyDetails"],
+    kycTier: body.kycTier === "advanced" ? "advanced" : body.kycTier === "basic" ? "basic" : undefined,
+    advancedKyc: body.advancedKyc as PublisherKycSubmitPayload["advancedKyc"],
   };
 }
 
@@ -93,15 +105,22 @@ export async function submitPublisherKyc(params: {
   const { payload, userType } = params;
   const license = payload.licenseOrRegistrationNumber || payload.agentLicenseNumber;
 
-  const profileUpdate = {
+  const isAdvanced = payload.kycTier === "advanced";
+  const isBasicOnly = payload.kycTier === "basic";
+  const advanced = payload.advancedKyc || {};
+  const companyName =
+    payload.companyDetails?.companyName || advanced.companyName || undefined;
+  const cacNumber = payload.companyDetails?.cacNumber || advanced.cacNumber || undefined;
+
+  const profileUpdate: Record<string, unknown> = {
     userId,
     userType,
-    meansOfId: payload.meansOfId,
-    address: payload.address,
     regionOfOperation: payload.regionOfOperation,
     practitionerType: payload.practitionerType,
     companyDetails:
-      payload.practitionerType === "Company" ? payload.companyDetails || {} : undefined,
+      payload.practitionerType === "Company" || companyName || cacNumber
+        ? { companyName, cacNumber }
+        : undefined,
     kycData: {
       licenseOrRegistrationNumber: license,
       profileBio: payload.profileBio,
@@ -115,8 +134,31 @@ export async function submitPublisherKyc(params: {
         dateAwarded: a.dateAwarded ? new Date(a.dateAwarded) : undefined,
       })),
     },
-    kycStatus: "pending" as const,
   };
+
+  if (payload.meansOfId?.length) profileUpdate.meansOfId = payload.meansOfId;
+  if (payload.address) profileUpdate.address = payload.address;
+
+  if (isBasicOnly) {
+    // Establish presence without opening an admin review.
+    profileUpdate.kycStatus = "none";
+  } else {
+    profileUpdate.kycStatus = "pending";
+  }
+
+  if (isAdvanced) {
+    profileUpdate.advancedKycStatus = "pending";
+    profileUpdate.advancedKyc = {
+      companyName,
+      cacNumber,
+      projectName: advanced.projectName,
+      projectLocation: advanced.projectLocation,
+      projectStage: advanced.projectStage,
+      expectedCompletion: advanced.expectedCompletion,
+      supportingDocs: advanced.supportingDocs || [],
+    };
+    profileUpdate.kycStatus = "pending";
+  }
 
   const profile = await DB.Models.PublisherProfile.findOneAndUpdate(
     { userId },

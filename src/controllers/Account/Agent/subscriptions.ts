@@ -501,6 +501,8 @@ export const getAllActiveSubscriptionPlans = async (
         ? "all" as const
         : rawAudience === "scout"
           ? SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
+          : rawAudience === "developer"
+            ? SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER
           : rawAudience === "licensed"
             ? SUBSCRIPTION_PLAN_AUDIENCES.LICENSED
             : await resolveCatalogAudienceForUser(req.user?._id ? String(req.user._id) : null);
@@ -551,6 +553,8 @@ export const getAllActiveSubscriptionPlans = async (
             ? "All"
             : audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
               ? "Property Scout"
+              : audience === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER
+                ? "Developer"
               : "Licensed Agent / Developer",
       },
     });

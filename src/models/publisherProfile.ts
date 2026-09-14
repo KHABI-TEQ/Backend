@@ -35,6 +35,17 @@ export interface IPublisherProfile {
   };
   kycNote?: string;
   kycStatus: PublisherKycStatus;
+  /** Developer off-plan verification. Independent of basic profile / standard KYC. */
+  advancedKycStatus?: PublisherKycStatus;
+  advancedKyc?: {
+    companyName?: string;
+    cacNumber?: string;
+    projectName?: string;
+    projectLocation?: string;
+    projectStage?: string;
+    expectedCompletion?: string;
+    supportingDocs?: string[];
+  };
 }
 
 export interface IPublisherProfileDoc extends IPublisherProfile, Document {}
@@ -94,6 +105,21 @@ export class PublisherProfile {
           enum: ["none", "pending", "in_review", "approved", "rejected"],
           default: "none",
           index: true,
+        },
+        advancedKycStatus: {
+          type: String,
+          enum: ["none", "pending", "in_review", "approved", "rejected"],
+          default: "none",
+          index: true,
+        },
+        advancedKyc: {
+          companyName: { type: String },
+          cacNumber: { type: String },
+          projectName: { type: String },
+          projectLocation: { type: String },
+          projectStage: { type: String },
+          expectedCompletion: { type: String },
+          supportingDocs: { type: [String], default: [] },
         },
       },
       { timestamps: true }

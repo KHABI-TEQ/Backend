@@ -41,11 +41,15 @@ export interface ISubscriptionPlan {
   unlimitedListings?: boolean;
   /** Catalog grouping: Standard (practitioner) vs Custom Domain / White Labeling. */
   category?: SubscriptionPlanCategory;
-  /** licensed = Agent/Developer with a license; scout = no license (students). */
+  /** licensed = Agent with a license; scout = no license; developer = Developer catalog. */
   audience?: SubscriptionPlanAudience;
   billingInterval?: SubscriptionBillingInterval;
   /** Marketing / package benefits shown on subscription pages. */
   benefits?: string[];
+  /** Max accepted Request-to-Market professionals for this plan. */
+  maxProfessionals?: number;
+  /** When true, subscriber may list off-plan projects. */
+  allowsOffPlan?: boolean;
   discountedPlans?: IDiscountedPlan[];
 }  
 
@@ -114,6 +118,8 @@ export class SubscriptionPlan {
           enum: Object.values(SUBSCRIPTION_BILLING_INTERVALS),
         },
         benefits: { type: [String], default: [] },
+        maxProfessionals: { type: Number, default: 0 },
+        allowsOffPlan: { type: Boolean, default: false },
         discountedPlans: { type: [discountedPlanSchema], default: [] },
       },
       { timestamps: true }

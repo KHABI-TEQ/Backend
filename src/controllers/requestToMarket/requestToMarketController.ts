@@ -17,6 +17,10 @@ import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 import { enqueuePropertySyndicationJobs } from "../../services/propertySyndication.service";
 import { getAgentAccessGate } from "../../services/agentPublisherEligibility.service";
+import {
+  assertDeveloperCanAcceptProfessional,
+  getDeveloperPlanSnapshot,
+} from "../../services/developerPlanEntitlement.service";
 
 /**
  * POST /account/request-to-market
@@ -219,6 +223,9 @@ export const listRequestToMarket = async (
       ...(r.marketingFeeNaira !== undefined && { marketingFeeNaira: undefined }),
     }));
 
+    const developerEntitlement =
+      userType === "Developer" ? await getDeveloperPlanSnapshot(String(userId)) : undefined;
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: requests,
@@ -228,6 +235,7 @@ export const listRequestToMarket = async (
         limit: limitNum,
         totalPages: Math.ceil(total / limitNum),
       },
+      ...(developerEntitlement ? { developerEntitlement } : {}),
     });
   } catch (err) {
     next(err);
@@ -270,6 +278,16 @@ export const respondToRequestToMarket = async (
 
     if ((request as any).status !== "pending") {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "This request has already been responded to.");
+    }
+
+    if (action === "accept") {
+      const publisher = await DB.Models.User.findById(userId).select("userType").lean();
+      if (publisher?.userType === "Developer") {
+        const incomingAgentId = String(
+          (request as any).requestedByAgentId?._id || (request as any).requestedByAgentId || ""
+        );
+        await assertDeveloperCanAcceptProfessional(String(userId), incomingAgentId || undefined);
+      }
     }
 
     if (action === "reject") {
