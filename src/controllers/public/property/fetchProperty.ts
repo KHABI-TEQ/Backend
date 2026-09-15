@@ -5,6 +5,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { recordListingViewFromRequest } from "../../../services/propertyView.service";
 import { ignoreWords } from "../../../utils/ignoreWords";
+import { mongoPilotStateClause, isPilotState } from "../../../common/constants/pilotLocation";
 
 // Fetch All Properties with Filters & Pagination (Public)
 export const getAllProperties = async (
@@ -61,6 +62,7 @@ export const getAllProperties = async (
       isApproved: true,
       isAvailable: true,
       isDeleted: false,
+      ...mongoPilotStateClause("location.state"),
     };
 
     if (filters.location) {
@@ -190,6 +192,7 @@ export const getRandomProperties = async (
           isApproved: true,
           isDeleted: false,
           isAvailable: true,
+          ...mongoPilotStateClause("location.state"),
         },
       },
       { $sample: { size: 5 } }, // Randomly select 5
@@ -228,7 +231,7 @@ export const getSingleProperty = async (
       isAvailable: true,
     }).lean();
 
-    if (!property) {
+    if (!property || !isPilotState((property as any).location?.state)) {
       return next(
         new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found"),
       );

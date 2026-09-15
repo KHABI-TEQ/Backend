@@ -19,6 +19,7 @@ import { notifyUserPropertyCreatedByAdmin } from "../../../services/userProvisio
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
 import { listingCommissionFields } from "../../../common/constants/listingCommission";
+import { assertCanListOffPlanIfRequested } from "../../../services/developerPlanEntitlement.service";
 
 export const postPropertyAsAdmin = async (
   req: AppRequest,
@@ -56,6 +57,11 @@ export const postPropertyAsAdmin = async (
     }
 
     const userType = String(owner.userType);
+    await assertCanListOffPlanIfRequested({
+      userId: String(owner._id),
+      userType,
+      propertyType: payload.propertyType,
+    });
     const { activeSnapshot } = await assertPropertyListingAllowedForOwner({
       ownerId: owner._id as Types.ObjectId,
       userType,

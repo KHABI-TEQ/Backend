@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
 import { attachReviewsToPreferences } from "../../../services/preferenceReview.service";
+import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
 
 const MARKETPLACE_TYPE_ALIASES: Record<string, string> = {
   sale: "buy",
@@ -50,6 +51,7 @@ export const fetchGeneralMarketplacePreferences = async (
     const andParts: Record<string, unknown>[] = [
       { $nor: [{ "receiverMode.type": "dealSite" }] },
       { status: { $in: ["approved", "matched"] } },
+      mongoPilotStateClause("location.state"),
     ];
 
     if (preferenceMode) andParts.push({ preferenceMode });

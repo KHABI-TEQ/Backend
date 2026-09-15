@@ -148,6 +148,36 @@ export async function getDeveloperKycSnapshot(userId: string): Promise<{
   };
 }
 
+export const LANDLORD_CANNOT_LIST_OFF_PLAN =
+  "Landlords cannot list off-plan properties. Off-plan listings are available to developers only.";
+
+export function isLandlordUserType(userType?: string | null): boolean {
+  const t = String(userType || "").trim().toLowerCase();
+  return t === "landowners" || t === "landowner" || t === "landlord";
+}
+
+export function isOffPlanListingType(propertyType?: string | null): boolean {
+  const t = String(propertyType || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+  return t === "off-plan" || t === "offplan";
+}
+
+export async function assertCanListOffPlanIfRequested(opts: {
+  userId: string;
+  userType?: string | null;
+  propertyType?: string | null;
+}): Promise<void> {
+  if (!isOffPlanListingType(opts.propertyType)) return;
+  if (isLandlordUserType(opts.userType)) {
+    throw new RouteError(HttpStatusCodes.FORBIDDEN, LANDLORD_CANNOT_LIST_OFF_PLAN);
+  }
+  if (String(opts.userType || "").trim().toLowerCase() === "developer") {
+    await assertDeveloperCanListOffPlan(opts.userId);
+  }
+}
+
 export async function assertDeveloperCanListOffPlan(userId: string): Promise<void> {
   const [entitlement, kyc] = await Promise.all([
     getDeveloperPlanEntitlement(userId),

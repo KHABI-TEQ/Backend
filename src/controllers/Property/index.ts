@@ -13,6 +13,7 @@ import { IProperty, IPropertyDoc } from "../../models/index";
 import { DB } from "../index";
 import sendEmail from "../../common/send.email";
 import { FilterQuery } from "mongoose";
+import { mongoPilotStateClause, isPilotState } from "../../common/constants/pilotLocation";
 
 export interface PropertyProps {
   propertyType: string;
@@ -103,6 +104,7 @@ export class PropertyController {
         briefType,
         isPreference: false,
         isApproved: true,
+        ...mongoPilotStateClause("location.state"),
       };
 
       // Location filter - match string against state, LGA, or area
@@ -360,9 +362,12 @@ export class PropertyController {
     if (query.owner) filter.owner = query.owner;
     if (query.isAvailable) filter.isAvailable = query.isAvailable;
     filter.isApproved = true;
+    Object.assign(filter, mongoPilotStateClause("location.state"));
 
     // Location subfields
-    if (query.state) filter["location.state"] = query.state;
+    if (query.state && isPilotState(String(query.state))) {
+      filter["location.state"] = query.state;
+    }
     if (query.localGovernment)
       filter["location.localGovernment"] = query.localGovernment;
     if (query.area) filter["location.area"] = query.area;

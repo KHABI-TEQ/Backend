@@ -27,6 +27,10 @@ import {
   resolveEmbeddingsForUrls,
   syncPropertyImageEmbeddings,
 } from "../../../services/propertyImageEmbedding.service";
+import {
+  assertCanListOffPlanIfRequested,
+  isOffPlanListingType,
+} from "../../../services/developerPlanEntitlement.service";
 
 export const editProperty = async (
   req: AppRequest,
@@ -61,6 +65,15 @@ export const editProperty = async (
     }
 
     const userType = (req.user as any)?.userType;
+    const nextListingType = payload.propertyType || (property as any).propertyType;
+    const alreadyOffPlan = isOffPlanListingType((property as any).propertyType);
+    if (isOffPlanListingType(nextListingType) && !alreadyOffPlan) {
+      await assertCanListOffPlanIfRequested({
+        userId: String(req.user._id),
+        userType,
+        propertyType: nextListingType,
+      });
+    }
     const picsChanged = pictureUrlsChanged((property as any).pictures, payload.pictures);
     if (userType === "Agent" && (priceChanged || picsChanged)) {
       const proposed = {

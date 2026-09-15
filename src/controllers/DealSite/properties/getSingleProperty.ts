@@ -6,6 +6,7 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import mongoose from "mongoose";
 import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
 import { recordListingViewFromRequest } from "../../../services/propertyView.service";
+import { isPilotState } from "../../../common/constants/pilotLocation";
 
 export const getSingleDealSiteProperty = async (
   req: AppRequest,
@@ -69,7 +70,7 @@ export const getSingleDealSiteProperty = async (
       isDeleted: { $ne: true },
     }).lean();
 
-    if (!property) {
+    if (!property || !isPilotState((property as any).location?.state)) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
         errorCode: "PROPERTY_NOT_FOUND",

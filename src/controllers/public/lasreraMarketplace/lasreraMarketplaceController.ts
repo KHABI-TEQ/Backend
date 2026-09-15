@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { Types } from "mongoose";
 import { liveListingMongoFilter } from "../../../utils/liveListingFilter";
+import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
 
 /**
  * GET /lasrera-marketplace/properties
@@ -26,13 +27,16 @@ export const listLasreraMarketplaceProperties = async (
     const query: any = {
       ...liveListingMongoFilter(),
       listingScope: "lasrera_marketplace",
+      ...mongoPilotStateClause("location.state"),
     };
     if (soldViaRequest.length) {
       query._id = { $nin: soldViaRequest };
     }
 
     if (briefType) query.briefType = briefType;
-    if (state) query["location.state"] = new RegExp(state.trim(), "i");
+    if (state && /^(lagos)(\s+state)?$/i.test(state.trim())) {
+      query["location.state"] = new RegExp(state.trim(), "i");
+    }
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);

@@ -2,6 +2,7 @@ import joi from 'joi';
 import { propertyRent, propertySell } from '../constants';
 import { RouteError } from '../classes';
 import HttpStatusCodes from '../HttpStatusCodes';
+import { joiPilotState } from '../constants/pilotLocation';
 
 enum validatorSchemaNames {
   userSignupSchema = 'userSignupSchema',
@@ -126,7 +127,7 @@ class Validator {
     address: joi.object({
       street: joi.string().required(),
       // city: joi.string().required(),
-      state: joi.string().required(),
+      state: joiPilotState(),
       localGovtArea: joi.string().required(),
     }),
     regionOfOperation: joi.array().items(joi.string()).required(),
@@ -159,7 +160,7 @@ class Validator {
     address: joi.object({
       street: joi.string().required(),
       // city: joi.string().required(),
-      state: joi.string().required(),
+      state: joiPilotState(),
       localGovtArea: joi.string().required(),
     }),
     regionOfOperation: joi.array().items(joi.string()).required(),

@@ -1,6 +1,7 @@
 import OpenAI from "openai";
+import { isPilotState, PILOT_STATE } from "../common/constants/pilotLocation";
 
-const PROPERTY_SYSTEM_PROMPT = `You are a real-estate form assistant. The user will describe a property they want to list (sale, rent, shortlet, or joint venture) in Nigeria. Extract structured data from their message and return ONLY a valid JSON object with the following optional fields. Use Nigerian locations (state, LGA, area). Omit any field you cannot infer; use null for missing optional fields. Return no other text.
+const PROPERTY_SYSTEM_PROMPT = `You are a real-estate form assistant. The user will describe a property they want to list (sale, rent, shortlet, or joint venture) in Lagos State, Nigeria. Khabiteq is currently piloting in Lagos State only. Extract structured data from their message and return ONLY a valid JSON object with the following optional fields. location.state MUST be "Lagos". Use Lagos LGAs and areas only. If the user names another Nigerian state, still set location.state to "Lagos" and leave LGA/area empty unless they also named a Lagos place. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
 
 Schema (all optional except you must return an object):
 {
@@ -24,7 +25,7 @@ Schema (all optional except you must return an object):
   "agentCommissionAmount": number | null (Naira)
 }`;
 
-const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant in Nigeria. The user will describe what kind of property they are looking for (buy, rent, shortlet, off-plan, or joint venture). They may send one short answer per field OR a long compound message with many details at once — extract every field you can infer from the full text in a single JSON response. Use Nigerian locations (state, LGA, area, and estate/gated community when named). When the user names an estate (e.g. Banana Island, VGC, Magodo GRA Phase 2), put it under lgasWithAreas[].areasWithEstates for the matching area. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
+const PREFERENCE_SYSTEM_PROMPT = `You are a real-estate form assistant for Lagos State, Nigeria. Khabiteq is currently piloting in Lagos State only. The user will describe what kind of property they are looking for (buy, rent, shortlet, off-plan, or joint venture). They may send one short answer per field OR a long compound message with many details at once — extract every field you can infer from the full text in a single JSON response. location.state MUST be "Lagos". Use Lagos LGAs, areas, and estates only. If the user names another Nigerian state, still set location.state to "Lagos" and do not copy that other state. When the user names an estate (e.g. Banana Island, VGC, Magodo GRA Phase 2), put it under lgasWithAreas[].areasWithEstates for the matching area. Omit any field you cannot infer; use null for missing optional fields. Return no other text.
 
 Schema (all optional except you must return an object):
 {
@@ -151,6 +152,14 @@ export async function suggestFormFields(
     const data = JSON.parse(jsonStr) as Record<string, unknown>;
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       return { success: false, error: "Invalid AI response shape" };
+    }
+
+    const location = data.location as Record<string, unknown> | undefined;
+    if (location && typeof location === "object") {
+      location.state = isPilotState(String(location.state || PILOT_STATE))
+        ? PILOT_STATE
+        : PILOT_STATE;
+      data.location = location;
     }
 
     return { success: true, data };

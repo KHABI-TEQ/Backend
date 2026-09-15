@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { joiPilotState } from "../common/constants/pilotLocation";
 
 /** Allowed land measurement units for preferences (lowercased on validate). Legacy hectare values kept for stored data; emails map them to "acres". */
 export const PREFERENCE_MEASUREMENT_UNIT_VALUES = [
@@ -29,7 +30,7 @@ export const preferenceValidationSchema = Joi.object({
     .required(),
 
   location: Joi.object({
-    state: Joi.string().required(),
+    state: joiPilotState(),
     localGovernmentAreas: Joi.array().items(Joi.string()).default([]),
     lgasWithAreas: Joi.array()
       .items(

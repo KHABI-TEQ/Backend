@@ -3,6 +3,7 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
+import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
 
 export const getAllApprovedPreferences = async (
   req: AppRequest,
@@ -22,6 +23,7 @@ export const getAllApprovedPreferences = async (
 
     const filters: any = {
       status: { $in: ["approved", "closed"] }, // fetch both
+      ...mongoPilotStateClause("location.state"),
     };
 
     if (preferenceMode) filters.preferenceMode = preferenceMode;

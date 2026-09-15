@@ -5,6 +5,7 @@ import { DealSiteService } from "../../../services/dealSite.service";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { ignoreWords } from "../../../utils/ignoreWords";
 import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
+import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
  
 export const getDealSiteProperties = async (
   req: AppRequest,
@@ -91,6 +92,7 @@ export const getDealSiteProperties = async (
       isApproved: true,
       isDeleted: { $ne: true }, // include false or undefined (not explicitly deleted)
       isAvailable: { $ne: false },
+      ...mongoPilotStateClause("location.state"),
     };
     // Only filter by briefType when provided; omit so all properties (owned + marketed) show
     if (briefType && String(briefType).trim()) {

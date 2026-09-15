@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { joiPilotState } from "../common/constants/pilotLocation";
 
 export const createFieldAgentSchema = Joi.object({
   // Required user fields
@@ -14,7 +15,7 @@ export const createFieldAgentSchema = Joi.object({
   address: Joi.object({
     street: Joi.string().allow("").optional(),
     homeNo: Joi.string().allow("").optional(),
-    state: Joi.string().allow("").optional(),
+    state: joiPilotState({ required: false }),
     localGovtArea: Joi.string().allow("").optional(), // ✅ fixed
   }).optional(),
 

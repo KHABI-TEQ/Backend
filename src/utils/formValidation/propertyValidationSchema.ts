@@ -1,4 +1,5 @@
 import Joi from "joi";
+import { joiPilotState } from "../../common/constants/pilotLocation";
 
 const roomCount = Joi.alternatives().try(Joi.number(), Joi.string()).optional();
 
@@ -47,7 +48,7 @@ export const propertyValidationSchema = Joi.object({
   price: Joi.number().required(),
 
   location: Joi.object({
-    state: Joi.string().required(),
+    state: joiPilotState(),
     localGovernment: Joi.string().required(),
     area: Joi.string().required(),
     streetAddress: Joi.string().trim().allow("").optional(),

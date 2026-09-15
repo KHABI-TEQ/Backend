@@ -12,7 +12,7 @@ import sendEmail from "../../../common/send.email";
 import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { assertPropertyListingAllowedForOwner } from "../../../services/propertyListingEligibility.service";
-import { assertDeveloperCanListOffPlan } from "../../../services/developerPlanEntitlement.service";
+import { assertCanListOffPlanIfRequested } from "../../../services/developerPlanEntitlement.service";
 import { agentHasUnlimitedPropertyListings } from "../../../services/agentSubscriptionIncentive.service";
 import { isAgentSubscriptionRequired } from "../../../services/agentPublisherEligibility.service";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
@@ -104,9 +104,11 @@ export const postProperty = async (
     const listingType = String(
       (formatted as { propertyType?: string }).propertyType || payload.propertyType || ""
     ).toLowerCase();
-    if (userType === "Developer" && listingType === "off-plan") {
-      await assertDeveloperCanListOffPlan(String(userId));
-    }
+    await assertCanListOffPlanIfRequested({
+      userId: String(userId),
+      userType,
+      propertyType: listingType,
+    });
 
     const pictureUrls = Array.isArray((formatted as any).pictures)
       ? ((formatted as any).pictures as string[])

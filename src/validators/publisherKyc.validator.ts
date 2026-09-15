@@ -1,5 +1,6 @@
 import Joi from "joi";
 import { DB } from "../controllers";
+import { joiPilotState } from "../common/constants/pilotLocation";
 
 /** KYC payload for Agent, Developer, and Landowner accounts. */
 export const publisherKycSchema = Joi.object({
@@ -76,7 +77,7 @@ export const publisherKycSchema = Joi.object({
   address: Joi.object({
     street: Joi.string().trim().required().messages({ "string.empty": "Street is required." }),
     homeNo: Joi.string().trim().required().messages({ "string.empty": "Home number is required." }),
-    state: Joi.string().trim().required().messages({ "string.empty": "State is required." }),
+    state: joiPilotState(),
     localGovtArea: Joi.string().trim().required().messages({ "string.empty": "Local government area is required." }),
   }).optional(),
 
