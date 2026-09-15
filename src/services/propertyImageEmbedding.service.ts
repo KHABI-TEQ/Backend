@@ -23,6 +23,35 @@ const BRUTE_FORCE_LIVE_CAP = 400;
 let clipPipelinePromise: Promise<any> | null = null;
 let clipUnavailable = false;
 let vectorIndexEnsurePromise: Promise<void> | null = null;
+let loggedClipDisabled = false;
+
+function rssMb(): number {
+  return Math.round(process.memoryUsage().rss / 1024 / 1024);
+}
+
+/**
+ * In-process CLIP (transformers.js + ONNX) typically needs 400–800MB RSS.
+ * Render web instances are often 512MB, so inference is off there unless opted in.
+ * Stored vectors still power duplicate-photo matching.
+ *
+ * PROPERTY_IMAGE_CLIP_ENABLED=true|false overrides the default.
+ */
+export function isClipInferenceEnabled(): boolean {
+  const raw = String(process.env.PROPERTY_IMAGE_CLIP_ENABLED ?? "")
+    .trim()
+    .toLowerCase();
+  if (["1", "true", "yes", "on"].includes(raw)) return true;
+  if (["0", "false", "no", "off"].includes(raw)) return false;
+  return !process.env.RENDER;
+}
+
+function warnClipDisabledOnce(): void {
+  if (loggedClipDisabled) return;
+  loggedClipDisabled = true;
+  console.info(
+    `[CLIP] In-process model is off (rss=${rssMb()}MB). Duplicate-photo checks still use stored vectors. Enable with PROPERTY_IMAGE_CLIP_ENABLED=true on a larger instance or a one-off job.`,
+  );
+}
 
 export function imageSimilarityThreshold(): number {
   const n = Number(process.env.PROPERTY_IMAGE_SIMILARITY_THRESHOLD);
@@ -72,15 +101,24 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 async function getClipPipeline(): Promise<any | null> {
+  if (!isClipInferenceEnabled()) {
+    warnClipDisabledOnce();
+    return null;
+  }
   if (clipUnavailable) return null;
   if (!clipPipelinePromise) {
     clipPipelinePromise = (async () => {
-      console.info("[CLIP] Loading transformers.js (first run downloads ~150MB)...");
+      console.info(
+        `[CLIP] Loading transformers.js (first run downloads ~150MB; rss=${rssMb()}MB)...`,
+      );
       const { AutoProcessor, CLIPVisionModelWithProjection, RawImage, env } = await import(
         "@xenova/transformers"
       );
       try {
         env.allowLocalModels = false;
+        if (env.backends?.onnx?.wasm) {
+          env.backends.onnx.wasm.numThreads = 1;
+        }
       } catch {
         /* ignore */
       }
@@ -104,7 +142,7 @@ async function getClipPipeline(): Promise<any | null> {
       const vision = await CLIPVisionModelWithProjection.from_pretrained(modelId, {
         progress_callback,
       });
-      console.info("[CLIP] Ready.");
+      console.info(`[CLIP] Ready (rss=${rssMb()}MB).`);
       return { processor, vision, RawImage };
     })().catch((err) => {
       clipUnavailable = true;
@@ -210,7 +248,13 @@ export async function resolveEmbeddingsForUrls(
   }
 
   const missing = unique.filter((u) => !byUrl.has(u));
-  const generated = await embedPictureUrls(missing);
+  const generated =
+    missing.length && isClipInferenceEnabled()
+      ? await embedPictureUrls(missing)
+      : [];
+  if (missing.length && !isClipInferenceEnabled()) {
+    warnClipDisabledOnce();
+  }
   return [...byUrl.values(), ...generated];
 }
 
@@ -253,9 +297,11 @@ export async function syncPropertyImageEmbeddings(
     .lean();
   const have = new Set(existing.map((e) => e.pictureUrl));
   const missing = urls.filter((u) => !have.has(u));
-  if (missing.length) {
+  if (missing.length && isClipInferenceEnabled()) {
     const prepared = await embedPictureUrls(missing);
     await persistPropertyImageEmbeddings(pid, prepared);
+  } else if (missing.length) {
+    warnClipDisabledOnce();
   }
 
   if (urls.length) {
@@ -471,6 +517,10 @@ export async function findLiveImageMatches(
 export async function backfillLiveListingImageEmbeddings(opts?: {
   limit?: number;
 }): Promise<{ processed: number; embedded: number; skipped: number }> {
+  if (!isClipInferenceEnabled()) {
+    warnClipDisabledOnce();
+    return { processed: 0, embedded: 0, skipped: 0 };
+  }
   const limit = opts?.limit ?? 50;
   console.info(`[backfill] Querying up to ${limit * 3} live listings with photos...`);
   const live = await DB.Models.Property.find({

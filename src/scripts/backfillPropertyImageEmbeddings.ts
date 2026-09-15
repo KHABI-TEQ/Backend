@@ -8,6 +8,11 @@
  */
 import "dotenv/config";
 import mongoose from "mongoose";
+
+// This script exists to generate embeddings — always load CLIP unless explicitly disabled.
+if (process.env.PROPERTY_IMAGE_CLIP_ENABLED === undefined) {
+  process.env.PROPERTY_IMAGE_CLIP_ENABLED = "true";
+}
 import { DB } from "../controllers";
 import {
   backfillLiveListingImageEmbeddings,

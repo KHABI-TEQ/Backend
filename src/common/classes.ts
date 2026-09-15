@@ -15,7 +15,8 @@ interface TokenPayload {
     | "Developer"
     | "Buyer"
     | "Lawyer"
-    | "Surveyor";
+    | "Surveyor"
+    | "Valuer";
   role?: "buyer" | string;
   [key: string]: any; // Extendable for other optional fields like role, permissions, etc.
 }

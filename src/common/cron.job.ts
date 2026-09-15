@@ -544,9 +544,16 @@ cron.schedule('0 * * * *', async () => {
 cron.schedule('15 3 * * *', async () => {
   try {
     const {
+      isClipInferenceEnabled,
       ensurePropertyImageVectorIndex,
       backfillLiveListingImageEmbeddings,
     } = await import('../services/propertyImageEmbedding.service');
+    if (!isClipInferenceEnabled()) {
+      console.log(
+        '[CRON] Property image embeddings skipped (CLIP off on this instance; set PROPERTY_IMAGE_CLIP_ENABLED=true to run)',
+      );
+      return;
+    }
     await ensurePropertyImageVectorIndex();
     const result = await backfillLiveListingImageEmbeddings({ limit: 20 });
     console.log(

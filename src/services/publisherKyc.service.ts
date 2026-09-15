@@ -181,7 +181,17 @@ export async function submitPublisherKyc(params: {
       if (payload.specializations) agent.kycData = { ...(agent.kycData || {}), specializations: payload.specializations };
       if (payload.languagesSpoken) agent.kycData = { ...(agent.kycData || {}), languagesSpoken: payload.languagesSpoken };
       if (payload.servicesOffered) agent.kycData = { ...(agent.kycData || {}), servicesOffered: payload.servicesOffered };
-      if (payload.achievements?.length) agent.kycData = { ...(agent.kycData || {}), achievements: profileUpdate.kycData.achievements };
+      if (payload.achievements?.length) {
+        agent.kycData = {
+          ...(agent.kycData || {}),
+          achievements: payload.achievements.map((a) => ({
+            title: a.title,
+            description: a.description,
+            fileUrl: a.fileUrl,
+            dateAwarded: a.dateAwarded ? new Date(a.dateAwarded) : undefined,
+          })),
+        };
+      }
       agent.kycStatus = "pending";
       await agent.save();
     }
