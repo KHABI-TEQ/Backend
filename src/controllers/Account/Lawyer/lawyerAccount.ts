@@ -12,7 +12,12 @@ import { PaystackService } from "../../../services/paystack.service";
 import sendEmail from "../../../common/send.email";
 
 function requireLawyer(req: AppRequest) {
-  if (!req.user?._id || req.user.userType !== "Lawyer") {
+  const pending = (req.user as { pendingProfessionalType?: string })?.pendingProfessionalType;
+  if (
+    !req.user?._id ||
+    (req.user.userType !== "Lawyer" &&
+      !(req.user.userType === "PropertyScout" && pending === "Lawyer"))
+  ) {
     throw new RouteError(HttpStatusCodes.FORBIDDEN, "Lawyer account required.");
   }
   return req.user;

@@ -60,7 +60,7 @@ export class PublisherProfile {
         userId: { type: Schema.Types.ObjectId, ref: "User", required: true, unique: true, index: true },
         userType: {
           type: String,
-          enum: ["Agent", "Developer", "Landowners"],
+          enum: ["Agent", "Developer", "Landowners", "PropertyScout"],
           required: true,
         },
         address: {

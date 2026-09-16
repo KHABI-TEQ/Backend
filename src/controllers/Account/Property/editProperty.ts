@@ -118,7 +118,18 @@ export const editProperty = async (
       ...payload,
       isTenanted: normalizeIsTenantedForDb(payload.isTenanted),
     });
-    property.status = payload.status || property.status;
+    if (userType === "PropertyScout") {
+      const nextStatus = payload.status || property.status;
+      if (nextStatus === "approved" || nextStatus === "available") {
+        property.status = property.status === "approved" ? property.status : "pending";
+        property.isApproved = property.status === "approved";
+        property.isAvailable = property.status === "approved" && property.isAvailable;
+      } else {
+        property.status = nextStatus;
+      }
+    } else {
+      property.status = payload.status || property.status;
+    }
 
     await property.save();
 
@@ -213,10 +224,20 @@ export const updatePropertyStatus = async (
     }
 
     // Restrict updates for pending or deleted properties
-    if (["pending", "deleted", "rejected", "hold", "flagged"].includes(property.status)) {
+    if (["pending", "deleted", "rejected", "hold", "flagged", "draft"].includes(property.status)) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
         `You cannot change the status of a ${property.status} property.`
+      );
+    }
+
+    if (
+      (req.user as any)?.userType === "PropertyScout" &&
+      (status === "approved" || status === "available")
+    ) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Property Scout listings go live only after Khabiteq review.",
       );
     }
 

@@ -11,7 +11,12 @@ import {
 import { PaystackService } from "../../../services/paystack.service";
 
 function requireSurveyor(req: AppRequest) {
-  if (!req.user?._id || req.user.userType !== "Surveyor") {
+  const pending = (req.user as { pendingProfessionalType?: string })?.pendingProfessionalType;
+  if (
+    !req.user?._id ||
+    (req.user.userType !== "Surveyor" &&
+      !(req.user.userType === "PropertyScout" && pending === "Surveyor"))
+  ) {
     throw new RouteError(HttpStatusCodes.FORBIDDEN, "Surveyor account required.");
   }
   return req.user;

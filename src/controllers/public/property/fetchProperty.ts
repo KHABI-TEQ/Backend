@@ -267,3 +267,26 @@ export const getSingleProperty = async (
     next(err);
   }
 };
+
+export const getPropertyByCode = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { lookupPropertyByCode } = await import("../../../services/propertyCode.service");
+    const data = await lookupPropertyByCode(String(req.params.code || req.query.code || ""));
+    if (!data) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "No property was found for that Property Code.");
+    }
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: data.isLive
+        ? "Property identified."
+        : "This Property Code is recognised, but the listing is not live yet.",
+      data,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

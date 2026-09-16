@@ -81,9 +81,8 @@ export const publisherKycSchema = Joi.object({
     localGovtArea: Joi.string().trim().required().messages({ "string.empty": "Local government area is required." }),
   }).optional(),
 
-  regionOfOperation: Joi.array().items(Joi.string().trim()).min(1).required().messages({
+  regionOfOperation: Joi.array().items(Joi.string().trim()).optional().messages({
     "array.min": "At least one region of operation is required.",
-    "any.required": "Region of operation is required.",
   }),
 
   /** Individual or company practitioner. Accept legacy field name agentType. */
@@ -96,6 +95,9 @@ export const publisherKycSchema = Joi.object({
   }).optional(),
 })
   .custom((value, helpers) => {
+    if (!value.practitionerType && !value.agentType) {
+      value.practitionerType = "Individual";
+    }
     const type = value.practitionerType || value.agentType;
     if (!type) {
       return helpers.error("any.custom", {

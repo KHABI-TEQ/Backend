@@ -153,6 +153,8 @@ export interface IPreference {
 
   nearbyLandmark?: string;
   additionalNotes?: string; // Renamed from additionalInfo to align with payloads
+  /** Optional Khabiteq Property Code entered during preference submission. */
+  propertyCode?: string;
   partnerExpectations?: string; // Specific to Joint Venture, optional
 
   assignedAgent?: Types.ObjectId;
@@ -329,6 +331,7 @@ export class Preference {
 
         nearbyLandmark: String,
         additionalNotes: String, // Renamed from additionalInfo
+        propertyCode: { type: String, uppercase: true, trim: true },
         partnerExpectations: String, // Specific to Joint Venture
 
         assignedAgent: { type: Schema.Types.ObjectId, ref: "Agent" },

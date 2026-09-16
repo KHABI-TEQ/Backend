@@ -67,6 +67,74 @@ export interface ITransactionPractitioner {
   isOnPlatform?: boolean;
 }
 
+export type CertificateRecordStatus =
+  | "ACTIVE"
+  | "UPDATED"
+  | "SUPERSEDED"
+  | "CANCELLED"
+  | "VOID";
+
+export type TransactionJourneyEventCode =
+  | "PROPERTY_PREFERENCE_SUBMITTED"
+  | "PROPERTY_MATCHED"
+  | "PROPERTY_IDENTIFIED"
+  | "PROFESSIONAL_CONNECTED"
+  | "INSPECTION_REQUESTED"
+  | "INSPECTION_SCHEDULED"
+  | "INSPECTION_COMPLETED"
+  | "DUE_DILIGENCE_PROFESSIONAL_ENGAGED"
+  | "RELEVANT_PROFESSIONAL_SERVICE_COMPLETED"
+  | "TRANSACTION_PROCEEDED"
+  | "TRANSACTION_REGISTERED"
+  | "INSURANCE_RECORDED"
+  | "CERTIFICATE_ISSUED";
+
+export interface ITransactionJourneyEvent {
+  code: TransactionJourneyEventCode;
+  title: string;
+  occurredAt: Date;
+  source: string;
+  notApplicable?: boolean;
+}
+
+export interface ICertificateProfessional {
+  name: string;
+  category: string;
+  licenceNumber?: string;
+  verificationStatus?: string;
+  practitionerPageUrl?: string;
+  practitionerPageSlug?: string;
+}
+
+export interface ICertificateParty {
+  role: "buyer" | "tenant" | "seller" | "landlord" | "developer" | "other";
+  displayName: string;
+}
+
+export interface ICertificateDueDiligence {
+  category: "lawyer" | "surveyor" | "valuer" | "other";
+  label: string;
+  professionalName?: string;
+  engagedAt?: Date;
+  status: "Engaged" | "Completed" | "Not Applicable";
+}
+
+export interface ICertificateInsurance {
+  provider: string;
+  policyReference?: string;
+  status?: string;
+  date?: Date;
+}
+
+export interface ICertificateVersionSnapshot {
+  version: number;
+  snapshotAt: Date;
+  certificateUrl?: string;
+  reason?: string;
+  actorType?: string;
+  actorId?: Types.ObjectId;
+}
+
 export interface ITransactionRegistration {
   transactionType: TransactionRegistrationType;
   /** Platform listing reference — optional for off-platform properties. */
@@ -121,6 +189,20 @@ export interface ITransactionRegistration {
   certificateUrl?: string;
   certificateIssuedAt?: Date;
   certificateIssuedBy?: Types.ObjectId;
+  /** Unique Khabiteq journey reference, e.g. KHT-TR-000482 */
+  transactionReference?: string;
+  propertyCode?: string;
+  propertyTypeLabel?: string;
+  propertyLocationLabel?: string;
+  certificateStatus?: CertificateRecordStatus;
+  certificateVersion?: number;
+  certificateLastUpdatedAt?: Date;
+  journeyEvents?: ITransactionJourneyEvent[];
+  participatingProfessionals?: ICertificateProfessional[];
+  parties?: ICertificateParty[];
+  dueDiligence?: ICertificateDueDiligence[];
+  insurance?: ICertificateInsurance;
+  certificateVersions?: ICertificateVersionSnapshot[];
 }
 
 export interface ITransactionRegistrationDoc extends ITransactionRegistration, Document {
@@ -234,6 +316,71 @@ export class TransactionRegistration {
         certificateUrl: { type: String, required: false },
         certificateIssuedAt: { type: Date, required: false },
         certificateIssuedBy: { type: Schema.Types.ObjectId, ref: "Admin", required: false },
+        transactionReference: { type: String, required: false, uppercase: true, trim: true },
+        propertyCode: { type: String, required: false, uppercase: true, trim: true },
+        propertyTypeLabel: { type: String, required: false, trim: true },
+        propertyLocationLabel: { type: String, required: false, trim: true },
+        certificateStatus: {
+          type: String,
+          enum: ["ACTIVE", "UPDATED", "SUPERSEDED", "CANCELLED", "VOID"],
+          required: false,
+        },
+        certificateVersion: { type: Number, required: false, min: 1 },
+        certificateLastUpdatedAt: { type: Date, required: false },
+        journeyEvents: [
+          {
+            code: { type: String, required: true },
+            title: { type: String, required: true },
+            occurredAt: { type: Date, required: true },
+            source: { type: String, required: true },
+            notApplicable: { type: Boolean, required: false },
+          },
+        ],
+        participatingProfessionals: [
+          {
+            name: { type: String, required: true },
+            category: { type: String, required: true },
+            licenceNumber: { type: String, required: false },
+            verificationStatus: { type: String, required: false },
+            practitionerPageUrl: { type: String, required: false },
+            practitionerPageSlug: { type: String, required: false },
+          },
+        ],
+        parties: [
+          {
+            role: {
+              type: String,
+              enum: ["buyer", "tenant", "seller", "landlord", "developer", "other"],
+              required: true,
+            },
+            displayName: { type: String, required: true },
+          },
+        ],
+        dueDiligence: [
+          {
+            category: { type: String, enum: ["lawyer", "surveyor", "valuer", "other"], required: true },
+            label: { type: String, required: true },
+            professionalName: { type: String, required: false },
+            engagedAt: { type: Date, required: false },
+            status: { type: String, enum: ["Engaged", "Completed", "Not Applicable"], required: true },
+          },
+        ],
+        insurance: {
+          provider: { type: String, required: false },
+          policyReference: { type: String, required: false },
+          status: { type: String, required: false },
+          date: { type: Date, required: false },
+        },
+        certificateVersions: [
+          {
+            version: { type: Number, required: true },
+            snapshotAt: { type: Date, required: true },
+            certificateUrl: { type: String, required: false },
+            reason: { type: String, required: false },
+            actorType: { type: String, required: false },
+            actorId: { type: Schema.Types.ObjectId, required: false },
+          },
+        ],
       },
       { timestamps: true }
     );
@@ -243,6 +390,9 @@ export class TransactionRegistration {
     schema.index({ registrationSource: 1 });
     schema.index({ inspectionId: 1 });
     schema.index({ status: 1 });
+    schema.index({ transactionReference: 1 }, { unique: true, sparse: true });
+    schema.index({ propertyCode: 1 }, { sparse: true });
+    schema.index({ certificateStatus: 1 });
     schema.index({ "propertyIdentification.exactAddress": "text" });
     schema.index({ "propertyIdentification.lpin": 1 });
 

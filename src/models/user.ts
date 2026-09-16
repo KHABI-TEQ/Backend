@@ -34,7 +34,10 @@ export interface IUser {
   isDeleted: boolean;
   accountApproved: boolean;
   accountStatus: "active" | "inactive" | "deleted" | "flagged" | "pending_deletion";
-  userType: "Landowners" | "Agent" | "FieldAgent" | "Developer" | "Lawyer" | "Surveyor" | "Valuer";
+  userType: "Landowners" | "Agent" | "FieldAgent" | "Developer" | "Lawyer" | "Surveyor" | "Valuer" | "PropertyScout";
+  /** In-place upgrade from Property Scout to a licensed professional role. */
+  pendingProfessionalType?: "Agent" | "Developer" | "Lawyer" | "Surveyor" | "Valuer";
+  professionalUpgradeStatus?: "none" | "pending" | "approved" | "rejected";
   isFlagged: boolean;
   accountId: string;
   googleId?: string;
@@ -90,8 +93,17 @@ export class User {
         },
         userType: {
           type: String,
-          enum: ["Landowners", "Agent", "FieldAgent", "Developer", "Lawyer", "Surveyor", "Valuer"],
+          enum: ["Landowners", "Agent", "FieldAgent", "Developer", "Lawyer", "Surveyor", "Valuer", "PropertyScout"],
           required: true,
+        },
+        pendingProfessionalType: {
+          type: String,
+          enum: ["Agent", "Developer", "Lawyer", "Surveyor", "Valuer"],
+        },
+        professionalUpgradeStatus: {
+          type: String,
+          enum: ["none", "pending", "approved", "rejected"],
+          default: "none",
         },
         isFlagged: { type: Boolean, default: false },
         accountId: { type: String, required: true, unique: true },

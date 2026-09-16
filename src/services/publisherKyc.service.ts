@@ -70,14 +70,20 @@ export async function ensurePublisherProfile(params: {
 }
 
 export function normalizePublisherKycPayload(body: Record<string, unknown>): PublisherKycSubmitPayload {
-  const practitionerType = (body.practitionerType || body.agentType) as "Individual" | "Company";
+  const practitionerType = ((body.practitionerType || body.agentType || "Individual") as "Individual" | "Company");
   const license =
     String(body.licenseOrRegistrationNumber || body.agentLicenseNumber || "").trim() || undefined;
+  const address = body.address as PublisherKycSubmitPayload["address"];
+  const regionOfOperation = (body.regionOfOperation as string[] | undefined)?.length
+    ? (body.regionOfOperation as string[])
+    : address?.state
+      ? [address.state]
+      : [];
 
   return {
     meansOfId: body.meansOfId as PublisherKycSubmitPayload["meansOfId"],
-    address: body.address as PublisherKycSubmitPayload["address"],
-    regionOfOperation: body.regionOfOperation as string[],
+    address: address,
+    regionOfOperation,
     practitionerType,
     licenseOrRegistrationNumber: license,
     agentLicenseNumber: license,

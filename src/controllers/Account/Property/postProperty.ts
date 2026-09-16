@@ -54,18 +54,30 @@ export const postProperty = async (
     const createdByRole = "user";
     const ownerModel = "User";
     const userType = (req.user as any)?.userType;
+    const standaloneScout = userType === "PropertyScout";
+
+    if (standaloneScout) {
+      const { isPublisherKycApproved } = await import("../../../services/publisherKyc.service");
+      if (!(await isPublisherKycApproved(String(userId)))) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Complete your KYC verification to start submitting property opportunities.",
+        );
+      }
+    }
 
     // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"
     const isTenanted = normalizeIsTenantedForDb(payload.isTenanted);
 
     // Agent commission: Landlord/Developer only. Sale/off-plan 5%, rent 10%.
     const allowCommission = userType === "Landowners" || userType === "Developer";
+    const goesLiveImmediately = !standaloneScout;
     const propertyData = {
       ...payload,
       isTenanted,
-      status: "approved",
-      isApproved: true,
-      isAvailable: true,
+      status: goesLiveImmediately ? "approved" : "pending",
+      isApproved: goesLiveImmediately,
+      isAvailable: goesLiveImmediately,
       ...(allowCommission
         ? listingCommissionFields(payload)
         : { agentCommissionPercent: undefined, agentCommissionAmount: undefined }),
@@ -82,6 +94,13 @@ export const postProperty = async (
       ownerModel
     );
 
+    const { generateUniquePropertyCode } = await import("../../../services/propertyCode.service");
+    (formatted as any).propertyCode = await generateUniquePropertyCode({
+      firstName: req.user.firstName,
+      lastName: req.user.lastName,
+      userType,
+    });
+
     if (userType === "Landowners" || userType === "Developer") {
       if (payload.listingScope === "lasrera_marketplace") {
         (formatted as any).listingScope = "lasrera_marketplace";
@@ -93,7 +112,7 @@ export const postProperty = async (
 
     // Publisher listing policy (25 cap / Portfolio Unlimited) for all listing roles
     let activeSnapshot = null;
-    if (userType === "Agent" || userType === "Developer" || userType === "Landowners") {
+    if (userType === "Agent" || userType === "Developer" || userType === "Landowners" || userType === "PropertyScout") {
       const { activeSnapshot: snap } = await assertPropertyListingAllowedForOwner({
         ownerId: userId,
         userType: userType as string,

@@ -37,7 +37,9 @@ export const getSingleDealSiteProperty = async (
       });
     }
 
-    const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+    const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite, {
+      preview: DealSiteService.isPreviewQuery(req.query),
+    });
     if (access.ok === false) {
       return res.status(access.httpStatus).json({
         success: false,

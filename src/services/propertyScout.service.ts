@@ -1,10 +1,19 @@
 import { DB } from "../controllers";
 import { getPublisherKycStatus, isPublisherKycApproved } from "./publisherKyc.service";
 
-const SCOUT_USER_TYPES = new Set(["Agent", "Developer"]);
+const LEGACY_SCOUT_USER_TYPES = new Set(["Agent", "Developer"]);
+
+export function isStandalonePropertyScout(userType?: string | null): boolean {
+  return userType === "PropertyScout";
+}
 
 export function isScoutEligibleUserType(userType?: string | null): boolean {
-  return !!userType && SCOUT_USER_TYPES.has(userType);
+  return !!userType && (isStandalonePropertyScout(userType) || LEGACY_SCOUT_USER_TYPES.has(userType));
+}
+
+/** New Property Scout accounts require KYC + listing review. Legacy Agent/Developer scouts do not. */
+export function scoutListingsRequireReview(userType?: string | null): boolean {
+  return isStandalonePropertyScout(userType);
 }
 
 /** Resolve license / registration number from PublisherProfile or legacy Agent KYC. */
@@ -50,7 +59,8 @@ export async function isPropertyScout(userId: string): Promise<boolean> {
     .select("userType isDeleted")
     .lean();
   if (!user || user.isDeleted) return false;
-  if (!isScoutEligibleUserType(user.userType)) return false;
+  if (isStandalonePropertyScout(user.userType)) return true;
+  if (!LEGACY_SCOUT_USER_TYPES.has(user.userType)) return false;
 
   const kycStatus = await getPublisherKycStatus(userId);
   const submitted =
@@ -70,26 +80,51 @@ export async function isPropertyScout(userId: string): Promise<boolean> {
   return true;
 }
 
+function kycDisplayLabel(status: string | null): string {
+  switch (status) {
+    case "pending":
+    case "in_review":
+      return "KYC UNDER REVIEW";
+    case "approved":
+      return "KYC VERIFIED";
+    case "rejected":
+      return "KYC FAILED / REQUIRES ACTION";
+    default:
+      return "KYC NOT STARTED";
+  }
+}
+
 export async function getPropertyScoutSnapshot(userId: string): Promise<{
   isPropertyScout: boolean;
   isLicensedPublisher: boolean;
   hasLicense: boolean;
   kycStatus: string | null;
+  kycDisplayLabel: string;
+  canSubmitOpportunity: boolean;
+  listingsRequireReview: boolean;
+  isStandalonePropertyScout: boolean;
+  pendingProfessionalType: string | null;
+  professionalUpgradeStatus: string | null;
   licenseNumberMasked: string | null;
   displayRoleLabel: string;
 }> {
-  const user = await DB.Models.User.findById(userId).select("userType").lean();
+  const user = await DB.Models.User.findById(userId)
+    .select("userType pendingProfessionalType professionalUpgradeStatus")
+    .lean();
   const userType = user?.userType || "";
   const kycStatus = await getPublisherKycStatus(userId);
   const license = await resolvePublisherLicenseNumber(userId);
   const hasLicense = license.length > 0;
   const licensed =
-    isScoutEligibleUserType(userType) &&
+    LEGACY_SCOUT_USER_TYPES.has(userType) &&
     kycStatus === "approved" &&
     hasLicense;
-  const scout = isScoutEligibleUserType(userType)
-    ? await isPropertyScout(userId)
-    : false;
+  const standalone = isStandalonePropertyScout(userType);
+  const scout = standalone
+    ? true
+    : LEGACY_SCOUT_USER_TYPES.has(userType)
+      ? await isPropertyScout(userId)
+      : false;
 
   const masked = hasLicense
     ? license.length <= 4
@@ -102,6 +137,12 @@ export async function getPropertyScoutSnapshot(userId: string): Promise<{
     isLicensedPublisher: licensed,
     hasLicense,
     kycStatus,
+    kycDisplayLabel: kycDisplayLabel(kycStatus),
+    canSubmitOpportunity: standalone ? kycStatus === "approved" : true,
+    listingsRequireReview: scoutListingsRequireReview(userType),
+    isStandalonePropertyScout: standalone,
+    pendingProfessionalType: user?.pendingProfessionalType || null,
+    professionalUpgradeStatus: user?.professionalUpgradeStatus || null,
     licenseNumberMasked: masked,
     displayRoleLabel: scout
       ? "Property Scout"

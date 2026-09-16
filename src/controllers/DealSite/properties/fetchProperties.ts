@@ -44,7 +44,9 @@ export const getDealSiteProperties = async (
     }
 
     // 2. Ensure public access is allowed (running + KYC + subscription)
-    const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+    const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite, {
+      preview: DealSiteService.isPreviewQuery(req.query),
+    });
     if (access.ok === false) {
       return res.status(access.httpStatus).json({
         success: false,
@@ -214,7 +216,7 @@ export const getDealSiteProperties = async (
     // 5. Fetch properties
     const properties = await DB.Models.Property.find(query)
       .select(
-        "propertyType propertyCategory propertyCondition price location additionalFeatures pictures isAvailable shortletDetails bookedPeriods status briefType isPremium isApproved",
+        "propertyType propertyCategory propertyCondition price location additionalFeatures pictures isAvailable shortletDetails bookedPeriods status briefType isPremium isApproved propertyCode typeOfBuilding videos docOnProperty landSize rentalType shortletDuration",
       )
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))

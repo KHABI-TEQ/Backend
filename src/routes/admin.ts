@@ -10,8 +10,10 @@ import { reviewPublisherKyc } from "../controllers/Admin/Account/publisherKycRev
 import {
   reviewLawyerKyc,
   reviewSurveyorKyc,
+  reviewValuerKyc,
   listPendingLawyers,
   listPendingSurveyors,
+  listPendingValuers,
 } from "../controllers/Admin/Account/professionalKycReview";
 import {
   listCustomDomainRequests,
@@ -226,6 +228,8 @@ AdminRouter.get("/lawyers/pending-kyc", listPendingLawyers);
 AdminRouter.post("/lawyers/:userId/reviewKycRequest", reviewLawyerKyc);
 AdminRouter.get("/surveyors/pending-kyc", listPendingSurveyors);
 AdminRouter.post("/surveyors/:userId/reviewKycRequest", reviewSurveyorKyc);
+AdminRouter.get("/valuers/pending-kyc", listPendingValuers);
+AdminRouter.post("/valuers/:userId/reviewKycRequest", reviewValuerKyc);
 
 AdminRouter.get("/custom-domain-requests", listCustomDomainRequests);
 AdminRouter.post(

@@ -24,16 +24,16 @@ export const bulkUpdateDealSite = async (
     const userId = req.user?._id;
     const payload = req.body;
 
-    // Get the user's dealSite (they should have only one)
-    const dealSites = await DealSiteService.getByAgent(userId, false);
-    if (!dealSites || dealSites.length === 0) {
-      return res.status(HttpStatusCodes.NOT_FOUND).json({
-        success: false,
-        message: "Public access page not found",
-      });
-    }
-
-    const dealSite = dealSites[0];
+    const branding = payload?.brandingSeo && typeof payload.brandingSeo === "object"
+      ? payload.brandingSeo
+      : {};
+    const dealSite = await DealSiteService.ensurePublicAccessForUser(userId, {
+      title: branding.title,
+      description: branding.description,
+      keywords: branding.keywords,
+      logoUrl: branding.logoUrl,
+      footer: payload?.footer,
+    });
     const publicSlug = dealSite.publicSlug;
 
     // Process each section in the payload

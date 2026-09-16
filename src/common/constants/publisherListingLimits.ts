@@ -50,7 +50,7 @@ export const PORTFOLIO_UNLIMITED_BENEFITS: string[] = [
   "Practitioner listing eligibility while the plan is active",
 ];
 
-export const PUBLISHER_USER_TYPES = ["Agent", "Developer", "Landowners"] as const;
+export const PUBLISHER_USER_TYPES = ["Agent", "Developer", "Landowners", "PropertyScout"] as const;
 export type PublisherUserType = (typeof PUBLISHER_USER_TYPES)[number];
 
 export function isPublisherUserType(userType: string | undefined | null): userType is PublisherUserType {

@@ -43,6 +43,12 @@ export const updatePropertyStatusAsAdmin = async (
 
     property.status = status;
     property.reason = reason ?? property.reason;
+    if (reason?.trim() && (status === "pending" || status === "flagged")) {
+      (property as any).listingReviewNote = reason.trim();
+    }
+    if (status === "approved") {
+      (property as any).listingReviewNote = undefined;
+    }
 
     const isLive = isLivePropertyStatus(status);
     property.isAvailable = isLive;

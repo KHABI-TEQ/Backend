@@ -88,6 +88,13 @@ export const postPropertyAsAdmin = async (
       "User"
     );
 
+    const { generateUniquePropertyCode } = await import("../../../services/propertyCode.service");
+    (formatted as any).propertyCode = await generateUniquePropertyCode({
+      firstName: owner.firstName,
+      lastName: owner.lastName,
+      userType,
+    });
+
     if (userType === "Landowners" || userType === "Developer") {
       if (payload.listingScope === "lasrera_marketplace") {
         (formatted as any).listingScope = "lasrera_marketplace";

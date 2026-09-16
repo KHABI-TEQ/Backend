@@ -9,9 +9,10 @@ import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 /** After DealSite exists and is running: require owner KYC (after grace) and subscription when applicable. */
 async function applyPublicDealSiteAccessGates(
   res: Response,
-  dealSite: { _id?: unknown; status?: string; createdBy?: unknown }
+  dealSite: { _id?: unknown; status?: string; createdBy?: unknown },
+  options?: { preview?: boolean }
 ): Promise<boolean> {
-  const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+  const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite, options);
   if (access.ok === false) {
     res.status(access.httpStatus).json({
       success: false,
@@ -198,8 +199,10 @@ export const getDealSiteBySlug = async (
       });
     }
 
-    // Only allow running DealSites (KYC/subscription gates applied below)
-    if (dealSite.status !== "running") {
+    const preview = DealSiteService.isPreviewQuery(req.query);
+
+    // Visitors only see running pages. Owners can open ?preview=1 after branding.
+    if (dealSite.status !== "running" && !preview) {
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
@@ -208,7 +211,7 @@ export const getDealSiteBySlug = async (
       });
     }
 
-    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
     }
@@ -293,7 +296,8 @@ export const getDealSiteOwnerContact = async (
       });
     }
 
-    if (dealSite.status !== "running") {
+    const preview = DealSiteService.isPreviewQuery(req.query);
+    if (dealSite.status !== "running" && !preview) {
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
@@ -302,7 +306,7 @@ export const getDealSiteOwnerContact = async (
       });
     }
 
-    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
     }
@@ -405,7 +409,8 @@ export const getDealSiteSection = async (
       });
     }
 
-    if (dealSite.status !== "running") {
+    const preview = DealSiteService.isPreviewQuery(req.query);
+    if (dealSite.status !== "running" && !preview) {
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
@@ -414,7 +419,7 @@ export const getDealSiteSection = async (
       });
     }
 
-    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
     }
@@ -502,7 +507,8 @@ export const getFeaturedProperties = async (
       });
     }
 
-    if (dealSite.status !== "running") {
+    const preview = DealSiteService.isPreviewQuery(req.query);
+    if (dealSite.status !== "running" && !preview) {
       return res.status(HttpStatusCodes.FORBIDDEN).json({
         success: false,
         errorCode: "DEALSITE_NOT_ACTIVE",
@@ -511,7 +517,7 @@ export const getFeaturedProperties = async (
       });
     }
 
-    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite);
+    const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
     }

@@ -285,8 +285,8 @@ export const issueTransactionRegistrationCertificate = async (
         });
         await sendEmail({
           to: registration.buyer.email,
-          subject: "Your LASRERA transaction registration certificate is ready",
-          text: `Hello ${buyerName}, your LASRERA registration certificate (${result.certificateNumber}) is ready. Download securely at ${downloadPortalUrl} using your registration reference and buyer email.`,
+          subject: "Your Khabiteq Transaction Registration Certificate is ready",
+          text: `Hello ${buyerName}, your Khabiteq Transaction Registration Certificate (${result.transactionReference || result.certificateNumber}) is ready. Download securely at ${downloadPortalUrl} using your transaction reference and buyer email.`,
           html: generalEmailLayout(htmlBody),
         });
       } catch (emailErr) {

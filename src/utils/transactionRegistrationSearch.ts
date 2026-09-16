@@ -17,6 +17,14 @@ export function buildRegistrationSearchFilter(search: string): Record<string, un
 
   const compact = trimmed.replace(/\s+/g, "").toUpperCase();
 
+  if (/^KHT-TR-\d{6,}$/.test(compact)) {
+    return { transactionReference: compact };
+  }
+
+  if (/^KH-[A-Z0-9]{2,}-[A-Z0-9]{4,}$/.test(compact)) {
+    return { propertyCode: compact };
+  }
+
   const fullCertMatch = compact.match(/^LASRERA\/TRC\/(\d{4})\/([A-F0-9]{8})$/);
   if (fullCertMatch) {
     const [, year, suffix] = fullCertMatch;
@@ -61,6 +69,8 @@ export function buildRegistrationSearchFilter(search: string): Record<string, un
   return {
     $or: [
       { certificateNumber: { $regex: escaped, $options: "i" } },
+      { transactionReference: { $regex: escaped, $options: "i" } },
+      { propertyCode: { $regex: escaped, $options: "i" } },
       { "buyer.fullName": { $regex: escaped, $options: "i" } },
       { "buyer.email": { $regex: escaped, $options: "i" } },
     ],

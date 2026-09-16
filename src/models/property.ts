@@ -115,9 +115,14 @@ export interface IProperty {
     | "failed"
     | "never_listed"
     | "booked"
+    | "draft"
     | "transaction_registered_pending"
     | "sold_leased_registered";
   reason?: string;
+  /** Admin note when a Property Scout listing needs correction (ACTION REQUIRED). */
+  listingReviewNote?: string;
+  /** Public identification code, e.g. KH-VGR-08421. */
+  propertyCode?: string;
   briefType: string;
   isPremium: boolean;
   /** Inspection fee in Naira. Min ₦1,000, max ₦50,000. */
@@ -260,6 +265,7 @@ export class Property {
             "failed",
             "never_listed",
             "booked",
+            "draft",
             "transaction_registered_pending",
             "sold_leased_registered"
           ],
@@ -267,6 +273,8 @@ export class Property {
           required: true,
         },
         reason: { type: String },
+        listingReviewNote: { type: String },
+        propertyCode: { type: String, unique: true, sparse: true, uppercase: true, trim: true, index: true },
         employmentType: { type: String },
         tenantGenderPreferences: { type: String },
         briefType: { type: String },

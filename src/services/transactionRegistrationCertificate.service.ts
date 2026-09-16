@@ -2,6 +2,7 @@ import axios from "axios";
 import PDFDocument from "pdfkit";
 import { Types } from "mongoose";
 import { uploadFile } from "../common/newCloudinary";
+import { getKhabiteqEmailLogoUrl } from "../common/constants/emailBranding";
 import { ITransactionRegistrationDoc } from "../models/transactionRegistration";
 import {
   getLasreraCertificateConfig,
@@ -9,6 +10,16 @@ import {
   readBundledLasreraLogo,
 } from "./lasreraSettings.service";
 import { normalizeImageForPdf } from "../utils/imageForPdf";
+import {
+  CERTIFICATE_DISCLAIMER,
+  CERTIFICATE_SUBTITLE,
+  CERTIFICATE_TITLE,
+  certificateVerifyUrl,
+  toAuthorizedCertificateView,
+} from "./transactionCertificateRecord.service";
+import { applyCertificateSnapshot } from "./transactionJourney.service";
+import { generateUniqueTransactionReference } from "./transactionReference.service";
+import { logCertificateActivity } from "./transactionCertificateAudit.service";
 
 const TRANSACTION_TYPE_LABELS: Record<string, string> = {
   rental_agreement: "Rental Agreement",
@@ -307,31 +318,207 @@ export async function buildCertificatePreviewPdf(
   return buildCertificatePdf(buildSampleCertificateInput(), config);
 }
 
+export async function ensureTransactionCertificateIdentity(
+  reg: ITransactionRegistrationDoc
+): Promise<ITransactionRegistrationDoc> {
+  if (!reg.transactionReference) {
+    reg.transactionReference = await generateUniqueTransactionReference();
+  }
+  await applyCertificateSnapshot(reg);
+  return reg;
+}
+
+async function fetchQrBuffer(url: string): Promise<Buffer | null> {
+  try {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}`;
+    const response = await axios.get(qrUrl, { responseType: "arraybuffer", timeout: 12000 });
+    return Buffer.from(response.data);
+  } catch {
+    return null;
+  }
+}
+
+async function buildKhabiteqCertificatePdf(reg: ITransactionRegistrationDoc): Promise<Buffer> {
+  const view = toAuthorizedCertificateView(reg);
+  const logoBuffer = await resolvePdfImage(getKhabiteqEmailLogoUrl());
+  const qrBuffer = view.verifyUrl ? await fetchQrBuffer(view.verifyUrl) : null;
+
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 42 });
+    const chunks: Buffer[] = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    const pageWidth = doc.page.width;
+    const pageHeight = doc.page.height;
+    const contentWidth = pageWidth - 84;
+
+    doc.lineWidth(2).strokeColor("#09391C").rect(22, 22, pageWidth - 44, pageHeight - 44).stroke();
+    doc.lineWidth(0.6).strokeColor("#C9A227").rect(28, 28, pageWidth - 56, pageHeight - 56).stroke();
+
+    if (logoBuffer) {
+      doc.image(logoBuffer, pageWidth / 2 - 70, 40, { width: 140 });
+      doc.y = 108;
+    } else {
+      doc.y = 48;
+      doc.font("Helvetica-Bold").fontSize(16).fillColor("#09391C").text("KHABITEQ", 42, doc.y, {
+        width: contentWidth,
+        align: "center",
+      });
+    }
+
+    doc.font("Helvetica-Bold").fontSize(16).fillColor("#09391C").text(CERTIFICATE_TITLE, 42, doc.y + 8, {
+      width: contentWidth,
+      align: "center",
+    });
+    doc.moveDown(0.25);
+    doc.font("Helvetica").fontSize(9).fillColor("#6B7280").text(CERTIFICATE_SUBTITLE, {
+      width: contentWidth,
+      align: "center",
+    });
+    doc.moveDown(0.7);
+    doc.font("Helvetica-Bold").fontSize(11).fillColor("#09391C").text(
+      `TRANSACTION REFERENCE  ${view.transactionReference || "PENDING"}`,
+      { width: contentWidth, align: "center" }
+    );
+    if (view.propertyCode) {
+      doc.font("Helvetica").fontSize(10).fillColor("#374151").text(`PROPERTY CODE  ${view.propertyCode}`, {
+        width: contentWidth,
+        align: "center",
+      });
+    }
+
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#09391C").text("TRANSACTION SUMMARY");
+    doc.moveDown(0.25);
+
+    const summary: [string, string][] = [
+      ["Transaction Reference", view.transactionReference || "—"],
+      ["Property Code", view.propertyCode || "—"],
+      ["Property Type", view.propertyType || "—"],
+      ["Property Location", view.propertyLocation || "—"],
+      ["Transaction Type", view.transactionType],
+      ["Transaction Status", view.transactionStatus],
+      ["Certificate Status", view.certificateStatus || "—"],
+      ["Version", view.certificateVersion ? `${view.certificateVersion}.0` : "1.0"],
+      ["Registration Date", view.registrationDate || "—"],
+    ];
+
+    for (const [label, value] of summary) {
+      const y = doc.y;
+      doc.font("Helvetica").fontSize(8).fillColor("#6B7280").text(label.toUpperCase(), 42, y, { width: 160 });
+      doc.font("Helvetica-Bold").fontSize(9).fillColor("#111827").text(value, 210, y, { width: contentWidth - 168 });
+      doc.moveDown(0.28);
+    }
+
+    if (view.journey.length) {
+      doc.moveDown(0.4);
+      doc.font("Helvetica-Bold").fontSize(9).fillColor("#09391C").text("TRANSACTION JOURNEY");
+      doc.moveDown(0.2);
+      for (const row of view.journey.slice(0, 10)) {
+        const y = doc.y;
+        doc.font("Helvetica-Bold").fontSize(8).fillColor("#09391C").text(row.step, 42, y, { width: 24 });
+        doc.font("Helvetica-Bold").fontSize(8).fillColor("#111827").text(row.title.toUpperCase(), 70, y, {
+          width: 300,
+        });
+        doc.font("Helvetica").fontSize(8).fillColor("#6B7280").text(row.date, 380, y, { width: 140, align: "right" });
+        doc.moveDown(0.28);
+      }
+    }
+
+    if (view.participatingProfessionals.length) {
+      doc.moveDown(0.35);
+      doc.font("Helvetica-Bold").fontSize(9).fillColor("#09391C").text("PARTICIPATING PROFESSIONALS");
+      doc.moveDown(0.2);
+      for (const pro of view.participatingProfessionals.slice(0, 4)) {
+        doc.font("Helvetica-Bold").fontSize(8).fillColor("#111827").text(pro.name);
+        doc.font("Helvetica").fontSize(8).fillColor("#4B5563").text(
+          [pro.category, pro.licenceNumber, pro.verificationStatus].filter(Boolean).join("  ·  ")
+        );
+        doc.moveDown(0.15);
+      }
+    }
+
+    if (qrBuffer && view.verifyUrl) {
+      const qrY = pageHeight - 198;
+      doc.image(qrBuffer, pageWidth - 148, qrY, { width: 78, height: 78 });
+      doc.font("Helvetica-Bold").fontSize(8).fillColor("#09391C").text("VERIFY THIS CERTIFICATE", 42, qrY + 8);
+      doc.font("Helvetica").fontSize(8).fillColor("#374151").text(view.verifyUrl, 42, qrY + 24, { width: 320 });
+    }
+
+    doc
+      .font("Helvetica")
+      .fontSize(6.5)
+      .fillColor("#6B7280")
+      .text(CERTIFICATE_DISCLAIMER, 42, pageHeight - 78, {
+        width: contentWidth,
+        align: "justify",
+      });
+
+    doc.end();
+  });
+}
+
 export async function generateAndStoreRegistrationCertificate(
   reg: ITransactionRegistrationDoc,
   issuedByAdminId?: Types.ObjectId | string
-): Promise<{ certificateNumber: string; certificateUrl: string }> {
-  const config = await getLasreraCertificateConfig();
-  const certificateNumber = reg.certificateNumber || generateCertificateNumber(String(reg._id));
-  const pdfBuffer = await buildCertificatePdf(
-    inputFromRegistration(reg, certificateNumber),
-    config
-  );
-  const base64 = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
-  const filename = `lasrera-certificate-${String(reg._id).slice(-8)}`;
+): Promise<{ certificateNumber: string; certificateUrl: string; transactionReference: string }> {
+  await ensureTransactionCertificateIdentity(reg);
 
-  const upload = await uploadFile(base64, filename, "lasrera/certificates", "raw", {
+  const previousUrl = reg.certificateUrl;
+  const previousVersion = reg.certificateVersion || 0;
+  if (previousUrl && previousVersion > 0) {
+    reg.certificateVersions = [
+      ...(reg.certificateVersions || []),
+      {
+        version: previousVersion,
+        snapshotAt: reg.certificateIssuedAt || new Date(),
+        certificateUrl: previousUrl,
+        reason: "Reissued",
+        actorType: issuedByAdminId ? "Admin" : "System",
+        actorId: issuedByAdminId ? new Types.ObjectId(String(issuedByAdminId)) : undefined,
+      },
+    ];
+  }
+
+  const nextVersion = previousVersion > 0 ? previousVersion + 1 : 1;
+  const certificateNumber = reg.certificateNumber || generateCertificateNumber(String(reg._id));
+  const pdfBuffer = await buildKhabiteqCertificatePdf(reg);
+  const base64 = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
+  const filename = `khabiteq-certificate-${reg.transactionReference || String(reg._id).slice(-8)}`;
+
+  const upload = await uploadFile(base64, filename, "khabiteq/certificates", "raw", {
     format: "pdf",
   });
 
   reg.certificateNumber = certificateNumber;
   reg.certificateUrl = upload.secure_url;
   reg.certificateIssuedAt = new Date();
+  reg.certificateLastUpdatedAt = new Date();
+  reg.certificateVersion = nextVersion;
+  reg.certificateStatus = nextVersion > 1 ? "UPDATED" : "ACTIVE";
   if (issuedByAdminId) {
     reg.certificateIssuedBy = new Types.ObjectId(String(issuedByAdminId));
   }
   reg.status = "certificate_issued";
   await reg.save();
 
-  return { certificateNumber, certificateUrl: upload.secure_url };
+  await logCertificateActivity({
+    registrationId: String(reg._id),
+    transactionReference: reg.transactionReference,
+    actorType: issuedByAdminId ? "Admin" : "System",
+    actorId: issuedByAdminId,
+    action: nextVersion > 1 ? "CERTIFICATE_REISSUED" : "CERTIFICATE_ISSUED",
+    nextValue: {
+      version: nextVersion,
+      certificateUrl: upload.secure_url,
+    },
+  });
+
+  return {
+    certificateNumber,
+    certificateUrl: upload.secure_url,
+    transactionReference: String(reg.transactionReference),
+  };
 }

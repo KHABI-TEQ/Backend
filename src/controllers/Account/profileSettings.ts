@@ -76,11 +76,13 @@ export const getProfile = async (
       referralCode: user.referralCode,
       createdAt: user.createdAt,
       brmId: user.brmId || null,
+      pendingProfessionalType: user.pendingProfessionalType || null,
+      professionalUpgradeStatus: user.professionalUpgradeStatus || "none",
     };
 
     let responseData: any = userResponse;
     const ut = user.userType;
-    if (ut === "Agent" || ut === "Developer" || ut === "Landowners") {
+    if (ut === "Agent" || ut === "Developer" || ut === "Landowners" || ut === "PropertyScout") {
       const extra = await buildPublisherProfileExtensions(user);
       responseData = { ...userResponse, ...extra };
     }
@@ -715,7 +717,7 @@ export const getDashboardData = async (
       Object.assign(dashboardData, { completedDeals, totalCommission });
     }
 
-    if (user.userType === "Agent" || user.userType === "Developer") {
+    if (user.userType === "Agent" || user.userType === "Developer" || user.userType === "PropertyScout") {
       const { getPropertyScoutSnapshot } = await import(
         "../../services/propertyScout.service"
       );
@@ -725,6 +727,12 @@ export const getDashboardData = async (
         isLicensedPublisher: scout.isLicensedPublisher,
         displayRoleLabel: scout.displayRoleLabel,
         canAcceptInspectionRequests: !scout.isPropertyScout,
+        kycStatus: scout.kycStatus,
+        kycDisplayLabel: scout.kycDisplayLabel,
+        canSubmitOpportunity: scout.canSubmitOpportunity,
+        listingsRequireReview: scout.listingsRequireReview,
+        pendingProfessionalType: scout.pendingProfessionalType,
+        professionalUpgradeStatus: scout.professionalUpgradeStatus,
       });
     }
 

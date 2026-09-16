@@ -187,7 +187,7 @@ export const getMyActivitySummary = async (
           .lean(),
         DB.Models.TransactionRegistration.find({ "buyer.email": email })
           .select(
-            "status transactionType transactionValue propertyIdentification createdAt updatedAt"
+            "status transactionType transactionValue propertyIdentification createdAt updatedAt transactionReference propertyCode certificateStatus certificateUrl"
           )
           .sort({ createdAt: -1 })
           .limit(20)

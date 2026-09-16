@@ -161,6 +161,7 @@ export const preferenceValidationSchema = Joi.object({
  
   nearbyLandmark: Joi.string().allow(""),
   additionalNotes: Joi.string().allow(""),
+  propertyCode: Joi.string().trim().uppercase().allow("").optional(),
 
   partnerExpectations: Joi.string().allow(""), // For JV only
 

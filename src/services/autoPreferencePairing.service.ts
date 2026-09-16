@@ -382,7 +382,19 @@ export async function autoPairPreferenceById(
   const preference = await DB.Models.Preference.findById(preferenceId).lean();
   if (!preference) return { matchedCount: 0 };
 
-  const ids = await computeMatchingPropertyIdsForPreference(preference);
+  let ids = await computeMatchingPropertyIdsForPreference(preference);
+  const coded = String((preference as { propertyCode?: string }).propertyCode || "").trim();
+  if (coded) {
+    const { lookupPropertyByCode } = await import("./propertyCode.service");
+    const found = await lookupPropertyByCode(coded);
+    if (found?.property?.id) {
+      const priorityId = found.property.id;
+      ids = [
+        new Types.ObjectId(priorityId),
+        ...ids.filter((id) => String(id) !== priorityId),
+      ];
+    }
+  }
 
   if (ids.length > 0) {
     await persistMatchedPreferenceProperties({

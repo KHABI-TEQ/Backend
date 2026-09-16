@@ -39,6 +39,13 @@ export const getAllProperties = async (
       matchStage.propertyType = filters.propertyType;
     }
 
+    if (filters.scoutReview === "true") {
+      matchStage["owner.userType"] = "PropertyScout";
+      if (!filters.status) {
+        matchStage.status = { $in: ["pending", "flagged", "draft"] };
+      }
+    }
+
     if (filters.status) {
       const statuses = Array.isArray(filters.status)
         ? filters.status

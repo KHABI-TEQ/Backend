@@ -14,6 +14,14 @@ import { getAgentAccessGate } from "./agentPublisherEligibility.service";
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
 
+function ownerCreatedByQuery(userId: string | Types.ObjectId) {
+  const ids: Array<string | Types.ObjectId> = [userId, String(userId)];
+  if (Types.ObjectId.isValid(String(userId))) {
+    ids.push(new Types.ObjectId(String(userId)));
+  }
+  return { createdBy: { $in: ids } };
+}
+
 export class DealSiteService {
 
   /**
@@ -65,9 +73,7 @@ export class DealSiteService {
     }
 
     // Ensure the user doesn’t already have a DealSite
-    const existingUserSite = await DB.Models.DealSite.findOne({
-      createdBy: userId,
-    });
+    const existingUserSite = await DB.Models.DealSite.findOne(ownerCreatedByQuery(userId));
 
     if (existingUserSite) {
       throw new RouteError(
@@ -125,7 +131,7 @@ export class DealSiteService {
     userId: string,
     excludeConfidential: boolean = false
   ): Promise<IDealSiteDoc[]> {
-    const query = DB.Models.DealSite.find({ createdBy: userId }).sort({
+    const query = DB.Models.DealSite.find(ownerCreatedByQuery(userId)).sort({
       createdAt: -1,
     });
 
@@ -147,7 +153,7 @@ export class DealSiteService {
 
     const dealSite = await DB.Models.DealSite.findOne({
       publicSlug,
-      createdBy: userId,
+      ...ownerCreatedByQuery(userId),
     });
 
     if (!dealSite) {
@@ -178,10 +184,7 @@ export class DealSiteService {
     publicSlug: string
   ): Promise<IDealSiteDoc> {
 
-    const dealSite = await DB.Models.DealSite.findOne({
-      publicSlug,
-      createdBy: userId,
-    });
+    const dealSite = await DealSiteService.findOwnedBySlug(userId, publicSlug);
 
     if (!dealSite) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
@@ -211,10 +214,7 @@ export class DealSiteService {
     updates: Partial<IDealSite>
   ): Promise<IDealSiteDoc> {
 
-    const dealSite = await DB.Models.DealSite.findOne({
-      publicSlug,
-      createdBy: userId,
-    });
+    const dealSite = await DealSiteService.findOwnedBySlug(userId, publicSlug);
 
     if (!dealSite) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
@@ -249,10 +249,7 @@ export class DealSiteService {
     sectionName: string,
     updates: Record<string, any>
   ): Promise<IDealSiteDoc> {
-    const dealSite = await DB.Models.DealSite.findOne({
-      publicSlug,
-      createdBy: userId,
-    });
+    const dealSite = await DealSiteService.findOwnedBySlug(userId, publicSlug);
 
     if (!dealSite) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
@@ -390,10 +387,7 @@ export class DealSiteService {
     userId: string,
     publicSlug: string
   ): Promise<{ success: boolean; message: string }> {
-    const dealSite = await DB.Models.DealSite.findOne({
-      publicSlug,
-      createdBy: userId,
-    });
+    const dealSite = await DealSiteService.findOwnedBySlug(userId, publicSlug);
 
     if (!dealSite) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found");
@@ -415,6 +409,58 @@ export class DealSiteService {
       "./professionalSite.service"
     );
     return isPublicSlugGloballyAvailable(publicSlug);
+  }
+
+  static async findOwnedBySlug(userId: string, publicSlug: string) {
+    return DB.Models.DealSite.findOne({
+      publicSlug,
+      ...ownerCreatedByQuery(userId),
+    });
+  }
+
+  static async generateUniquePublicSlug(seed: string): Promise<string> {
+    const { normalizePublicSlug, isPublicSlugGloballyAvailable } = await import(
+      "./professionalSite.service"
+    );
+    const normalized = normalizePublicSlug(seed);
+    const base = !normalized || normalized.length < 3 ? `page-${normalized || "site"}` : normalized;
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const candidate = attempt === 0 ? base : `${base}-${Math.floor(100 + Math.random() * 900)}`;
+      const check = await isPublicSlugGloballyAvailable(candidate);
+      if (check.available) return candidate;
+    }
+    return `${base}-${Date.now().toString().slice(-5)}`;
+  }
+
+  /**
+   * Find the owner's DealSite, or create a paused page from branding details
+   * so first-time Developer/Agent saves after payment do not fail.
+   */
+  static async ensurePublicAccessForUser(
+    userId: string,
+    seed?: Partial<IDealSite>
+  ): Promise<IDealSiteDoc> {
+    const existing = await DB.Models.DealSite.findOne(ownerCreatedByQuery(userId)).sort({
+      createdAt: -1,
+    });
+    if (existing) return existing;
+
+    const publicSlug =
+      (seed?.publicSlug && String(seed.publicSlug).trim()) ||
+      (await DealSiteService.generateUniquePublicSlug(String(seed?.title || "practitioner")));
+
+    return DealSiteService.setUpPublicAccess(
+      userId,
+      {
+        publicSlug,
+        title: seed?.title || "My Practitioner Page",
+        description: seed?.description || "",
+        keywords: Array.isArray(seed?.keywords) ? seed.keywords : [],
+        logoUrl: seed?.logoUrl,
+        footer: seed?.footer,
+      },
+      { skipPaymentDetails: true }
+    );
   }
 
 
@@ -521,15 +567,21 @@ export class DealSiteService {
     return getPublicDealSiteKycGate(ownerUserId);
   }
 
+  static isPreviewQuery(query: unknown): boolean {
+    const value = (query as { preview?: unknown } | undefined)?.preview;
+    return value === "1" || value === "true" || value === true;
+  }
+
   /**
    * Validates whether a DealSite may be served to public visitors (running + KYC + subscription rules).
+   * Owner preview (`?preview=1`) can load paused pages so View Live Page works after branding.
    * Pauses the page when KYC grace has expired without approval.
    */
   static async validatePublicDealSiteVisitorAccess(dealSite: {
     _id?: unknown;
     status?: string;
     createdBy?: unknown;
-  }): Promise<
+  }, options?: { preview?: boolean }): Promise<
     | { readonly ok: true }
     | {
         readonly ok: false;
@@ -538,6 +590,19 @@ export class DealSiteService {
         readonly message: string;
       }
   > {
+    if (dealSite.status === "deleted") {
+      return {
+        ok: false,
+        httpStatus: HttpStatusCodes.NOT_FOUND,
+        errorCode: "DEALSITE_NOT_FOUND",
+        message: "Public access page not found",
+      } as const;
+    }
+
+    if (options?.preview) {
+      return { ok: true } as const;
+    }
+
     if (dealSite.status !== "running") {
       return {
         ok: false,

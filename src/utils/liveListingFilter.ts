@@ -18,6 +18,7 @@ export const LIVE_LISTING_STATUSES_EXCLUDED = [
   "failed",
   "never_listed",
   "booked",
+  "draft",
   "flagged",
   "hold",
   "temporarily_off_market",

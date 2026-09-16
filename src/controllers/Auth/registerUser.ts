@@ -128,6 +128,16 @@ export const registerUser = async (
       });
     }
 
+    if (userType === "Valuer") {
+      await DB.Models.ValuerProfile.create({
+        userId: newUser._id,
+        kycStatus: "none",
+        isMarketplaceVisible: false,
+        firmName: req.body.firmName || "",
+        licenseNumber: req.body.licenseNumber || "",
+      });
+    }
+
     if (isPublisherKycUserType(userType)) {
       await ensurePublisherProfile({ userId: String(newUser._id), userType });
     }

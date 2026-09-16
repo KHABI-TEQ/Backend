@@ -10,6 +10,7 @@ import {
   requestRegistrationCertificateDownload,
   downloadRegistrationCertificate,
 } from "../controllers/public/transactionRegistration/transactionRegistrationController";
+import { verifyTransactionCertificate } from "../controllers/public/transactionRegistration/verifyCertificate";
 
 const TransactionRegistrationRouter = express.Router();
 
@@ -33,6 +34,9 @@ TransactionRegistrationRouter.get("/check", checkPropertyRegistration);
 
 /** Optional E-GIS validate (stub for title/ownership verification) */
 TransactionRegistrationRouter.get("/egis-validate", egisValidate);
+
+/** Public certificate verification by KHT-TR reference */
+TransactionRegistrationRouter.get("/verify/:reference", verifyTransactionCertificate);
 
 /** Secure buyer certificate download (email + registration reference) */
 TransactionRegistrationRouter.post("/certificate/download", requestRegistrationCertificateDownload);

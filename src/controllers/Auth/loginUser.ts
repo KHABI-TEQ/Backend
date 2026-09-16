@@ -174,14 +174,19 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
-    if (user.userType === "Landowners") {
+    if (user.userType === "Landowners" || user.userType === "PropertyScout") {
       const kycStatus = await getPublisherKycStatus(String(user._id));
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Login successful",
         data: {
           token,
-          user: { ...userResponse, kycStatus },
+          user: {
+            ...userResponse,
+            kycStatus,
+            pendingProfessionalType: user.pendingProfessionalType || null,
+            professionalUpgradeStatus: user.professionalUpgradeStatus || "none",
+          },
         },
       });
     }
@@ -217,6 +222,24 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             ...userResponse,
             isAccountApproved: user.accountApproved,
             surveyorProfile: surveyorProfile || null,
+          },
+        },
+      });
+    }
+
+    if (user.userType === "Valuer") {
+      const valuerProfile = await DB.Models.ValuerProfile.findOne({
+        userId: user._id,
+      }).lean();
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Login successful",
+        data: {
+          token,
+          user: {
+            ...userResponse,
+            isAccountApproved: user.accountApproved,
+            valuerProfile: valuerProfile || null,
           },
         },
       });

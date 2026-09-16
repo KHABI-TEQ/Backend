@@ -74,7 +74,9 @@ import {
                 return;
             }
         
-            const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite);
+            const access = await DealSiteService.validatePublicDealSiteVisitorAccess(dealSite, {
+                preview: DealSiteService.isPreviewQuery(req.query),
+            });
             if (access.ok === false) {
                 res.status(access.httpStatus).json({
                     success: false,

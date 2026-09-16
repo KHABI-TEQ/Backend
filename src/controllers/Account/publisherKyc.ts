@@ -18,6 +18,7 @@ const KYC_USER_TYPE_LABEL: Record<string, string> = {
   Agent: "Agent",
   Developer: "Developer",
   Landowners: "Landlord",
+  PropertyScout: "Property Scout",
 };
 
 export const completePublisherKYC = async (
@@ -44,6 +45,14 @@ export const completePublisherKYC = async (
           success: false,
           message: "Agent profile not found for this account.",
         });
+      }
+    }
+
+    if (authUser.userType === "PropertyScout") {
+      if (!payload.practitionerType) payload.practitionerType = "Individual";
+      if (!payload.regionOfOperation?.length) {
+        const state = payload.address?.state;
+        payload.regionOfOperation = state ? [state] : ["Lagos"];
       }
     }
 

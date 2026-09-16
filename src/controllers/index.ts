@@ -75,6 +75,8 @@ import {
   IAgentReportModel,
   TransactionRegistration,
   ITransactionRegistrationModel,
+  TransactionRegistrationActivityLogModel,
+  ITransactionRegistrationActivityLogModel,
   RequestToMarketModel,
   IRequestToMarketModel,
   PlatformConnection,
@@ -101,6 +103,8 @@ import {
   ILawyerProfileModel,
   SurveyorProfile,
   ISurveyorProfileModel,
+  ValuerProfile,
+  IValuerProfileModel,
   SurveyRequest,
   ISurveyRequestModel,
   ProfessionalSite,
@@ -156,6 +160,7 @@ declare interface IModels {
   AgentRating: IAgentRatingModel;
   AgentReport: IAgentReportModel;
   TransactionRegistration: ITransactionRegistrationModel;
+  TransactionRegistrationActivityLog: ITransactionRegistrationActivityLogModel;
   RequestToMarket: IRequestToMarketModel;
   PlatformConnection: IPlatformConnectionModel;
   SyndicationJob: ISyndicationJobModel;
@@ -169,6 +174,7 @@ declare interface IModels {
   ChannelSession: IChannelSessionModel;
   LawyerProfile: ILawyerProfileModel;
   SurveyorProfile: ISurveyorProfileModel;
+  ValuerProfile: IValuerProfileModel;
   SurveyRequest: ISurveyRequestModel;
   ProfessionalSite: IProfessionalSiteModel;
   CustomDomainRequest: ICustomDomainRequestModel;
@@ -233,6 +239,7 @@ export class DB {
       AgentRating: new AgentRating().model,
       AgentReport: new AgentReport().model,
       TransactionRegistration: new TransactionRegistration().model,
+      TransactionRegistrationActivityLog: TransactionRegistrationActivityLogModel,
       RequestToMarket: new RequestToMarketModel().model,
       PlatformConnection: new PlatformConnection().model,
       SyndicationJob: new SyndicationJob().model,
@@ -246,6 +253,7 @@ export class DB {
       ChannelSession: new ChannelSession().model,
       LawyerProfile: new LawyerProfile().model,
       SurveyorProfile: new SurveyorProfile().model,
+      ValuerProfile: new ValuerProfile().model,
       SurveyRequest: new SurveyRequest().model,
       ProfessionalSite: new ProfessionalSite().model,
       CustomDomainRequest: new CustomDomainRequest().model,

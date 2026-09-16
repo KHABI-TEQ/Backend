@@ -32,6 +32,9 @@ import { notifyAllActiveAdmins } from "../../../services/adminNotification.servi
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { transactionRegistrationAcknowledgementMail } from "../../../common/emailTemplates/transactionConfirmationMails";
+import { ensureTransactionCertificateIdentity } from "../../../services/transactionRegistrationCertificate.service";
+import { logCertificateActivity } from "../../../services/transactionCertificateAudit.service";
+import { isTransactionReference, normalizeTransactionReference } from "../../../services/transactionReference.service";
 
 const ACTIVE_OR_COMPLETED_STATUSES = [
   "submitted",
@@ -537,6 +540,15 @@ export const registerTransaction = async (
       applyOptionalRegistrationDoc(createPayload, "conveyance", optionalDocSource);
     }
     const reg = await DB.Models.TransactionRegistration.create(createPayload);
+    await ensureTransactionCertificateIdentity(reg);
+    await reg.save();
+    void logCertificateActivity({
+      registrationId: String(reg._id),
+      transactionReference: reg.transactionReference,
+      actorType: "System",
+      action: "TRANSACTION_REGISTERED",
+      meta: { transactionType, propertyId: propertyId ?? null },
+    });
 
     if (propertyId) {
       await DB.Models.Property.findByIdAndUpdate(propertyId, {
@@ -565,9 +577,17 @@ export const registerTransaction = async (
       },
     });
 
-    const data: { registrationId: string; processingFee: number; paymentUrl?: string } = {
+    const data: {
+      registrationId: string;
+      processingFee: number;
+      paymentUrl?: string;
+      transactionReference?: string;
+      propertyCode?: string;
+    } = {
       registrationId: String(reg._id),
       processingFee: fee,
+      transactionReference: reg.transactionReference,
+      propertyCode: reg.propertyCode,
     };
 
     if (fee > 0) {
@@ -836,8 +856,9 @@ export const egisValidate = async (
 async function resolveBuyerCertificateAccess(email: string, registrationId: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const id = registrationId.trim();
+  const reference = normalizeTransactionReference(id);
 
-  if (!normalizedEmail || !id || !mongoose.Types.ObjectId.isValid(id)) {
+  if (!normalizedEmail || !id) {
     return {
       ok: false as const,
       status: HttpStatusCodes.BAD_REQUEST,
@@ -845,9 +866,15 @@ async function resolveBuyerCertificateAccess(email: string, registrationId: stri
     };
   }
 
-  const registration = await DB.Models.TransactionRegistration.findById(id)
-    .select("buyer status certificateUrl certificateNumber certificateIssuedAt")
-    .lean();
+  const registration = mongoose.Types.ObjectId.isValid(id)
+    ? await DB.Models.TransactionRegistration.findById(id)
+        .select("buyer status certificateUrl certificateNumber certificateIssuedAt transactionReference propertyCode")
+        .lean()
+    : await DB.Models.TransactionRegistration.findOne({
+        transactionReference: isTransactionReference(reference) ? reference : id.toUpperCase(),
+      })
+        .select("buyer status certificateUrl certificateNumber certificateIssuedAt transactionReference propertyCode")
+        .lean();
 
   if (!registration || registration.buyer?.email?.toLowerCase() !== normalizedEmail) {
     return {
@@ -863,7 +890,7 @@ async function resolveBuyerCertificateAccess(email: string, registrationId: stri
       ok: false as const,
       status: HttpStatusCodes.BAD_REQUEST,
       message:
-        "Your certificate is not yet available. Your registration may still be under review by KHABITEQ or LASRERA.",
+        "Your certificate is not yet available. Your registration may still be under review.",
     };
   }
 
@@ -872,9 +899,11 @@ async function resolveBuyerCertificateAccess(email: string, registrationId: stri
     data: {
       certificateUrl: registration.certificateUrl,
       certificateNumber: registration.certificateNumber,
+      transactionReference: registration.transactionReference,
+      propertyCode: registration.propertyCode,
       issuedAt: registration.certificateIssuedAt,
       buyerName: registration.buyer?.fullName,
-      registrationId: id,
+      registrationId: String(registration._id),
     },
   };
 }

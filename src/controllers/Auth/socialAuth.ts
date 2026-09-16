@@ -102,14 +102,19 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     });
   }
 
-  if (user.userType === 'Landowners') {
+  if (user.userType === 'Landowners' || user.userType === 'PropertyScout') {
     const kycStatus = await getPublisherKycStatus(user._id);
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: 'Login successful',
       data: {
         token,
-        user: { ...userResponse, kycStatus },
+        user: {
+          ...userResponse,
+          kycStatus,
+          pendingProfessionalType: user.pendingProfessionalType || null,
+          professionalUpgradeStatus: user.professionalUpgradeStatus || 'none',
+        },
       },
     });
   }
@@ -271,7 +276,7 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
     if (!userType) {
       throw new RouteError(
         HttpStatusCodes.NOT_FOUND,
-        'Account not found. If you are a new user, please register first, specifying your account type (Landowners, Agent, or Developer).'
+        'Account not found. If you are a new user, please register first, specifying your account type (Landowners, Agent, Developer, or Property Scout).'
       );
     }
 
@@ -301,6 +306,33 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
       await DB.Models.Agent.create({
         userId: newUser._id,
         accountStatus: 'active'
+      });
+    }
+
+    if (userType === 'Lawyer') {
+      await DB.Models.LawyerProfile.create({
+        userId: newUser._id,
+        verificationFee: 0,
+        kycStatus: 'none',
+        isMarketplaceVisible: false,
+      });
+    }
+
+    if (userType === 'Surveyor') {
+      await DB.Models.SurveyorProfile.create({
+        userId: newUser._id,
+        surveyFee: 0,
+        kycStatus: 'none',
+        isMarketplaceVisible: false,
+        serviceTypes: ['plan-verification'],
+      });
+    }
+
+    if (userType === 'Valuer') {
+      await DB.Models.ValuerProfile.create({
+        userId: newUser._id,
+        kycStatus: 'none',
+        isMarketplaceVisible: false,
       });
     }
 
@@ -407,7 +439,7 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
     if (!userType) {
       throw new RouteError(
         HttpStatusCodes.NOT_FOUND,
-        'Account not found. If you are a new user, please register first, specifying your account type (Landowners, Agent, or Developer).'
+        'Account not found. If you are a new user, please register first, specifying your account type (Landowners, Agent, Developer, or Property Scout).'
       );
     }
 
@@ -435,6 +467,33 @@ export const facebookAuth = async (req: AppRequest, res: Response, next: NextFun
 
     if (userType === 'Agent') {
       await DB.Models.Agent.create({ userId: newUser._id, accountStatus: 'active' });
+    }
+
+    if (userType === 'Lawyer') {
+      await DB.Models.LawyerProfile.create({
+        userId: newUser._id,
+        verificationFee: 0,
+        kycStatus: 'none',
+        isMarketplaceVisible: false,
+      });
+    }
+
+    if (userType === 'Surveyor') {
+      await DB.Models.SurveyorProfile.create({
+        userId: newUser._id,
+        surveyFee: 0,
+        kycStatus: 'none',
+        isMarketplaceVisible: false,
+        serviceTypes: ['plan-verification'],
+      });
+    }
+
+    if (userType === 'Valuer') {
+      await DB.Models.ValuerProfile.create({
+        userId: newUser._id,
+        kycStatus: 'none',
+        isMarketplaceVisible: false,
+      });
     }
 
     if (isPublisherKycUserType(userType)) {

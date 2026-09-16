@@ -17,11 +17,13 @@ import { getClientDashboardUrl } from "../../../utils/clientAppUrl";
 import { isPublisherKycUserType } from "../../../common/kycTypes";
 import { getPublisherKycStatus } from "../../../services/publisherKyc.service";
 import { resumeAgentPolicyPausedDealSites } from "../../../services/agentPublisherEligibility.service";
+import { completeProfessionalUpgradeIfPending } from "../../../services/professionalUpgrade.service";
 
 const ROLE_LABEL: Record<string, string> = {
   Agent: "Agent",
   Developer: "Developer",
   Landowners: "Landlord",
+  PropertyScout: "Property Scout",
 };
 
 /**
@@ -54,7 +56,7 @@ export const reviewPublisherKyc = async (
       return next(
         new RouteError(
           HttpStatusCodes.BAD_REQUEST,
-          "KYC review applies to Agent, Developer, or Landowner accounts only."
+          "KYC review applies to Agent, Developer, Landowner, or Property Scout accounts only."
         )
       );
     }
@@ -67,14 +69,15 @@ export const reviewPublisherKyc = async (
       });
     }
 
-    if (userAcct.userType === "Agent") {
+    if (userAcct.userType === "Agent" || userAcct.pendingProfessionalType === "Agent") {
       const agent = await DB.Models.Agent.findOne({ userId: userAcct._id }).exec();
-      if (!agent) {
+      if (agent) {
+        agent.kycStatus = approved ? "approved" : "rejected";
+        if (note?.trim()) agent.kycNote = note.trim();
+        await agent.save();
+      } else if (userAcct.userType === "Agent") {
         return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Agent record not found"));
       }
-      agent.kycStatus = approved ? "approved" : "rejected";
-      if (note?.trim()) agent.kycNote = note.trim();
-      await agent.save();
     }
 
     const existingProfile = await DB.Models.PublisherProfile.findOne({
@@ -111,6 +114,20 @@ export const reviewPublisherKyc = async (
       userAcct.isDeleted = false;
       userAcct.accountApproved = true;
       await userAcct.save();
+      if (
+        userAcct.pendingProfessionalType === "Agent" ||
+        userAcct.pendingProfessionalType === "Developer"
+      ) {
+        await completeProfessionalUpgradeIfPending(
+          String(userAcct._id),
+          userAcct.pendingProfessionalType
+        );
+      }
+      await userAcct.populate([]);
+      const refreshed = await DB.Models.User.findById(userAcct._id);
+      if (refreshed) {
+        userAcct.userType = refreshed.userType;
+      }
 
       if (userAcct.userType === "Agent") {
         await resumeAgentPolicyPausedDealSites(String(userAcct._id));
