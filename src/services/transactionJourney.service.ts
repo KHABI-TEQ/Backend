@@ -99,7 +99,7 @@ export async function snapshotTransactionCertificateRecord(
 }> {
   const property = reg.propertyId
     ? await DB.Models.Property.findById(reg.propertyId)
-        .select("propertyCode propertyType propertyCategory typeOfBuilding location createdBy owner")
+        .select("propertyCode propertyType propertyCategory typeOfBuilding location owner ownerModel")
         .lean()
     : null;
 
@@ -133,13 +133,13 @@ export async function snapshotTransactionCertificateRecord(
           .limit(8)
           .lean()
       : Promise.resolve([]),
-    property?.createdBy
-      ? DB.Models.DealSite.findOne({ createdBy: property.createdBy })
+    property?.owner
+      ? DB.Models.DealSite.findOne({ createdBy: property.owner })
           .select("publicSlug title createdBy")
           .lean()
       : Promise.resolve(null),
-    property?.createdBy
-      ? DB.Models.User.findById(property.createdBy).select("firstName lastName userType").lean()
+    property?.owner && property.ownerModel !== "Admin"
+      ? DB.Models.User.findById(property.owner).select("firstName lastName userType").lean()
       : Promise.resolve(null),
   ]);
 
