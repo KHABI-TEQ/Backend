@@ -32,6 +32,13 @@ import {
   payDocumentVerification,
   paySurveyRequest,
 } from "../controllers/public/professionalMarketplace";
+import {
+  listProfessionalServices,
+  getProfessionalService,
+  createCatalogServiceRequest,
+  payCatalogServiceRequest,
+  listMyCatalogServiceRequests,
+} from "../controllers/public/professionalCatalog";
 import { getBrmPicture, listActiveBrms } from "../controllers/public/listBrms";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
@@ -203,6 +210,12 @@ router.get("/surveyors/marketplace/:id", getMarketplaceSurveyor);
 router.post("/survey-requests", createSurveyRequest);
 router.post("/document-verifications/:id/pay", payDocumentVerification);
 router.post("/survey-requests/:id/pay", paySurveyRequest);
+
+router.get("/professional-services", listProfessionalServices);
+router.get("/professional-services/my-requests", listMyCatalogServiceRequests);
+router.get("/professional-services/:slug", getProfessionalService);
+router.post("/professional-services/:slug/requests", createCatalogServiceRequest);
+router.post("/professional-service-requests/:id/pay", payCatalogServiceRequest);
 
 // Partner → hub: syndication user authentication callback (after partner validates hub user credentials)
 router.post("/syndication/user/authentication/webhook", receiveSyndicationUserAuthWebhook);

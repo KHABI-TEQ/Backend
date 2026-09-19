@@ -21,11 +21,12 @@ import {
 } from "./professionalFee.service";
 import {
   buildBuyerDocumentMeta,
+  buildCatalogJobMeta,
   buildLawyerJobMeta,
   buildSurveyorJobMeta,
 } from "../utils/notificationDeepLinks";
 
-export type ProfessionalKind = "lawyer" | "surveyor";
+export type ProfessionalKind = "lawyer" | "surveyor" | "valuer";
 
 export function assertProfessionalPayoutReady(profile: {
   paystackSubaccountCode?: string | null;
@@ -45,6 +46,13 @@ export function marketplaceSearchRegex(search?: string): RegExp | null {
   return new RegExp(escaped, "i");
 }
 
+function kindLabelFor(kind: ProfessionalKind, serviceName?: string): string {
+  if (serviceName) return serviceName;
+  if (kind === "lawyer") return "document verification";
+  if (kind === "surveyor") return "survey";
+  return "valuation consultation";
+}
+
 export async function notifyProfessionalOfNewRequest(params: {
   kind: ProfessionalKind;
   professionalUserId: string;
@@ -53,22 +61,39 @@ export async function notifyProfessionalOfNewRequest(params: {
   referenceCode: string;
   jobId: string;
   summary: string;
+  serviceName?: string;
+  broadcast?: boolean;
 }): Promise<void> {
-  const kindLabel =
-    params.kind === "lawyer" ? "document verification" : "survey";
-  const meta =
-    params.kind === "lawyer"
+  const kindLabel = kindLabelFor(params.kind, params.serviceName);
+  const meta = params.broadcast
+    ? buildCatalogJobMeta({ category: params.kind, requestId: params.jobId })
+    : params.kind === "lawyer"
       ? buildLawyerJobMeta(params.jobId)
-      : buildSurveyorJobMeta(params.jobId);
+      : params.kind === "surveyor"
+        ? buildSurveyorJobMeta(params.jobId)
+        : buildCatalogJobMeta({ category: "valuer", requestId: params.jobId });
+
+  const title = params.broadcast
+    ? `New ${kindLabel} request`
+    : params.kind === "lawyer"
+      ? "New document verification request"
+      : params.kind === "surveyor"
+        ? "New survey request"
+        : "New valuation request";
+  const message = params.broadcast
+    ? `New ${kindLabel} request (${params.referenceCode}). Accept in Jobs.`
+    : `A buyer selected you for ${kindLabel} (${params.referenceCode}). Accept or decline in Jobs.`;
 
   await notificationService.createNotification({
     user: params.professionalUserId,
-    title:
+    title,
+    message,
+    type:
       params.kind === "lawyer"
-        ? "New document verification request"
-        : "New survey request",
-    message: `A buyer selected you for ${kindLabel} (${params.referenceCode}). Accept or decline in Jobs.`,
-    type: params.kind === "lawyer" ? "document" : "survey",
+        ? "document"
+        : params.kind === "surveyor"
+          ? "survey"
+          : "general",
     meta: { ...meta, referenceCode: params.referenceCode },
   });
 
@@ -79,6 +104,7 @@ export async function notifyProfessionalOfNewRequest(params: {
         kindLabel,
         referenceCode: params.referenceCode,
         summary: params.summary,
+        broadcast: params.broadcast,
       })
     );
     void sendEmail({
@@ -447,7 +473,11 @@ export async function emailProfessionalBuyerContacts(params: {
   const name =
     `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Professional";
   const kindLabel =
-    params.kind === "lawyer" ? "document verification" : "survey";
+    params.kind === "lawyer"
+      ? "document verification"
+      : params.kind === "surveyor"
+        ? "survey"
+        : "valuation consultation";
   const html = generalEmailLayout(
     professionalContactsUnlockedEmail({
       professionalName: name,
@@ -463,7 +493,9 @@ export async function emailProfessionalBuyerContacts(params: {
   const meta =
     params.kind === "lawyer"
       ? buildLawyerJobMeta(params.jobId)
-      : buildSurveyorJobMeta(params.jobId);
+      : params.kind === "surveyor"
+        ? buildSurveyorJobMeta(params.jobId)
+        : buildCatalogJobMeta({ category: "valuer", requestId: params.jobId });
 
   await notificationService.createNotification({
     user: String(params.professionalUserId),

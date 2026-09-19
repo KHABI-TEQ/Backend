@@ -99,7 +99,18 @@ import {
   applyMyProfessionalUpgrade,
   getMyProfessionalUpgrade,
 } from "../controllers/Account/professionalUpgrade";
-import { getValuerMe, submitValuerKyc } from "../controllers/Account/Valuer/valuerAccount";
+import {
+  getValuerMe,
+  submitValuerKyc,
+  listValuerJobs,
+  getValuerJob,
+  respondValuerJob,
+} from "../controllers/Account/Valuer/valuerAccount";
+import {
+  listProfessionalServiceJobs,
+  getProfessionalServiceJob,
+  respondProfessionalServiceJob,
+} from "../controllers/Account/professionalCatalogJobs";
 import { applyProfessionalUpgradeSchema } from "../validators/professionalUpgrade.validator";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
@@ -456,7 +467,17 @@ AccountRouter.post(
 AccountRouter.post("/custom-domain/pay", payCustomDomainPackage);
 AccountRouter.post("/custom-domain/renew", renewCustomDomain);
 
+AccountRouter.get("/professional-services/jobs", listProfessionalServiceJobs);
+AccountRouter.get("/professional-services/jobs/:id", getProfessionalServiceJob);
+AccountRouter.post(
+  "/professional-services/:id/respond",
+  respondProfessionalServiceJob
+);
+
 AccountRouter.get("/valuer/me", getValuerMe);
 AccountRouter.put("/valuer/kyc", submitValuerKyc);
+AccountRouter.get("/valuer/jobs", listValuerJobs);
+AccountRouter.get("/valuer/jobs/:id", getValuerJob);
+AccountRouter.post("/valuer/jobs/:id/respond", respondValuerJob);
 
 export default AccountRouter;

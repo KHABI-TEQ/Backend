@@ -5,11 +5,15 @@ export function professionalNewRequestEmail(params: {
   kindLabel: string;
   referenceCode: string;
   summary: string;
+  broadcast?: boolean;
 }): string {
+  const intro = params.broadcast
+    ? `A new <strong>${params.kindLabel}</strong> request is available. The first professional to accept will be assigned.`
+    : `A buyer selected you for a <strong>${params.kindLabel}</strong> request.`;
   return `
     <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
       <p>Dear ${params.professionalName},</p>
-      <p>A buyer selected you for a <strong>${params.kindLabel}</strong> request.</p>
+      <p>${intro}</p>
       <p><strong>Reference:</strong> ${params.referenceCode}</p>
       <p>${params.summary}</p>
       <p>Buyer contact details are hidden until you accept and the buyer completes payment.</p>

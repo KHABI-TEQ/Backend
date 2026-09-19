@@ -117,6 +117,8 @@ import {
   IPropertyImageEmbeddingModel,
   BusinessRelationManager,
   IBusinessRelationManagerModel,
+  ProfessionalServiceRequest,
+  IProfessionalServiceRequestModel,
 } from "../models/index";
 
 
@@ -181,6 +183,7 @@ declare interface IModels {
   PreferenceReview: IPreferenceReviewModel;
   PropertyImageEmbedding: IPropertyImageEmbeddingModel;
   BusinessRelationManager: IBusinessRelationManagerModel;
+  ProfessionalServiceRequest: IProfessionalServiceRequestModel;
 }
 
 export class DB {
@@ -260,6 +263,7 @@ export class DB {
       PreferenceReview: new PreferenceReview().model,
       PropertyImageEmbedding: new PropertyImageEmbedding().model,
       BusinessRelationManager: new BusinessRelationManager().model,
+      ProfessionalServiceRequest: new ProfessionalServiceRequest().model,
     };
   }
 

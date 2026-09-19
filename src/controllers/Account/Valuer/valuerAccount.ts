@@ -3,6 +3,11 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
+import {
+  acceptCatalogServiceRequest,
+  getCatalogJobForProfessional,
+  listCatalogJobsForProfessional,
+} from "../../../services/professionalCatalog.service";
 
 function requireValuerOrUpgrade(req: AppRequest) {
   const pending = (req.user as any)?.pendingProfessionalType;
@@ -59,6 +64,71 @@ export const submitValuerKyc = async (req: AppRequest, res: Response, next: Next
       success: true,
       message: "Valuer KYC submitted for review.",
       data: profile,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listValuerJobs = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireValuerOrUpgrade(req);
+    const jobs = await listCatalogJobsForProfessional(String(user._id), "valuer");
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: jobs,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getValuerJob = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireValuerOrUpgrade(req);
+    const job = await getCatalogJobForProfessional({
+      requestId: req.params.id,
+      userId: String(user._id),
+      category: "valuer",
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: job,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const respondValuerJob = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireValuerOrUpgrade(req);
+    const accept = req.body?.accept === true;
+    const reason = req.body?.reason as string | undefined;
+    const job = await acceptCatalogServiceRequest({
+      requestId: req.params.id,
+      userId: String(user._id),
+      accept,
+      reason,
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: accept
+        ? "Request accepted. The client has been asked to pay."
+        : "You declined this request. It remains open for other professionals.",
+      data: job,
     });
   } catch (err) {
     next(err);

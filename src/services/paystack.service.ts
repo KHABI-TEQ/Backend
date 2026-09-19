@@ -457,6 +457,9 @@ export class PaystackService {
       case 'custom-domain-renewal':
         return await PaystackService.handleCustomDomainRenewalPaymentEffect(tx);
 
+      case 'professional-service':
+        return await PaystackService.handleProfessionalServicePaymentEffect(tx);
+
       default:
         console.warn(`Unhandled transaction type: ${transactionType}`);
         return null;
@@ -535,6 +538,16 @@ export class PaystackService {
       "./customDomain.service"
     );
     await handleCustomDomainPackagePaid(tx);
+    return null;
+  }
+
+  static async handleProfessionalServicePaymentEffect(
+    tx: INewTransactionDoc
+  ): Promise<null> {
+    const requestId = tx.meta?.professionalServiceRequestId;
+    if (!requestId) return null;
+    const { markCatalogRequestPaid } = await import("./professionalCatalog.service");
+    await markCatalogRequestPaid(String(requestId));
     return null;
   }
 

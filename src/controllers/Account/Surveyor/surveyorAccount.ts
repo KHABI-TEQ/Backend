@@ -247,9 +247,16 @@ export const listSurveyorJobs = async (
       .populate("buyerId", "fullName email phoneNumber")
       .sort({ createdAt: -1 })
       .lean();
+    const { listCatalogJobsForProfessional } = await import(
+      "../../../services/professionalCatalog.service"
+    );
+    const catalogJobs = await listCatalogJobsForProfessional(
+      String(user._id),
+      "surveyor"
+    );
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: jobs.map(redactBuyerUntilPaid),
+      data: [...jobs.map(redactBuyerUntilPaid), ...catalogJobs],
     });
   } catch (err) {
     next(err);
@@ -269,12 +276,23 @@ export const getSurveyorJob = async (
     })
       .populate("buyerId", "fullName email phoneNumber")
       .lean();
-    if (!job) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Job not found.");
+    if (job) {
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        data: redactBuyerUntilPaid(job),
+      });
     }
+    const { getCatalogJobForProfessional } = await import(
+      "../../../services/professionalCatalog.service"
+    );
+    const catalogJob = await getCatalogJobForProfessional({
+      requestId: req.params.id,
+      userId: String(user._id),
+      category: "surveyor",
+    });
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: redactBuyerUntilPaid(job),
+      data: catalogJob,
     });
   } catch (err) {
     next(err);
@@ -290,6 +308,28 @@ export const respondSurveyorJob = async (
     const user = requireSurveyor(req);
     const accept = req.body?.accept === true;
     const reason = req.body?.reason as string | undefined;
+    const assigned = await DB.Models.SurveyRequest.findOne({
+      _id: req.params.id,
+      surveyorId: user._id,
+    }).select("_id");
+    if (!assigned) {
+      const { acceptCatalogServiceRequest } = await import(
+        "../../../services/professionalCatalog.service"
+      );
+      const job = await acceptCatalogServiceRequest({
+        requestId: req.params.id,
+        userId: String(user._id),
+        accept,
+        reason,
+      });
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: accept
+          ? "Request accepted. Buyer has been asked to pay."
+          : "You declined this request. It remains open for other professionals.",
+        data: job,
+      });
+    }
     const { respondToSurveyorRequest } = await import(
       "../../../services/professionalRequest.service"
     );

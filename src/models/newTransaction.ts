@@ -23,7 +23,8 @@ export type TransactionType =
   | 'request-to-market'
   | 'channel-registration-fee'
   | 'custom-domain-package'
-  | 'custom-domain-renewal';
+  | 'custom-domain-renewal'
+  | 'professional-service';
 
 export interface INewTransaction {
   reference: string;
@@ -101,6 +102,7 @@ export class NewTransaction {
             'channel-registration-fee',
             'custom-domain-package',
             'custom-domain-renewal',
+            'professional-service',
           ],
           required: true,
         },

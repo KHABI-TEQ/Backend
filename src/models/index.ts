@@ -58,3 +58,4 @@ export * from "./customDomainRequest";
 export * from "./preferenceReview";
 export * from "./propertyImageEmbedding";
 export * from "./businessRelationManager";
+export * from "./professionalServiceRequest";

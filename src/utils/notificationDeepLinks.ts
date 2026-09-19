@@ -184,6 +184,34 @@ export function buildSurveyorJobMeta(surveyRequestId: string): InboxDeepLinkMeta
   };
 }
 
+export function buildCatalogJobMeta(params: {
+  category: "lawyer" | "surveyor" | "valuer";
+  requestId: string;
+}): InboxDeepLinkMeta {
+  const requestId = String(params.requestId);
+  if (params.category === "lawyer") {
+    return {
+      ...buildLawyerJobMeta(requestId),
+      catalogRequestId: requestId,
+    };
+  }
+  if (params.category === "surveyor") {
+    return {
+      ...buildSurveyorJobMeta(requestId),
+      jobId: requestId,
+      catalogRequestId: requestId,
+    };
+  }
+  return {
+    source: "system",
+    audience: "practitioner",
+    screen: "valuer_job",
+    jobId: requestId,
+    catalogRequestId: requestId,
+    actionPath: `/valuer/jobs/${requestId}`,
+  };
+}
+
 /** Map User.userType to the practitioners app role segment. */
 export function publisherRoleSlugFromUserType(
   userType?: string | null
