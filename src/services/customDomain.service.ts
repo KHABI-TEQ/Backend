@@ -191,6 +191,7 @@ async function loadWhiteLabelingCatalog(ownerId: string) {
       SubscriptionPlanService.getAllActivePlans({
         category: SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING,
         audience,
+        catalogOnly: false,
       }),
       UserSubscriptionSnapshotService.getActiveSnapshot(ownerId, {
         category: "white-labeling",

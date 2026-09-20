@@ -24,7 +24,8 @@ export type TransactionType =
   | 'channel-registration-fee'
   | 'custom-domain-package'
   | 'custom-domain-renewal'
-  | 'professional-service';
+  | 'professional-service'
+  | 'search-insurance';
 
 export interface INewTransaction {
   reference: string;
@@ -103,6 +104,7 @@ export class NewTransaction {
             'custom-domain-package',
             'custom-domain-renewal',
             'professional-service',
+            'search-insurance',
           ],
           required: true,
         },

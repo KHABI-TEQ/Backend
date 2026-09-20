@@ -1349,6 +1349,7 @@ export function InspectionRequestWithNegotiation(
 ): string {
 	const referenceIds = transactionReferenceIdsBlock({
 		propertyId: propertyData.propertyId,
+		propertyCode: propertyData.propertyCode,
 		inspectionId: propertyData.inspectionId,
 	});
 	return `

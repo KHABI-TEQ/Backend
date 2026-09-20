@@ -1,7 +1,6 @@
 /**
  * Ensures Portfolio Unlimited exists and aligns LISTINGS features:
- * - Free / trial plans → 10
- * - Paid Premium catalog plans → 25
+ * - Paid catalog plans → 25
  * - Portfolio Unlimited → unlimited listings + custom domain / white-labeling
  *
  * Run: npx ts-node -r tsconfig-paths/register src/scripts/ensurePortfolioUnlimitedPlan.ts
@@ -10,7 +9,6 @@ import "dotenv/config";
 import mongoose from "mongoose";
 import { DB } from "../controllers";
 import {
-  FREE_TRIAL_LISTING_LIMIT,
   PORTFOLIO_UNLIMITED_BENEFITS,
   PORTFOLIO_UNLIMITED_PRICING,
   PUBLISHER_STANDARD_LISTING_LIMIT,
@@ -174,13 +172,11 @@ async function alignCatalogListingCaps(listingsFeatureId: string) {
     category: { $ne: "white-labeling" },
   }).populate("features.feature");
 
-  let freeUpdated = 0;
   let premiumUpdated = 0;
 
   for (const plan of plans) {
-    const target = isFreeOrTrialPlan(plan)
-      ? FREE_TRIAL_LISTING_LIMIT
-      : PUBLISHER_STANDARD_LISTING_LIMIT;
+    if (isFreeOrTrialPlan(plan)) continue;
+    const target = PUBLISHER_STANDARD_LISTING_LIMIT;
     let changed = false;
 
     for (const assigned of plan.features) {
@@ -204,13 +200,12 @@ async function alignCatalogListingCaps(listingsFeatureId: string) {
 
     if (changed) {
       await plan.save();
-      if (target === FREE_TRIAL_LISTING_LIMIT) freeUpdated += 1;
-      else premiumUpdated += 1;
+      premiumUpdated += 1;
     }
   }
 
   console.log(
-    `Aligned LISTINGS: Free/trial → ${FREE_TRIAL_LISTING_LIMIT} (${freeUpdated} plan(s)); Premium → ${PUBLISHER_STANDARD_LISTING_LIMIT} (${premiumUpdated} plan(s)).`
+    `Aligned LISTINGS on paid catalog plans → ${PUBLISHER_STANDARD_LISTING_LIMIT} (${premiumUpdated} plan(s)).`
   );
 }
 

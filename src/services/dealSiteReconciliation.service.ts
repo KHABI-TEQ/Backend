@@ -27,8 +27,7 @@ async function resumeIfPolicyPaused(siteId: unknown): Promise<boolean> {
 }
 
 /**
- * Reconcile Agent DealSites against trial/subscription policy.
- * Developers are not subject to subscription-based DealSite pausing.
+ * Reconcile Agent DealSites against paid-subscription policy.
  */
 export const reconcileRunningDealSitesWithoutActiveSubscription =
   async (): Promise<DealSiteReconciliationResult> => {

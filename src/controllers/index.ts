@@ -119,6 +119,10 @@ import {
   IBusinessRelationManagerModel,
   ProfessionalServiceRequest,
   IProfessionalServiceRequestModel,
+  SearchInsurancePolicy,
+  ISearchInsurancePolicyModel,
+  SearchInsuranceClaim,
+  ISearchInsuranceClaimModel,
 } from "../models/index";
 
 
@@ -184,6 +188,8 @@ declare interface IModels {
   PropertyImageEmbedding: IPropertyImageEmbeddingModel;
   BusinessRelationManager: IBusinessRelationManagerModel;
   ProfessionalServiceRequest: IProfessionalServiceRequestModel;
+  SearchInsurancePolicy: ISearchInsurancePolicyModel;
+  SearchInsuranceClaim: ISearchInsuranceClaimModel;
 }
 
 export class DB {
@@ -264,6 +270,8 @@ export class DB {
       PropertyImageEmbedding: new PropertyImageEmbedding().model,
       BusinessRelationManager: new BusinessRelationManager().model,
       ProfessionalServiceRequest: new ProfessionalServiceRequest().model,
+      SearchInsurancePolicy: new SearchInsurancePolicy().model,
+      SearchInsuranceClaim: new SearchInsuranceClaim().model,
     };
   }
 

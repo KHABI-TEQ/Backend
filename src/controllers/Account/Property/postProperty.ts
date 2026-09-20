@@ -13,8 +13,8 @@ import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { assertPropertyListingAllowedForOwner } from "../../../services/propertyListingEligibility.service";
 import { assertCanListOffPlanIfRequested } from "../../../services/developerPlanEntitlement.service";
-import { agentHasUnlimitedPropertyListings } from "../../../services/agentSubscriptionIncentive.service";
-import { isAgentSubscriptionRequired } from "../../../services/agentPublisherEligibility.service";
+import { publisherHasUnlimitedListings } from "../../../services/publisherListingEligibility.service";
+import { isPublisherUserType } from "../../../common/constants/publisherListingLimits";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import { listingCommissionFields } from "../../../common/constants/listingCommission";
 import mongoose from "mongoose";
@@ -148,14 +148,12 @@ export const postProperty = async (
     // ✅ Create property first (inside session)
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    // Paid practitioner subscriptions include unlimited listings (no LISTINGS quota deduction).
-    const unlimitedListings =
-      userType === "Agent" ? await agentHasUnlimitedPropertyListings(String(userId)) : false;
-    const subscriptionRequired =
-      userType === "Agent" ? await isAgentSubscriptionRequired(String(userId)) : false;
+    const unlimitedListings = isPublisherUserType(userType)
+      ? await publisherHasUnlimitedListings(String(userId))
+      : false;
 
-    // ✅ Deduct quota only when a paid subscription is required and listings are not unlimited.
-    if (activeSnapshot && subscriptionRequired && !unlimitedListings) {
+    // Deduct LISTINGS quota on paid plans that are not Portfolio Unlimited.
+    if (activeSnapshot && isPublisherUserType(userType) && !unlimitedListings) {
       try {
         if (preferenceId) {
           await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(

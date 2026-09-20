@@ -4,14 +4,15 @@ import { RouteError } from "../common/classes";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import type { IUserSubscriptionSnapshotDoc } from "../models";
 import {
-  AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE,
   getAgentAccessGate,
-  isAgentKycGraceListingLimitReached,
+  SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE,
 } from "./agentPublisherEligibility.service";
+import { getActivePaidAgentSubscriptionSnapshot } from "./agentSubscriptionIncentive.service";
 import { assertPublisherListingCapacity } from "./publisherListingEligibility.service";
+import { isPublisherUserType } from "../common/constants/publisherListingLimits";
 
 /** @deprecated Use PUBLISHER_STANDARD_LISTING_LIMIT from publisherListingLimits. */
-export const FREE_PROPERTY_LIMIT = 1;
+export const FREE_PROPERTY_LIMIT = 0;
 
 /** @deprecated Use PUBLISHER_STANDARD_LISTING_LIMIT */
 export const FREE_PROPERTY_LIMIT_AGENT_DEVELOPER = FREE_PROPERTY_LIMIT;
@@ -19,8 +20,9 @@ export const FREE_PROPERTY_LIMIT_AGENT_DEVELOPER = FREE_PROPERTY_LIMIT;
 export type ActiveSnapshot = IUserSubscriptionSnapshotDoc | null;
 
 /**
- * Landlord / Developer / Agent — standard 25 listing cap unless Portfolio Unlimited is active.
- * Agent — also subject to KYC grace and trial/subscription gates.
+ * Publishers (Agent, Developer, Landowner, Property Scout) must have a paid
+ * subscription to list. Agents also need approved KYC. Listing volume is then
+ * capped at 25 unless Portfolio Unlimited is active.
  */
 export async function assertPropertyListingAllowedForOwner(params: {
   ownerId: Types.ObjectId | string;
@@ -29,23 +31,25 @@ export async function assertPropertyListingAllowedForOwner(params: {
   const { ownerId, userType } = params;
   const ownerIdStr = ownerId.toString();
 
-  if (userType === "Agent") {
-    const gate = await getAgentAccessGate(ownerIdStr);
-    if (gate.ok === false) {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, gate.message);
-    }
-
-    if (await isAgentKycGraceListingLimitReached(ownerIdStr)) {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE);
+  if (isPublisherUserType(userType)) {
+    if (userType === "Agent") {
+      const gate = await getAgentAccessGate(ownerIdStr);
+      if (gate.ok === false) {
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, gate.message);
+      }
+    } else {
+      const paid = await getActivePaidAgentSubscriptionSnapshot(ownerIdStr);
+      if (!paid) {
+        throw new RouteError(HttpStatusCodes.FORBIDDEN, SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE);
+      }
     }
   }
 
   await assertPublisherListingCapacity({ ownerId, userType });
 
-  const activeSnapshot =
-    userType === "Agent"
-      ? await UserSubscriptionSnapshotService.getActiveSnapshot(ownerIdStr)
-      : null;
+  const activeSnapshot = isPublisherUserType(userType)
+    ? await UserSubscriptionSnapshotService.getActiveSnapshot(ownerIdStr)
+    : null;
 
   return { activeSnapshot };
 }

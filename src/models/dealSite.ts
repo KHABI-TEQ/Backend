@@ -135,6 +135,27 @@ export interface IDealSite {
       coordinates?: [number, number];
     };
   };
+  navigation?: {
+    items: {
+      key: string;
+      label: string;
+      href: string;
+      enabled: boolean;
+    }[];
+  };
+  faqs?: {
+    title?: string;
+    items: {
+      question: string;
+      answer: string;
+    }[];
+  };
+  customPages?: {
+    slug: string;
+    title: string;
+    body: string;
+    enabled: boolean;
+  }[];
   subscribeSettings?: {
     title: string;
     subTitle: string;
@@ -342,6 +363,33 @@ export class DealSite {
             coordinates: [{ type: Number }],
           },
         },
+        navigation: {
+          items: [
+            {
+              key: { type: String },
+              label: { type: String },
+              href: { type: String },
+              enabled: { type: Boolean, default: true },
+            },
+          ],
+        },
+        faqs: {
+          title: { type: String, default: "Frequently asked questions" },
+          items: [
+            {
+              question: { type: String },
+              answer: { type: String },
+            },
+          ],
+        },
+        customPages: [
+          {
+            slug: { type: String, trim: true, lowercase: true },
+            title: { type: String },
+            body: { type: String },
+            enabled: { type: Boolean, default: true },
+          },
+        ],
         subscribeSettings: {
           title: { type: String, default: "" },
           subTitle: { type: String, default: "" },

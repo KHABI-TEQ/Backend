@@ -397,10 +397,11 @@ export async function notifyBuyerPaymentLink(params: {
   amount: number;
   paymentUrl: string;
   propertyId?: string;
+  propertyCode?: string;
   inspectionId?: string;
 }): Promise<void> {
-  const { buyerEmail, buyerName, propertyLocation, amount, paymentUrl, propertyId, inspectionId } = params;
-  const referenceIds = transactionReferenceIdsBlock({ propertyId, inspectionId });
+  const { buyerEmail, buyerName, propertyLocation, amount, paymentUrl, propertyId, propertyCode, inspectionId } = params;
+  const referenceIds = transactionReferenceIdsBlock({ propertyId, propertyCode, inspectionId });
   const html = generalEmailLayout(`
     <p>Hello ${buyerName || "there"},</p>
     <p>Your inspection request for <strong>${propertyLocation}</strong> has been accepted by the agent.</p>
@@ -461,6 +462,7 @@ export async function notifyBuyerAcceptedNoPayment(params: {
   inspectionDate?: string;
   inspectionTime?: string;
   propertyId?: string;
+  propertyCode?: string;
   inspectionId?: string;
 }): Promise<void> {
   const {
@@ -471,9 +473,10 @@ export async function notifyBuyerAcceptedNoPayment(params: {
     inspectionDate,
     inspectionTime,
     propertyId,
+    propertyCode,
     inspectionId,
   } = params;
-  const referenceIds = transactionReferenceIdsBlock({ propertyId, inspectionId });
+  const referenceIds = transactionReferenceIdsBlock({ propertyId, propertyCode, inspectionId });
 
   const detailsSection = propertyDetails
     ? (() => {
@@ -683,8 +686,14 @@ export async function sendInspectionRateReportEmailToBuyer(inspectionId: string)
   const reportLink = `${baseUrl}/report-agent?inspectionId=${inspectionId}`;
   const buyerName = buyer.fullName || buyer.email || "there";
   const propertyId = inv.propertyId?._id?.toString?.() ?? inv.propertyId?.toString?.() ?? "";
+  let propertyCode = String(inv.propertyId?.propertyCode || "").trim();
+  if (!propertyCode && propertyId) {
+    const listing = await DB.Models.Property.findById(propertyId).select("propertyCode").lean();
+    propertyCode = String((listing as { propertyCode?: string } | null)?.propertyCode || "").trim();
+  }
   const referenceIds = transactionReferenceIdsBlock({
     propertyId,
+    propertyCode,
     inspectionId: String(inspectionId),
   });
 

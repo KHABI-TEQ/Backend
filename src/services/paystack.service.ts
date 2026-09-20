@@ -460,6 +460,9 @@ export class PaystackService {
       case 'professional-service':
         return await PaystackService.handleProfessionalServicePaymentEffect(tx);
 
+      case 'search-insurance':
+        return await PaystackService.handleSearchInsurancePaymentEffect(tx);
+
       default:
         console.warn(`Unhandled transaction type: ${transactionType}`);
         return null;
@@ -548,6 +551,20 @@ export class PaystackService {
     if (!requestId) return null;
     const { markCatalogRequestPaid } = await import("./professionalCatalog.service");
     await markCatalogRequestPaid(String(requestId));
+    return null;
+  }
+
+  static async handleSearchInsurancePaymentEffect(
+    tx: INewTransactionDoc
+  ): Promise<null> {
+    const { activateSearchInsuranceFromPayment } = await import(
+      "./searchInsurance.service"
+    );
+    await activateSearchInsuranceFromPayment({
+      _id: tx._id as Types.ObjectId,
+      meta: tx.meta,
+      amount: tx.amount,
+    });
     return null;
   }
 

@@ -28,6 +28,7 @@ import {
   resolveCatalogAudienceForUser,
   assertUserCanPurchasePlanAudience,
 } from "../../../services/subscriptionPlanAudience.service";
+import { catalogDefinitionByCode } from "../../../common/constants/subscriptionCatalog";
 import {
   linkCustomDomainRequestToUnlimitedCheckout,
   prepareCustomDomainRequestForUnlimitedCheckout,
@@ -47,12 +48,23 @@ export const createSubscription = async (
     const userId = req.user?._id;
     const userType = (req.user as any)?.userType;
 
-    // Agents, Developers, and Landlords (Portfolio Unlimited only) may create subscriptions
-    if (userType !== "Agent" && userType !== "Developer" && userType !== "Landowners") {
-      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Only registered agents, developers, or landlords can create subscriptions.");
+    const canSubscribe = [
+      "Agent",
+      "Developer",
+      "Landowners",
+      "PropertyScout",
+      "Lawyer",
+      "Surveyor",
+      "Valuer",
+    ].includes(String(userType || ""));
+    if (!canSubscribe) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Only registered professionals can create subscriptions."
+      );
     }
 
-    if (userType === "Agent") {
+    if (userType === "Agent" || userType === "PropertyScout") {
       const scout = await isPropertyScout(String(userId));
       if (!scout && !(await isPublisherKycApproved(userId))) {
         throw new RouteError(
@@ -64,7 +76,7 @@ export const createSubscription = async (
 
     if (userType === "Agent") {
       const agentAccount = await DB.Models.Agent.findOne({ userId });
-      if (!agentAccount) {
+      if (!agentAccount && !(await isPropertyScout(String(userId)))) {
         throw new RouteError(HttpStatusCodes.NOT_FOUND, "Only registered agents can create subscriptions.");
       }
     }
@@ -74,11 +86,17 @@ export const createSubscription = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Plan code is required");
     }
 
-    if (userType === "Landowners" && !isUnlimitedListingPlanCode(planCode)) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Landlords may only subscribe to the Portfolio Unlimited plan for additional listings."
-      );
+    if (userType === "Landowners") {
+      const def = catalogDefinitionByCode(planCode);
+      const isDistribution =
+        def?.group === "developer-distribution" ||
+        String(planCode || "").toUpperCase().includes("DISTRIBUTION");
+      if (!isDistribution) {
+        throw new RouteError(
+          HttpStatusCodes.FORBIDDEN,
+          "Property owner accounts use the Property Distribution plan."
+        );
+      }
     }
 
     let resolved;
@@ -264,7 +282,7 @@ export const fetchUserSubscriptions = async (
           },
           {
             path: "plan",
-            select: "name code category benefits billingInterval",
+            select: "name code category audience benefits billingInterval",
           },
         ],
       });
@@ -312,7 +330,7 @@ export const getUserSubscriptionDetails = async (
       })
       .populate({
         path: "plan",
-        select: "name code category benefits billingInterval",
+        select: "name code category audience benefits billingInterval",
       })
       .lean();
 
@@ -503,13 +521,21 @@ export const getAllActiveSubscriptionPlans = async (
           ? SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
           : rawAudience === "developer"
             ? SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER
+          : rawAudience === "lawyer"
+            ? SUBSCRIPTION_PLAN_AUDIENCES.LAWYER
+          : rawAudience === "surveyor"
+            ? SUBSCRIPTION_PLAN_AUDIENCES.SURVEYOR
+          : rawAudience === "valuer"
+            ? SUBSCRIPTION_PLAN_AUDIENCES.VALUER
           : rawAudience === "licensed"
             ? SUBSCRIPTION_PLAN_AUDIENCES.LICENSED
             : await resolveCatalogAudienceForUser(req.user?._id ? String(req.user._id) : null);
 
+    const catalogOnly = category !== SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING;
     const plans = await SubscriptionPlanService.getAllActivePlans({
       category,
       audience,
+      catalogOnly,
     });
 
     const enriched = (plans as any[]).map((plan) => {
@@ -554,8 +580,15 @@ export const getAllActiveSubscriptionPlans = async (
             : audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
               ? "Property Scout"
               : audience === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER
-                ? "Developer"
-              : "Licensed Agent / Developer",
+                ? "Developer / Property Owner"
+              : audience === SUBSCRIPTION_PLAN_AUDIENCES.LAWYER
+                ? "Lawyer"
+              : audience === SUBSCRIPTION_PLAN_AUDIENCES.SURVEYOR
+                ? "Surveyor"
+              : audience === SUBSCRIPTION_PLAN_AUDIENCES.VALUER
+                ? "Valuer"
+              : "Licensed Agent",
+        groups: SubscriptionPlanService.catalogGroupsMeta(),
       },
     });
   } catch (err) {

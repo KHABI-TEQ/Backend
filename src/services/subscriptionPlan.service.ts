@@ -19,6 +19,13 @@ import {
   type SubscriptionPlanAudience,
   type SubscriptionPlanCategory,
 } from "../common/constants/subscriptionCategories";
+import {
+  CATALOG_GROUPS,
+  CATALOG_VISIBLE_PLAN_CODES,
+  catalogDefinitionByCode,
+  catalogGroupForAudience,
+  registerHrefForAudience,
+} from "../common/constants/subscriptionCatalog";
 
 export type ResolvedSubscriptionPlan = {
   plan: ISubscriptionPlanDoc;
@@ -321,32 +328,27 @@ export class SubscriptionPlanService {
     includeHiddenFromCatalog?: boolean;
     category?: SubscriptionPlanCategory | "all";
     audience?: SubscriptionPlanAudience | "all";
+    catalogOnly?: boolean;
   }): Promise<ISubscriptionPlanDoc[]> {
     const filter: Record<string, unknown> = { isActive: true };
     const and: Record<string, unknown>[] = [];
     const category = options?.category ?? SUBSCRIPTION_PLAN_CATEGORIES.STANDARD;
 
-    if (category !== "all") {
-      if (category === SUBSCRIPTION_PLAN_CATEGORIES.STANDARD) {
-        and.push({
-          $or: [
-            { category: SUBSCRIPTION_PLAN_CATEGORIES.STANDARD },
-            { category: { $exists: false } },
-            { category: null },
-          ],
-        });
-      } else {
-        and.push({ category });
-      }
+    if (category === SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING) {
+      and.push({ category });
+    } else {
+      and.push({
+        $or: [
+          { category: SUBSCRIPTION_PLAN_CATEGORIES.STANDARD },
+          { category: { $exists: false } },
+          { category: null },
+        ],
+      });
     }
 
     const audience = options?.audience ?? SUBSCRIPTION_PLAN_AUDIENCES.LICENSED;
     if (audience !== "all") {
-      if (audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT) {
-        and.push({ audience: SUBSCRIPTION_PLAN_AUDIENCES.SCOUT });
-      } else if (audience === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER) {
-        and.push({ audience: SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER });
-      } else {
+      if (audience === SUBSCRIPTION_PLAN_AUDIENCES.LICENSED) {
         and.push({
           $or: [
             { audience: SUBSCRIPTION_PLAN_AUDIENCES.LICENSED },
@@ -354,7 +356,13 @@ export class SubscriptionPlanService {
             { audience: null },
           ],
         });
+      } else {
+        and.push({ audience });
       }
+    }
+
+    if (options?.catalogOnly !== false) {
+      and.push({ code: { $in: CATALOG_VISIBLE_PLAN_CODES } });
     }
 
     if (and.length) filter.$and = and;
@@ -454,13 +462,17 @@ export class SubscriptionPlanService {
   static enrichPlanForCatalog(plan: any) {
     const category = resolvePlanCategory(plan.category);
     const audience = resolvePlanAudience(plan.audience);
+    const definition = catalogDefinitionByCode(plan.code);
+    const catalogGroup = definition?.group || catalogGroupForAudience(audience);
+    const groupMeta = CATALOG_GROUPS[catalogGroup];
     const grantsListingEligibility = true;
-    const grantsCustomDomain =
-      isWhiteLabelingCategory(category) || !!plan.unlimitedListings;
     const billingInterval = resolveInterval(
       plan.billingInterval,
       plan.durationInDays
     );
+    const benefits = definition?.benefits?.length
+      ? definition.benefits
+      : listPlanBenefits(plan);
     const discountedPlans = (plan.discountedPlans || []).map((dp: any) => {
       const interval = resolveInterval(dp.billingInterval, dp.durationInDays);
       return {
@@ -474,9 +486,9 @@ export class SubscriptionPlanService {
           ? SUBSCRIPTION_BILLING_INTERVAL_LABELS[interval]
           : null,
         grantsListingEligibility,
-        grantsCustomDomain,
+        grantsCustomDomain: false,
         benefits: listPlanBenefits({
-          benefits: dp.benefits,
+          benefits: dp.benefits?.length ? dp.benefits : benefits,
           features: plan.features,
         }),
       };
@@ -484,19 +496,45 @@ export class SubscriptionPlanService {
 
     return {
       ...plan,
+      name: definition?.name || plan.name,
       category,
       categoryLabel: categoryLabel(category),
       audience,
       audienceLabel: audienceLabel(audience),
+      catalogGroup,
+      catalogGroupLabel: groupMeta.label,
+      headline: definition?.headline || groupMeta.headline,
+      tagline: groupMeta.tagline,
+      designedFor: definition?.designedFor || groupMeta.designedFor,
+      featureDetails: definition?.featureDetails || [],
+      registerHref: registerHrefForAudience(audience),
+      displayWithCode: definition?.displayWithCode || null,
       billingInterval,
       billingIntervalLabel: billingInterval
         ? SUBSCRIPTION_BILLING_INTERVAL_LABELS[billingInterval]
         : null,
       grantsListingEligibility,
-      grantsCustomDomain,
-      benefits: listPlanBenefits(plan),
+      grantsCustomDomain: false,
+      benefits,
       discountedPlans,
     };
+  }
+
+  static catalogGroupsMeta() {
+    return Object.values(CATALOG_GROUPS)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((group) => ({
+        key: group.key,
+        label: group.label,
+        eyebrow: group.eyebrow,
+        headline: group.headline,
+        tagline: group.tagline,
+        designedFor: group.designedFor,
+        quote: group.quote || null,
+        highlights: group.highlights || [],
+        registerHref: group.registerHref,
+        sortOrder: group.sortOrder,
+      }));
   }
 
   private static assertCategoryIntervals(input: {

@@ -12,6 +12,8 @@ export type AdminNotificationType =
   | "custom_domain_package_paid"
   | "custom_domain_renewal_paid"
   | "custom_domain_renewal_due"
+  | "search_insurance_paid"
+  | "search_insurance_claim_submitted"
   | "general";
 
 export interface IAdminNotification {
@@ -39,6 +41,8 @@ const TYPE_ENUM: AdminNotificationType[] = [
   "custom_domain_package_paid",
   "custom_domain_renewal_paid",
   "custom_domain_renewal_due",
+  "search_insurance_paid",
+  "search_insurance_claim_submitted",
   "general",
 ];
 

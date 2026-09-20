@@ -77,6 +77,12 @@ import {
   adminUpdateReport,
 } from "../controllers/Admin/agentRatingReport";
 import {
+  adminListSearchInsurancePolicies,
+  adminListSearchInsuranceClaims,
+  adminGetSearchInsuranceClaim,
+  adminPatchSearchInsuranceClaim,
+} from "../controllers/Admin/searchInsuranceAdmin";
+import {
   getAllTransactionRegistrations,
   getTransactionRegistrationStats,
   getTransactionRegistrationById,
@@ -622,6 +628,11 @@ AdminRouter.get("/ratings", adminListRatings);
 AdminRouter.get("/reports", adminListReports);
 AdminRouter.get("/reports/:id", adminGetReportById);
 AdminRouter.patch("/reports/:id", adminUpdateReport);
+
+AdminRouter.get("/search-insurance/policies", adminListSearchInsurancePolicies);
+AdminRouter.get("/search-insurance/claims", adminListSearchInsuranceClaims);
+AdminRouter.get("/search-insurance/claims/:id", adminGetSearchInsuranceClaim);
+AdminRouter.patch("/search-insurance/claims/:id", adminPatchSearchInsuranceClaim);
 
 // WhatsApp Cloud API — test, broadcast, arbitrary template, media, analytics
 AdminRouter.post("/whatsapp/test", postWhatsappTest);

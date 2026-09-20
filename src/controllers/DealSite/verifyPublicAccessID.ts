@@ -158,10 +158,14 @@ export const getDealSiteDetailsByUser = async (
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Public access page not found"));
     }
 
+    const { toPublicDealSiteView } = await import("../../common/constants/dealSitePublicNav");
+    const view = toPublicDealSiteView(
+      typeof (dealSite as any).toObject === "function" ? (dealSite as any).toObject() : dealSite,
+    );
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Public access page fetched successfully",
-      data: dealSite,
+      data: view,
     });
   } catch (err) {
     next(err);
@@ -257,10 +261,14 @@ export const getDealSiteBySlug = async (
     //   featuredProperties,
     // };
 
-    const inspectionSettings = (dealSite as any).inspectionSettings ?? { defaultInspectionFee: 5000 };
+    const { toPublicDealSiteView } = await import("../../common/constants/dealSitePublicNav");
+    const publicView = toPublicDealSiteView(
+      typeof (dealSite as any).toObject === "function" ? (dealSite as any).toObject() : dealSite,
+    );
+    const inspectionSettings = publicView.inspectionSettings ?? { defaultInspectionFee: 0 };
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: dealSite,
+      data: publicView,
       dealSite: { inspectionSettings },
     });
   } catch (err) {
@@ -440,6 +448,9 @@ export const getDealSiteSection = async (
       "brandingSeo",
       "homeSettings",
       "support",
+      "navigation",
+      "faqs",
+      "customPages",
     ];
 
     if (!myAllowedSections.includes(sectionName)) {

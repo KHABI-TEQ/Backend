@@ -156,7 +156,7 @@ export const getMyActivitySummary = async (
       .toLowerCase()
       .trim();
 
-    const [preferences, inspections, documents, surveys, transactions] =
+    const [preferences, inspections, documents, surveys, transactions, policies, claims] =
       await Promise.all([
         DB.Models.Preference.find({ buyer: buyerId })
           .select(
@@ -192,6 +192,16 @@ export const getMyActivitySummary = async (
           .sort({ createdAt: -1 })
           .limit(20)
           .lean(),
+        DB.Models.SearchInsurancePolicy.find({ buyer: buyerId })
+          .select("status premiumAmount coverAmount policyReference paidAt createdAt preference")
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean(),
+        DB.Models.SearchInsuranceClaim.find({ buyer: buyerId })
+          .select("status description approvedAmount createdAt policy preference")
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean(),
       ]);
 
     return res.status(HttpStatusCodes.OK).json({
@@ -203,12 +213,16 @@ export const getMyActivitySummary = async (
           documents: documents.length,
           surveys: surveys.length,
           transactions: transactions.length,
+          searchInsurancePolicies: policies.length,
+          searchInsuranceClaims: claims.length,
         },
         preferences,
         inspections,
         documents,
         surveys,
         transactions,
+        searchInsurancePolicies: policies,
+        searchInsuranceClaims: claims,
       },
     });
   } catch (err) {

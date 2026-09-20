@@ -177,6 +177,12 @@ export interface IPreference {
   /** Set when this preference was created by editing an earlier one. */
   clonedFromPreference?: Types.ObjectId;
 
+  searchInsurance?: {
+    optedIn: boolean;
+    status?: "none" | "pending_payment" | "active" | "expired" | "claimed";
+    policyId?: Types.ObjectId;
+  };
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -360,6 +366,16 @@ export class Preference {
         lastUnmatchedNotifyAt: { type: Date },
 
         clonedFromPreference: { type: Schema.Types.ObjectId, ref: "Preference" },
+
+        searchInsurance: {
+          optedIn: { type: Boolean, default: false },
+          status: {
+            type: String,
+            enum: ["none", "pending_payment", "active", "expired", "claimed"],
+            default: "none",
+          },
+          policyId: { type: Schema.Types.ObjectId, ref: "SearchInsurancePolicy" },
+        },
       },
       { timestamps: true },
     );

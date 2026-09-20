@@ -12,6 +12,10 @@ import { getKhabiteqEmailLogoUrl } from "../../common/constants/emailBranding";
 import { autoPairPreferenceById } from "../../services/autoPreferencePairing.service";
 import { sortPreferenceLocationAlphabetically } from "../../utils/sortLocationAlphabetically";
 import { dealSiteBaseUrlFromPublicSlug } from "../../utils/matchedPropertiesDealSiteUrl";
+import {
+  resolveBuyerFromAuthHeader,
+  stampPreferenceInsuranceOptIn,
+} from "../../services/searchInsurance.service";
  
 // ✅ Controller: Submit Preference from a DealSite
 export const sendPreferenceRequest = async (
@@ -80,26 +84,30 @@ export const sendPreferenceRequest = async (
       ...(cacRegistrationNumber && { cacRegistrationNumber }),
     };
 
-    // Check if buyer already exists
-    let buyer = await DB.Models.Buyer.findOne({
+    const authenticatedBuyer = await resolveBuyerFromAuthHeader(req);
+    let buyer = authenticatedBuyer;
+    if (!buyer) {
+      buyer = await DB.Models.Buyer.findOne({
         $or: [
-        { email: normalizedBuyerPayload.email },
-        {
+          { email: normalizedBuyerPayload.email },
+          {
             fullName: normalizedBuyerPayload.fullName,
             phoneNumber: normalizedBuyerPayload.phoneNumber,
-        },
+          },
         ],
-    });
+      });
+    }
 
     if (!buyer) {
         buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
     }
 
+    const { insureSearch, ...preferenceFields } = payload;
     const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
 
     // Prepare preference data
     const preferenceData = {
-        ...payload,
+        ...preferenceFields,
         location: sortedLocation ?? payload.location,
         contactInfo: normalizedBuyerPayload,
         buyer: buyer._id,
@@ -109,12 +117,18 @@ export const sendPreferenceRequest = async (
             dealSiteID: dealSite._id
         },
         submittedVia: payload.submittedVia === "app" ? "app" : "website",
+        searchInsurance: insureSearch
+          ? { optedIn: true, status: "pending_payment" as const }
+          : { optedIn: false, status: "none" as const },
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
 
     createdPreference.status = "approved";
     await createdPreference.save();
+    if (insureSearch) {
+      await stampPreferenceInsuranceOptIn(String(createdPreference._id), true);
+    }
 
     // Send email
     const userMailBody = preferenceMail({ ...preferenceData, status: "approved" });

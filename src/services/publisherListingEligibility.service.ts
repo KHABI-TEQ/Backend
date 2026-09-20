@@ -53,6 +53,8 @@ export interface PublisherListingSnapshot {
   listingsRemaining: number | null;
   unlimitedListings: boolean;
   canListProperties: boolean;
+  hasPaidSubscription: boolean;
+  requiresActiveSubscription: boolean;
   requiresSpecialPlan: boolean;
   specialPlanCode: string;
   specialPlanName: string;
@@ -65,19 +67,29 @@ export async function getPublisherListingSnapshot(
   if (!isPublisherUserType(userType)) return null;
 
   const ownedProperties = await countPublisherOwnedProperties(userId);
-  const unlimitedListings = await publisherHasUnlimitedListings(userId);
+  const { getActivePaidAgentSubscriptionSnapshot } = await import(
+    "./agentSubscriptionIncentive.service"
+  );
+  const [unlimitedListings, paidSubscription] = await Promise.all([
+    publisherHasUnlimitedListings(userId),
+    getActivePaidAgentSubscriptionSnapshot(userId),
+  ]);
+  const hasPaidSubscription = !!paidSubscription;
   const listingLimit = unlimitedListings ? null : PUBLISHER_STANDARD_LISTING_LIMIT;
   const listingsRemaining =
     listingLimit != null ? Math.max(0, listingLimit - ownedProperties) : null;
   const requiresSpecialPlan =
-    !unlimitedListings && ownedProperties >= PUBLISHER_STANDARD_LISTING_LIMIT;
+    hasPaidSubscription && !unlimitedListings && ownedProperties >= PUBLISHER_STANDARD_LISTING_LIMIT;
+  const underStandardCap = unlimitedListings || ownedProperties < PUBLISHER_STANDARD_LISTING_LIMIT;
 
   return {
     ownedProperties,
     listingLimit,
     listingsRemaining,
     unlimitedListings,
-    canListProperties: unlimitedListings || ownedProperties < PUBLISHER_STANDARD_LISTING_LIMIT,
+    hasPaidSubscription,
+    requiresActiveSubscription: !hasPaidSubscription,
+    canListProperties: hasPaidSubscription && underStandardCap,
     requiresSpecialPlan,
     specialPlanCode: SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
     specialPlanName: SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME,

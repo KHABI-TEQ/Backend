@@ -3,39 +3,23 @@ import { AppRequest } from "../../../types/express";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import {
-  AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL,
-  AGENT_KYC_GRACE_PERIOD_DAYS,
-  AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION,
-  AGENT_TRIAL_PERIOD_DAYS,
   countAgentOwnedProperties,
   getAgentAccessGate,
-  getAgentKycGraceDeadline,
-  getAgentTrialDeadline,
-  isAgentKycGraceActive,
   isAgentKycRequirementSatisfied,
-  isAgentSubscriptionRequired,
-  isAgentTrialPeriodActive,
+  SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE,
 } from "../../../services/agentPublisherEligibility.service";
 import { getPublisherKycStatus } from "../../../services/publisherKyc.service";
 import {
   AGENT_SUBSCRIPTION_BONUS_DAYS,
   getActivePaidAgentSubscriptionSnapshot,
-  isComplimentaryAgentSubscriptionSnapshot,
   resolveAgentSubscriptionPlanTier,
 } from "../../../services/agentSubscriptionIncentive.service";
 import { getPublisherListingSnapshot } from "../../../services/publisherListingEligibility.service";
-import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { getPropertyScoutSnapshot } from "../../../services/propertyScout.service";
-
-function daysUntil(deadline: Date | null): number | null {
-  if (!deadline) return null;
-  const ms = deadline.getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
-}
 
 /**
  * GET /account/agent/eligibility
- * Agent dashboard policy snapshot: KYC grace, trial window, subscription gate, and incentives.
+ * Agent dashboard policy snapshot: KYC + paid subscription required to list.
  */
 export const getAgentEligibility = async (
   req: AppRequest,
@@ -58,52 +42,27 @@ export const getAgentEligibility = async (
       ownedProperties,
       gate,
       paidSubscription,
-      anyActiveSubscription,
       publisherListing,
       propertyScout,
+      kycRequirementSatisfied,
     ] = await Promise.all([
       getPublisherKycStatus(String(userId)),
       countAgentOwnedProperties(String(userId)),
       getAgentAccessGate(String(userId)),
       getActivePaidAgentSubscriptionSnapshot(String(userId)),
-      UserSubscriptionSnapshotService.getActiveSnapshot(String(userId)),
       getPublisherListingSnapshot(String(userId), "Agent"),
       getPropertyScoutSnapshot(String(userId)),
+      isAgentKycRequirementSatisfied(String(userId)),
     ]);
 
     const kycApproved = kycStatus === "approved";
-    const kycGraceActive = await isAgentKycGraceActive(String(userId));
-    const trialActive = await isAgentTrialPeriodActive(String(userId));
-    const subscriptionRequired = await isAgentSubscriptionRequired(String(userId));
-    const kycRequirementSatisfied = await isAgentKycRequirementSatisfied(String(userId));
-
-    const kycGraceDeadline = await getAgentKycGraceDeadline(String(userId));
-    const trialDeadline = await getAgentTrialDeadline(String(userId));
-
-    const complimentarySubscription = anyActiveSubscription
-      ? await isComplimentaryAgentSubscriptionSnapshot(anyActiveSubscription)
-      : false;
-
-    const listingLimitDuringGrace = kycGraceActive && !kycApproved
-      ? AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL
-      : null;
-    const listingLimitDuringTrial =
-      kycApproved && trialActive && !paidSubscription
-        ? AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION
-        : null;
-
-    const publisherCap = publisherListing?.listingLimit ?? null;
-    const effectiveListingLimit = publisherListing?.unlimitedListings
-      ? null
-      : publisherCap ??
-        (listingLimitDuringGrace ?? listingLimitDuringTrial);
+    const hasPaidSubscription = !!paidSubscription;
+    const subscriptionRequired = !hasPaidSubscription;
 
     const policyPhase = (() => {
       if (!kycRequirementSatisfied) return "kyc_blocked";
-      if (kycGraceActive && !kycApproved) return "kyc_grace";
-      if (subscriptionRequired && !paidSubscription) return "subscription_required";
-      if (paidSubscription) return "subscribed";
-      if (trialActive && kycApproved) return "trial";
+      if (subscriptionRequired) return "subscription_required";
+      if (hasPaidSubscription) return "subscribed";
       return "active";
     })();
 
@@ -113,30 +72,26 @@ export const getAgentEligibility = async (
       data: {
         kycStatus,
         kycApproved,
-        kycGraceActive,
-        kycGraceDaysRemaining: daysUntil(kycGraceDeadline),
-        kycGraceDeadline,
-        trialActive,
-        trialDaysRemaining: daysUntil(trialDeadline),
-        trialDeadline,
+        kycGraceActive: false,
+        kycGraceDaysRemaining: null,
+        kycGraceDeadline: null,
+        trialActive: false,
+        trialDaysRemaining: null,
+        trialDeadline: null,
         ownedProperties,
-        listingLimit: effectiveListingLimit,
-        listingsRemaining:
-          publisherListing?.listingsRemaining ??
-          (effectiveListingLimit != null
-            ? Math.max(0, effectiveListingLimit - ownedProperties)
-            : null),
+        listingLimit: publisherListing?.listingLimit ?? null,
+        listingsRemaining: publisherListing?.listingsRemaining ?? null,
         subscriptionRequired,
-        hasPaidSubscription: !!paidSubscription,
-        hasComplimentarySubscription: complimentarySubscription,
+        hasPaidSubscription,
+        hasComplimentarySubscription: false,
         unlimitedListings: publisherListing?.unlimitedListings ?? false,
         requiresSpecialPlan: publisherListing?.requiresSpecialPlan ?? false,
         specialPlanCode: publisherListing?.specialPlanCode ?? null,
         specialPlanName: publisherListing?.specialPlanName ?? null,
-        canListProperties: gate.ok && (publisherListing?.canListProperties ?? true),
+        canListProperties: gate.ok && (publisherListing?.canListProperties ?? false),
         canUseDealSite: gate.ok,
         canRequestToMarket: gate.ok,
-        canSubscribe: kycApproved || propertyScout.isPropertyScout,
+        canSubscribe: true,
         isPropertyScout: propertyScout.isPropertyScout,
         isLicensedPublisher: propertyScout.isLicensedPublisher,
         displayRoleLabel: propertyScout.displayRoleLabel,
@@ -148,10 +103,10 @@ export const getAgentEligibility = async (
             : { ok: true as const },
         policyPhase,
         constants: {
-          kycGracePeriodDays: AGENT_KYC_GRACE_PERIOD_DAYS,
-          kycGraceMaxPropertiesWithoutApproval: AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL,
-          trialPeriodDays: AGENT_TRIAL_PERIOD_DAYS,
-          trialMaxPropertiesWithoutSubscription: AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION,
+          kycGracePeriodDays: 0,
+          kycGraceMaxPropertiesWithoutApproval: 0,
+          trialPeriodDays: 0,
+          trialMaxPropertiesWithoutSubscription: 0,
         },
         subscriptionIncentives: {
           monthlyBonusDays: AGENT_SUBSCRIPTION_BONUS_DAYS.monthly,
@@ -166,6 +121,9 @@ export const getAgentEligibility = async (
               planCode: paidSubscription.meta?.planCode ?? null,
               planName: paidSubscription.meta?.appliedPlanName ?? null,
             }
+          : null,
+        listingPolicyMessage: subscriptionRequired
+          ? SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE
           : null,
       },
     });

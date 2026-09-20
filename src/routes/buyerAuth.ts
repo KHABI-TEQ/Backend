@@ -3,6 +3,7 @@ import { validateJoi } from "../middlewares/validateJoi";
 import buyerAuth from "../middlewares/buyerAuth";
 import {
   registerBuyerSchema,
+  claimBuyerAccountSchema,
   loginBuyerSchema,
   buyerEmailSchema,
   verifyBuyerResetCodeSchema,
@@ -13,6 +14,12 @@ import {
   updateBuyerProfileSchema,
 } from "../validators/buyerAuth.validator";
 import { registerBuyer } from "../controllers/BuyerAuth/registerBuyer";
+import { claimBuyerAccount } from "../controllers/BuyerAuth/claimAccount";
+import {
+  getMySearchInsurance,
+  createMySearchInsuranceClaim,
+  getMySearchInsuranceClaim,
+} from "../controllers/BuyerAuth/searchInsurance";
 import { loginBuyer } from "../controllers/BuyerAuth/loginBuyer";
 import { requestBuyerPasswordReset } from "../controllers/BuyerAuth/requestPasswordReset";
 import { verifyBuyerPasswordResetCode } from "../controllers/BuyerAuth/verifyPasswordResetCode";
@@ -54,6 +61,12 @@ BuyerAuthRouter.post(
   "/register",
   validateJoi(registerBuyerSchema),
   registerBuyer
+);
+
+BuyerAuthRouter.post(
+  "/claim-account",
+  validateJoi(claimBuyerAccountSchema),
+  claimBuyerAccount
 );
 
 BuyerAuthRouter.post("/login", validateJoi(loginBuyerSchema), loginBuyer);
@@ -103,6 +116,20 @@ BuyerAuthRouter.post(
 BuyerAuthRouter.get("/me", buyerAuth, getBuyerProfile);
 
 BuyerAuthRouter.get("/me/summary", buyerAuth, getMyActivitySummary);
+
+BuyerAuthRouter.get("/me/search-insurance", buyerAuth, getMySearchInsurance);
+
+BuyerAuthRouter.post(
+  "/me/search-insurance/:policyId/claims",
+  buyerAuth,
+  createMySearchInsuranceClaim
+);
+
+BuyerAuthRouter.get(
+  "/me/search-insurance/claims/:claimId",
+  buyerAuth,
+  getMySearchInsuranceClaim
+);
 
 BuyerAuthRouter.get("/me/preferences", buyerAuth, getMyPreferences);
 

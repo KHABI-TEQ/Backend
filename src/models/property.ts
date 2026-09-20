@@ -279,7 +279,7 @@ export class Property {
         tenantGenderPreferences: { type: String },
         briefType: { type: String },
         isPremium: { type: Boolean, default: false },
-        inspectionFee: { type: Number, default: 5000, min: 1000, max: 50000 },
+        inspectionFee: { type: Number, default: 0, min: 0, max: 50000 },
         agentCommissionPercent: { type: Number, min: 0, max: 10 },
         agentCommissionAmount: { type: Number, min: 0 },
         listingScope: { type: String, enum: ["agent_listing", "lasrera_marketplace"], default: "agent_listing" },

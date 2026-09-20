@@ -12,6 +12,10 @@ import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/wh
 import { preferencePayloadToUserPreferences } from "../../../utils/preferenceUserPreferencesForWhatsapp";
 import { sortPreferenceLocationAlphabetically } from "../../../utils/sortLocationAlphabetically";
 import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.service";
+import {
+  resolveBuyerFromAuthHeader,
+  stampPreferenceInsuranceOptIn,
+} from "../../../services/searchInsurance.service";
 
 export const postPreference = async (
   req: AppRequest,
@@ -53,38 +57,48 @@ export const postPreference = async (
       ...(cacRegistrationNumber && { cacRegistrationNumber }),
     };
 
-    // Check if buyer already exists
-    let buyer = await DB.Models.Buyer.findOne({
-      $or: [
-        { email: normalizedBuyerPayload.email },
-        {
-          fullName: normalizedBuyerPayload.fullName,
-          phoneNumber: normalizedBuyerPayload.phoneNumber,
-        },
-      ],
-    });
+    const authenticatedBuyer = await resolveBuyerFromAuthHeader(req);
+    let buyer = authenticatedBuyer;
+    if (!buyer) {
+      buyer = await DB.Models.Buyer.findOne({
+        $or: [
+          { email: normalizedBuyerPayload.email },
+          {
+            fullName: normalizedBuyerPayload.fullName,
+            phoneNumber: normalizedBuyerPayload.phoneNumber,
+          },
+        ],
+      });
+    }
 
     if (!buyer) {
       buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
     }
 
+    const { insureSearch, ...preferenceFields } = payload;
     const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
 
     // Prepare preference data (initially pending; we auto-approve below)
     const preferenceData = {
-      ...payload,
+      ...preferenceFields,
       location: sortedLocation ?? payload.location,
       contactInfo: normalizedBuyerPayload,
       buyer: buyer._id,
       status: payload.status || "pending",
       receiverMode: { type: "general" as const },
       submittedVia: payload.submittedVia === "app" ? "app" : "website",
+      searchInsurance: insureSearch
+        ? { optedIn: true, status: "pending_payment" as const }
+        : { optedIn: false, status: "none" as const },
     };
 
     const createdPreference = await DB.Models.Preference.create(preferenceData);
 
     createdPreference.status = "approved";
     await createdPreference.save();
+    if (insureSearch) {
+      await stampPreferenceInsuranceOptIn(String(createdPreference._id), true);
+    }
 
     // Send email (with approved status)
     const userMailBody = preferenceMail({ ...preferenceData, status: "approved" });

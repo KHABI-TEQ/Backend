@@ -35,6 +35,7 @@ import { transactionRegistrationAcknowledgementMail } from "../../../common/emai
 import { ensureTransactionCertificateIdentity } from "../../../services/transactionRegistrationCertificate.service";
 import { logCertificateActivity } from "../../../services/transactionCertificateAudit.service";
 import { isTransactionReference, normalizeTransactionReference } from "../../../services/transactionReference.service";
+import { normalizePropertyCode } from "../../../services/propertyCode.service";
 
 const ACTIVE_OR_COMPLETED_STATUSES = [
   "submitted",
@@ -274,13 +275,48 @@ function normalizePractitioner(raw: any): ITransactionPractitioner | undefined {
   };
 }
 
-function resolvePropertyId(raw?: string | null): string | undefined {
+async function resolvePropertyId(raw?: string | null): Promise<string | undefined> {
   const id = raw != null ? String(raw).trim() : "";
   if (!id) return undefined;
-  if (!mongoose.Types.ObjectId.isValid(id)) {
-    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid propertyId format.");
+  if (/^[a-fA-F0-9]{24}$/.test(id)) {
+    return id;
   }
-  return id;
+  const code = normalizePropertyCode(id);
+  if (/^KH-[A-Z0-9]{2,}-[A-Z0-9]{4,}$/.test(code)) {
+    const listing = await DB.Models.Property.findOne({
+      propertyCode: code,
+      isDeleted: { $ne: true },
+    })
+      .select("_id")
+      .lean();
+    if (!listing) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "No listing found for this Property Code.");
+    }
+    return String(listing._id);
+  }
+  throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Invalid Property Code format.");
+}
+
+async function listingSearchRef(raw: string): Promise<{ listingId?: string; propertyCode?: string }> {
+  const trimmed = String(raw).trim();
+  if (/^[a-fA-F0-9]{24}$/.test(trimmed)) {
+    const listing = await DB.Models.Property.findById(trimmed).select("_id propertyCode").lean();
+    return {
+      listingId: listing ? String(listing._id) : trimmed,
+      propertyCode: (listing as { propertyCode?: string } | null)?.propertyCode,
+    };
+  }
+  const code = normalizePropertyCode(trimmed);
+  if (!code) return {};
+  const listing = await DB.Models.Property.findOne({
+    propertyCode: code,
+    isDeleted: { $ne: true },
+  })
+    .select("_id propertyCode")
+    .lean();
+  return listing
+    ? { listingId: String(listing._id), propertyCode: (listing as { propertyCode?: string }).propertyCode }
+    : { propertyCode: code };
 }
 
 async function assertNoDuplicateOffPlatformRegistration(
@@ -326,7 +362,7 @@ async function assertNoDuplicateOffPlatformRegistration(
 /**
  * Normalize frontend register payload to internal shape (transactionType + propertyIdentification).
  */
-function normalizeRegisterPayload(body: any): {
+async function normalizeRegisterPayload(body: any): Promise<{
   transactionType: TransactionRegistrationType;
   propertyId?: string;
   agentId?: string;
@@ -335,7 +371,7 @@ function normalizeRegisterPayload(body: any): {
   buyer: { email: string; fullName: string; phoneNumber: string };
   transactionValue: number;
   propertyIdentification: IPropertyIdentification;
-} {
+}> {
   const slug = body.transactionType as string;
   const internalType = SLUG_TO_TYPE[slug];
   if (!internalType) {
@@ -349,7 +385,7 @@ function normalizeRegisterPayload(body: any): {
     }
     return {
       transactionType: internalType,
-      propertyId: resolvePropertyId(body.propertyId),
+      propertyId: await resolvePropertyId(body.propertyId),
       agentId: body.agentId ? String(body.agentId).trim() || undefined : undefined,
       practitioner: normalizePractitioner(body.practitioner),
       inspectionId: body.inspectionId || undefined,
@@ -371,7 +407,7 @@ function normalizeRegisterPayload(body: any): {
   }
   return {
     transactionType: internalType,
-    propertyId: resolvePropertyId(body.propertyId),
+    propertyId: await resolvePropertyId(body.propertyId),
     agentId: body.agentId ? String(body.agentId).trim() || undefined : undefined,
     practitioner: normalizePractitioner(body.practitioner),
     inspectionId: body.inspectionId || undefined,
@@ -420,7 +456,7 @@ export const registerTransaction = async (
 
     const frontendValidation = JoiValidator.validate(registerTransactionFrontendSchema, req.body);
     if (frontendValidation.success && frontendValidation.data) {
-      payload = normalizeRegisterPayload(frontendValidation.data);
+      payload = await normalizeRegisterPayload(frontendValidation.data);
       const fd = frontendValidation.data as any;
       if (fd.paymentReceiptFileName != null && String(fd.paymentReceiptFileName).trim()) {
         paymentReceiptFileName = String(fd.paymentReceiptFileName).trim();
@@ -451,7 +487,7 @@ export const registerTransaction = async (
       const d = validation.data!;
       payload = {
         transactionType: d.transactionType as TransactionRegistrationType,
-        propertyId: resolvePropertyId(d.propertyId),
+        propertyId: await resolvePropertyId(d.propertyId),
         agentId: d.agentId ? String(d.agentId).trim() || undefined : undefined,
         practitioner: normalizePractitioner(d.practitioner),
         inspectionId: d.inspectionId || undefined,
@@ -477,11 +513,13 @@ export const registerTransaction = async (
       ? "platform_listing"
       : "off_platform";
 
+    let listingPropertyCode: string | undefined;
     if (propertyId) {
       const property = await DB.Models.Property.findById(propertyId).lean();
       if (!property) {
         throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found.");
       }
+      listingPropertyCode = (property as { propertyCode?: string }).propertyCode;
 
       const existing = await DB.Models.TransactionRegistration.findOne({
         propertyId,
@@ -524,6 +562,7 @@ export const registerTransaction = async (
       propertyIdentification,
     };
     if (propertyId) createPayload.propertyId = propertyId;
+    if (listingPropertyCode) createPayload.propertyCode = listingPropertyCode;
     if (agentId) createPayload.agentId = agentId;
     if (practitioner) createPayload.practitioner = practitioner;
     if (offPlatformPartyType && practitioner?.isOnPlatform !== true) {
@@ -556,7 +595,9 @@ export const registerTransaction = async (
       });
     }
 
-    const propertyLabel = propertyId
+    const propertyLabel = listingPropertyCode
+      ? `property ${listingPropertyCode}`
+      : propertyId
       ? `property ${propertyId}`
       : propertyIdentification.type === "building"
         ? `off-platform property at ${propertyIdentification.exactAddress}`
@@ -666,7 +707,21 @@ export const publicSearch = async (
       conditions.push({ "propertyIdentification.exactAddress": new RegExp(String(address).trim(), "i") });
     }
     if (hasPropertyId) {
-      conditions.push({ propertyId: new mongoose.Types.ObjectId(String(propertyId).trim()) });
+      const ref = await listingSearchRef(String(propertyId));
+      const idOrs: Record<string, unknown>[] = [];
+      if (ref.listingId && /^[a-fA-F0-9]{24}$/.test(ref.listingId)) {
+        idOrs.push({ propertyId: new mongoose.Types.ObjectId(ref.listingId) });
+      }
+      if (ref.propertyCode) {
+        idOrs.push({ propertyCode: ref.propertyCode });
+      }
+      if (idOrs.length === 1) {
+        conditions.push(idOrs[0]);
+      } else if (idOrs.length > 1) {
+        conditions.push({ $or: idOrs });
+      } else {
+        conditions.push({ _id: null });
+      }
     }
     if (hasGps) {
       conditions.push({
@@ -678,8 +733,8 @@ export const publicSearch = async (
     const registrations = await DB.Models.TransactionRegistration.find(
       conditions.length ? { $or: conditions } : {}
     )
-      .select("transactionType status propertyId propertyIdentification createdAt registrationSource practitioner")
-      .populate("propertyId", "status location")
+      .select("transactionType status propertyId propertyCode propertyIdentification createdAt registrationSource practitioner")
+      .populate("propertyId", "status location propertyCode")
       .lean();
 
     const inspectionCounts = new Map<string, number>();
@@ -709,6 +764,7 @@ export const publicSearch = async (
       return {
         address: addr,
         propertyId: propId ?? null,
+        propertyCode: r.propertyCode || r.propertyId?.propertyCode || null,
         lpin: ident?.lpin ?? null,
         lat: gps?.lat ?? null,
         lng: gps?.lng ?? null,
@@ -759,7 +815,13 @@ export const checkPropertyRegistration = async (
 
     const conditions: Record<string, unknown>[] = [];
     if (hasPropertyId) {
-      conditions.push({ propertyId: new mongoose.Types.ObjectId(String(propertyId).trim()) });
+      const ref = await listingSearchRef(String(propertyId));
+      if (ref.listingId && /^[a-fA-F0-9]{24}$/.test(ref.listingId)) {
+        conditions.push({ propertyId: new mongoose.Types.ObjectId(ref.listingId) });
+      }
+      if (ref.propertyCode) {
+        conditions.push({ propertyCode: ref.propertyCode });
+      }
     }
     if (hasAddress) {
       conditions.push({

@@ -13,7 +13,7 @@ import {
 } from "../../services/inspectionWorkflow.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
-import { INSPECTION_FEE_DEFAULT } from "../../services/propertyValidation.service";
+import { optionalInspectionFeeNaira } from "../../services/propertyValidation.service";
 import {
   computeInspectionFeeSplit,
 } from "../../common/constants/inspectionFeeSplit";
@@ -30,7 +30,8 @@ const INSPECTION_FEE_MAX = 50000;
  * Accept or reject a pending inspection request.
  * DealSite: only the DealSite operator (`inspection.owner`) may respond.
  * Main marketplace: the property owner or an agent who markets the listing (RTM) may respond.
- * Accept: optional inspectionFee (₦1,000–₦50,000) can be set; then create payment link, save transaction, email buyer.
+ * Accept: optional inspectionFee (₦1,000–₦50,000) can be set when charging; 0 means no fee.
+ * If there is a fee, create a payment link and email the buyer; otherwise notify acceptance only.
  * Reject: set agent_rejected, email buyer.
  */
 export const respondToInspectionRequest = async (
@@ -43,7 +44,7 @@ export const respondToInspectionRequest = async (
     const { action, note, inspectionFee: bodyFee } = req.body as {
       action: "accept" | "reject";
       note?: string;
-      inspectionFee?: number;
+      inspectionFee?: number | string;
     };
     const userId = req.user?._id;
 
@@ -115,29 +116,30 @@ export const respondToInspectionRequest = async (
     const buyer = inspection.requestedBy as any;
     const propertyLocation = getPropertyTitleFromLocation(property?.location) || "Property";
 
-    // Base amount from property fee; when accepting, agent may override with inspectionFee (validated range)
-    let amount = Math.min(
-      INSPECTION_FEE_MAX,
-      Math.max(INSPECTION_FEE_MIN, property?.inspectionFee ?? INSPECTION_FEE_DEFAULT),
-    );
-    if (action === "accept" && bodyFee !== undefined && bodyFee !== null) {
+    // Base amount from the listing fee (0 = none). Agent may override on accept.
+    let amount = optionalInspectionFeeNaira(property?.inspectionFee);
+    if (action === "accept" && bodyFee !== undefined && bodyFee !== null && bodyFee !== "") {
       const numFee = Number(bodyFee);
-      if (!Number.isFinite(numFee)) {
+      if (!Number.isFinite(numFee) || numFee < 0) {
         throw new RouteError(
           HttpStatusCodes.BAD_REQUEST,
-          `inspectionFee must be a number between ₦${INSPECTION_FEE_MIN.toLocaleString()} and ₦${INSPECTION_FEE_MAX.toLocaleString()}`,
+          `inspectionFee must be 0 or between ₦${INSPECTION_FEE_MIN.toLocaleString()} and ₦${INSPECTION_FEE_MAX.toLocaleString()}`,
         );
       }
-      if (numFee < INSPECTION_FEE_MIN || numFee > INSPECTION_FEE_MAX) {
+      if (numFee === 0) {
+        amount = 0;
+      } else if (numFee < INSPECTION_FEE_MIN || numFee > INSPECTION_FEE_MAX) {
         throw new RouteError(
           HttpStatusCodes.BAD_REQUEST,
-          `inspectionFee must be between ₦${INSPECTION_FEE_MIN.toLocaleString()} and ₦${INSPECTION_FEE_MAX.toLocaleString()}`,
+          `inspectionFee must be 0 or between ₦${INSPECTION_FEE_MIN.toLocaleString()} and ₦${INSPECTION_FEE_MAX.toLocaleString()}`,
         );
+      } else {
+        amount = Math.round(numFee);
       }
-      amount = Math.round(numFee);
     }
 
     const propertyIdStr = (property?._id ?? (inspection as any).propertyId)?.toString();
+    const listingPropertyCode = String(property?.propertyCode || "").trim() || undefined;
 
     if (action === "reject") {
       await DB.Models.InspectionBooking.updateOne(
@@ -222,6 +224,7 @@ export const respondToInspectionRequest = async (
           amount: dealSiteAmount,
           paymentUrl: paymentResponse.authorization_url,
           propertyId: propertyIdStr,
+          propertyCode: listingPropertyCode,
           inspectionId: String(inspectionId),
         });
 
@@ -294,6 +297,68 @@ export const respondToInspectionRequest = async (
         inspectionDate: inspectionDateStr,
         inspectionTime: inspectionTimeStr,
         propertyId: propertyIdStr,
+        propertyCode: listingPropertyCode,
+        inspectionId: String(inspectionId),
+      });
+
+      scheduleDevBuyerConfirmationSequenceAfterSellerAccept(String(inspectionId));
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Inspection accepted. The buyer has been notified.",
+        data: { status: "inspection_approved" },
+      });
+    }
+
+    if (amount <= 0) {
+      await DB.Models.InspectionBooking.updateOne(
+        { _id: inspectionId },
+        { $set: { status: "inspection_approved" } },
+      );
+
+      if (propertyIdStr) {
+        await InspectionLogService.logActivity({
+          inspectionId: inspectionId as string,
+          propertyId: propertyIdStr,
+          senderId: userId.toString(),
+          senderRole: "seller",
+          senderModel: "User",
+          message: "Agent accepted the inspection request. No inspection fee. Buyer has been notified.",
+          status: "inspection_approved",
+          stage: "inspection",
+        });
+      }
+
+      const inspectionDateStr = (inspection as any).inspectionDate
+        ? new Date((inspection as any).inspectionDate).toLocaleDateString("en-NG", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })
+        : undefined;
+      const inspectionTimeStr = (inspection as any).inspectionTime ?? undefined;
+
+      await notifyBuyerAcceptedNoPayment({
+        buyerEmail: buyer?.email,
+        buyerName: buyer?.fullName || buyer?.email,
+        propertyLocation,
+        propertyDetails: {
+          title: propertyLocation,
+          address: property?.location ? getPropertyTitleFromLocation(property.location) : undefined,
+          price: property?.price,
+          briefType: property?.briefType,
+          propertyType: property?.propertyType,
+          bedrooms: property?.additionalFeatures?.noOfBedroom,
+          bathrooms: property?.additionalFeatures?.noOfBathroom,
+          toilets: property?.additionalFeatures?.noOfToilet,
+          carPark: property?.additionalFeatures?.noOfCarPark,
+          imageUrl: Array.isArray(property?.pictures) && property.pictures.length > 0 ? property.pictures[0] : undefined,
+        },
+        inspectionDate: inspectionDateStr,
+        inspectionTime: inspectionTimeStr,
+        propertyId: propertyIdStr,
+        propertyCode: listingPropertyCode,
         inspectionId: String(inspectionId),
       });
 
@@ -400,6 +465,7 @@ export const respondToInspectionRequest = async (
       amount,
       paymentUrl: paymentResponse.authorization_url,
       propertyId: propertyIdStr,
+      propertyCode: listingPropertyCode,
       inspectionId: String(inspectionId),
     });
 

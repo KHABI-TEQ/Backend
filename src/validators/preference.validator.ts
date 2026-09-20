@@ -170,4 +170,6 @@ export const preferenceValidationSchema = Joi.object({
     .optional(),
 
   submittedVia: Joi.string().valid("app", "website").optional(),
+
+  insureSearch: Joi.boolean().optional(),
 });

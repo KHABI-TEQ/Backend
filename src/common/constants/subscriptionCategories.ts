@@ -101,6 +101,9 @@ export const SUBSCRIPTION_PLAN_AUDIENCES = {
   LICENSED: "licensed",
   SCOUT: "scout",
   DEVELOPER: "developer",
+  LAWYER: "lawyer",
+  SURVEYOR: "surveyor",
+  VALUER: "valuer",
 } as const;
 
 export type SubscriptionPlanAudience =
@@ -110,19 +113,22 @@ export const SUBSCRIPTION_PLAN_AUDIENCE_LABELS: Record<
   SubscriptionPlanAudience,
   string
 > = {
-  licensed: "Licensed Agent / Developer",
+  licensed: "Licensed Agent",
   scout: "Property Scout",
-  developer: "Developer",
+  developer: "Developer / Landowner",
+  lawyer: "Lawyer",
+  surveyor: "Surveyor",
+  valuer: "Valuer",
 };
 
-export const SCOUT_STANDARD_PLAN_NAME = "Standard — Property Scout";
+export const SCOUT_STANDARD_PLAN_NAME = "Property Scout";
 
-/** Fallback student pricing when no licensed Standard plan exists to clone from. */
+/** Public Property Scout catalog — ₦23,500 / 3 months. */
 export const SCOUT_STANDARD_PRICING = {
   monthly: 8_000,
   monthlyDays: 30,
   monthlyCode: "SCOUT_STANDARD",
-  quarterly: 21_000,
+  quarterly: 23_500,
   quarterlyDays: 90,
   quarterlyCode: "SCOUT_STANDARD_QTR",
   yearly: 72_000,
@@ -149,9 +155,9 @@ export const SCOUT_CATALOG_PRICE_MULTIPLIER = 0.5;
 export const SCOUT_PLAN_CALLOUT =
   "Priced for Property Scouts — students and practitioners without a license.";
 
-export const DEVELOPER_DISTRIBUTION_PLAN_NAME = "Developer Property Distribution";
-export const DEVELOPER_OFFPLAN_PLAN_NAME = "Off-Plan";
-export const DEVELOPER_OFFPLAN_ANNUAL_PLAN_NAME = "Off-Plan Annual";
+export const DEVELOPER_DISTRIBUTION_PLAN_NAME = "Property Distribution Plan";
+export const DEVELOPER_OFFPLAN_PLAN_NAME = "Off-plan Plan";
+export const DEVELOPER_OFFPLAN_ANNUAL_PLAN_NAME = "Off-plan Plan";
 
 export const DEVELOPER_PLAN_PRICING = {
   distribution: 50_000,
@@ -169,34 +175,27 @@ export const DEVELOPER_PLAN_PRICING = {
 } as const;
 
 export const DEVELOPER_DISTRIBUTION_BENEFITS = [
-  "Developer Profile",
-  "Showcase Your Properties",
-  "Accept Up To 10 Professionals",
-  "Expand Your Marketing Reach",
-  "Manage The Professionals You Work With",
-  "Reach More Potential Buyers",
+  "Connect with verified professionals",
+  "Expand your marketing reach",
+  "Stay in control of who can market",
+  "Reach serious local and diaspora buyers",
+  "Access transaction support tools",
 ];
 
 export const DEVELOPER_OFFPLAN_BENEFITS = [
-  "Everything In The Developer Property Distribution Plan",
-  "Activate Off-Plan Sales",
-  "Complete Advanced KYC",
-  "Accept Up To 30 Professionals To Market Your Project",
-  "Wider Professional Distribution",
-  "Stronger Buyer Confidence Proposition",
-  "Participation In Khabiteq's Structured Trust Framework",
-  "Reach More Serious Local And Diaspora Buyers",
+  "Connect with verified professionals",
+  "Expand your marketing reach",
+  "Stay in control of who can market",
+  "Reach serious local and diaspora buyers",
+  "Access transaction support tools",
 ];
 
 export const DEVELOPER_OFFPLAN_ANNUAL_BENEFITS = [
-  "Full Off-Plan Access",
-  "Advanced KYC",
-  "Accept Up To 100 Professionals To Market Your Projects",
-  "Maximum Professional Distribution",
-  "Continuous Project Visibility",
-  "Stronger Long-Term Buyer Confidence Proposition",
-  "Participation In Khabiteq's Structured Trust Framework",
-  "Reach Serious Local And Diaspora Buyers",
+  "Connect with verified professionals",
+  "Expand your marketing reach",
+  "Stay in control of who can market",
+  "Reach serious local and diaspora buyers",
+  "Access transaction support tools",
 ];
 
 export function isDeveloperPlanCode(planCode: string | undefined | null): boolean {
@@ -215,7 +214,10 @@ export function isSubscriptionPlanAudience(
   return (
     value === SUBSCRIPTION_PLAN_AUDIENCES.LICENSED ||
     value === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT ||
-    value === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER
+    value === SUBSCRIPTION_PLAN_AUDIENCES.DEVELOPER ||
+    value === SUBSCRIPTION_PLAN_AUDIENCES.LAWYER ||
+    value === SUBSCRIPTION_PLAN_AUDIENCES.SURVEYOR ||
+    value === SUBSCRIPTION_PLAN_AUDIENCES.VALUER
   );
 }
 

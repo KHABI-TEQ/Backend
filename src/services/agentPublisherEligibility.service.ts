@@ -2,34 +2,24 @@ import { DB } from "../controllers";
 import { isPublisherKycApproved } from "./publisherKyc.service";
 import { getActivePaidAgentSubscriptionSnapshot } from "./agentSubscriptionIncentive.service";
 
-/** Days after signup that an Agent may use listing/DealSite without approved KYC. */
-export const AGENT_KYC_GRACE_PERIOD_DAYS = 7;
-
-/** Total days from signup for the no-subscription listing/DealSite trial (includes KYC grace). ~4 weeks. */
-export const AGENT_TRIAL_PERIOD_DAYS = 28;
-
-/** Max owned properties an Agent may list without an active paid subscription during the Free trial window. */
-export const AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION = 10;
-
-/** Max owned properties an Agent may list during the 7-day KYC grace period before KYC approval. */
-export const AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL = 1;
+export const SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE =
+  "Subscribe to an active plan to list properties. Listing is only available with a paid subscription.";
 
 export const AGENT_KYC_REQUIRED_MESSAGE =
-  "Complete KYC verification and obtain approval to continue (the 7-day grace period has expired).";
+  "Complete KYC verification and obtain approval before listing properties or using your public page.";
 
-export const AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE =
-  "During the 7-day signup grace period you may list only 1 property until KYC is approved.";
+/** @deprecated Signup grace listings are retired. Always 0. */
+export const AGENT_KYC_GRACE_PERIOD_DAYS = 0;
+/** @deprecated Time-boxed free trial is retired. Always 0. */
+export const AGENT_TRIAL_PERIOD_DAYS = 0;
+/** @deprecated Unpaid trial listing cap is retired. Always 0. */
+export const AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION = 0;
+/** @deprecated Unpaid signup listing is retired. Always 0. */
+export const AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL = 0;
 
-export const AGENT_TRIAL_EXPIRED_MESSAGE =
-  "Your 4-week trial period has ended. Subscribe to a plan to continue listing properties and using your public page.";
-
-export const AGENT_TRIAL_PROPERTY_LIMIT_MESSAGE = `You have reached the Free trial limit of ${AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION} properties. Subscribe to a Premium plan to list up to 25, or Portfolio Unlimited for no listing cap.`;
-
-function addCalendarDays(from: Date, days: number): Date {
-  const deadline = new Date(from);
-  deadline.setDate(deadline.getDate() + days);
-  return deadline;
-}
+export const AGENT_KYC_GRACE_PROPERTY_LIMIT_MESSAGE = AGENT_KYC_REQUIRED_MESSAGE;
+export const AGENT_TRIAL_EXPIRED_MESSAGE = SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE;
+export const AGENT_TRIAL_PROPERTY_LIMIT_MESSAGE = SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE;
 
 export async function getAgentSignupAt(userId: string): Promise<Date | null> {
   const user = await DB.Models.User.findById(userId).select("createdAt userType").lean();
@@ -39,46 +29,29 @@ export async function getAgentSignupAt(userId: string): Promise<Date | null> {
   return user.createdAt;
 }
 
-export async function getAgentKycGraceDeadline(userId: string): Promise<Date | null> {
-  const signupAt = await getAgentSignupAt(userId);
-  if (!signupAt) {
-    return null;
-  }
-  return addCalendarDays(signupAt, AGENT_KYC_GRACE_PERIOD_DAYS);
+/** @deprecated Grace window removed — always null. */
+export async function getAgentKycGraceDeadline(_userId: string): Promise<Date | null> {
+  return null;
 }
 
-export async function getAgentTrialDeadline(userId: string): Promise<Date | null> {
-  const signupAt = await getAgentSignupAt(userId);
-  if (!signupAt) {
-    return null;
-  }
-  return addCalendarDays(signupAt, AGENT_TRIAL_PERIOD_DAYS);
+/** @deprecated Trial window removed — always null. */
+export async function getAgentTrialDeadline(_userId: string): Promise<Date | null> {
+  return null;
 }
 
-/** True when signup is still within the 7-day KYC grace window. */
-export async function isAgentKycGraceActive(userId: string): Promise<boolean> {
-  const deadline = await getAgentKycGraceDeadline(userId);
-  if (!deadline) {
-    return false;
-  }
-  return new Date() < deadline;
+/** @deprecated Grace window removed — always false. */
+export async function isAgentKycGraceActive(_userId: string): Promise<boolean> {
+  return false;
 }
 
-/** True when signup is still within the 4-week no-subscription trial window. */
-export async function isAgentTrialPeriodActive(userId: string): Promise<boolean> {
-  const deadline = await getAgentTrialDeadline(userId);
-  if (!deadline) {
-    return false;
-  }
-  return new Date() < deadline;
+/** @deprecated Trial window removed — always false. */
+export async function isAgentTrialPeriodActive(_userId: string): Promise<boolean> {
+  return false;
 }
 
-/** KYC gate passes when approved or still inside the 7-day grace period. */
+/** Agents must have approved KYC. No signup grace period. */
 export async function isAgentKycRequirementSatisfied(userId: string): Promise<boolean> {
-  if (await isPublisherKycApproved(userId)) {
-    return true;
-  }
-  return isAgentKycGraceActive(userId);
+  return isPublisherKycApproved(userId);
 }
 
 export async function countAgentOwnedProperties(userId: string): Promise<number> {
@@ -88,59 +61,36 @@ export async function countAgentOwnedProperties(userId: string): Promise<number>
   });
 }
 
-/**
- * Subscription is required when the 4-week trial ended (regardless of listing count),
- * or the agent already owns {@link AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION}
- * properties without a paid subscription during the trial.
- */
-export async function isAgentSubscriptionRequired(userId: string): Promise<boolean> {
-  if (!(await isAgentTrialPeriodActive(userId))) {
-    return true;
-  }
-
-  const propertyCount = await countAgentOwnedProperties(userId);
-  return propertyCount >= AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION;
+/** Paid subscription is always required to list. */
+export async function isAgentSubscriptionRequired(_userId?: string): Promise<boolean> {
+  return true;
 }
 
 export type AgentAccessGate =
   | { readonly ok: true }
   | { readonly ok: false; readonly message: string; readonly reason: "kyc" | "subscription" };
 
-/** Combined KYC + subscription gate for Agent listing and DealSite owner actions. */
+/** KYC + paid subscription gate for Agent listing and DealSite owner actions. */
 export async function getAgentAccessGate(userId: string): Promise<AgentAccessGate> {
   if (!(await isAgentKycRequirementSatisfied(userId))) {
     return { ok: false as const, message: AGENT_KYC_REQUIRED_MESSAGE, reason: "kyc" as const };
   }
 
-  if (await isAgentSubscriptionRequired(userId)) {
-    const active = await getActivePaidAgentSubscriptionSnapshot(userId);
-    if (!active) {
-      const propertyCount = await countAgentOwnedProperties(userId);
-      const message =
-        propertyCount >= AGENT_TRIAL_MAX_PROPERTIES_WITHOUT_SUBSCRIPTION &&
-        (await isAgentTrialPeriodActive(userId))
-          ? AGENT_TRIAL_PROPERTY_LIMIT_MESSAGE
-          : AGENT_TRIAL_EXPIRED_MESSAGE;
-      return { ok: false as const, message, reason: "subscription" as const };
-    }
+  const active = await getActivePaidAgentSubscriptionSnapshot(userId);
+  if (!active) {
+    return {
+      ok: false as const,
+      message: SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE,
+      reason: "subscription" as const,
+    };
   }
 
   return { ok: true as const };
 }
 
-/**
- * During days 0–7, agents without approved KYC may own at most one property.
- * Once KYC is approved, Free trial limits apply (up to 10 without paid subscription).
- */
-export async function isAgentKycGraceListingLimitReached(userId: string): Promise<boolean> {
-  if (!(await isAgentKycGraceActive(userId))) {
-    return false;
-  }
-  if (await isPublisherKycApproved(userId)) {
-    return false;
-  }
-  const propertyCount = await countAgentOwnedProperties(userId);
-  return propertyCount >= AGENT_KYC_GRACE_MAX_PROPERTIES_WITHOUT_APPROVAL;
+/** @deprecated Unpaid grace listings removed — always false. */
+export async function isAgentKycGraceListingLimitReached(_userId: string): Promise<boolean> {
+  return false;
 }
 
 /** Auto-resume Agent DealSites that were paused by policy when the owner is eligible again. */

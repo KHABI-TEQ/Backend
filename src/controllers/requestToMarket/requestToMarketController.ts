@@ -207,7 +207,7 @@ export const listRequestToMarket = async (
 
     const [rawRequests, total] = await Promise.all([
       DB.Models.RequestToMarket.find(filter)
-        .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description agentCommissionAmount")
+        .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description agentCommissionAmount propertyCode")
         .populate("requestedByAgentId", "firstName lastName fullName email phoneNumber")
         .populate("publisherId", "firstName lastName fullName email")
         .sort({ createdAt: -1 })

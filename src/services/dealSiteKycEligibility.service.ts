@@ -22,7 +22,7 @@ function isAgentUserType(userType: string | undefined): boolean {
   return userType === "Agent";
 }
 
-/** Blocks Agent DealSite setup/enable when KYC or trial/subscription rules fail. */
+/** Blocks Agent DealSite setup/enable when KYC or paid-subscription rules fail. */
 export async function assertDealSiteKycAllowed(userId: string): Promise<void> {
   const user = await DB.Models.User.findById(userId).select("userType").lean();
   if (!user || user.userType !== "Agent") {

@@ -20,7 +20,7 @@ Schema (all optional except you must return an object):
   "shortletDuration": string | null (if shortlet),
   "holdDuration": string | null (if jv),
   "isTenanted": "yes" | "no",
-  "inspectionFee": number | null (1000-50000 Naira),
+  "inspectionFee": number | null (omit or 0 if none; 1000-50000 Naira if set),
   "agentCommissionPercent": number | null (rent 10, sale/off-plan 5, jv/shortlet 0-5),
   "agentCommissionAmount": number | null (Naira)
 }`;

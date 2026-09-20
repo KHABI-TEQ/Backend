@@ -9,11 +9,6 @@ import {
   accountApproved,
   accountDisapproved,
 } from "../../../common/emailTemplates/agentMails";
-import { SystemSettingService } from "../../../services/systemSetting.service";
-import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
-import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
-import { generateSubscriptionReceiptEmail } from "../../../common/emailTemplates/subscriptionMails";
-import { getClientDashboardUrl } from "../../../utils/clientAppUrl";
 import { isPublisherKycUserType } from "../../../common/kycTypes";
 import { getPublisherKycStatus } from "../../../services/publisherKyc.service";
 import { resumeAgentPolicyPausedDealSites } from "../../../services/agentPublisherEligibility.service";
@@ -131,80 +126,6 @@ export const reviewPublisherKyc = async (
 
       if (userAcct.userType === "Agent") {
         await resumeAgentPolicyPausedDealSites(String(userAcct._id));
-      }
-
-      const grantsFreeTrial = userAcct.userType === "Agent";
-      if (grantsFreeTrial) {
-        const freePlanAccess = await SystemSettingService.getSetting("free_trial_status");
-        if (freePlanAccess?.value) {
-          const getActiveFreePlan = await SubscriptionPlanService.getActiveTrialPlan();
-          if (getActiveFreePlan) {
-            const price = getActiveFreePlan.price;
-            const durationInDays = getActiveFreePlan.durationInDays;
-            const endDate = new Date();
-            endDate.setDate(endDate.getDate() + durationInDays);
-
-            const planFeatures =
-              getActiveFreePlan.features?.map((f: any) => ({
-                feature: f.feature?._id || f.feature,
-                type: f.type,
-                value: f.type === "boolean" || f.type === "count" ? f.value : undefined,
-                remaining: f.type === "count" ? f.value : undefined,
-              })) || [];
-
-            const reference = "KT" + Math.floor(Math.random() * 9e14 + 1e14).toString();
-            const transactionData = await DB.Models.NewTransaction.create({
-              reference,
-              fromWho: { kind: "User", item: userId },
-              amount: price,
-              transactionType: "subscription",
-              paymentMode: "kyc approval",
-              status: "success",
-              currency: "NGN",
-              meta: {
-                planType: "Free Plan",
-                planCode: getActiveFreePlan.code,
-                appliedPlanName: getActiveFreePlan.name,
-                category: "standard",
-              },
-            });
-
-            await UserSubscriptionSnapshotService.createSnapshot({
-              user: userId as string,
-              plan: getActiveFreePlan._id as string,
-              transaction: transactionData._id as string,
-              status: "active",
-              expiresAt: endDate,
-              autoRenew: false,
-              features: planFeatures,
-              meta: {
-                planType: "Free Plan",
-                planCode: getActiveFreePlan.code,
-                appliedPlanName: getActiveFreePlan.name,
-                category: "standard",
-              },
-            });
-
-            const successMailBody = generalEmailLayout(
-              generateSubscriptionReceiptEmail({
-                fullName: userAcct.firstName,
-                planName: getActiveFreePlan.name,
-                amount: price,
-                nextBillingDate: endDate.toDateString(),
-                transactionRef: reference,
-                publicAccessSettingsLink: getClientDashboardUrl(),
-              })
-            );
-            await sendEmail({
-              to: userAcct.email,
-              subject: "Welcome Gift - Free Subscription made Successfully",
-              html: successMailBody,
-              text: successMailBody,
-            });
-
-            await resumeAgentPolicyPausedDealSites(String(userAcct._id));
-          }
-        }
       }
     }
 

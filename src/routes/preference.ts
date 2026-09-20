@@ -6,10 +6,17 @@ import { getPaginatedMatchedProperties, pullNextMatchedPropertiesBatch } from ".
 import { getAllApprovedPreferences } from "../controllers/public/preference/getAllApprovedPreferences";
 import { fetchSinglePreference } from "../controllers/public/preference/fetchSinglePreference";
 import { getPreferenceMatchingOutlook } from "../controllers/public/preference/matchingOutlook";
+import { checkoutPreferenceSearchInsurance } from "../controllers/public/preference/searchInsuranceCheckout";
+import buyerAuth from "../middlewares/buyerAuth";
  
 const preferenceRouter = express.Router();
 
 preferenceRouter.post("/submit", postPreference);
+preferenceRouter.post(
+  "/:preferenceId/search-insurance/checkout",
+  buyerAuth,
+  checkoutPreferenceSearchInsurance
+);
 preferenceRouter.post("/matching-outlook", getPreferenceMatchingOutlook);
 preferenceRouter.get("/getApprovedForAgent", getAllApprovedPreferences);
 preferenceRouter.get("/:preferenceId/getOne", fetchSinglePreference);

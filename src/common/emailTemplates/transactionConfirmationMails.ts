@@ -54,7 +54,7 @@ export function transactionConfirmationFollowUpMail(options: {
     <p style="margin: 24px 0;">
       <a href="${registerUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600;">Register my transaction</a>
     </p>
-    <p>The registration link above pre-fills your Property ID and Inspection ID when available. You can use the same page whether you are the buyer or the agent/developer. If you have any questions, please contact our support team.</p>
+    <p>The registration link above pre-fills your Property Code and Inspection ID when available. You can use the same page whether you are the buyer or the agent/developer. If you have any questions, please contact our support team.</p>
   `;
 }
 

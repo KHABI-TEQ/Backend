@@ -6,16 +6,13 @@ import { RouteError } from "../../../common/classes";
 import { InspectionLogService } from "../../../services/inspectionLog.service";
 import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
-import { INSPECTION_FEE_DEFAULT } from "../../../services/propertyValidation.service";
+import { optionalInspectionFeeNaira } from "../../../services/propertyValidation.service";
 import {
   notifyAgentOfInspectionRequest,
   notifyMarketingAgentsInspectionRequest,
   notifyPublisherRepresentativesInspectionRequest,
 } from "../../../services/inspectionWorkflow.service";
 import { getPropertyTitleFromLocation } from "../../../utils/helper";
-
-const INSPECTION_FEE_MIN = 1000;
-const INSPECTION_FEE_MAX = 50000;
 
 export const submitInspectionRequest = async (
   req: AppRequest,
@@ -56,8 +53,7 @@ export const submitInspectionRequest = async (
 
       let totalInspectionAmount = 0;
       for (const property of propertiesList as any[]) {
-        const fee = property.inspectionFee ?? INSPECTION_FEE_DEFAULT;
-        totalInspectionAmount += Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, fee));
+        totalInspectionAmount += optionalInspectionFeeNaira(property.inspectionFee);
       }
 
       if (clientAmount != null && Number(clientAmount) !== totalInspectionAmount) {
@@ -88,8 +84,7 @@ export const submitInspectionRequest = async (
         const inspectionType = prop.inspectionType;
         const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
 
-        const fee = (property as any).inspectionFee ?? INSPECTION_FEE_DEFAULT;
-        const propertyAmount = Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, fee));
+        const propertyAmount = optionalInspectionFeeNaira((property as any).inspectionFee);
 
         const inspection = await DB.Models.InspectionBooking.create({
           propertyId: prop.propertyId,

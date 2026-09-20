@@ -212,8 +212,8 @@ export const propertyValidationSchema = Joi.object({
 
   reason: Joi.string().optional(),
 
-  /** Inspection fee in Naira. Min ₦1,000, max ₦50,000. */
-  inspectionFee: Joi.number().min(1000).max(50000).default(5000).optional(),
+  /** Inspection fee in Naira. Optional; 0 means the agent did not set a fee. */
+  inspectionFee: Joi.number().min(0).max(50000).optional().allow(null),
 
   /** Only Landlords and Developers may set "lasrera_marketplace" (property visible only on LASRERA Market Place, no contact). */
   listingScope: Joi.string().valid("agent_listing", "lasrera_marketplace").default("agent_listing").optional(),

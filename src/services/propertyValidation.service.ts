@@ -4,7 +4,16 @@ import { propertyValidationSchema } from "../utils/formValidation/propertyValida
 
 const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
-const INSPECTION_FEE_DEFAULT = 5000;
+/** 0 means the listing agent did not set an inspection fee. */
+const INSPECTION_FEE_DEFAULT = 0;
+
+/** Persist only an agent-set fee. Empty/0/null stays 0 (no fee). */
+export function optionalInspectionFeeNaira(value: unknown): number {
+  if (value == null || value === "") return 0;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, Math.round(n)));
+}
 
 export interface PropertyValidationResult {
   success: boolean;
@@ -14,7 +23,7 @@ export interface PropertyValidationResult {
 
 /**
  * Validate property payload at creation. Use this before formatPropertyPayload.
- * Returns normalized payload with inspectionFee clamped to [1000, 50000].
+ * Returns normalized payload. Inspection fee is optional; unset stays 0.
  */
 export async function validatePropertyPayload(payload: any): Promise<PropertyValidationResult> {
   try {
@@ -26,11 +35,7 @@ export async function validatePropertyPayload(payload: any): Promise<PropertyVal
       },
     );
 
-    const fee =
-      validated.inspectionFee != null
-        ? Math.min(INSPECTION_FEE_MAX, Math.max(INSPECTION_FEE_MIN, Number(validated.inspectionFee)))
-        : INSPECTION_FEE_DEFAULT;
-    validated.inspectionFee = fee;
+    validated.inspectionFee = optionalInspectionFeeNaira(validated.inspectionFee);
 
     return { success: true, data: validated };
   } catch (err: any) {

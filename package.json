@@ -10,6 +10,7 @@
 		"backfill-property-image-embeddings": "ts-node -r tsconfig-paths/register src/scripts/backfillPropertyImageEmbeddings.ts",
 		"ensure-scout-subscription-plans": "ts-node -r tsconfig-paths/register src/scripts/ensureScoutSubscriptionPlans.ts",
 		"ensure-developer-subscription-plans": "ts-node -r tsconfig-paths/register src/scripts/ensureDeveloperSubscriptionPlans.ts",
+		"ensure-catalog-subscription-plans": "ts-node -r tsconfig-paths/register src/scripts/ensureCatalogSubscriptionPlans.ts",
 		"ensure-portfolio-unlimited-plan": "ts-node -r tsconfig-paths/register src/scripts/ensurePortfolioUnlimitedPlan.ts",
 		"migrate-property-active-status": "ts-node -r tsconfig-paths/register src/scripts/migratePropertyActiveStatus.ts"
 	},

@@ -272,6 +272,12 @@ export class DealSiteService {
     }
 
     // ✅ Supported sections list
+    const { normalizeDealSiteSectionName, normalizeDealSiteSectionPayload } = await import(
+      "../common/constants/dealSitePublicNav"
+    );
+    sectionName = normalizeDealSiteSectionName(sectionName);
+    updates = normalizeDealSiteSectionPayload(sectionName, updates) as Record<string, any>;
+
     const allowedSections = [
       "brandingSeo",
       "theme",
@@ -284,9 +290,12 @@ export class DealSiteService {
       "paymentDetails",
       "about",
       "contactUs",
-      'homeSettings',
-      'subscribeSettings',
-      'support'
+      "homeSettings",
+      "subscribeSettings",
+      "support",
+      "navigation",
+      "faqs",
+      "customPages",
     ];
 
     if (!allowedSections.includes(sectionName)) {
@@ -323,6 +332,8 @@ export class DealSiteService {
       };
       (dealSite as any).paymentDetails =
         await DealSiteService.buildSubAccountPaymentDetails(mergedPaymentDetails);
+    } else if (sectionName === "customPages" && Array.isArray(updates)) {
+      (dealSite as any).customPages = updates;
     } else {
       // ✅ For nested/grouped sections, merge the updates
       (dealSite as any)[sectionName] = {
@@ -531,8 +542,7 @@ export class DealSiteService {
   }
 
   /**
-   * Public DealSite (visitor): Agent owners must satisfy trial/subscription rules;
-   * Developers are not gated by subscription.
+   * Public DealSite (visitor): Agent owners need an active paid subscription.
    */
   static async getPublicDealSiteSubscriptionGate(
     ownerUserId: string
@@ -562,7 +572,7 @@ export class DealSiteService {
     return { ok: true } as const;
   }
 
-  /** Public visitor gate: Agent owners must satisfy KYC grace and trial/subscription rules. */
+  /** Public visitor gate: Agent owners must satisfy KYC and paid-subscription rules. */
   static async getPublicDealSiteKycGate(ownerUserId: string) {
     return getPublicDealSiteKycGate(ownerUserId);
   }

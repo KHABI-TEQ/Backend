@@ -27,7 +27,7 @@ export const loginBuyer = async (
     if (!buyer.password) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "This email is not registered for mobile login. Please sign up."
+        "This email is a guest search account. Set a password to continue."
       );
     }
 
