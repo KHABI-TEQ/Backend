@@ -1,5 +1,9 @@
 import Joi from "joi";
 import { joiPilotState } from "../common/constants/pilotLocation";
+import {
+  normalizePreferenceBuildingType,
+  normalizePreferenceCondition,
+} from "../common/constants/preferenceConditionBuilding";
 
 /** Allowed land measurement units for preferences (lowercased on validate). Legacy hectare values kept for stored data; emails map them to "acres". */
 export const PREFERENCE_MEASUREMENT_UNIT_VALUES = [
@@ -10,6 +14,16 @@ export const PREFERENCE_MEASUREMENT_UNIT_VALUES = [
   "hectare",
   "ha",
 ] as const;
+
+const preferenceCondition = Joi.string()
+  .trim()
+  .allow("")
+  .custom((value) => normalizePreferenceCondition(value) || value);
+
+const preferenceBuildingType = Joi.string()
+  .trim()
+  .allow("")
+  .custom((value) => normalizePreferenceBuildingType(value) || value);
 
 const preferenceMeasurementUnit = Joi.string()
   .trim()
@@ -60,11 +74,14 @@ export const preferenceValidationSchema = Joi.object({
   // For Buy, Rent & Off-plan
   propertyDetails: Joi.object({
     propertyType: Joi.string(),
-    buildingType: Joi.string(),
+    buildingType: preferenceBuildingType,
     minBedrooms: Joi.string(),
     minBathrooms: Joi.number(),
+    toilets: Joi.alternatives()
+      .try(Joi.number().min(0), Joi.string().trim().allow(""))
+      .optional(),
     leaseTerm: Joi.string().allow(""),
-    propertyCondition: Joi.string(),
+    propertyCondition: preferenceCondition,
     purpose: Joi.string().allow(""),
     landSize: Joi.string().allow(""),
     minLandSize: Joi.string().allow(""), // For SQM range

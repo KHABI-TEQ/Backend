@@ -86,6 +86,26 @@ export const getProfile = async (
       const extra = await buildPublisherProfileExtensions(user);
       responseData = { ...userResponse, ...extra };
     }
+    if (ut === "Lawyer" || ut === "Surveyor" || ut === "Valuer") {
+      const ProfessionalModel =
+        ut === "Lawyer"
+          ? DB.Models.LawyerProfile
+          : ut === "Surveyor"
+            ? DB.Models.SurveyorProfile
+            : DB.Models.ValuerProfile;
+      const professional = await ProfessionalModel.findOne({ userId: user._id })
+        .select("kycStatus")
+        .lean();
+      const snap = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+        String(user._id),
+      );
+      responseData = {
+        ...userResponse,
+        kycStatus: professional?.kycStatus || "none",
+        activeSubscription: snap || null,
+        activeSnapshot: snap || null,
+      };
+    }
 
     if (
       (ut === "Agent" || ut === "Developer") &&

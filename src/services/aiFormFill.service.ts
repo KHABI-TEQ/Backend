@@ -42,13 +42,15 @@ Schema (all optional except you must return an object):
     "customLocation": string
   },
   "budget": { "minPrice": number, "maxPrice": number, "currency": "NGN" },
+  IMPORTANT: all numbers must be raw JSON numbers with no thousand separators (15000000, never 15,000,000).
   "propertyDetails": {
     "propertyType": string,
-    "buildingType": string,
+    "buildingType": "duplex" | "bungalow" | "flat-apartment" | "terraced-house" | "detached-house" | "semi-detached-house" | "any-type" | "office-complex" | "warehouse" | "plaza" | "shop",
     "minBedrooms": string,
     "minBathrooms": number,
+    "toilets": number,
     "leaseTerm": string,
-    "propertyCondition": string,
+    "propertyCondition": "brand-new" | "fairly-new" | "good-condition" | "fairly-used" | "old-building" | "needs-renovation" | "any-condition",
     "purpose": string,
     "landSize": string,
     "documentTypes": string[],
@@ -104,6 +106,13 @@ function getOpenAIClient(): OpenAI {
 
 export type FormType = "property" | "preference";
 
+/** Models often write 15,000,000 inside JSON; that is invalid. Strip grouping commas in unquoted numbers. */
+function sanitizeAiJsonNumbers(jsonStr: string): string {
+  return jsonStr.replace(/(:\s*)(-?\d{1,3}(?:,\d{3})+(?:\.\d+)?)/g, (_m, prefix: string, num: string) => {
+    return `${prefix}${num.replace(/,/g, "")}`;
+  });
+}
+
 /**
  * Call OpenAI to suggest form fields from natural language.
  * Returns a partial object that the frontend can merge into the property or preference form.
@@ -149,7 +158,7 @@ export async function suggestFormFields(
       jsonStr = codeBlockMatch[1].trim();
     }
 
-    const data = JSON.parse(jsonStr) as Record<string, unknown>;
+    const data = JSON.parse(sanitizeAiJsonNumbers(jsonStr)) as Record<string, unknown>;
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       return { success: false, error: "Invalid AI response shape" };
     }

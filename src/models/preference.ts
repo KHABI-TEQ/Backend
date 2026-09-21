@@ -29,6 +29,7 @@ export interface IPropertyDetails {
   buildingType?: string;
   minBedrooms?: string;
   minBathrooms?: number;
+  toilets?: string | number;
   propertyCondition?: string;
   purpose?: string;
   landSize?: string; // Changed to string to match payload
@@ -240,6 +241,7 @@ export class Preference {
           buildingType: String,
           minBedrooms: String,
           minBathrooms: Number,
+          toilets: Schema.Types.Mixed,
           propertyCondition: String,
           purpose: String,
           landSize: String, // Stored as string

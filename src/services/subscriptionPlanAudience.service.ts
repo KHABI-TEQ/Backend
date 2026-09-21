@@ -6,7 +6,6 @@ import {
   type SubscriptionPlanAudience,
 } from "../common/constants/subscriptionCategories";
 import { catalogDefinitionByCode } from "../common/constants/subscriptionCatalog";
-import { isPropertyScout } from "./propertyScout.service";
 import { DB } from "../controllers";
 
 const PROFESSIONAL_USER_TYPES: Record<string, SubscriptionPlanAudience> = {
@@ -31,9 +30,7 @@ export async function resolveCatalogAudienceForUser(
   if (userType === "PropertyScout") {
     return SUBSCRIPTION_PLAN_AUDIENCES.SCOUT;
   }
-  return (await isPropertyScout(String(userId)))
-    ? SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
-    : SUBSCRIPTION_PLAN_AUDIENCES.LICENSED;
+  return SUBSCRIPTION_PLAN_AUDIENCES.LICENSED;
 }
 
 export async function assertUserCanPurchasePlanAudience(input: {
@@ -100,8 +97,7 @@ export async function assertUserCanPurchasePlanAudience(input: {
     );
   }
 
-  const scout =
-    userType === "PropertyScout" || (await isPropertyScout(String(input.userId)));
+  const scout = userType === "PropertyScout";
 
   if (scout && audience !== SUBSCRIPTION_PLAN_AUDIENCES.SCOUT) {
     throw new RouteError(

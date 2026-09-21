@@ -7,8 +7,32 @@ export function isStandalonePropertyScout(userType?: string | null): boolean {
   return userType === "PropertyScout";
 }
 
+/** Only accounts opened as Property Scout are scouts. Agent/Developer keep their opened role. */
 export function isScoutEligibleUserType(userType?: string | null): boolean {
-  return !!userType && (isStandalonePropertyScout(userType) || LEGACY_SCOUT_USER_TYPES.has(userType));
+  return isStandalonePropertyScout(userType);
+}
+
+export function displayRoleFromUserType(userType?: string | null): string {
+  switch (userType) {
+    case "PropertyScout":
+      return "Property Scout";
+    case "Landowners":
+      return "Property Owner";
+    case "FieldAgent":
+      return "Field Agent";
+    case "Agent":
+      return "Agent";
+    case "Developer":
+      return "Developer";
+    case "Lawyer":
+      return "Lawyer";
+    case "Surveyor":
+      return "Surveyor";
+    case "Valuer":
+      return "Valuer";
+    default:
+      return userType || "Account";
+  }
 }
 
 /** New Property Scout accounts require KYC + listing review. Legacy Agent/Developer scouts do not. */
@@ -50,34 +74,14 @@ export async function isLicensedPublisher(userId: string): Promise<boolean> {
 }
 
 /**
- * Property Scout (dashboard label + inspection rules):
- * Agent or Developer who never submitted KYC, or whose approved KYC has no license.
- * Buyers still see them as Agent/Developer (userType unchanged).
+ * Property Scout identity is the account they opened — never inferred from KYC.
  */
 export async function isPropertyScout(userId: string): Promise<boolean> {
   const user = await DB.Models.User.findById(userId)
     .select("userType isDeleted")
     .lean();
   if (!user || user.isDeleted) return false;
-  if (isStandalonePropertyScout(user.userType)) return true;
-  if (!LEGACY_SCOUT_USER_TYPES.has(user.userType)) return false;
-
-  const kycStatus = await getPublisherKycStatus(userId);
-  const submitted =
-    kycStatus === "pending" ||
-    kycStatus === "approved" ||
-    kycStatus === "rejected";
-
-  if (!submitted) {
-    return true;
-  }
-
-  if (kycStatus === "approved") {
-    return !(await publisherHasLicense(userId));
-  }
-
-  // Pending / rejected KYC — not yet a licensed practitioner for inspection accept.
-  return true;
+  return isStandalonePropertyScout(user.userType);
 }
 
 function kycDisplayLabel(status: string | null): string {
@@ -120,11 +124,7 @@ export async function getPropertyScoutSnapshot(userId: string): Promise<{
     kycStatus === "approved" &&
     hasLicense;
   const standalone = isStandalonePropertyScout(userType);
-  const scout = standalone
-    ? true
-    : LEGACY_SCOUT_USER_TYPES.has(userType)
-      ? await isPropertyScout(userId)
-      : false;
+  const scout = standalone;
 
   const masked = hasLicense
     ? license.length <= 4
@@ -144,12 +144,6 @@ export async function getPropertyScoutSnapshot(userId: string): Promise<{
     pendingProfessionalType: user?.pendingProfessionalType || null,
     professionalUpgradeStatus: user?.professionalUpgradeStatus || null,
     licenseNumberMasked: masked,
-    displayRoleLabel: scout
-      ? "Property Scout"
-      : userType === "Developer"
-        ? "Developer"
-        : userType === "Agent"
-          ? "Agent"
-          : userType || "Account",
+    displayRoleLabel: displayRoleFromUserType(userType),
   };
 }

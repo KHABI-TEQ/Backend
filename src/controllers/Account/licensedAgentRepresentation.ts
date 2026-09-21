@@ -19,10 +19,7 @@ import {
   assertUserIsLicensedAgent,
   listLicensedPublishers,
 } from "../../services/licensedAgents.service";
-import {
-  getPropertyScoutSnapshot,
-  isPropertyScout,
-} from "../../services/propertyScout.service";
+import { getPropertyScoutSnapshot } from "../../services/propertyScout.service";
 import {
   INSPECTION_PLATFORM_SHARE_NAIRA,
   LICENSED_AGENT_BANK_SETUP_PATH,
@@ -100,10 +97,14 @@ export async function listAvailableLicensedAgents(
     if (!user?._id) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
     }
-    if (user.userType !== "Agent" && user.userType !== "Developer") {
+    if (
+      user.userType !== "Agent" &&
+      user.userType !== "Developer" &&
+      user.userType !== "PropertyScout"
+    ) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
-        "Only Agents and Developers can browse licensed Agents."
+        "Only Property Scouts, Agents, and Developers can browse licensed Agents."
       );
     }
 
@@ -192,17 +193,10 @@ export async function requestLicensedAgentForInspection(
     if (!userId) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
     }
-    if (userType !== "Agent" && userType !== "Developer") {
+    if (userType !== "PropertyScout") {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
-        "Only Agents and Developers can request a licensed Agent."
-      );
-    }
-
-    if (!(await isPropertyScout(String(userId)))) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Only Property Scouts (no license on approved KYC, or KYC not yet submitted) can request a licensed Agent for inspections. Licensed Agents handle inspections directly."
+        "Only Property Scout accounts can request a licensed Agent for inspections. Agents and other professionals handle inspections from their own accounts.",
       );
     }
 

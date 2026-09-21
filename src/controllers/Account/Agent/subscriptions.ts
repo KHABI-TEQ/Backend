@@ -11,7 +11,6 @@ import sendEmail from "../../../common/send.email";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
 import { PlanFeatureService } from "../../../services/planFeatures.service";
-import { isPublisherKycApproved } from "../../../services/publisherKyc.service";
 import {
   computePaidSubscriptionExpiresAt,
   resolveAgentSubscriptionBonusDays,
@@ -23,7 +22,6 @@ import {
   SUBSCRIPTION_PLAN_CATEGORIES,
   type SubscriptionPlanCategory,
 } from "../../../common/constants/subscriptionCategories";
-import { isPropertyScout } from "../../../services/propertyScout.service";
 import {
   resolveCatalogAudienceForUser,
   assertUserCanPurchasePlanAudience,
@@ -64,19 +62,9 @@ export const createSubscription = async (
       );
     }
 
-    if (userType === "Agent" || userType === "PropertyScout") {
-      const scout = await isPropertyScout(String(userId));
-      if (!scout && !(await isPublisherKycApproved(userId))) {
-        throw new RouteError(
-          HttpStatusCodes.FORBIDDEN,
-          "Your account must be KYC-approved before creating a subscription."
-        );
-      }
-    }
-
     if (userType === "Agent") {
       const agentAccount = await DB.Models.Agent.findOne({ userId });
-      if (!agentAccount && !(await isPropertyScout(String(userId)))) {
+      if (!agentAccount) {
         throw new RouteError(HttpStatusCodes.NOT_FOUND, "Only registered agents can create subscriptions.");
       }
     }
