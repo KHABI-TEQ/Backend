@@ -87,21 +87,29 @@ export const getProfile = async (
       responseData = { ...userResponse, ...extra };
     }
     if (ut === "Lawyer" || ut === "Surveyor" || ut === "Valuer") {
-      const ProfessionalModel =
-        ut === "Lawyer"
-          ? DB.Models.LawyerProfile
-          : ut === "Surveyor"
-            ? DB.Models.SurveyorProfile
-            : DB.Models.ValuerProfile;
-      const professional = await ProfessionalModel.findOne({ userId: user._id })
-        .select("kycStatus")
-        .lean();
+      let kycStatus: string = "none";
+      if (ut === "Lawyer") {
+        const professional = await DB.Models.LawyerProfile.findOne({ userId: user._id })
+          .select("kycStatus")
+          .lean();
+        kycStatus = professional?.kycStatus || "none";
+      } else if (ut === "Surveyor") {
+        const professional = await DB.Models.SurveyorProfile.findOne({ userId: user._id })
+          .select("kycStatus")
+          .lean();
+        kycStatus = professional?.kycStatus || "none";
+      } else {
+        const professional = await DB.Models.ValuerProfile.findOne({ userId: user._id })
+          .select("kycStatus")
+          .lean();
+        kycStatus = professional?.kycStatus || "none";
+      }
       const snap = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
         String(user._id),
       );
       responseData = {
         ...userResponse,
-        kycStatus: professional?.kycStatus || "none",
+        kycStatus,
         activeSubscription: snap || null,
         activeSnapshot: snap || null,
       };
