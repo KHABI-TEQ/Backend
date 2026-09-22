@@ -91,7 +91,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     }
 
     const token = generateToken({
-      id: user._id.toString(),
+      id: String(user._id),
       email: user.email,
       userType: user.userType,
     });
@@ -122,11 +122,11 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 
        // Get active subscription snapshot using the service
         const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
-          user._id.toString()
+          String(user._id)
         );
 
        // get the agent public access page if found (single DealSite per user)
-        const dealSites = await DealSiteService.getByAgent(user._id.toString());
+        const dealSites = await DealSiteService.getByAgent(String(user._id));
         const dealSite = dealSites?.[0] ?? null;
 
       const userWithAgent = agentData?.agentType
@@ -152,9 +152,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
     // Developer: same as Agent for public page and subscription (dealSite, activeSubscription)
     if (user.userType === "Developer") {
       const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
-        user._id.toString()
+        String(user._id)
       );
-      const dealSites = await DealSiteService.getByAgent(user._id.toString());
+      const dealSites = await DealSiteService.getByAgent(String(user._id));
       const dealSite = dealSites?.[0] ?? null;
       const kycStatus = await getPublisherKycStatus(String(user._id));
       const userWithDeveloper = {
@@ -176,6 +176,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 
     if (user.userType === "Landowners" || user.userType === "PropertyScout") {
       const kycStatus = await getPublisherKycStatus(String(user._id));
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+        String(user._id)
+      );
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Login successful",
@@ -184,6 +187,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
           user: {
             ...userResponse,
             kycStatus,
+            activeSubscription: activeSnapshot || null,
             pendingProfessionalType: user.pendingProfessionalType || null,
             professionalUpgradeStatus: user.professionalUpgradeStatus || "none",
           },
@@ -195,6 +199,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       const lawyerProfile = await DB.Models.LawyerProfile.findOne({
         userId: user._id,
       }).lean();
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+        String(user._id)
+      );
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Login successful",
@@ -204,6 +211,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             ...userResponse,
             isAccountApproved: user.accountApproved,
             lawyerProfile: lawyerProfile || null,
+            activeSubscription: activeSnapshot || null,
           },
         },
       });
@@ -213,6 +221,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       const surveyorProfile = await DB.Models.SurveyorProfile.findOne({
         userId: user._id,
       }).lean();
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+        String(user._id)
+      );
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Login successful",
@@ -222,6 +233,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             ...userResponse,
             isAccountApproved: user.accountApproved,
             surveyorProfile: surveyorProfile || null,
+            activeSubscription: activeSnapshot || null,
           },
         },
       });
@@ -231,6 +243,9 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       const valuerProfile = await DB.Models.ValuerProfile.findOne({
         userId: user._id,
       }).lean();
+      const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+        String(user._id)
+      );
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Login successful",
@@ -240,6 +255,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
             ...userResponse,
             isAccountApproved: user.accountApproved,
             valuerProfile: valuerProfile || null,
+            activeSubscription: activeSnapshot || null,
           },
         },
       });

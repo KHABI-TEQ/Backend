@@ -185,6 +185,78 @@ export class UserSubscriptionSnapshotService {
   }
 
   /**
+   * Remove cancelled complimentary days from stored snapshots so end dates
+   * match the purchased plan duration only.
+   */
+  static async stripComplimentaryBonusValidity(userId?: string): Promise<void> {
+    const filter: FilterQuery<IUserSubscriptionSnapshotDoc> = {};
+    if (userId) {
+      filter.user = userId;
+    } else {
+      filter.$or = [
+        { "meta.bonusDays": { $gt: 0 } },
+        { "meta.baseDurationInDays": { $gt: 0 } },
+      ];
+    }
+
+    const docs = await this.SnapshotModel.find(filter)
+      .select("startedAt expiresAt meta status plan")
+      .limit(userId ? 200 : 500);
+
+    const planIds = [
+      ...new Set(docs.map((doc) => String(doc.plan || "")).filter(Boolean)),
+    ];
+    const plans = planIds.length
+      ? await DB.Models.SubscriptionPlan.find({ _id: { $in: planIds } })
+          .select("durationInDays")
+          .lean()
+      : [];
+    const durationByPlan = new Map(
+      plans.map((plan) => [String(plan._id), Number(plan.durationInDays || 0)])
+    );
+
+    const now = new Date();
+    const slackMs = 12 * 60 * 60 * 1000;
+
+    for (const doc of docs) {
+      const bonus = Number(doc.meta?.bonusDays || 0);
+      const baseFromMeta = Number(doc.meta?.baseDurationInDays || 0);
+      const baseFromPlan = durationByPlan.get(String(doc.plan)) || 0;
+      const base = baseFromMeta > 0 ? baseFromMeta : baseFromPlan;
+
+      let nextExpires: Date | null = null;
+      if (doc.startedAt && base > 0) {
+        nextExpires = new Date(doc.startedAt);
+        nextExpires.setDate(nextExpires.getDate() + base);
+      } else if (doc.expiresAt && bonus > 0) {
+        nextExpires = new Date(doc.expiresAt);
+        nextExpires.setDate(nextExpires.getDate() - bonus);
+      }
+      if (!nextExpires) continue;
+
+      const current = doc.expiresAt ? new Date(doc.expiresAt) : null;
+      const inflated =
+        !current || current.getTime() > nextExpires.getTime() + slackMs;
+      if (bonus <= 0 && !inflated) continue;
+
+      const nextStatus =
+        doc.status === "active" && nextExpires < now ? "expired" : doc.status;
+
+      await this.SnapshotModel.updateOne(
+        { _id: doc._id },
+        {
+          $set: {
+            expiresAt: nextExpires,
+            status: nextStatus,
+            "meta.bonusDays": 0,
+            ...(base > 0 ? { "meta.baseDurationInDays": base } : {}),
+          },
+        }
+      );
+    }
+  }
+
+  /**
    * Get all currently valid snapshots for a user.
    */
   static async getActiveSnapshots(
@@ -203,6 +275,7 @@ export class UserSubscriptionSnapshotService {
       filter["meta.category"] = { $nin: ["white-labeling"] };
     }
 
+    await this.stripComplimentaryBonusValidity(userId);
     return this.SnapshotModel.find(filter).sort({ createdAt: -1 });
   }
 
@@ -234,6 +307,7 @@ export class UserSubscriptionSnapshotService {
       filter["meta.category"] = { $nin: ["white-labeling"] };
     }
 
+    await this.stripComplimentaryBonusValidity(userId);
     return this.SnapshotModel.findOne(filter)
       .sort({ createdAt: -1 })
       .populate("features.feature", "key label isActive")
@@ -245,6 +319,7 @@ export class UserSubscriptionSnapshotService {
    * Expire snapshots that passed expiry date
    */
   static async expireSnapshots(): Promise<number> {
+    await this.stripComplimentaryBonusValidity();
     const result = await this.SnapshotModel.updateMany(
       {
         status: "active",

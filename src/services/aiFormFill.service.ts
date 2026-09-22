@@ -9,7 +9,7 @@ Schema (all optional except you must return an object):
   "propertyCategory": "Residential" | "Commercial" | "Land" | "Industrial" | "Mixed-Use",
   "propertyCondition": "New" | "Renovated" | "Fairly Used" | "Old" etc,
   "typeOfBuilding": "Duplex" | "Bungalow" | "Flat" | "Terrace" | "Self Contain" | "Shop" | "Warehouse" | "Land" etc,
-  "price": number (in Naira),
+  "price": number (in Naira; convert spoken amounts: twenty million → 20000000),
   "location": { "state": string, "localGovernment": string, "area": string, "streetAddress": string | null, "estate": string | null },
   "landSize": { "measurementType": "SQM" | "SQFT" | "Acres" etc, "size": number } | null,
   "additionalFeatures": { "noOfBedroom": number, "noOfBathroom": number, "noOfToilet": number, "noOfCarPark": number },
@@ -42,7 +42,7 @@ Schema (all optional except you must return an object):
     "customLocation": string
   },
   "budget": { "minPrice": number, "maxPrice": number, "currency": "NGN" },
-  IMPORTANT: all numbers must be raw JSON numbers with no thousand separators (15000000, never 15,000,000).
+  IMPORTANT: all numbers must be raw JSON numbers with no thousand separators (15000000, never 15,000,000). Convert spoken English amounts to numbers (twenty million naira → 20000000, 20 million → 20000000).
   "propertyDetails": {
     "propertyType": string,
     "buildingType": "duplex" | "bungalow" | "flat-apartment" | "terraced-house" | "detached-house" | "semi-detached-house" | "any-type" | "office-complex" | "warehouse" | "plaza" | "shop",
@@ -53,17 +53,17 @@ Schema (all optional except you must return an object):
     "propertyCondition": "brand-new" | "fairly-new" | "good-condition" | "fairly-used" | "old-building" | "needs-renovation" | "any-condition",
     "purpose": string,
     "landSize": string,
-    "documentTypes": string[],
+    "documentTypes": ["deed-of-assignment" | "deed-of-ownership" | "deed-of-conveyance" | "survey-plan" | "governors-consent" | "certificate-of-occupancy" | "family-receipt" | "contract-of-sale" | "land-certificate" | "gazette" | "excision"],
     "landConditions": string[]
   } | null,
   "developmentDetails": {
     "minLandSize": string,
     "maxLandSize": string,
-    "measurementUnit": string,
+    "measurementUnit": "plot" | "sqm" | "acres" | "hectares",
     "developmentTypes": ["residential" | "commercial" | "mixed-use" | "industrial"],
     "preferredSharingRatio": string,
     "proposalDetails": string,
-    "minimumTitleRequirements": string[],
+    "minimumTitleRequirements": ["deed-of-assignment" | "deed-of-ownership" | "deed-of-conveyance" | "survey-plan" | "governors-consent" | "certificate-of-occupancy" | "family-receipt" | "contract-of-sale" | "land-certificate" | "gazette" | "excision"],
     "willingToConsiderPendingTitle": boolean,
     "additionalRequirements": string
   } | null,
@@ -75,7 +75,7 @@ Schema (all optional except you must return an object):
     "numberOfGuests": number,
     "checkInDate": string (ISO date) | null,
     "checkOutDate": string (ISO date) | null,
-    "travelType": string,
+    "travelType": "solo" | "couple" | "family" | "group" | "business",
     "preferredCheckInTime": string,
     "preferredCheckOutTime": string,
     "propertyCondition": string,
@@ -111,6 +111,63 @@ function sanitizeAiJsonNumbers(jsonStr: string): string {
   return jsonStr.replace(/(:\s*)(-?\d{1,3}(?:,\d{3})+(?:\.\d+)?)/g, (_m, prefix: string, num: string) => {
     return `${prefix}${num.replace(/,/g, "")}`;
   });
+}
+
+const SPOKEN_SCALE: Record<string, number> = {
+  thousand: 1_000,
+  k: 1_000,
+  million: 1_000_000,
+  mill: 1_000_000,
+  mil: 1_000_000,
+  m: 1_000_000,
+  billion: 1_000_000_000,
+  b: 1_000_000_000,
+};
+
+function coerceNairaValue(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) return Math.round(value);
+  if (typeof value !== "string") return undefined;
+  const raw = value.trim();
+  if (!raw) return undefined;
+  const compact = raw.replace(/[₦,\s]/g, "");
+  if (/^\d+(\.\d+)?$/.test(compact)) {
+    const n = Number(compact);
+    return Number.isFinite(n) && n > 0 ? Math.round(n) : undefined;
+  }
+  const t = raw
+    .toLowerCase()
+    .replace(/₦/g, " ")
+    .replace(/\b(nairas?|ngn)\b/g, " ")
+    .replace(/,/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const m = t.match(
+    /(?:(twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|\d+(?:\.\d+)?))\s*(thousand|k|million|mill|mil|m|billion|b)\b/
+  );
+  if (!m) return undefined;
+  const WORDS: Record<string, number> = {
+    one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
+    eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60,
+    seventy: 70, eighty: 80, ninety: 90,
+  };
+  const base = WORDS[m[1]] ?? Number(m[1]);
+  const scale = SPOKEN_SCALE[m[2]];
+  if (!Number.isFinite(base) || !scale) return undefined;
+  return Math.round(base * scale);
+}
+
+function coerceMoneyFieldsInAiData(data: Record<string, unknown>): void {
+  const budget = data.budget;
+  if (budget && typeof budget === "object" && !Array.isArray(budget)) {
+    const b = budget as Record<string, unknown>;
+    const min = coerceNairaValue(b.minPrice);
+    const max = coerceNairaValue(b.maxPrice);
+    if (min != null) b.minPrice = min;
+    if (max != null) b.maxPrice = max;
+  }
+  const price = coerceNairaValue(data.price);
+  if (price != null) data.price = price;
 }
 
 /**
@@ -162,6 +219,8 @@ export async function suggestFormFields(
     if (typeof data !== "object" || data === null || Array.isArray(data)) {
       return { success: false, error: "Invalid AI response shape" };
     }
+
+    coerceMoneyFieldsInAiData(data);
 
     const location = data.location as Record<string, unknown> | undefined;
     if (location && typeof location === "object") {

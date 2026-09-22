@@ -321,9 +321,9 @@ const autoRenewSubscriptionsCronJob = async () => {
 
       if (paymentResult.success) {
 
-        // ✅ Extend subscription dates (includes practitioner plan bonus days)
+        // ✅ Extend subscription dates by the purchased plan duration only
         const newStartDate = sub.expiresAt;
-        const { expiresAt: newEndDate, bonusDays } = computePaidSubscriptionExpiresAt({
+        const { expiresAt: newEndDate } = computePaidSubscriptionExpiresAt({
           startDate: newStartDate,
           baseDurationInDays: durationInDays,
           planName: appliedPlanName,
@@ -342,13 +342,11 @@ const autoRenewSubscriptionsCronJob = async () => {
         sub.startedAt = newStartDate;
         sub.expiresAt = newEndDate;
         sub.features = planFeatures;
-        if (bonusDays > 0) {
-          sub.meta = {
-            ...sub.meta,
-            bonusDays,
-            baseDurationInDays: durationInDays,
-          };
-        }
+        sub.meta = {
+          ...sub.meta,
+          bonusDays: 0,
+          baseDurationInDays: durationInDays,
+        };
         await sub.save();
 
         await syncCustomDomainExpiryFromSubscription(sub);

@@ -20,6 +20,13 @@ export const PREFERENCE_BUILDING_TYPES = [
   { value: "any-type", label: "Any Type" },
 ] as const;
 
+export const PREFERENCE_COMMERCIAL_BUILDING_TYPES = [
+  { value: "office-complex", label: "Office Complex" },
+  { value: "warehouse", label: "Warehouse" },
+  { value: "plaza", label: "Plaza" },
+  { value: "shop", label: "Shop" },
+] as const;
+
 export const PREFERENCE_PROPERTY_CONDITION_VALUES = PREFERENCE_PROPERTY_CONDITIONS.map(
   (o) => o.value,
 );
@@ -83,6 +90,11 @@ const BUILDING_ALIASES: Record<string, string> = {
   any: "any-type",
   "any type": "any-type",
   "any-type": "any-type",
+  "office complex": "office-complex",
+  "office-complex": "office-complex",
+  warehouse: "warehouse",
+  plaza: "plaza",
+  shop: "shop",
 };
 
 function normalizeLookup(raw: unknown): string {
@@ -109,5 +121,9 @@ export function normalizePreferenceBuildingType(raw: unknown): string | null {
     (o) => o.value === t || o.label.toLowerCase() === t,
   );
   if (byLabel) return byLabel.value;
+  const commercial = PREFERENCE_COMMERCIAL_BUILDING_TYPES.find(
+    (o) => o.value === t || o.label.toLowerCase() === t,
+  );
+  if (commercial) return commercial.value;
   return BUILDING_ALIASES[t] || null;
 }

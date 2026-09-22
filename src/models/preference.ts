@@ -57,6 +57,10 @@ export interface IDevelopmentDetails {
     | "governors-consent"
     | "survey-plan"
     | "deed-of-assignment"
+    | "deed-of-ownership"
+    | "deed-of-conveyance"
+    | "contract-of-sale"
+    | "land-certificate"
     | "excision"
     | "gazette"
     | "family-receipt"
@@ -273,6 +277,10 @@ export class Preference {
               "governors-consent",
               "survey-plan",
               "deed-of-assignment",
+              "deed-of-ownership",
+              "deed-of-conveyance",
+              "contract-of-sale",
+              "land-certificate",
               "excision",
               "gazette",
               "family-receipt",

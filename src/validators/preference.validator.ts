@@ -4,6 +4,16 @@ import {
   normalizePreferenceBuildingType,
   normalizePreferenceCondition,
 } from "../common/constants/preferenceConditionBuilding";
+import {
+  JV_DEVELOPMENT_TYPE_VALUES,
+  PREFERENCE_DOCUMENT_TYPE_VALUES,
+  normalizeJvDevelopmentType,
+  normalizeOffPlanDevelopmentStage,
+  normalizeOffPlanPaymentPlan,
+  normalizePreferenceDocumentType,
+  normalizeShortletPropertyType,
+  normalizeTravelType,
+} from "../common/constants/preferenceSelectableOptions";
 
 /** Allowed land measurement units for preferences (lowercased on validate). Legacy hectare values kept for stored data; emails map them to "acres". */
 export const PREFERENCE_MEASUREMENT_UNIT_VALUES = [
@@ -27,11 +37,58 @@ const preferenceBuildingType = Joi.string()
 
 const preferenceMeasurementUnit = Joi.string()
   .trim()
-  .lowercase()
-  .valid(...PREFERENCE_MEASUREMENT_UNIT_VALUES, "")
+  .custom((value, helpers) => {
+    const t = String(value || "").trim().toLowerCase();
+    if (!t) return "";
+    const mapped =
+      t === "plots" || t === "plot"
+        ? "plot"
+        : t === "sqm" || t === "sq.m" || t === "square meter" || t === "square metres" || t === "square meters"
+          ? "sqm"
+          : t === "acre"
+            ? "acres"
+            : t === "hectare" || t === "ha"
+              ? "hectares"
+              : t;
+    if (!(PREFERENCE_MEASUREMENT_UNIT_VALUES as readonly string[]).includes(mapped)) {
+      return helpers.error("any.only");
+    }
+    return mapped;
+  })
   .messages({
     "any.only":
       "measurementUnit must be one of: plot, sqm, acres (or legacy hectares / hectare / ha)",
+  });
+
+const preferenceDocumentType = Joi.string()
+  .trim()
+  .custom((value) => normalizePreferenceDocumentType(value) || String(value || "").trim());
+
+const jvDevelopmentType = Joi.string()
+  .trim()
+  .custom((value, helpers) => {
+    const next = normalizeJvDevelopmentType(value);
+    if (next && (JV_DEVELOPMENT_TYPE_VALUES as readonly string[]).includes(next)) {
+      return next;
+    }
+    return helpers.error("any.only");
+  })
+  .messages({
+    "any.only":
+      "developmentTypes must be one of: residential, commercial, mixed-use, industrial",
+  });
+
+const jvTitleRequirement = Joi.string()
+  .trim()
+  .custom((value, helpers) => {
+    const next = normalizePreferenceDocumentType(value);
+    if (next && (PREFERENCE_DOCUMENT_TYPE_VALUES as readonly string[]).includes(next)) {
+      return next;
+    }
+    return helpers.error("any.only");
+  })
+  .messages({
+    "any.only": `minimumTitleRequirements must be one of: ${PREFERENCE_DOCUMENT_TYPE_VALUES.join(", ")}`,
   });
 
 export const preferenceValidationSchema = Joi.object({
@@ -87,11 +144,19 @@ export const preferenceValidationSchema = Joi.object({
     minLandSize: Joi.string().allow(""), // For SQM range
     maxLandSize: Joi.string().allow(""), // For SQM range
     measurementUnit: preferenceMeasurementUnit,
-    documentTypes: Joi.array().items(Joi.string()).default([]),
+    documentTypes: Joi.array().items(preferenceDocumentType).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
     expectedCompletionDate: Joi.string().trim().allow("").optional(),
-    developmentStage: Joi.string().trim().allow("").optional(),
-    paymentPlan: Joi.string().trim().allow("").optional(),
+    developmentStage: Joi.string()
+      .trim()
+      .allow("")
+      .custom((value) => normalizeOffPlanDevelopmentStage(value) || value)
+      .optional(),
+    paymentPlan: Joi.string()
+      .trim()
+      .allow("")
+      .custom((value) => normalizeOffPlanPaymentPlan(value) || value)
+      .optional(),
   }).optional(),
 
   // For Joint Venture
@@ -117,54 +182,33 @@ export const preferenceValidationSchema = Joi.object({
     minLandSize: Joi.string().trim(),
     maxLandSize: Joi.string().trim(),
     measurementUnit: preferenceMeasurementUnit,
-    developmentTypes: Joi.array()
-      .items(
-        Joi.string().valid(
-          "residential",
-          "commercial",
-          "mixed-use",
-          "industrial"
-        )
-      )
-      .default([]),
+    developmentTypes: Joi.array().items(jvDevelopmentType).default([]),
     preferredSharingRatio: Joi.string().trim(),
     proposalDetails: Joi.string().trim(),
-    minimumTitleRequirements: Joi.array()
-      .items(
-        Joi.string().valid(
-          "certificate-of-occupancy",
-          "governors-consent",
-          "survey-plan",
-          "deed-of-assignment",
-          "excision",
-          "gazette",
-          "family-receipt"
-        )
-      )
-      .default([]),
+    minimumTitleRequirements: Joi.array().items(jvTitleRequirement).default([]),
     willingToConsiderPendingTitle: Joi.boolean(),
     additionalRequirements: Joi.string().trim(),
   }).optional(),
 
   // For Shortlet
   bookingDetails: Joi.object({
-    propertyType: Joi.string(),
-    buildingType: Joi.string(),
+    propertyType: Joi.string().custom((value) => normalizeShortletPropertyType(value) || value),
+    buildingType: preferenceBuildingType,
     minBedrooms: Joi.string(),
     minBathrooms: Joi.number(),
     numberOfGuests: Joi.number(),
     checkInDate: Joi.date(),
     checkOutDate: Joi.date(),
-    travelType: Joi.string(),
+    travelType: Joi.string().custom((value) => normalizeTravelType(value) || value),
     preferredCheckInTime: Joi.string(),
     preferredCheckOutTime: Joi.string(),
-    propertyCondition: Joi.string(),
+    propertyCondition: preferenceCondition,
     purpose: Joi.string(),
     landSize: Joi.string().allow(""),
     minLandSize: Joi.string().allow(""), // For SQM range
     maxLandSize: Joi.string().allow(""), // For SQM range
     measurementUnit: preferenceMeasurementUnit,
-    documentTypes: Joi.array().items(Joi.string()).default([]),
+    documentTypes: Joi.array().items(preferenceDocumentType).default([]),
     landConditions: Joi.array().items(Joi.string()).default([]),
   }).optional(),
 

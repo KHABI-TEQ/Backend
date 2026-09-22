@@ -1135,7 +1135,7 @@ export class PaystackService {
         }
       }
 
-      const { expiresAt: endDateWithBonus, bonusDays } = computePaidSubscriptionExpiresAt({
+      const { expiresAt: paidExpiresAt } = computePaidSubscriptionExpiresAt({
         startDate,
         baseDurationInDays: planDuration,
         planName: snapshot.meta.appliedPlanName ?? plan.name,
@@ -1153,15 +1153,13 @@ export class PaystackService {
 
       snapshot.status = newStatus;
       snapshot.startedAt = startDate;
-      snapshot.expiresAt = endDateWithBonus;
+      snapshot.expiresAt = paidExpiresAt;
       snapshot.features = Array.isArray(planFeatures) ? planFeatures : [];
-      if (bonusDays > 0) {
-        snapshot.meta = {
-          ...snapshot.meta,
-          bonusDays,
-          baseDurationInDays: planDuration,
-        };
-      }
+      snapshot.meta = {
+        ...snapshot.meta,
+        bonusDays: 0,
+        baseDurationInDays: planDuration,
+      };
       await snapshot.save();
 
       // =======================
@@ -1271,7 +1269,7 @@ export class PaystackService {
             fullName,
             planName: plan.name,
             amount: transaction.amount, // if Paystack stores in kobo
-            nextBillingDate: endDateWithBonus.toDateString(),
+            nextBillingDate: paidExpiresAt.toDateString(),
             transactionRef: transaction.reference,
             publicAccessSettingsLink: publicAccessCompleteLink,
           })

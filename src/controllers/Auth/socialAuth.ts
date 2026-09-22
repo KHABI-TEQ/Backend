@@ -62,11 +62,15 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
 
   if (user.userType === 'Agent') {
     const agentData = await DB.Models.Agent.findOne({ userId: user._id });
+    const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+      String(user._id)
+    );
     const userWithAgent = agentData?.agentType
       ? {
           ...userResponse,
           agentData,
           isAccountApproved: user.accountApproved,
+          activeSubscription: activeSnapshot || null,
         }
       : userResponse;
 
@@ -104,6 +108,9 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
 
   if (user.userType === 'Landowners' || user.userType === 'PropertyScout') {
     const kycStatus = await getPublisherKycStatus(user._id);
+    const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+      user._id.toString()
+    );
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: 'Login successful',
@@ -112,8 +119,27 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
         user: {
           ...userResponse,
           kycStatus,
+          activeSubscription: activeSnapshot || null,
           pendingProfessionalType: user.pendingProfessionalType || null,
           professionalUpgradeStatus: user.professionalUpgradeStatus || 'none',
+        },
+      },
+    });
+  }
+
+  if (user.userType === 'Lawyer' || user.userType === 'Surveyor' || user.userType === 'Valuer') {
+    const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
+      String(user._id)
+    );
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        token,
+        user: {
+          ...userResponse,
+          isAccountApproved: user.accountApproved,
+          activeSubscription: activeSnapshot || null,
         },
       },
     });

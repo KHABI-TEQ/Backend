@@ -2,12 +2,12 @@ import { DB } from "../controllers";
 import { IUserSubscriptionSnapshotDoc } from "../models";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 
-/** Bonus validity days granted on paid subscription activation by plan tier. */
+/** Complimentary extra days are cancelled. Plan duration is exact. */
 export const AGENT_SUBSCRIPTION_BONUS_DAYS = {
-  monthly: 15,
-  quarterly: 30,
-  halfYearly: 60,
-  yearly: 90,
+  monthly: 0,
+  quarterly: 0,
+  halfYearly: 0,
+  yearly: 0,
 } as const;
 
 export type AgentSubscriptionPlanTier =
@@ -77,21 +77,17 @@ export function resolveAgentSubscriptionPlanTier(input: {
   return null;
 }
 
-/** Additional free validity days for a paid practitioner subscription plan. */
-export function resolveAgentSubscriptionBonusDays(input: {
+/** Complimentary extra days are cancelled. Always 0. */
+export function resolveAgentSubscriptionBonusDays(_input: {
   planName?: string;
   planCode?: string;
   durationInDays?: number;
   category?: string;
 }): number {
-  const tier = resolveAgentSubscriptionPlanTier(input);
-  if (!tier) {
-    return 0;
-  }
-  return AGENT_SUBSCRIPTION_BONUS_DAYS[tier];
+  return 0;
 }
 
-/** Total subscription validity (base plan duration + practitioner incentive bonus). */
+/** Subscription validity is the purchased plan duration only. */
 export function computePaidSubscriptionExpiresAt(input: {
   startDate: Date;
   baseDurationInDays: number;
@@ -99,14 +95,8 @@ export function computePaidSubscriptionExpiresAt(input: {
   planCode?: string;
   category?: string;
 }): { expiresAt: Date; bonusDays: number } {
-  const bonusDays = resolveAgentSubscriptionBonusDays({
-    planName: input.planName,
-    planCode: input.planCode,
-    durationInDays: input.baseDurationInDays,
-    category: input.category,
-  });
-  const expiresAt = addCalendarDays(input.startDate, input.baseDurationInDays + bonusDays);
-  return { expiresAt, bonusDays };
+  const days = Math.max(1, Number(input.baseDurationInDays) || 0);
+  return { expiresAt: addCalendarDays(input.startDate, days), bonusDays: 0 };
 }
 
 /** True when the snapshot represents a complimentary KYC/free-trial grant (not a paid plan). */

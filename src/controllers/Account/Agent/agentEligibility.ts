@@ -109,15 +109,15 @@ export const getAgentEligibility = async (
           trialMaxPropertiesWithoutSubscription: 0,
         },
         subscriptionIncentives: {
-          monthlyBonusDays: AGENT_SUBSCRIPTION_BONUS_DAYS.monthly,
-          quarterlyBonusDays: AGENT_SUBSCRIPTION_BONUS_DAYS.quarterly,
-          halfYearlyBonusDays: AGENT_SUBSCRIPTION_BONUS_DAYS.halfYearly,
-          yearlyBonusDays: AGENT_SUBSCRIPTION_BONUS_DAYS.yearly,
+          monthlyBonusDays: 0,
+          quarterlyBonusDays: 0,
+          halfYearlyBonusDays: 0,
+          yearlyBonusDays: 0,
         },
         paidSubscription: paidSubscription
           ? {
               expiresAt: paidSubscription.expiresAt,
-              bonusDays: paidSubscription.meta?.bonusDays ?? null,
+              bonusDays: null,
               planCode: paidSubscription.meta?.planCode ?? null,
               planName: paidSubscription.meta?.appliedPlanName ?? null,
             }

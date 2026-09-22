@@ -151,7 +151,7 @@ export const createSubscription = async (
 
     // 4. Create subscription snapshot (pending until payment success)
     const startDate = new Date();
-    const { expiresAt: endDate, bonusDays } = computePaidSubscriptionExpiresAt({
+    const { expiresAt: endDate } = computePaidSubscriptionExpiresAt({
       startDate,
       baseDurationInDays: durationInDays,
       planName: appliedPlanName,
@@ -174,7 +174,8 @@ export const createSubscription = async (
           durationInDays,
           category,
           benefits,
-          ...(bonusDays > 0 ? { bonusDays, baseDurationInDays: durationInDays } : {}),
+          bonusDays: 0,
+          baseDurationInDays: durationInDays,
           ...(customDomainRequestId
             ? { customDomainRequestId, includedWithPortfolioUnlimited: true }
             : {}),
@@ -200,7 +201,6 @@ export const createSubscription = async (
         planType,
         category,
         benefits,
-        bonusDays,
         expiresAt: endDate,
       },
     });
@@ -228,6 +228,8 @@ export const fetchUserSubscriptions = async (
     };
 
     const userId = req.user?._id;
+
+    await UserSubscriptionSnapshotService.stripComplimentaryBonusValidity(String(userId));
 
     // 👇 STEP 1: expire outdated subscriptions for this user
     await DB.Models.UserSubscriptionSnapshot.updateMany(
@@ -278,9 +280,21 @@ export const fetchUserSubscriptions = async (
     const total =
       await DB.Models.UserSubscriptionSnapshot.countDocuments(filters);
 
+    const now = new Date();
+    const data = subscriptions.map((row: any) => {
+      const item = typeof row.toObject === "function" ? row.toObject() : { ...row };
+      if (item.expiresAt && new Date(item.expiresAt) < now && item.status === "active") {
+        item.status = "expired";
+      }
+      if (item.meta) {
+        item.meta = { ...item.meta, bonusDays: 0 };
+      }
+      return item;
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: subscriptions,
+      data,
       pagination: {
         total,
         page: Number(page),
@@ -306,6 +320,8 @@ export const getUserSubscriptionDetails = async (
   try {
     const { subscriptionId } = req.params;
     const userId = req.user?._id;
+
+    await UserSubscriptionSnapshotService.stripComplimentaryBonusValidity(String(userId));
 
     // Fetch the subscription snapshot directly from the model
     const subscription = await DB.Models.UserSubscriptionSnapshot.findOne({
