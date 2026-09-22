@@ -1,6 +1,10 @@
 import { Types } from "mongoose";
 
-// Overview Stats
+export interface CountLabel {
+    label: string;
+    count: number;
+}
+
 export interface OverviewStats {
     totalProperties: number;
     totalPreferences: number;
@@ -17,20 +21,41 @@ export interface OverviewStats {
     totalReferrals: number;
     pendingFieldAgentRequests: number;
     openFieldAgentRepresentationRequests: number;
+    liveListings: number;
+    newListings: number;
+    awaitingMatchPreferences: number;
+    newPreferences: number;
+    paidActiveSubscriptions: number;
+    complimentaryActiveSubscriptions: number;
+    paidRevenue: number;
+    practitionersTotal: number;
+    buyersTotal: number;
+    newPractitioners: number;
+    newBuyers: number;
+    openInspections: number;
+    newInspections: number;
+    runningDealSites: number;
+    pendingDealSites: number;
+    activeSearchInsurance: number;
+    pendingPublisherKyc: number;
+    practitionersByType: { userType: string; label: string; count: number }[];
+    listingsByKind: { type: string; count: number }[];
+    revenueByType: { type: string; amount: number; count: number }[];
 };
 
-// Property Stats
 export interface PropertyStats {
     byType: { type: string; count: number }[];
     byCategory: { category: string; count: number }[];
+    byListingKind: { type: string; count: number }[];
     byStatus: { status: string; count: number }[];
     byLocation: { state: string; count: number }[];
     averagePrice: number;
     premiumListings: number;
+    liveListings: number;
+    pendingApprovals: number;
+    newListings: number;
 }
 
-
-// Transaction Stats
 export interface TransactionStats {
     successfulByType: { type: string; count: number; totalAmount: number }[];
     byStatus: { status: string; count: number }[];
@@ -39,10 +64,9 @@ export interface TransactionStats {
     totalPending: number;
     totalFailed: number;
     averageSuccessfulTransactionValue: number;
+    paidRevenue: number;
 };
 
-
-// Users Stats
 export interface UserStats {
     byType: { userType: string; count: number }[];
     verifiedUsers: number;
@@ -50,6 +74,10 @@ export interface UserStats {
     newUsers: number;
     byAccountStatus: { status: string; count: number }[];
     totalAgents: number;
+    buyersTotal: number;
+    newBuyers: number;
+    practitionersTotal: number;
+    pendingPublisherKyc: number;
     agentBreakdown: {
       byType: { agentType: string; count: number }[];
       byKycStatus: { kycStatus: string; count: number }[];
@@ -58,15 +86,16 @@ export interface UserStats {
     };
 };
 
-// Preference Stats
 export interface PreferenceStats {
     byType: { type: string; count: number }[];
+    byMode: { mode: string; count: number }[];
     byStatus: { status: string; count: number }[];
     matched: number;
     pending: number;
+    awaitingMatch: number;
+    approved: number;
 };
 
-// Inspection stats
 export interface InspectionStats {
     byStatus: { status: string; count: number }[];
     byType: { inspectionType: string; count: number }[];
@@ -89,7 +118,6 @@ export interface InspectionStats {
     openFieldAgentRepresentationRequests: number;
 };
 
-// Booking Stats
 export interface BookingStats {
     byStatus: { status: string; count: number }[];
     byOwnerResponse: { response: string; count: number }[];
@@ -98,20 +126,21 @@ export interface BookingStats {
     totalCancelled: number;
     totalPending: number;
     averageGuestsPerBooking: number;
-    averageBookingDuration: number; // in days
+    averageBookingDuration: number;
 };
 
-// Subscription Stats
 export interface SubscriptionStats {
     byStatus: { status: string; count: number }[];
     byPlan: { plan: string; count: number }[];
+    byAudience: { audience: string; count: number }[];
     activeSubscriptions: number;
+    paidActiveSubscriptions: number;
+    complimentaryActiveSubscriptions: number;
     expiredSubscriptions: number;
     autoRenewEnabled: number;
     totalSubscriptionRevenue: number;
 };
 
-// Referral Stats
 export interface ReferralStats {
     byRewardType: { rewardType: string; count: number }[];
     byRewardStatus: { rewardStatus: string; count: number }[];
@@ -124,7 +153,6 @@ export interface ReferralStats {
     topReferrers: { userId: Types.ObjectId; totalReferrals: number; totalRewards: number }[];
 };
 
-// Analytics Stats
 export interface AnalyticsStats {
     propertyTrends: {
       date: string;

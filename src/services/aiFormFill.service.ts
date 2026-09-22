@@ -21,7 +21,7 @@ Schema (all optional except you must return an object):
   "holdDuration": string | null (if jv),
   "isTenanted": "yes" | "no",
   "inspectionFee": number | null (omit or 0 if none; 1000-50000 Naira if set),
-  "agentCommissionPercent": number | null (rent 10, sale/off-plan 5, jv/shortlet 0-5),
+  "agentCommissionPercent": number | null (default rent 10, sale/off-plan 5, jv/shortlet 5; landlord may reduce to min 3, developer to min 1),
   "agentCommissionAmount": number | null (Naira)
 }`;
 

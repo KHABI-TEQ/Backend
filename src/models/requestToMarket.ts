@@ -10,6 +10,8 @@ export interface IRequestToMarket {
   status: RequestToMarketStatus;
   /** Agent commission amount in Naira (from property.agentCommissionAmount when request was created). */
   agentCommissionAmount: number;
+  /** Listing commission % snapshotted when the request was created. Applied at sale registration. */
+  agentCommissionPercent?: number;
   /** Paystack transaction for agent commission (Publisher pays Agent). */
   paymentTransactionId?: Types.ObjectId;
   /** Set when Publisher rejects. */
@@ -19,7 +21,7 @@ export interface IRequestToMarket {
   rejectedAt?: Date;
   /** Actual sale price in Naira, set when Publisher registers the sale (register-sale endpoint). */
   actualSalePriceNaira?: number;
-  /** Commission percentage (1–5). Landlord: 5; Developer: 1–5. Used to compute agent commission from actualSalePriceNaira. */
+  /** Commission percentage applied at sale registration (the listing rate). */
   commissionPercent?: number;
   /** When the Publisher registered the sale (actual price + commission %). */
   saleRegisteredAt?: Date;
@@ -47,6 +49,7 @@ const schema = new Schema<IRequestToMarketDoc>(
       required: true,
     },
     agentCommissionAmount: { type: Number, required: true },
+    agentCommissionPercent: { type: Number, min: 1, max: 10 },
     paymentTransactionId: { type: Schema.Types.ObjectId, ref: "newTransaction" },
     rejectedReason: { type: String },
     acceptedAt: { type: Date },

@@ -25,10 +25,13 @@ export interface PropertyValidationResult {
  * Validate property payload at creation. Use this before formatPropertyPayload.
  * Returns normalized payload. Inspection fee is optional; unset stays 0.
  */
-export async function validatePropertyPayload(payload: any): Promise<PropertyValidationResult> {
+export async function validatePropertyPayload(
+  payload: any,
+  options?: { publisherType?: string },
+): Promise<PropertyValidationResult> {
   try {
     const validated = await propertyValidationSchema.validateAsync(
-      normalizePropertyPayload(payload),
+      normalizePropertyPayload(payload, options?.publisherType),
       {
       abortEarly: false,
       stripUnknown: true,
@@ -55,7 +58,7 @@ export async function validatePropertyPayload(payload: any): Promise<PropertyVal
 
 export { INSPECTION_FEE_MIN, INSPECTION_FEE_MAX, INSPECTION_FEE_DEFAULT };
 
-function normalizePropertyPayload(payload: any): any {
+function normalizePropertyPayload(payload: any, publisherType?: string): any {
   const normalized = { ...payload };
 
   if (normalized.propertyCategory !== "Land" && normalized.landSize) {
@@ -73,7 +76,10 @@ function normalizePropertyPayload(payload: any): any {
     normalized.docOnProperty = [];
   }
 
-  Object.assign(normalized, listingCommissionFields(normalized));
+  Object.assign(
+    normalized,
+    listingCommissionFields({ ...normalized, publisherType }),
+  );
 
   return normalized;
 }

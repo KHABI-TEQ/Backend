@@ -102,6 +102,7 @@ export const editProperty = async (
       ...payload,
       propertyType: payload.propertyType || (property as any).propertyType,
       price: payload.price ?? (property as any).price,
+      publisherType: userType,
     };
     const canSetCommission =
       userType === "Landowners" || userType === "Developer";

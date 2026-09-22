@@ -1,7 +1,46 @@
 import { Types } from "mongoose";
 import { DB } from "../controllers";
 import { AnalyticsStats, BookingStats, InspectionStats, OverviewStats, PreferenceStats, PropertyStats, ReferralStats, SubscriptionStats, TransactionStats, UserStats } from "../types/dashboardStats";
+import { liveListingMongoFilter } from "../utils/liveListingFilter";
 import { getFieldAgentRepresentationCounts } from "./fieldAgentRepresentationAlert.service";
+
+const PRACTITIONER_LABELS: Record<string, string> = {
+  Landowners: "Landlords",
+  Agent: "Agents",
+  FieldAgent: "Field Agents",
+  Developer: "Developers",
+  Lawyer: "Lawyers",
+  Surveyor: "Surveyors",
+  Valuer: "Valuers",
+  PropertyScout: "Property Scouts",
+};
+
+const OPEN_INSPECTION_STATUSES = [
+  "pending_approval",
+  "pending_transaction",
+  "active_negotiation",
+  "inspection_approved",
+  "inspection_rescheduled",
+  "negotiation_countered",
+  "negotiation_accepted",
+];
+
+const COMPLIMENTARY_PLAN_MATCH = {
+  $or: [
+    { "meta.planType": "Free Plan" },
+    { "planDetails.isTrial": true },
+    { "planDetails.price": { $lte: 0 } },
+  ],
+};
+
+const PAID_PLAN_MATCH = {
+  "meta.planType": { $ne: "Free Plan" },
+  "planDetails.isTrial": { $ne: true },
+  $or: [
+    { "planDetails.price": { $gt: 0 } },
+    { "planDetails._id": { $exists: false } },
+  ],
+};
 
 export type TimeFilter = "7days" | "30days" | "90days" | "365days" | "range";
 
@@ -11,23 +50,7 @@ export interface DateRange {
 }
 
 export interface DashboardStats {
-  overview: {
-    totalProperties: number;
-    totalPreferences: number;
-    totalTransactions: number;
-    totalRevenue: number;
-    totalUsers: number;
-    activeListings: number;
-    pendingApprovals: number;
-    matchedPreferences: number;
-    totalInspections: number;
-    totalBookings: number;
-    totalAgents: number;
-    activeSubscriptions: number;
-    totalReferrals: number;
-    pendingFieldAgentRequests: number;
-    openFieldAgentRepresentationRequests: number;
-  };
+  overview: OverviewStats;
   propertyStats: {
     byType: { type: string; count: number }[];
     byCategory: { category: string; count: number }[];
@@ -170,6 +193,94 @@ export class DashboardStatsService {
   private agentModel = DB.Models.Agent;
   private subscriptionModel = DB.Models.UserSubscriptionSnapshot;
   private referralModel = DB.Models.ReferralLog;
+  private buyerModel = DB.Models.Buyer;
+  private dealSiteModel = DB.Models.DealSite;
+  private publisherProfileModel = DB.Models.PublisherProfile;
+  private searchInsuranceModel = DB.Models.SearchInsurancePolicy;
+
+  private liveListingsMatch() {
+    return liveListingMongoFilter();
+  }
+
+  private pendingListingsMatch() {
+    return { isDeleted: { $ne: true }, status: "pending" };
+  }
+
+  private notDeletedPropertyMatch() {
+    return { isDeleted: { $ne: true } };
+  }
+
+  private activePractitionersMatch() {
+    return { accountStatus: { $nin: ["deleted"] } };
+  }
+
+  private paidRevenueMatch(dateFilter: Record<string, unknown>) {
+    return {
+      ...dateFilter,
+      status: "success",
+      transactionFlow: "internal",
+      amount: { $gt: 0 },
+    };
+  }
+
+  private openInspectionsMatch() {
+    return { status: { $in: OPEN_INSPECTION_STATUSES } };
+  }
+
+  private labelPractitioners(
+    rows: { userType?: string; count: number }[]
+  ): { userType: string; label: string; count: number }[] {
+    return rows.map((row) => {
+      const userType = row.userType || "Unknown";
+      return {
+        userType,
+        label: PRACTITIONER_LABELS[userType] || userType,
+        count: row.count,
+      };
+    });
+  }
+
+  private subscriptionPlanLookup() {
+    return [
+      {
+        $lookup: {
+          from: "subscriptionplans",
+          localField: "plan",
+          foreignField: "_id",
+          as: "planDetails",
+        },
+      },
+      { $unwind: { path: "$planDetails", preserveNullAndEmptyArrays: true } },
+    ];
+  }
+
+  private async countPaidVsComplimentaryActive(): Promise<{
+    paid: number;
+    complimentary: number;
+  }> {
+    const now = new Date();
+    const activeMatch = { status: "active", expiresAt: { $gte: now } };
+    const [paidResult, complimentaryResult] = await Promise.all([
+      this.subscriptionModel
+        .aggregate([
+          { $match: activeMatch },
+          ...this.subscriptionPlanLookup(),
+          { $match: PAID_PLAN_MATCH },
+          { $count: "total" },
+        ])
+        .then((result) => result[0]?.total || 0),
+      this.subscriptionModel
+        .aggregate([
+          { $match: activeMatch },
+          ...this.subscriptionPlanLookup(),
+          { $match: COMPLIMENTARY_PLAN_MATCH },
+          { $count: "total" },
+        ])
+        .then((result) => result[0]?.total || 0),
+    ]);
+
+    return { paid: paidResult, complimentary: complimentaryResult };
+  }
 
   private getDateRange(filter: TimeFilter, customRange?: DateRange): DateRange {
     const now = new Date();
@@ -214,41 +325,8 @@ export class DashboardStatsService {
       },
     };
 
-    // Overview Stats
-    const [
-      totalProperties,
-      totalPreferences,
-      totalTransactions,
-      totalUsers,
-      activeListings,
-      pendingApprovals,
-      matchedPreferences,
-      totalInspections,
-      totalBookings,
-      totalAgents,
-      activeSubscriptions,
-      totalReferrals,
-      revenueResult
-    ] = await Promise.all([
-      this.propertyModel.countDocuments(dateFilter),
-      this.preferenceModel.countDocuments(dateFilter),
-      this.transactionModel.countDocuments({ ...dateFilter, transactionFlow: "internal" }),
-      this.userModel.countDocuments(dateFilter),
-      this.propertyModel.countDocuments({ ...dateFilter, isAvailable: true }),
-      this.propertyModel.countDocuments({ ...dateFilter, status: "pending" }),
-      this.matchedModel.countDocuments(dateFilter),
-      this.inspectionModel.countDocuments(dateFilter),
-      this.bookingModel.countDocuments(dateFilter),
-      this.agentModel.countDocuments(dateFilter),
-      this.subscriptionModel.countDocuments({ ...dateFilter, status: "active" }),
-      this.referralModel.countDocuments(dateFilter),
-      this.transactionModel.aggregate([
-        { $match: { ...dateFilter, status: "success", transactionFlow: "internal" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ])
-    ]);
-
-    const totalRevenue = revenueResult[0]?.total || 0;
+    const overviewStats = await this.getOverviewStats(filter, customRange);
+    const totalAgents = overviewStats.totalAgents;
 
     // Property Stats
     const [propertyByType, propertyByCategory, propertyByStatus, propertyByLocation, avgPriceResult, premiumListings] = await Promise.all([
@@ -432,9 +510,9 @@ export class DashboardStatsService {
         { $group: { _id: "$propertyType", count: { $sum: 1 } } },
         { $project: { propertyType: "$_id", count: 1, _id: 0 } }
       ]),
-      this.inspectionModel.countDocuments({ ...dateFilter, stage: { $in: ["negotiation", "inspection"] } }),
-      this.inspectionModel.countDocuments({ ...dateFilter, stage: "completed" }),
-      this.inspectionModel.countDocuments({ ...dateFilter, stage: "cancelled" }),
+      this.inspectionModel.countDocuments(this.openInspectionsMatch()),
+      this.inspectionModel.countDocuments({ status: "completed" }),
+      this.inspectionModel.countDocuments({ status: "cancelled" }),
       this.inspectionModel.aggregate([
         { $match: dateFilter },
         { $group: { _id: null, avg: { $avg: "$counterCount" } } }
@@ -817,23 +895,7 @@ export class DashboardStatsService {
     const fieldAgentRepresentation = await getFieldAgentRepresentationCounts();
 
     return {
-      overview: {
-        totalProperties,
-        totalPreferences,
-        totalTransactions,
-        totalRevenue,
-        totalUsers,
-        activeListings,
-        pendingApprovals,
-        matchedPreferences,
-        totalInspections,
-        totalBookings,
-        totalAgents,
-        activeSubscriptions,
-        totalReferrals,
-        pendingFieldAgentRequests: fieldAgentRepresentation.pending,
-        openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
-      },
+      overview: overviewStats,
       propertyStats: {
         byType: propertyByType,
         byCategory: propertyByCategory,
@@ -942,7 +1004,6 @@ export class DashboardStatsService {
 
 
   async getOverviewStats(filter: TimeFilter, customRange?: DateRange): Promise<OverviewStats> {
-
     const dateRange = this.getDateRange(filter, customRange);
     const { startDate, endDate } = dateRange;
 
@@ -953,67 +1014,134 @@ export class DashboardStatsService {
       },
     };
 
-    // Overview Stats
+    const liveMatch = this.liveListingsMatch();
+    const pendingMatch = this.pendingListingsMatch();
+    const practitionerMatch = this.activePractitionersMatch();
+    const paidRevenueMatch = this.paidRevenueMatch(dateFilter);
+
     const [
-      totalProperties,
+      newListings,
+      liveListings,
+      pendingApprovals,
+      newPreferences,
+      awaitingMatchPreferences,
+      matchedPreferences,
       totalPreferences,
-      totalTransactions,
+      newTransactions,
+      paidRevenueResult,
+      revenueByType,
+      listingsByKind,
+      practitionersByTypeRaw,
+      practitionersTotal,
+      newPractitioners,
+      buyersTotal,
+      newBuyers,
+      totalAgents,
+      newInspections,
+      openInspections,
+      totalInspections,
+      totalBookings,
+      totalReferrals,
+      runningDealSites,
+      pendingDealSites,
+      activeSearchInsurance,
+      pendingPublisherKyc,
+      fieldAgentRepresentation,
+      paidVsComplimentary,
+    ] = await Promise.all([
+      this.propertyModel.countDocuments({ ...this.notDeletedPropertyMatch(), ...dateFilter }),
+      this.propertyModel.countDocuments(liveMatch),
+      this.propertyModel.countDocuments(pendingMatch),
+      this.preferenceModel.countDocuments(dateFilter),
+      this.preferenceModel.countDocuments({ status: { $in: ["approved", "pending"] } }),
+      this.preferenceModel.countDocuments({ status: "matched" }),
+      this.preferenceModel.countDocuments({}),
+      this.transactionModel.countDocuments({ ...dateFilter, transactionFlow: "internal", amount: { $gt: 0 } }),
+      this.transactionModel.aggregate([
+        { $match: paidRevenueMatch },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      this.transactionModel.aggregate([
+        { $match: paidRevenueMatch },
+        { $group: { _id: "$transactionType", amount: { $sum: "$amount" }, count: { $sum: 1 } } },
+        { $project: { type: "$_id", amount: 1, count: 1, _id: 0 } },
+        { $sort: { amount: -1 } },
+      ]),
+      this.propertyModel.aggregate([
+        { $match: liveMatch },
+        { $group: { _id: { $ifNull: ["$briefType", "Unspecified"] }, count: { $sum: 1 } } },
+        { $project: { type: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
+      ]),
+      this.userModel.aggregate([
+        { $match: practitionerMatch },
+        { $group: { _id: "$userType", count: { $sum: 1 } } },
+        { $project: { userType: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
+      ]),
+      this.userModel.countDocuments(practitionerMatch),
+      this.userModel.countDocuments({ ...practitionerMatch, ...dateFilter }),
+      this.buyerModel.countDocuments({}),
+      this.buyerModel.countDocuments(dateFilter),
+      this.userModel.countDocuments({ ...practitionerMatch, userType: "Agent" }),
+      this.inspectionModel.countDocuments(dateFilter),
+      this.inspectionModel.countDocuments(this.openInspectionsMatch()),
+      this.inspectionModel.countDocuments({}),
+      this.bookingModel.countDocuments(dateFilter),
+      this.referralModel.countDocuments(dateFilter),
+      this.dealSiteModel.countDocuments({ status: "running" }),
+      this.dealSiteModel.countDocuments({ status: "pending" }),
+      this.searchInsuranceModel.countDocuments({ status: "active" }),
+      this.publisherProfileModel.countDocuments({ kycStatus: { $in: ["pending", "in_review"] } }),
+      getFieldAgentRepresentationCounts(),
+      this.countPaidVsComplimentaryActive(),
+    ]);
+
+    const paidRevenue = paidRevenueResult[0]?.total || 0;
+    const practitionersByType = this.labelPractitioners(practitionersByTypeRaw);
+    const totalUsers = practitionersTotal + buyersTotal;
+
+    return {
+      totalProperties: newListings,
+      totalPreferences,
+      totalTransactions: newTransactions,
+      totalRevenue: paidRevenue,
       totalUsers,
-      activeListings,
+      activeListings: liveListings,
       pendingApprovals,
       matchedPreferences,
       totalInspections,
       totalBookings,
       totalAgents,
-      activeSubscriptions,
+      activeSubscriptions: paidVsComplimentary.paid,
       totalReferrals,
-      revenueResult,
-      fieldAgentRepresentation,
-    ] = await Promise.all([
-      this.propertyModel.countDocuments(dateFilter),
-      this.preferenceModel.countDocuments(dateFilter),
-      this.transactionModel.countDocuments({ ...dateFilter, transactionFlow: "internal" }),
-      this.userModel.countDocuments(dateFilter),
-      this.propertyModel.countDocuments({ ...dateFilter, isAvailable: true }),
-      this.propertyModel.countDocuments({ ...dateFilter, status: "pending" }),
-      this.matchedModel.countDocuments(dateFilter),
-      this.inspectionModel.countDocuments(dateFilter),
-      this.bookingModel.countDocuments(dateFilter),
-      this.agentModel.countDocuments(dateFilter),
-      this.subscriptionModel.countDocuments({ ...dateFilter, status: "active" }),
-      this.referralModel.countDocuments(dateFilter),
-      this.transactionModel.aggregate([
-        { $match: { ...dateFilter, status: "success", transactionFlow: "internal" } },
-        { $group: { _id: null, total: { $sum: "$amount" } } }
-      ]),
-      getFieldAgentRepresentationCounts(),
-    ]);
-
-    const totalRevenue = revenueResult[0]?.total || 0;
-
-    return {
-        totalProperties,
-        totalPreferences,
-        totalTransactions,
-        totalRevenue,
-        totalUsers,
-        activeListings,
-        pendingApprovals,
-        matchedPreferences,
-        totalInspections,
-        totalBookings,
-        totalAgents,
-        activeSubscriptions,
-        totalReferrals,
-        pendingFieldAgentRequests: fieldAgentRepresentation.pending,
-        openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
-    }
-
+      pendingFieldAgentRequests: fieldAgentRepresentation.pending,
+      openFieldAgentRepresentationRequests: fieldAgentRepresentation.totalOpen,
+      liveListings,
+      newListings,
+      awaitingMatchPreferences,
+      newPreferences,
+      paidActiveSubscriptions: paidVsComplimentary.paid,
+      complimentaryActiveSubscriptions: paidVsComplimentary.complimentary,
+      paidRevenue,
+      practitionersTotal,
+      buyersTotal,
+      newPractitioners,
+      newBuyers,
+      openInspections,
+      newInspections,
+      runningDealSites,
+      pendingDealSites,
+      activeSearchInsurance,
+      pendingPublisherKyc,
+      practitionersByType,
+      listingsByKind,
+      revenueByType,
+    };
   }
 
 
   async getUserStats(filter: TimeFilter, customRange?: DateRange): Promise<UserStats> {
-
     const dateRange = this.getDateRange(filter, customRange);
     const { startDate, endDate } = dateRange;
 
@@ -1024,86 +1152,96 @@ export class DashboardStatsService {
       },
     };
 
-    // Enhanced User Stats
+    const practitionerMatch = this.activePractitionersMatch();
+    const now = new Date();
+
     const [
-      userByType, 
-      verifiedUsers, 
-      activeUsers, 
-      newUsers, 
+      userByTypeRaw,
+      verifiedUsers,
+      activeUsers,
+      newUsers,
       userByAccountStatus,
       agentByType,
-      agentByKycStatus,
-      agentWithActiveSubscription,
+      publisherKycByStatus,
+      paidActiveSubscriptions,
       agentByRegion,
-      totalAgents
+      totalAgents,
+      practitionersTotal,
+      buyersTotal,
+      newBuyers,
+      pendingPublisherKyc,
     ] = await Promise.all([
       this.userModel.aggregate([
-        { $match: dateFilter },
+        { $match: practitionerMatch },
         { $group: { _id: "$userType", count: { $sum: 1 } } },
-        { $project: { userType: "$_id", count: 1, _id: 0 } }
+        { $project: { userType: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
       ]),
-      this.userModel.countDocuments({ ...dateFilter, isAccountVerified: true }),
-      this.userModel.countDocuments({ ...dateFilter, accountStatus: "active" }),
-      this.userModel.countDocuments(dateFilter),
+      this.userModel.countDocuments({ ...practitionerMatch, isAccountVerified: true }),
+      this.userModel.countDocuments({ ...practitionerMatch, accountStatus: "active" }),
+      this.userModel.countDocuments({ ...practitionerMatch, ...dateFilter }),
       this.userModel.aggregate([
-        { $match: dateFilter },
+        { $match: practitionerMatch },
         { $group: { _id: "$accountStatus", count: { $sum: 1 } } },
-        { $project: { status: "$_id", count: 1, _id: 0 } }
+        { $project: { status: "$_id", count: 1, _id: 0 } },
       ]),
-      this.agentModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$agentType", count: { $sum: 1 } } },
-        { $project: { agentType: "$_id", count: 1, _id: 0 } }
+      this.userModel.aggregate([
+        { $match: practitionerMatch },
+        { $group: { _id: "$userType", count: { $sum: 1 } } },
+        { $project: { agentType: "$_id", count: 1, _id: 0 } },
       ]),
-      this.agentModel.aggregate([
-        { $match: dateFilter },
+      this.publisherProfileModel.aggregate([
         { $group: { _id: "$kycStatus", count: { $sum: 1 } } },
-        { $project: { kycStatus: "$_id", count: 1, _id: 0 } }
+        { $project: { kycStatus: "$_id", count: 1, _id: 0 } },
       ]),
-      this.agentModel.aggregate([
-        { $match: dateFilter },
-        {
-          $lookup: {
-            from: "usersubscriptionsnapshots",
-            localField: "userId",
-            foreignField: "user",
-            as: "subscriptions"
-          }
-        },
-        {
-          $match: {
-            "subscriptions.status": "active",
-            "subscriptions.expiresAt": { $gte: new Date() }
-          }
-        },
-        { $count: "total" }
-      ]).then(result => result[0]?.total || 0),
-      this.agentModel.aggregate([
-        { $match: dateFilter },
-        { $unwind: "$regionOfOperation" },
+      this.subscriptionModel
+        .aggregate([
+          { $match: { status: "active", expiresAt: { $gte: now } } },
+          ...this.subscriptionPlanLookup(),
+          { $match: PAID_PLAN_MATCH },
+          { $count: "total" },
+        ])
+        .then((result) => result[0]?.total || 0),
+      this.publisherProfileModel.aggregate([
+        { $unwind: { path: "$regionOfOperation", preserveNullAndEmptyArrays: false } },
         { $group: { _id: "$regionOfOperation", count: { $sum: 1 } } },
         { $project: { region: "$_id", count: 1, _id: 0 } },
         { $sort: { count: -1 } },
-        { $limit: 10 }
+        { $limit: 10 },
       ]),
-      this.agentModel.countDocuments(dateFilter),
+      this.userModel.countDocuments({ ...practitionerMatch, userType: "Agent" }),
+      this.userModel.countDocuments(practitionerMatch),
+      this.buyerModel.countDocuments({}),
+      this.buyerModel.countDocuments(dateFilter),
+      this.publisherProfileModel.countDocuments({ kycStatus: { $in: ["pending", "in_review"] } }),
     ]);
 
     return {
-        byType: userByType,
-        verifiedUsers,
-        activeUsers,
-        newUsers,
-        byAccountStatus: userByAccountStatus,
-        totalAgents,
-        agentBreakdown: {
-          byType: agentByType,
-          byKycStatus: agentByKycStatus,
-          withActiveSubscription: agentWithActiveSubscription,
-          byRegion: agentByRegion
-        }
-    }
-
+      byType: this.labelPractitioners(userByTypeRaw).map((row) => ({
+        userType: row.label,
+        count: row.count,
+      })),
+      verifiedUsers,
+      activeUsers,
+      newUsers,
+      byAccountStatus: userByAccountStatus,
+      totalAgents,
+      buyersTotal,
+      newBuyers,
+      practitionersTotal,
+      pendingPublisherKyc,
+      agentBreakdown: {
+        byType: this.labelPractitioners(
+          agentByType.map((row: { agentType?: string; count: number }) => ({
+            userType: row.agentType,
+            count: row.count,
+          }))
+        ).map((row) => ({ agentType: row.label, count: row.count })),
+        byKycStatus: publisherKycByStatus,
+        withActiveSubscription: paidActiveSubscriptions,
+        byRegion: agentByRegion,
+      },
+    };
   }
 
 
@@ -1118,47 +1256,74 @@ export class DashboardStatsService {
       },
     };
 
-    // Property Stats
-    const [propertyByType, propertyByCategory, propertyByStatus, propertyByLocation, avgPriceResult, premiumListings] = await Promise.all([
+    const liveMatch = this.liveListingsMatch();
+    const newListingsMatch = { ...this.notDeletedPropertyMatch(), ...dateFilter };
+
+    const [
+      propertyByType,
+      propertyByCategory,
+      listingsByKind,
+      propertyByStatus,
+      propertyByLocation,
+      avgPriceResult,
+      liveListings,
+      pendingApprovals,
+      newListings,
+    ] = await Promise.all([
       this.propertyModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$briefType", count: { $sum: 1 } } },
-        { $project: { type: "$_id", count: 1, _id: 0 } }
+        { $match: liveMatch },
+        { $group: { _id: { $ifNull: ["$briefType", "Unspecified"] }, count: { $sum: 1 } } },
+        { $project: { type: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
       ]),
       this.propertyModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$propertyType", count: { $sum: 1 } } },
-        { $project: { category: "$_id", count: 1, _id: 0 } }
+        { $match: liveMatch },
+        { $group: { _id: { $ifNull: ["$propertyType", "Unspecified"] }, count: { $sum: 1 } } },
+        { $project: { category: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
       ]),
       this.propertyModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$status", count: { $sum: 1 } } },
-        { $project: { status: "$_id", count: 1, _id: 0 } }
+        { $match: liveMatch },
+        { $group: { _id: { $ifNull: ["$briefType", "Unspecified"] }, count: { $sum: 1 } } },
+        { $project: { type: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
       ]),
       this.propertyModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$location.state", count: { $sum: 1 } } },
+        { $match: this.notDeletedPropertyMatch() },
+        { $group: { _id: { $ifNull: ["$status", "Unspecified"] }, count: { $sum: 1 } } },
+        { $project: { status: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } },
+      ]),
+      this.propertyModel.aggregate([
+        { $match: liveMatch },
+        { $group: { _id: { $ifNull: ["$location.state", "Unspecified"] }, count: { $sum: 1 } } },
         { $project: { state: "$_id", count: 1, _id: 0 } },
         { $sort: { count: -1 } },
-        { $limit: 36 }
+        { $limit: 36 },
       ]),
       this.propertyModel.aggregate([
-        { $match: { ...dateFilter, price: { $exists: true, $ne: null } } },
-        { $group: { _id: null, avgPrice: { $avg: "$price" } } }
+        { $match: { ...liveMatch, price: { $exists: true, $ne: null, $gt: 0 } } },
+        { $group: { _id: null, avgPrice: { $avg: "$price" } } },
       ]),
-      this.propertyModel.countDocuments({ ...dateFilter, isPremium: true })
+      this.propertyModel.countDocuments(liveMatch),
+      this.propertyModel.countDocuments(this.pendingListingsMatch()),
+      this.propertyModel.countDocuments(newListingsMatch),
     ]);
 
     const averagePrice = avgPriceResult[0]?.avgPrice || 0;
 
     return {
-        byType: propertyByType,
-        byCategory: propertyByCategory,
-        byStatus: propertyByStatus,
-        byLocation: propertyByLocation,
-        averagePrice,
-        premiumListings
-    }
+      byType: propertyByType,
+      byCategory: propertyByCategory,
+      byListingKind: listingsByKind,
+      byStatus: propertyByStatus,
+      byLocation: propertyByLocation,
+      averagePrice,
+      premiumListings: 0,
+      liveListings,
+      pendingApprovals,
+      newListings,
+    };
   }
 
 
@@ -1174,29 +1339,36 @@ export class DashboardStatsService {
     };
 
     // Transaction Stats
-    const [successTransactionByType, transactionByStatus, successTransactionByFlow, successfulTxns, pendingTxns, failedTxns, avgSuccessTxnValue] = await Promise.all([
+    const paidRevenueMatch = this.paidRevenueMatch(dateFilter);
+
+    const [successTransactionByType, transactionByStatus, successTransactionByFlow, successfulTxns, pendingTxns, failedTxns, avgSuccessTxnValue, paidRevenueResult] = await Promise.all([
       this.transactionModel.aggregate([
-        { $match: { ...dateFilter, status: 'success' } },
+        { $match: paidRevenueMatch },
         { $group: { _id: "$transactionType", count: { $sum: 1 }, totalAmount: { $sum: "$amount" } } },
-        { $project: { type: "$_id", count: 1, totalAmount: 1, _id: 0 } }
+        { $project: { type: "$_id", count: 1, totalAmount: 1, _id: 0 } },
+        { $sort: { totalAmount: -1 } }
       ]),
       this.transactionModel.aggregate([
-        { $match: dateFilter },
+        { $match: { ...dateFilter, transactionFlow: "internal" } },
         { $group: { _id: "$status", count: { $sum: 1 } } },
         { $project: { status: "$_id", count: 1, _id: 0 } }
       ]),
       this.transactionModel.aggregate([
-        { $match: { ...dateFilter, status: 'success' } },
+        { $match: paidRevenueMatch },
         { $group: { _id: "$transactionFlow", count: { $sum: 1 }, totalAmount: { $sum: "$amount" } } },
         { $project: { flow: "$_id", count: 1, totalAmount: 1, _id: 0 } }
       ]),
-      this.transactionModel.countDocuments({ ...dateFilter, status: "success" }),
+      this.transactionModel.countDocuments({ ...dateFilter, status: "success", transactionFlow: "internal", amount: { $gt: 0 } }),
       this.transactionModel.countDocuments({ ...dateFilter, status: "pending" }),
       this.transactionModel.countDocuments({ ...dateFilter, status: "failed" }),
       this.transactionModel.aggregate([
-        { $match: { ...dateFilter, status: 'success' } },
+        { $match: paidRevenueMatch },
         { $group: { _id: null, avg: { $avg: "$amount" } } }
-      ])
+      ]),
+      this.transactionModel.aggregate([
+        { $match: paidRevenueMatch },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
     ]);
 
     const averageSuccessfulTransactionValue = avgSuccessTxnValue[0]?.avg || 0;
@@ -1208,7 +1380,8 @@ export class DashboardStatsService {
         totalSuccessful: successfulTxns,
         totalPending: pendingTxns,
         totalFailed: failedTxns,
-        averageSuccessfulTransactionValue
+        averageSuccessfulTransactionValue,
+        paidRevenue: paidRevenueResult[0]?.total || 0,
     }
 
   }
@@ -1337,9 +1510,9 @@ export class DashboardStatsService {
         { $group: { _id: "$propertyType", count: { $sum: 1 } } },
         { $project: { propertyType: "$_id", count: 1, _id: 0 } }
       ]),
-      this.inspectionModel.countDocuments({ ...dateFilter, stage: { $in: ["negotiation", "inspection"] } }),
-      this.inspectionModel.countDocuments({ ...dateFilter, stage: "completed" }),
-      this.inspectionModel.countDocuments({ ...dateFilter, stage: "cancelled" }),
+      this.inspectionModel.countDocuments(this.openInspectionsMatch()),
+      this.inspectionModel.countDocuments({ status: "completed" }),
+      this.inspectionModel.countDocuments({ status: "cancelled" }),
       this.inspectionModel.aggregate([
         { $match: dateFilter },
         { $group: { _id: null, avg: { $avg: "$counterCount" } } }
@@ -1397,42 +1570,50 @@ export class DashboardStatsService {
     };
 
     // Subscription Stats
+    const now = new Date();
+    const paidVsComplimentary = await this.countPaidVsComplimentaryActive();
+
     const [
       subscriptionByStatus,
       subscriptionByPlan,
-      activeSubCount,
+      subscriptionByAudience,
       expiredSubCount,
       autoRenewCount,
       subscriptionRevenue
     ] = await Promise.all([
       this.subscriptionModel.aggregate([
-        { $match: dateFilter },
+        { $match: { expiresAt: { $gte: now } } },
         { $group: { _id: "$status", count: { $sum: 1 } } },
         { $project: { status: "$_id", count: 1, _id: 0 } }
       ]),
       this.subscriptionModel.aggregate([
-        { $match: dateFilter },
-        {
-          $lookup: {
-            from: "subscriptionplans",
-            localField: "plan",
-            foreignField: "_id",
-            as: "planDetails"
-          }
-        },
-        { $unwind: { path: "$planDetails", preserveNullAndEmptyArrays: true } },
-        { $group: { _id: "$planDetails.name", count: { $sum: 1 } } },
-        { $project: { plan: "$_id", count: 1, _id: 0 } }
+        { $match: { status: "active", expiresAt: { $gte: now } } },
+        ...this.subscriptionPlanLookup(),
+        { $group: { _id: { $ifNull: ["$planDetails.name", "$meta.planType"] }, count: { $sum: 1 } } },
+        { $project: { plan: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } }
       ]),
-      this.subscriptionModel.countDocuments({ ...dateFilter, status: "active" }),
-      this.subscriptionModel.countDocuments({ ...dateFilter, status: "expired" }),
-      this.subscriptionModel.countDocuments({ ...dateFilter, autoRenew: true }),
+      this.subscriptionModel.aggregate([
+        { $match: { status: "active", expiresAt: { $gte: now } } },
+        ...this.subscriptionPlanLookup(),
+        { $group: { _id: { $ifNull: ["$planDetails.audience", "unspecified"] }, count: { $sum: 1 } } },
+        { $project: { audience: "$_id", count: 1, _id: 0 } }
+      ]),
+      this.subscriptionModel.countDocuments({
+        $or: [
+          { status: "expired" },
+          { expiresAt: { $lt: now } },
+        ],
+      }),
+      this.subscriptionModel.countDocuments({ status: "active", expiresAt: { $gte: now }, autoRenew: true }),
       this.transactionModel.aggregate([
         { 
           $match: { 
             ...dateFilter, 
             status: "success",
-            transactionType: { $in: ["subscription", "plan_purchase"] }
+            transactionFlow: "internal",
+            amount: { $gt: 0 },
+            transactionType: { $in: ["subscription", "custom-domain-package", "custom-domain-renewal"] }
           } 
         },
         { $group: { _id: null, total: { $sum: "$amount" } } }
@@ -1442,7 +1623,10 @@ export class DashboardStatsService {
     return {
         byStatus: subscriptionByStatus,
         byPlan: subscriptionByPlan,
-        activeSubscriptions: activeSubCount,
+        byAudience: subscriptionByAudience,
+        activeSubscriptions: paidVsComplimentary.paid + paidVsComplimentary.complimentary,
+        paidActiveSubscriptions: paidVsComplimentary.paid,
+        complimentaryActiveSubscriptions: paidVsComplimentary.complimentary,
         expiredSubscriptions: expiredSubCount,
         autoRenewEnabled: autoRenewCount,
         totalSubscriptionRevenue: subscriptionRevenue
@@ -1463,26 +1647,34 @@ export class DashboardStatsService {
     };
 
     // Preference Stats
-    const [preferenceByType, preferenceByStatus, matchedPrefs, pendingPrefs] = await Promise.all([
+    const [preferenceByType, preferenceByMode, preferenceByStatus, matchedPrefs, pendingPrefs, awaitingMatch, approvedPrefs] = await Promise.all([
       this.preferenceModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$preferenceType", count: { $sum: 1 } } },
-        { $project: { type: "$_id", count: 1, _id: 0 } }
+        { $group: { _id: { $ifNull: ["$preferenceType", "unspecified"] }, count: { $sum: 1 } } },
+        { $project: { type: "$_id", count: 1, _id: 0 } },
+        { $sort: { count: -1 } }
       ]),
       this.preferenceModel.aggregate([
-        { $match: dateFilter },
-        { $group: { _id: "$status", count: { $sum: 1 } } },
+        { $group: { _id: { $ifNull: ["$preferenceMode", "unspecified"] }, count: { $sum: 1 } } },
+        { $project: { mode: "$_id", count: 1, _id: 0 } }
+      ]),
+      this.preferenceModel.aggregate([
+        { $group: { _id: { $ifNull: ["$status", "unspecified"] }, count: { $sum: 1 } } },
         { $project: { status: "$_id", count: 1, _id: 0 } }
       ]),
-      this.preferenceModel.countDocuments({ ...dateFilter, status: "matched" }),
-      this.preferenceModel.countDocuments({ ...dateFilter, status: "pending" })
+      this.preferenceModel.countDocuments({ status: "matched" }),
+      this.preferenceModel.countDocuments({ status: "pending" }),
+      this.preferenceModel.countDocuments({ status: { $in: ["approved", "pending"] } }),
+      this.preferenceModel.countDocuments({ status: "approved" }),
     ]);
 
     return {
         byType: preferenceByType,
+        byMode: preferenceByMode,
         byStatus: preferenceByStatus,
         matched: matchedPrefs,
-        pending: pendingPrefs
+        pending: pendingPrefs,
+        awaitingMatch,
+        approved: approvedPrefs,
     }
   }
 

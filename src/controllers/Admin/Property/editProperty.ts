@@ -25,10 +25,14 @@ export const editPropertyAsAdmin = async (
     });
 
     // Fetch property
-    const property = await DB.Models.Property.findById(propertyId);
+    const property = await DB.Models.Property.findById(propertyId).populate(
+      "owner",
+      "userType",
+    );
     if (!property) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Property not found");
     }
+    const publisherType = String((property.owner as any)?.userType || "");
 
     // Ensure only admin access
     if (req.user.role !== "admin") {
@@ -48,6 +52,7 @@ export const editPropertyAsAdmin = async (
         ...payload,
         propertyType: payload.propertyType || (property as any).propertyType,
         price: payload.price ?? (property as any).price,
+        publisherType,
       }),
     );
 

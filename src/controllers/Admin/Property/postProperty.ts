@@ -30,7 +30,10 @@ export const postPropertyAsAdmin = async (
   session.startTransaction();
 
   try {
-    const validation = await validatePropertyPayload(req.body);
+    const ownerHintType = req.body?.publisherType || req.body?.userType;
+    const validation = await validatePropertyPayload(req.body, {
+      publisherType: ownerHintType,
+    });
     if (!validation.success) {
       await session.abortTransaction();
       session.endSession();
@@ -72,8 +75,9 @@ export const postPropertyAsAdmin = async (
     const propertyData = {
       ...payload,
       isTenanted,
+      publisherType: userType,
       ...(allowCommission
-        ? listingCommissionFields(payload)
+        ? listingCommissionFields({ ...payload, publisherType: userType })
         : { agentCommissionPercent: undefined, agentCommissionAmount: undefined }),
     };
     if (!allowCommission) {

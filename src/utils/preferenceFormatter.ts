@@ -439,5 +439,20 @@ export function formatPreferenceForFrontend(preference: PreferencePayload): { [k
 
   formattedData.createdAt = preference.createdAt;
 
+  const insurance = (
+    preference as {
+      searchInsurance?: { optedIn?: boolean; status?: string };
+    }
+  ).searchInsurance;
+  if (insurance) {
+    const status = insurance.status || "none";
+    formattedData.searchInsurance = {
+      optedIn: Boolean(insurance.optedIn),
+      status,
+    };
+    formattedData.isSearchInsured =
+      Boolean(insurance.optedIn) && (status === "active" || status === "claimed");
+  }
+
   return formattedData;
 }

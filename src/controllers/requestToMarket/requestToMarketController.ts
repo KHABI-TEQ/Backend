@@ -21,6 +21,7 @@ import {
   assertDeveloperCanAcceptProfessional,
   getDeveloperPlanSnapshot,
 } from "../../services/developerPlanEntitlement.service";
+import { resolveListingCommissionPercent } from "../../common/constants/listingCommission";
 
 /**
  * POST /account/request-to-market
@@ -100,6 +101,13 @@ export const createRequestToMarket = async (
     }
 
     const agentCommissionAmount = Math.max(0, Number((property as any).agentCommissionAmount) || 0);
+    const agentCommissionPercent = resolveListingCommissionPercent({
+      propertyPercent: (property as any).agentCommissionPercent,
+      listingAmount: agentCommissionAmount,
+      listingPrice: (property as any).price,
+      publisherType,
+      propertyType: (property as any).propertyType,
+    });
 
     const request = await DB.Models.RequestToMarket.create({
       propertyId,
@@ -108,6 +116,7 @@ export const createRequestToMarket = async (
       publisherType,
       status: "pending",
       agentCommissionAmount,
+      agentCommissionPercent,
     });
 
     await notificationService.createNotification({
@@ -159,6 +168,7 @@ export const createRequestToMarket = async (
         propertyId,
         status: "pending",
         agentCommissionAmount,
+        agentCommissionPercent,
       },
     });
   } catch (err) {
@@ -207,7 +217,7 @@ export const listRequestToMarket = async (
 
     const [rawRequests, total] = await Promise.all([
       DB.Models.RequestToMarket.find(filter)
-        .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description agentCommissionAmount propertyCode")
+        .populate("propertyId", "location price briefType propertyType pictures status listingScope additionalFeatures description agentCommissionAmount agentCommissionPercent propertyCode")
         .populate("requestedByAgentId", "firstName lastName fullName email phoneNumber")
         .populate("publisherId", "firstName lastName fullName email")
         .sort({ createdAt: -1 })
@@ -220,6 +230,10 @@ export const listRequestToMarket = async (
     const requests = (rawRequests as any[]).map((r) => ({
       ...r,
       agentCommissionAmount: r.agentCommissionAmount ?? r.marketingFeeNaira ?? 0,
+      agentCommissionPercent:
+        r.agentCommissionPercent ??
+        r.propertyId?.agentCommissionPercent ??
+        undefined,
       ...(r.marketingFeeNaira !== undefined && { marketingFeeNaira: undefined }),
     }));
 
@@ -438,8 +452,8 @@ export const respondToRequestToMarket = async (
  * POST /account/request-to-market/:requestId/register-sale
  * Publisher registers the actual sale price and commission %. Payment to the Agent happens outside the app;
  * optional receipt URL can be uploaded (via existing upload endpoint) and sent here for admin verification.
- * Body: { actualSalePriceNaira: number, commissionPercent?: number, commissionReceiptUrl?: string }
- * - Landlord and Developer: commissionPercent is automatically 5.
+ * Body: { actualSalePriceNaira: number, commissionReceiptUrl?: string }
+ * - commissionPercent is the rate set on the listing (not a fixed 5%).
  * - commissionReceiptUrl: optional; use URL from upload-single-file (or similar) to confirm payment to Agent.
  */
 export const registerSaleForRequestToMarket = async (
@@ -454,11 +468,9 @@ export const registerSaleForRequestToMarket = async (
     const { requestId } = req.params;
     const {
       actualSalePriceNaira,
-      commissionPercent: bodyCommissionPercent,
       commissionReceiptUrl,
     } = req.body as {
       actualSalePriceNaira?: number;
-      commissionPercent?: number;
       commissionReceiptUrl?: string;
     };
 
@@ -468,7 +480,7 @@ export const registerSaleForRequestToMarket = async (
     }
 
     const request = await DB.Models.RequestToMarket.findById(requestId)
-      .populate("propertyId", "location")
+      .populate("propertyId", "location price propertyType agentCommissionPercent agentCommissionAmount")
       .populate("requestedByAgentId", "firstName lastName fullName email phoneNumber")
       .lean();
 
@@ -488,7 +500,15 @@ export const registerSaleForRequestToMarket = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Sale has already been registered for this request.");
     }
 
-    const commissionPercent = 5;
+    const propertyDoc = (request as any).propertyId || {};
+    const commissionPercent = resolveListingCommissionPercent({
+      requestPercent: (request as any).agentCommissionPercent,
+      propertyPercent: propertyDoc.agentCommissionPercent,
+      listingAmount: (request as any).agentCommissionAmount,
+      listingPrice: propertyDoc.price,
+      publisherType: (request as any).publisherType,
+      propertyType: propertyDoc.propertyType,
+    });
 
     const agentCommissionAmount = Math.round((actualPrice * commissionPercent) / 100);
     if (agentCommissionAmount <= 0) {

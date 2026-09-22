@@ -44,7 +44,10 @@ export const postProperty = async (
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "User not authenticated");
     }
 
-    const validation = await validatePropertyPayload(req.body);
+    const userType = (req.user as any)?.userType;
+    const validation = await validatePropertyPayload(req.body, {
+      publisherType: userType,
+    });
     if (!validation.success) {
       const message = validation.errors?.map((e) => `${e.field}: ${e.message}`).join(", ") ?? "Validation failed";
       return next(new RouteError(HttpStatusCodes.BAD_REQUEST, message));
@@ -53,7 +56,6 @@ export const postProperty = async (
     const payload = validation.data;
     const createdByRole = "user";
     const ownerModel = "User";
-    const userType = (req.user as any)?.userType;
     const standaloneScout = userType === "PropertyScout";
 
     if (standaloneScout) {
@@ -69,17 +71,18 @@ export const postProperty = async (
     // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"
     const isTenanted = normalizeIsTenantedForDb(payload.isTenanted);
 
-    // Agent commission: Landlord/Developer only. Sale/off-plan 5%, rent 10%.
+    // Agent commission: Landlord/Developer only. Default 5% sale / 10% rent; landlord min 3%, developer min 1%.
     const allowCommission = userType === "Landowners" || userType === "Developer";
     const goesLiveImmediately = !standaloneScout;
     const propertyData = {
       ...payload,
       isTenanted,
+      publisherType: userType,
       status: goesLiveImmediately ? "approved" : "pending",
       isApproved: goesLiveImmediately,
       isAvailable: goesLiveImmediately,
       ...(allowCommission
-        ? listingCommissionFields(payload)
+        ? listingCommissionFields({ ...payload, publisherType: userType })
         : { agentCommissionPercent: undefined, agentCommissionAmount: undefined }),
     };
     if (!allowCommission) {
