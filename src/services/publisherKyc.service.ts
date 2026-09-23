@@ -38,7 +38,9 @@ export async function getPublisherKycStatus(
   userId: Types.ObjectId | string
 ): Promise<PublisherKycStatus> {
   const id = new Types.ObjectId(String(userId));
-  const profile = await DB.Models.PublisherProfile.findOne({ userId: id }).select("kycStatus").lean();
+  const profile = await DB.Models.PublisherProfile.findOne({ userId: id })
+    .select("kycStatus kycApprovedAt")
+    .lean();
   if (profile?.kycStatus) {
     return profile.kycStatus as PublisherKycStatus;
   }

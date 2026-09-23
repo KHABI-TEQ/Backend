@@ -2,7 +2,11 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
-import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
+import {
+  formatPreferenceForFrontend,
+  stripPreferenceClientIdentity,
+  PreferencePayload,
+} from "../../../utils/preferenceFormatter";
 import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
 
 export const getAllApprovedPreferences = async (
@@ -77,7 +81,9 @@ export const getAllApprovedPreferences = async (
     const total = await DB.Models.Preference.countDocuments(filters);
 
     const formattedPreferences = orderedPreferences.map((pref) =>
-      formatPreferenceForFrontend(pref as unknown as PreferencePayload)
+      stripPreferenceClientIdentity(
+        formatPreferenceForFrontend(pref as unknown as PreferencePayload)
+      )
     );
 
     return res.status(HttpStatusCodes.OK).json({

@@ -456,3 +456,30 @@ export function formatPreferenceForFrontend(preference: PreferencePayload): { [k
 
   return formattedData;
 }
+
+/** Hide buyer identity from agent marketplace views. Lifestyle flags stay. */
+export function stripPreferenceClientIdentity(formatted: { [key: string]: any }) {
+  const contact = formatted?.contactInfo || {};
+  const kept: Record<string, unknown> = {};
+  const lifestyleKeys = [
+    "petsAllowed",
+    "smokingAllowed",
+    "partiesAllowed",
+    "willingToPayExtra",
+    "additionalRequests",
+    "maxBudgetPerNight",
+    "cleaningFeeBudget",
+    "securityDepositBudget",
+    "cancellationPolicy",
+    "preferredCheckInTime",
+    "preferredCheckOutTime",
+  ];
+  for (const key of lifestyleKeys) {
+    if (contact[key] !== undefined) kept[key] = contact[key];
+  }
+  return {
+    ...formatted,
+    buyer: undefined,
+    contactInfo: Object.keys(kept).length ? kept : {},
+  };
+}

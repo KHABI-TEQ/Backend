@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import { DB } from "../controllers";
 import { RouteError } from "../common/classes";
 import HttpStatusCodes from "../common/HttpStatusCodes";
+import sendEmail from "../common/send.email";
+import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
+import { preferenceMarketReviewMail } from "../common/emailTemplates/preference";
+import { getClientBaseUrl } from "../utils/clientAppUrl";
 import { getPreferencePhysicalPropertyType } from "../utils/preferencePhysicalTypeMatch";
 import { computeMatchingPropertyIdsForPreference } from "./autoPreferencePairing.service";
 import {
@@ -172,6 +176,65 @@ function summarize(rows: Array<{ budgetFit: string; availability: string; specFi
   return summary;
 }
 
+async function notifyBuyerOfMarketReview(
+  preferenceId: string,
+  review: ReturnType<typeof formatOwnReview>
+) {
+  try {
+    const pref = await DB.Models.Preference.findById(preferenceId)
+      .populate("buyer", "fullName email")
+      .lean();
+    if (!pref || !review) return;
+    const buyer = pref.buyer as { _id?: unknown; fullName?: string; email?: string } | null;
+    const to = buyer?.email || (pref.contactInfo as { email?: string } | undefined)?.email;
+    if (!to) return;
+    const buyerId = String(buyer?._id || pref.buyer || "");
+    if (!buyerId) return;
+    const base = getClientBaseUrl();
+    const loc = extractLocationKeys(pref.location);
+    const locationString = [loc.state, loc.lgas[0]].filter(Boolean).join(", ");
+    const min = Number(pref.budget?.minPrice);
+    const max = Number(pref.budget?.maxPrice);
+    const currentBudget =
+      Number.isFinite(min) || Number.isFinite(max)
+        ? `₦${(Number.isFinite(min) ? min : 0).toLocaleString("en-NG")} – ₦${(Number.isFinite(max) ? max : 0).toLocaleString("en-NG")}`
+        : "";
+    const suggested = review.suggestedBudget?.min
+      ? `₦${review.suggestedBudget.min.toLocaleString("en-NG")} – ₦${review.suggestedBudget.max.toLocaleString("en-NG")}`
+      : null;
+    const html = generalEmailLayout(
+      preferenceMarketReviewMail({
+        buyerName:
+          buyer?.fullName ||
+          (pref.contactInfo as { fullName?: string } | undefined)?.fullName,
+        locationString,
+        currentBudget,
+        budgetFit: review.budgetFit === "too_low" ? "too_low" : "moderate",
+        suggestedBudget: suggested,
+        accountReviewLink: base ? `${base}/buyer/searches` : undefined,
+        updatePreferenceLink: base
+          ? `${base}/update-preference/${buyerId}/${pref._id}`
+          : undefined,
+      })
+    );
+    await sendEmail({
+      to,
+      subject: "An agent reviewed your property preference",
+      html,
+      text: html,
+      inboxMeta: {
+        audience: "buyer",
+        preferenceId: String(pref._id),
+        buyerId,
+        screen: "preference",
+        actionPath: "/buyer/searches",
+      },
+    });
+  } catch (err) {
+    console.error("Failed to notify buyer of market review", err);
+  }
+}
+
 function formatOwnReview(doc: any) {
   if (!doc) return null;
   return {
@@ -274,7 +337,9 @@ export async function upsertReview(
   );
 
   const summary = await getPreferenceReviewSummary(preferenceId);
-  return { review: formatOwnReview(doc), summary };
+  const review = formatOwnReview(doc);
+  void notifyBuyerOfMarketReview(String(preferenceId), review);
+  return { review, summary };
 }
 
 export async function getMyReview(agentId: string, preferenceId: string) {

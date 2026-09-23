@@ -466,3 +466,77 @@ export const listingMatchedPreferenceMail = (mailData: {
     </div>
   `;
 };
+
+export const preferenceMarketReviewMail = (mailData: {
+  buyerName?: string;
+  locationString?: string;
+  currentBudget?: string;
+  budgetFit: "too_low" | "moderate";
+  suggestedBudget?: string | null;
+  accountReviewLink?: string;
+  updatePreferenceLink?: string;
+}): string => {
+  const firstName =
+    String(mailData.buyerName || "").trim().split(/\s+/)[0] || "there";
+  const budgetLabel =
+    mailData.budgetFit === "too_low"
+      ? "Too low for this market"
+      : "Realistic for this market";
+
+  return `
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p style="font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
+
+      <p style="font-size: 16px;">
+        A Khabiteq agent has reviewed your property preference
+        ${mailData.locationString ? ` for <strong>${mailData.locationString}</strong>` : ""}.
+        You can use this feedback to adjust your brief so matching stays accurate.
+      </p>
+
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <p style="font-weight: bold; margin: 0 0 10px;">Market review</p>
+        <ul style="padding-left: 20px; margin: 0; font-size: 15px;">
+          ${mailData.currentBudget ? `<li><strong>Your budget:</strong> ${mailData.currentBudget}</li>` : ""}
+          <li><strong>Budget assessment:</strong> ${budgetLabel}</li>
+          ${
+            mailData.suggestedBudget
+              ? `<li><strong>Suggested range:</strong> ${mailData.suggestedBudget}</li>`
+              : ""
+          }
+        </ul>
+      </div>
+
+      <p style="font-size: 16px;">
+        Open your buyer account to read the review, then update the attached preference if you want to change your budget or requirements.
+      </p>
+
+      ${
+        mailData.accountReviewLink
+          ? `
+        <div style="text-align: center; margin: 24px 0 12px;">
+          <a href="${mailData.accountReviewLink}" style="background-color: #09391C; color: #ffffff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+            View review in your account
+          </a>
+        </div>
+      `
+          : ""
+      }
+      ${
+        mailData.updatePreferenceLink
+          ? `
+        <div style="text-align: center; margin: 12px 0 24px;">
+          <a href="${mailData.updatePreferenceLink}" style="background-color: #007B55; color: #ffffff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+            Adjust preference
+          </a>
+        </div>
+      `
+          : ""
+      }
+
+      <p style="font-size: 16px;">
+        Best regards,<br/>
+        <strong>The Khabi-Teq Team</strong>
+      </p>
+    </div>
+  `;
+};

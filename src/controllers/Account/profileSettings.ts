@@ -25,7 +25,10 @@ import {
 /** Subscription snapshot, DealSite, and Agent collection row — same shape for Agent and Developer (see loginUser). Landowners get the same keys; agentData is usually null. */
 async function buildPublisherProfileExtensions(user: { _id: unknown; accountApproved?: boolean }) {
   const agentData = await DB.Models.Agent.findOne({ userId: user._id }).lean();
-  const kycStatus = await getPublisherKycStatus(String(user._id));
+  const publisher = await DB.Models.PublisherProfile.findOne({ userId: user._id })
+    .select("kycStatus kycApprovedAt updatedAt")
+    .lean();
+  const kycStatus = publisher?.kycStatus || (await getPublisherKycStatus(String(user._id)));
   const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
     String(user._id)
   );
@@ -35,6 +38,12 @@ async function buildPublisherProfileExtensions(user: { _id: unknown; accountAppr
   return {
     agentData,
     kycStatus,
+    kycApprovedAt:
+      publisher?.kycApprovedAt ||
+      (publisher?.kycStatus === "approved"
+        ? (publisher as { updatedAt?: Date }).updatedAt
+        : null) ||
+      null,
     isAccountApproved: user.accountApproved,
     activeSubscription: snap,
     activeSnapshot: snap,

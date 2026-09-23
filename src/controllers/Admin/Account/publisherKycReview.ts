@@ -91,6 +91,7 @@ export const reviewPublisherKyc = async (
       {
         $set: {
           kycStatus: approved ? "approved" : "rejected",
+          ...(approved ? { kycApprovedAt: new Date() } : {}),
           ...(hasAdvancedSubmission
             ? { advancedKycStatus: approved ? "approved" : "rejected" }
             : {}),

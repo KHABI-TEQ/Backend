@@ -95,6 +95,7 @@ export interface IPublisherProfile {
   businessPhone?: string;
   businessEmail?: string;
   kycStatus: PublisherKycStatus;
+  kycApprovedAt?: Date;
   /** Developer off-plan verification. Independent of basic profile / standard KYC. */
   advancedKycStatus?: PublisherKycStatus;
   advancedKyc?: {
@@ -243,6 +244,7 @@ export class PublisherProfile {
           default: "none",
           index: true,
         },
+        kycApprovedAt: { type: Date },
         advancedKycStatus: {
           type: String,
           enum: ["none", "pending", "in_review", "approved", "rejected"],

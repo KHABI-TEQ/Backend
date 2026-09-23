@@ -3,7 +3,11 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
-import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
+import {
+  formatPreferenceForFrontend,
+  stripPreferenceClientIdentity,
+  PreferencePayload,
+} from "../../../utils/preferenceFormatter";
 
 export const fetchSinglePreference = async (
   req: AppRequest,
@@ -25,7 +29,9 @@ export const fetchSinglePreference = async (
     }
 
     const plainObj = preference.toObject({ getters: true, virtuals: true });
-    const formatted = formatPreferenceForFrontend(plainObj as unknown as PreferencePayload);
+    const formatted = stripPreferenceClientIdentity(
+      formatPreferenceForFrontend(plainObj as unknown as PreferencePayload)
+    );
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

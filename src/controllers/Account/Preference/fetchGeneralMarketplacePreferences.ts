@@ -2,7 +2,11 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
-import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
+import {
+  formatPreferenceForFrontend,
+  stripPreferenceClientIdentity,
+  PreferencePayload,
+} from "../../../utils/preferenceFormatter";
 import { attachReviewsToPreferences } from "../../../services/preferenceReview.service";
 import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
 
@@ -30,7 +34,7 @@ function normalizeMarketplacePreferenceType(raw: unknown): string | null {
 
 /**
  * Authenticated agents: list general (main-site) preferences for the marketplace dashboard.
- * Includes buyer + contactInfo for outreach; same shape as public formatter plus receiverMode.
+ * Buyer identity is stripped; lifestyle flags and review summaries remain.
  */
 export const fetchGeneralMarketplacePreferences = async (
   req: AppRequest,
@@ -67,11 +71,6 @@ export const fetchGeneralMarketplacePreferences = async (
           { "location.lgasWithAreas.lgaName": regex },
           { "location.lgasWithAreas.areas": regex },
           { "location.customLocation": regex },
-          { "contactInfo.fullName": regex },
-          { "contactInfo.email": regex },
-          { "contactInfo.phoneNumber": regex },
-          { "contactInfo.contactPerson": regex },
-          { "contactInfo.companyName": regex },
         ],
       });
     }
@@ -109,10 +108,12 @@ export const fetchGeneralMarketplacePreferences = async (
 
     const total = await DB.Models.Preference.countDocuments(filters);
 
-    const formatted = preferences.map((pref) => ({
-      ...formatPreferenceForFrontend(pref as unknown as PreferencePayload),
-      receiverMode: pref.receiverMode,
-    }));
+    const formatted = preferences.map((pref) =>
+      stripPreferenceClientIdentity({
+        ...formatPreferenceForFrontend(pref as unknown as PreferencePayload),
+        receiverMode: pref.receiverMode,
+      })
+    );
     const data = await attachReviewsToPreferences(
       formatted,
       req.user?._id ? String(req.user._id) : undefined

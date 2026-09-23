@@ -26,9 +26,43 @@ export const getMyPreferences = async (
       .sort({ createdAt: -1 })
       .lean();
 
+    const prefIds = preferences.map((p) => p._id);
+    const reviews = prefIds.length
+      ? await DB.Models.PreferenceReview.find({ preferenceId: { $in: prefIds } })
+          .select("preferenceId budgetFit suggestedBudget updatedAt")
+          .sort({ updatedAt: -1 })
+          .lean()
+      : [];
+
+    const reviewsByPref = new Map<string, typeof reviews>();
+    for (const row of reviews) {
+      const key = String(row.preferenceId);
+      const list = reviewsByPref.get(key) || [];
+      list.push(row);
+      reviewsByPref.set(key, list);
+    }
+
+    const withReviews = preferences.map((pref) => {
+      const rows = reviewsByPref.get(String(pref._id)) || [];
+      return {
+        ...pref,
+        marketReviews: rows.map((row) => ({
+          budgetFit: row.budgetFit === "too_low" ? "too_low" : "moderate",
+          suggestedBudget: row.suggestedBudget?.min
+            ? {
+                min: row.suggestedBudget.min,
+                max: row.suggestedBudget.max,
+                currency: row.suggestedBudget.currency || "NGN",
+              }
+            : null,
+          reviewedAt: row.updatedAt,
+        })),
+      };
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: { preferences },
+      data: { preferences: withReviews, buyerId: String(buyerId) },
     });
   } catch (err) {
     next(err);
