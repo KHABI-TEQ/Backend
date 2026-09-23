@@ -37,6 +37,8 @@ const preferenceBuildingType = Joi.string()
 
 const preferenceMeasurementUnit = Joi.string()
   .trim()
+  .allow("")
+  .optional()
   .custom((value, helpers) => {
     const t = String(value || "").trim().toLowerCase();
     if (!t) return "";

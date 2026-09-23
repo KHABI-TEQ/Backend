@@ -66,6 +66,7 @@ export function verificationPublicView(profile: any, user: any) {
     practitionerType: profile.practitionerType || "Individual",
     isCompany,
     isVerifiedDeveloper: isDeveloperFullyVerified(profile),
+    kycStatus: profile.kycStatus || "none",
     company: isCompany
       ? {
           status: uiStatus(v.company?.status),
