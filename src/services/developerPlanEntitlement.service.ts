@@ -122,11 +122,12 @@ export async function getDeveloperKycSnapshot(userId: string): Promise<{
   kycStatus: PublisherKycStatus;
   advancedKycStatus: PublisherKycStatus;
   advancedKycApproved: boolean;
+  isVerifiedDeveloper: boolean;
 }> {
   const profile = await DB.Models.PublisherProfile.findOne({
     userId: new Types.ObjectId(String(userId)),
   })
-    .select("practitionerType regionOfOperation kycData kycStatus advancedKycStatus companyDetails")
+    .select("practitionerType regionOfOperation kycData kycStatus advancedKycStatus companyDetails verification")
     .lean();
 
   const hasBasicProfile = Boolean(
@@ -139,12 +140,20 @@ export async function getDeveloperKycSnapshot(userId: string): Promise<{
   const kycStatus = (profile?.kycStatus || "none") as PublisherKycStatus;
   const advancedKycStatus = ((profile as { advancedKycStatus?: PublisherKycStatus })
     ?.advancedKycStatus || "none") as PublisherKycStatus;
+  const isCompany = profile?.practitionerType === "Company";
+  const v = (profile as { verification?: any })?.verification || {};
+  const isVerifiedDeveloper = Boolean(
+    v.representative?.status === "verified" &&
+      v.address?.status === "verified" &&
+      (!isCompany || v.company?.status === "verified")
+  );
 
   return {
     hasBasicProfile,
     kycStatus,
     advancedKycStatus,
-    advancedKycApproved: advancedKycStatus === "approved",
+    advancedKycApproved: isVerifiedDeveloper || advancedKycStatus === "approved",
+    isVerifiedDeveloper,
   };
 }
 
@@ -184,22 +193,22 @@ export async function assertDeveloperCanListOffPlan(userId: string): Promise<voi
     getDeveloperKycSnapshot(userId),
   ]);
 
-  if (!kyc.advancedKycApproved && !entitlement.allowsOffPlan) {
+  if (!kyc.isVerifiedDeveloper && !entitlement.allowsOffPlan) {
     throw new RouteError(
       HttpStatusCodes.FORBIDDEN,
-      "Off-plan listings require approved Advanced KYC and an active Off-Plan plan. Complete Advanced KYC and subscribe to Off-Plan (₦130,000) or Off-Plan Annual (₦390,000)."
+      "Off-plan projects require completed Developer Verification and an active Off-Plan plan."
     );
   }
-  if (!kyc.advancedKycApproved) {
+  if (!kyc.isVerifiedDeveloper) {
     throw new RouteError(
       HttpStatusCodes.FORBIDDEN,
-      "Complete Advanced KYC and wait for approval before listing off-plan projects."
+      "Complete Developer Verification (identity, address, and company where required) before submitting an off-plan project."
     );
   }
   if (!entitlement.allowsOffPlan) {
     throw new RouteError(
       HttpStatusCodes.FORBIDDEN,
-      "Subscribe to the Off-Plan or Off-Plan Annual plan to list off-plan projects. The Distribution plan covers completed properties only."
+      "An Off-Plan plan is required to submit an off-plan project. The Distribution plan covers completed properties only."
     );
   }
 }
@@ -220,6 +229,6 @@ export async function getDeveloperPlanSnapshot(userId: string) {
       : 0,
     ...kyc,
     propertyCount,
-    canListOffPlan: entitlement.allowsOffPlan && kyc.advancedKycApproved,
+    canListOffPlan: entitlement.allowsOffPlan && (kyc.isVerifiedDeveloper || kyc.advancedKycApproved),
   };
 }

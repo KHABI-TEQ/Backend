@@ -9,6 +9,19 @@ import { completeProfessionalUpgradeIfPending } from "../../../services/professi
 
 type Kind = "Lawyer" | "Surveyor" | "Valuer";
 
+const USER_SELECT =
+  "firstName lastName email phoneNumber accountId accountApproved accountStatus profile_picture createdAt isAccountVerified userType";
+
+async function findProfessionalProfile(kind: Kind, userId: string) {
+  if (kind === "Lawyer") {
+    return DB.Models.LawyerProfile.findOne({ userId }).lean();
+  }
+  if (kind === "Surveyor") {
+    return DB.Models.SurveyorProfile.findOne({ userId }).lean();
+  }
+  return DB.Models.ValuerProfile.findOne({ userId }).lean();
+}
+
 async function reviewProfessional(
   kind: Kind,
   userId: string,
@@ -146,7 +159,7 @@ export const listPendingLawyers = async (
     const profiles = await DB.Models.LawyerProfile.find({
       kycStatus: { $in: ["pending", "in_review"] },
     })
-      .populate("userId", "firstName lastName email phoneNumber accountApproved")
+      .populate("userId", USER_SELECT)
       .sort({ updatedAt: -1 })
       .lean();
     return res.status(HttpStatusCodes.OK).json({ success: true, data: profiles });
@@ -164,7 +177,7 @@ export const listPendingSurveyors = async (
     const profiles = await DB.Models.SurveyorProfile.find({
       kycStatus: { $in: ["pending", "in_review"] },
     })
-      .populate("userId", "firstName lastName email phoneNumber accountApproved")
+      .populate("userId", USER_SELECT)
       .sort({ updatedAt: -1 })
       .lean();
     return res.status(HttpStatusCodes.OK).json({ success: true, data: profiles });
@@ -182,10 +195,111 @@ export const listPendingValuers = async (
     const profiles = await DB.Models.ValuerProfile.find({
       kycStatus: { $in: ["pending", "in_review"] },
     })
-      .populate("userId", "firstName lastName email phoneNumber accountApproved")
+      .populate("userId", USER_SELECT)
       .sort({ updatedAt: -1 })
       .lean();
     return res.status(HttpStatusCodes.OK).json({ success: true, data: profiles });
+  } catch (err) {
+    next(err);
+  }
+};
+
+async function getProfessionalKycPayload(kind: Kind, userId: string) {
+  const user = await DB.Models.User.findById(userId).select(USER_SELECT).lean();
+  if (!user) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, `${kind} account not found.`);
+  }
+  const profile = await findProfessionalProfile(kind, userId);
+  if (!profile) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, `${kind} profile not found.`);
+  }
+  return { user, profile };
+}
+
+export const getLawyerKyc = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = await getProfessionalKycPayload("Lawyer", req.params.userId);
+    return res.status(HttpStatusCodes.OK).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getSurveyorKyc = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = await getProfessionalKycPayload("Surveyor", req.params.userId);
+    return res.status(HttpStatusCodes.OK).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getValuerKyc = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const data = await getProfessionalKycPayload("Valuer", req.params.userId);
+    return res.status(HttpStatusCodes.OK).json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listPendingDevelopers = async (
+  _req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const profiles = await DB.Models.PublisherProfile.find({
+      userType: "Developer",
+      $or: [
+        { kycStatus: { $in: ["pending", "in_review"] } },
+        { advancedKycStatus: { $in: ["pending", "in_review"] } },
+      ],
+    })
+      .populate("userId", USER_SELECT)
+      .sort({ updatedAt: -1 })
+      .lean();
+    return res.status(HttpStatusCodes.OK).json({ success: true, data: profiles });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getDeveloperKyc = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = await DB.Models.User.findById(req.params.userId)
+      .select(USER_SELECT)
+      .lean();
+    if (!user) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Developer account not found.");
+    }
+    const profile = await DB.Models.PublisherProfile.findOne({
+      userId: user._id,
+      userType: "Developer",
+    }).lean();
+    if (!profile) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Developer KYC profile not found.");
+    }
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: { user, profile },
+    });
   } catch (err) {
     next(err);
   }

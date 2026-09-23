@@ -1,5 +1,6 @@
 export * from "./agent";
 export * from "./publisherProfile";
+export * from "./offPlanProject";
 export * from "./inspectionBooking";
 export * from "./inspectionActivityLog";
 export * from "./bookingActivityLog";

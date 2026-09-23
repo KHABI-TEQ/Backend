@@ -58,6 +58,16 @@ export const postProperty = async (
     const ownerModel = "User";
     const standaloneScout = userType === "PropertyScout";
 
+    const listingType = String((payload as { propertyType?: string }).propertyType || "")
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+    if (userType === "Developer" && (listingType === "off-plan" || listingType === "offplan")) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        "Off-plan developments are submitted as projects. Use List Off-Plan Project instead of the standard property listing form.",
+      );
+    }
+
     if (standaloneScout) {
       const { isPublisherKycApproved } = await import("../../../services/publisherKyc.service");
       if (!(await isPublisherKycApproved(String(userId)))) {

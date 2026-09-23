@@ -61,6 +61,8 @@ export interface IProperty {
   expectedCompletionDate?: string;
   developmentStage?: string;
   paymentPlan?: string;
+  /** Set when this listing is the marketplace projection of an OffPlanProject. */
+  offPlanProjectId?: Types.ObjectId;
   ownershipDocuments?: unknown[];
   jvConditions?: string[];
   shortletDetails?: {
@@ -211,6 +213,7 @@ export class Property {
         expectedCompletionDate: { type: String },
         developmentStage: { type: String },
         paymentPlan: { type: String },
+        offPlanProjectId: { type: Schema.Types.ObjectId, ref: "OffPlanProject", index: true },
         ownershipDocuments: { type: [Schema.Types.Mixed], default: [] },
         jvConditions: [{ type: String }],
         shortletDetails: {

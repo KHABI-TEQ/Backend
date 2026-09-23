@@ -1,5 +1,61 @@
 import { Schema, model, models, Document, Model, Types } from "mongoose";
-import type { PublisherKycStatus, PublisherKycUserType } from "../common/kycTypes";
+import type {
+  PublisherKycStatus,
+  PublisherKycUserType,
+  DeveloperDimensionStatus,
+  DeveloperCompanyType,
+} from "../common/kycTypes";
+
+export interface IYouverifySnapshot {
+  status?: string;
+  retrievedAt?: Date;
+  retrievedFields?: string[];
+  raw?: Record<string, unknown>;
+}
+
+export interface IDeveloperAddressBlock {
+  homeNo?: string;
+  street?: string;
+  localGovtArea?: string;
+  state?: string;
+}
+
+export interface IDeveloperVerification {
+  company?: {
+    legalName?: string;
+    cacNumber?: string;
+    companyType?: DeveloperCompanyType;
+    cacCertificateUrls?: string[];
+    registeredAddress?: IDeveloperAddressBlock;
+    youverify?: IYouverifySnapshot;
+    status?: DeveloperDimensionStatus;
+    note?: string;
+    reviewedAt?: Date;
+    reviewedBy?: Types.ObjectId;
+  };
+  representative?: {
+    fullName?: string;
+    position?: string;
+    phone?: string;
+    email?: string;
+    idType?: string;
+    idNumber?: string;
+    idDocumentUrls?: string[];
+    youverify?: IYouverifySnapshot;
+    status?: DeveloperDimensionStatus;
+    note?: string;
+    reviewedAt?: Date;
+    reviewedBy?: Types.ObjectId;
+  };
+  address?: IDeveloperAddressBlock & {
+    source?: "kyb" | "manual";
+    youverify?: IYouverifySnapshot;
+    status?: DeveloperDimensionStatus;
+    note?: string;
+    reviewedAt?: Date;
+    reviewedBy?: Types.ObjectId;
+  };
+}
 
 export interface IPublisherProfile {
   userId: Types.ObjectId;
@@ -34,6 +90,10 @@ export interface IPublisherProfile {
     }[];
   };
   kycNote?: string;
+  /** Developer-only split verification. Independent of Agent/Landlord kycStatus. */
+  verification?: IDeveloperVerification;
+  businessPhone?: string;
+  businessEmail?: string;
   kycStatus: PublisherKycStatus;
   /** Developer off-plan verification. Independent of basic profile / standard KYC. */
   advancedKycStatus?: PublisherKycStatus;
@@ -100,6 +160,83 @@ export class PublisherProfile {
           },
         },
         kycNote: { type: String, trim: true },
+        businessPhone: { type: String, trim: true },
+        businessEmail: { type: String, trim: true },
+        verification: {
+          company: {
+            legalName: { type: String, trim: true },
+            cacNumber: { type: String, trim: true },
+            companyType: {
+              type: String,
+              enum: ["business_name", "limited_liability", "other"],
+            },
+            cacCertificateUrls: { type: [String], default: [] },
+            registeredAddress: {
+              homeNo: { type: String },
+              street: { type: String },
+              localGovtArea: { type: String },
+              state: { type: String },
+            },
+            youverify: {
+              status: { type: String },
+              retrievedAt: { type: Date },
+              retrievedFields: { type: [String], default: [] },
+              raw: { type: Schema.Types.Mixed },
+            },
+            status: {
+              type: String,
+              enum: ["none", "pending", "verified", "requires_attention"],
+              default: "none",
+            },
+            note: { type: String, trim: true },
+            reviewedAt: { type: Date },
+            reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+          },
+          representative: {
+            fullName: { type: String, trim: true },
+            position: { type: String, trim: true },
+            phone: { type: String, trim: true },
+            email: { type: String, trim: true },
+            idType: { type: String, trim: true },
+            idNumber: { type: String, trim: true },
+            idDocumentUrls: { type: [String], default: [] },
+            youverify: {
+              status: { type: String },
+              retrievedAt: { type: Date },
+              retrievedFields: { type: [String], default: [] },
+              raw: { type: Schema.Types.Mixed },
+            },
+            status: {
+              type: String,
+              enum: ["none", "pending", "verified", "requires_attention"],
+              default: "none",
+            },
+            note: { type: String, trim: true },
+            reviewedAt: { type: Date },
+            reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+          },
+          address: {
+            homeNo: { type: String },
+            street: { type: String },
+            localGovtArea: { type: String },
+            state: { type: String },
+            source: { type: String, enum: ["kyb", "manual"] },
+            youverify: {
+              status: { type: String },
+              retrievedAt: { type: Date },
+              retrievedFields: { type: [String], default: [] },
+              raw: { type: Schema.Types.Mixed },
+            },
+            status: {
+              type: String,
+              enum: ["none", "pending", "verified", "requires_attention"],
+              default: "none",
+            },
+            note: { type: String, trim: true },
+            reviewedAt: { type: Date },
+            reviewedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+          },
+        },
         kycStatus: {
           type: String,
           enum: ["none", "pending", "in_review", "approved", "rejected"],

@@ -14,7 +14,21 @@ import {
   listPendingLawyers,
   listPendingSurveyors,
   listPendingValuers,
+  getLawyerKyc,
+  getSurveyorKyc,
+  getValuerKyc,
+  getDeveloperKyc,
 } from "../controllers/Admin/Account/professionalKycReview";
+import {
+  listPendingDeveloperVerification,
+  getDeveloperVerificationAdmin,
+  reviewDeveloperCompany,
+  reviewDeveloperRepresentative,
+  reviewDeveloperAddress,
+  listAdminOffPlanProjects,
+  getAdminOffPlanProject,
+  reviewAdminOffPlanProject,
+} from "../controllers/Admin/Account/developerVerificationReview";
 import {
   listCustomDomainRequests,
   forwardCustomDomainRequestAdmin,
@@ -231,10 +245,13 @@ AdminRouter.post("/agents/:userId/reviewKycRequest", reviewPublisherKyc);
 AdminRouter.post("/users/:userId/reviewKycRequest", reviewPublisherKyc);
 
 AdminRouter.get("/lawyers/pending-kyc", listPendingLawyers);
+AdminRouter.get("/lawyers/:userId/kyc", getLawyerKyc);
 AdminRouter.post("/lawyers/:userId/reviewKycRequest", reviewLawyerKyc);
 AdminRouter.get("/surveyors/pending-kyc", listPendingSurveyors);
+AdminRouter.get("/surveyors/:userId/kyc", getSurveyorKyc);
 AdminRouter.post("/surveyors/:userId/reviewKycRequest", reviewSurveyorKyc);
 AdminRouter.get("/valuers/pending-kyc", listPendingValuers);
+AdminRouter.get("/valuers/:userId/kyc", getValuerKyc);
 AdminRouter.post("/valuers/:userId/reviewKycRequest", reviewValuerKyc);
 
 AdminRouter.get("/custom-domain-requests", listCustomDomainRequests);
@@ -273,6 +290,15 @@ AdminRouter.put("/landowners/:userId/flag-account", flagOrUnflagLandownerAccount
 AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 
 // DEVELOPERS MANAGEMENT ROUTES (User records with userType Developer)
+AdminRouter.get("/developers/pending-kyc", listPendingDeveloperVerification);
+AdminRouter.get("/developers/:userId/kyc", getDeveloperVerificationAdmin);
+AdminRouter.post("/developers/:userId/review/company", reviewDeveloperCompany);
+AdminRouter.post("/developers/:userId/review/representative", reviewDeveloperRepresentative);
+AdminRouter.post("/developers/:userId/review/address", reviewDeveloperAddress);
+AdminRouter.get("/developer-projects/pending", listAdminOffPlanProjects);
+AdminRouter.get("/developer-projects/:id", getAdminOffPlanProject);
+AdminRouter.post("/developer-projects/:id/review", reviewAdminOffPlanProject);
+AdminRouter.get("/developers/:userId/kyc-legacy", getDeveloperKyc);
 AdminRouter.get("/developers", getAllDevelopers);
 AdminRouter.get("/developers/:userId/allProperties", getAllDeveloperProperties);
 AdminRouter.delete("/developers/:userId", deleteDeveloperAccount);

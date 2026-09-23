@@ -97,6 +97,8 @@ import {
   IAdminNotificationModel,
   PublisherProfile,
   IPublisherProfileModel,
+  OffPlanProject,
+  IOffPlanProjectModel,
   ChannelSession,
   IChannelSessionModel,
   LawyerProfile,
@@ -177,6 +179,7 @@ declare interface IModels {
   SyndicationConnectionVerification: ISyndicationConnectionVerificationModel;
   AdminNotification: IAdminNotificationModel;
   PublisherProfile: IPublisherProfileModel;
+  OffPlanProject: IOffPlanProjectModel;
   ChannelSession: IChannelSessionModel;
   LawyerProfile: ILawyerProfileModel;
   SurveyorProfile: ISurveyorProfileModel;
@@ -259,6 +262,7 @@ export class DB {
       SyndicationConnectionVerification: new SyndicationConnectionVerification().model,
       AdminNotification: new AdminNotification().model,
       PublisherProfile: new PublisherProfile().model,
+      OffPlanProject: new OffPlanProject().model,
       ChannelSession: new ChannelSession().model,
       LawyerProfile: new LawyerProfile().model,
       SurveyorProfile: new SurveyorProfile().model,

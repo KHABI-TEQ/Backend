@@ -127,6 +127,23 @@ import {
   getUnlimitedListingPlanOffer,
 } from "../controllers/Account/Publisher/publisherListingEligibility";
 import { getDeveloperPlanEntitlementController } from "../controllers/Account/Developer/developerEntitlement";
+import { getDeveloperDashboardSummary } from "../controllers/Account/Developer/developerDashboard";
+import {
+  getDeveloperVerification,
+  putDeveloperProfile,
+  lookupDeveloperCompany,
+  putDeveloperCompany,
+  putDeveloperRepresentative,
+  putDeveloperAddress,
+  submitDeveloperVerificationController,
+} from "../controllers/Account/Developer/developerVerification";
+import {
+  listMyOffPlanProjects,
+  getMyOffPlanProject,
+  createMyOffPlanProject,
+  updateMyOffPlanProject,
+  submitMyOffPlanProject,
+} from "../controllers/Account/Developer/developerProjects";
 import { validateJoi } from "../middlewares/validateJoi";
 import { agentKycSchema } from "../validators/agentKYC.validator";
 import {
@@ -209,6 +226,19 @@ AccountRouter.get("/agent/eligibility", getAgentEligibility);
 AccountRouter.get("/publisher/listing-eligibility", getPublisherListingEligibility);
 AccountRouter.get("/publisher/unlimited-listing-plan", getUnlimitedListingPlanOffer);
 AccountRouter.get("/developer/plan-entitlement", getDeveloperPlanEntitlementController);
+AccountRouter.get("/developer/dashboard-summary", getDeveloperDashboardSummary);
+AccountRouter.get("/developer/verification", getDeveloperVerification);
+AccountRouter.put("/developer/profile", putDeveloperProfile);
+AccountRouter.post("/developer/verification/company/lookup", lookupDeveloperCompany);
+AccountRouter.put("/developer/verification/company", putDeveloperCompany);
+AccountRouter.put("/developer/verification/representative", putDeveloperRepresentative);
+AccountRouter.put("/developer/verification/address", putDeveloperAddress);
+AccountRouter.post("/developer/verification/submit", submitDeveloperVerificationController);
+AccountRouter.get("/developer/projects", listMyOffPlanProjects);
+AccountRouter.post("/developer/projects", createMyOffPlanProject);
+AccountRouter.get("/developer/projects/:id", getMyOffPlanProject);
+AccountRouter.put("/developer/projects/:id", updateMyOffPlanProject);
+AccountRouter.post("/developer/projects/:id/submit", submitMyOffPlanProject);
 
 // Agent broadcast to DealSite email subscribers (guests subscribe with email on DealSite)
 AccountRouter.post("/agent/broadcast", broadcastToMySubscribers);
