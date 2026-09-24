@@ -15,7 +15,7 @@ const accountAuth = async (req: AppRequest, res: Response, next: NextFunction) =
     const token = rawAuthHeader.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({ message: "Token missing" });
+      return res.status(401).json({ message: "Token is missing" });
     }
 
     // 🔐 Verify token
