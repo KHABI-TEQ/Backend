@@ -2,21 +2,9 @@ import { Response, NextFunction } from "express";
 import { AppRequest } from "../../../types/express";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
-import {
-  isPublisherUserType,
-  SCOUT_PORTFOLIO_UNLIMITED_PRICING,
-  SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
-} from "../../../common/constants/publisherListingLimits";
-import {
-  getPublisherListingSnapshot,
-} from "../../../services/publisherListingEligibility.service";
-import { SubscriptionPlanService } from "../../../services/subscriptionPlan.service";
-import {
-  resolveAgentSubscriptionBonusDays,
-} from "../../../services/agentSubscriptionIncentive.service";
+import { isPublisherUserType } from "../../../common/constants/publisherListingLimits";
+import { getPublisherListingSnapshot } from "../../../services/publisherListingEligibility.service";
 import { getPropertyScoutSnapshot, isScoutEligibleUserType } from "../../../services/propertyScout.service";
-import { resolveCatalogAudienceForUser } from "../../../services/subscriptionPlanAudience.service";
-import { SUBSCRIPTION_PLAN_AUDIENCES } from "../../../common/constants/subscriptionCategories";
 
 /**
  * GET /account/publisher/listing-eligibility
@@ -69,9 +57,7 @@ export const getPublisherListingEligibility = async (
 
 /**
  * GET /account/publisher/unlimited-listing-plan
- * Returns Portfolio Unlimited for publishers who do not already have unlimited listings.
- * `required` is true only after the standard 25-listing cap (26th listing needs this plan).
- * Listing-allowance "View plans" can open this offer early as an upgrade path.
+ * Portfolio Unlimited is retired. Kept so older clients fail closed instead of offering a dead plan.
  */
 export const getUnlimitedListingPlanOffer = async (
   req: AppRequest,
@@ -93,63 +79,14 @@ export const getUnlimitedListingPlanOffer = async (
     }
 
     const snapshot = await getPublisherListingSnapshot(String(userId), userType!);
-    if (!snapshot) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Listing eligibility applies to landlord, agent, and developer accounts only."
-      );
-    }
-
-    // Only treat truly unlimited accounts as already upgraded — never a missing snapshot.
-    if (snapshot.unlimitedListings) {
-      return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        data: null,
-        alreadyUnlimited: true,
-        listingSnapshot: snapshot,
-        message: "You already have unlimited listings.",
-      });
-    }
-
-    const audience = await resolveCatalogAudienceForUser(String(userId));
-    const planCode =
-      audience === SUBSCRIPTION_PLAN_AUDIENCES.SCOUT
-        ? SCOUT_PORTFOLIO_UNLIMITED_PRICING.monthlyCode
-        : SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE;
-    const plan = await SubscriptionPlanService.getPlan(planCode);
-    if (!plan || !plan.isActive) {
-      throw new RouteError(
-        HttpStatusCodes.NOT_FOUND,
-        "Portfolio Unlimited plan is not available. Please contact support."
-      );
-    }
-
-    const bonusDays = resolveAgentSubscriptionBonusDays({
-      planName: plan.name,
-      planCode: plan.code,
-      durationInDays: plan.durationInDays,
-    });
-    const enriched = SubscriptionPlanService.enrichPlanForCatalog(plan);
-    const discountedPlans = (enriched.discountedPlans || []).map((dp: any) => ({
-      ...dp,
-      bonusDays: resolveAgentSubscriptionBonusDays({
-        planName: dp.name ?? plan.name,
-        planCode: dp.code,
-        durationInDays: dp.durationInDays,
-      }),
-    }));
-
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Portfolio Unlimited plan fetched successfully",
-      data: {
-        ...enriched,
-        bonusDays,
-        discountedPlans,
-        listingSnapshot: snapshot,
-        required: !!snapshot.requiresSpecialPlan,
-        includesCustomDomain: true,
-      },
+      data: null,
+      retired: true,
+      alreadyUnlimited: false,
+      listingSnapshot: snapshot,
+      message:
+        "Portfolio Unlimited is no longer available. Choose a Licensed Agent plan on the subscriptions page.",
     });
   } catch (err) {
     next(err);

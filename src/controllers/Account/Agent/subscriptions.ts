@@ -15,7 +15,10 @@ import {
   computePaidSubscriptionExpiresAt,
   resolveAgentSubscriptionBonusDays,
 } from "../../../services/agentSubscriptionIncentive.service";
-import { isUnlimitedListingPlanCode } from "../../../common/constants/publisherListingLimits";
+import {
+  isUnlimitedListingPlanCode,
+  listingLimitForPlanCode,
+} from "../../../common/constants/publisherListingLimits";
 import {
   isWhiteLabelingCategory,
   SUBSCRIPTION_PLAN_AUDIENCES,
@@ -27,10 +30,6 @@ import {
   assertUserCanPurchasePlanAudience,
 } from "../../../services/subscriptionPlanAudience.service";
 import { catalogDefinitionByCode } from "../../../common/constants/subscriptionCatalog";
-import {
-  linkCustomDomainRequestToUnlimitedCheckout,
-  prepareCustomDomainRequestForUnlimitedCheckout,
-} from "../../../services/customDomain.service";
 
 
 /**
@@ -121,14 +120,20 @@ export const createSubscription = async (
       benefits,
     } = resolved;
 
-    const isPortfolioUnlimited = isUnlimitedListingPlanCode(resolvedCode);
-    let customDomainRequestId: string | null = null;
-    if (isPortfolioUnlimited) {
-      const domain = await prepareCustomDomainRequestForUnlimitedCheckout(
-        String(userId)
+    if (isUnlimitedListingPlanCode(resolvedCode)) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Portfolio Unlimited is no longer available. Choose a Licensed Agent plan."
       );
-      customDomainRequestId = domain.request ? String(domain.request._id) : null;
     }
+
+    const explicitListingLimit =
+      planType === "discounted"
+        ? plan.discountedPlans?.find(
+            (dp) => String(dp.code || "").toUpperCase() === resolvedCode
+          )?.listingLimit
+        : (plan as { listingLimit?: number }).listingLimit;
+    const listingLimit = listingLimitForPlanCode(resolvedCode, explicitListingLimit);
 
     // 3. Generate payment link
     const paymentResponse = await PaystackService.initializePayment({
@@ -143,9 +148,6 @@ export const createSubscription = async (
         category,
         planCode: resolvedCode,
         planType,
-        ...(customDomainRequestId
-          ? { customDomainRequestId, includedWithPortfolioUnlimited: true }
-          : {}),
       },
     });
 
@@ -176,19 +178,9 @@ export const createSubscription = async (
           benefits,
           bonusDays: 0,
           baseDurationInDays: durationInDays,
-          ...(customDomainRequestId
-            ? { customDomainRequestId, includedWithPortfolioUnlimited: true }
-            : {}),
+          listingLimit,
         },
       });
-
-    if (isPortfolioUnlimited) {
-      await linkCustomDomainRequestToUnlimitedCheckout(String(userId), {
-        snapshotId: String(subscriptionSnapshot._id),
-        transactionId: String(paymentResponse.transactionId),
-        planCode: resolvedCode,
-      });
-    }
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,

@@ -18,8 +18,6 @@ import { SubscriptionPlanService } from "./subscriptionPlan.service";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import { computePaidSubscriptionExpiresAt, resolveAgentSubscriptionBonusDays } from "./agentSubscriptionIncentive.service";
 import { resolveCatalogAudienceForUser, assertUserCanPurchasePlanAudience } from "./subscriptionPlanAudience.service";
-import { publisherHasUnlimitedListings } from "./publisherListingEligibility.service";
-import { isUnlimitedListingPlanCode } from "../common/constants/publisherListingLimits";
 
 const DEFAULT_GRACE_DAYS = 14;
 
@@ -186,7 +184,7 @@ export async function assertCustomDomainAvailable(
 
 async function loadWhiteLabelingCatalog(ownerId: string) {
   const audience = await resolveCatalogAudienceForUser(ownerId);
-  const [whiteLabelPlans, activeWhiteLabelSub, graceDays, includedWithPortfolioUnlimited] =
+  const [whiteLabelPlans, activeWhiteLabelSub, graceDays] =
     await Promise.all([
       SubscriptionPlanService.getAllActivePlans({
         category: SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING,
@@ -197,32 +195,7 @@ async function loadWhiteLabelingCatalog(ownerId: string) {
         category: "white-labeling",
       }),
       getCustomDomainGraceDays(),
-      publisherHasUnlimitedListings(ownerId),
     ]);
-
-  let includedSubscription: {
-    id: string;
-    status: string;
-    expiresAt?: Date;
-    planCode: string | null;
-    autoRenew: boolean;
-  } | null = null;
-
-  if (includedWithPortfolioUnlimited && !activeWhiteLabelSub) {
-    const snaps = await UserSubscriptionSnapshotService.getActiveSnapshots(ownerId);
-    const pu = snaps.find((s) =>
-      isUnlimitedListingPlanCode(String(s.meta?.planCode || ""))
-    );
-    if (pu) {
-      includedSubscription = {
-        id: String(pu._id),
-        status: pu.status,
-        expiresAt: pu.expiresAt,
-        planCode: pu.meta?.planCode || null,
-        autoRenew: !!pu.autoRenew,
-      };
-    }
-  }
 
   return {
     plans: flattenWhiteLabelingCatalog(whiteLabelPlans),
@@ -234,8 +207,8 @@ async function loadWhiteLabelingCatalog(ownerId: string) {
           planCode: activeWhiteLabelSub.meta?.planCode || null,
           autoRenew: !!activeWhiteLabelSub.autoRenew,
         }
-      : includedSubscription,
-    includedWithPortfolioUnlimited,
+      : null,
+    includedWithPortfolioUnlimited: false,
     graceDays,
     category: {
       key: SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING,
@@ -363,152 +336,40 @@ export async function getOrCreateCustomDomainRequest(ownerId: string, body?: {
 }
 
 export async function submitCustomDomainIncludedWithPortfolioUnlimited(
-  ownerId: string,
-  body: {
+  _ownerId: string,
+  _body: {
     preferredNames?: string[];
     contactEmail?: string;
     notes?: string;
   }
 ) {
-  const included = await publisherHasUnlimitedListings(ownerId);
-  if (!included) {
-    throw new RouteError(
-      HttpStatusCodes.FORBIDDEN,
-      "Custom domain / white-labeling is included with an active Portfolio Unlimited plan. Subscribe first, then submit your preferred domain."
-    );
-  }
-
-  const names = (body?.preferredNames || [])
-    .map((n) => normalizeHostname(n))
-    .filter(Boolean);
-  if (!names.length) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "Add at least one preferred domain name."
-    );
-  }
-
-  const payload = await getOrCreateCustomDomainRequest(ownerId, {
-    preferredNames: names,
-    contactEmail: body.contactEmail,
-    notes: body.notes,
-  });
-
-  if (payload.needsPublicPage || !payload.request || !payload.site) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "Set up your public page before requesting a custom domain."
-    );
-  }
-  if (payload.needsKyc) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "KYC must be approved before requesting a custom domain."
-    );
-  }
-
-  const request = payload.request;
-  if (["live", "forwarded-to-tech", "paid"].includes(request.status)) {
-    return payload;
-  }
-
-  const snaps = await UserSubscriptionSnapshotService.getActiveSnapshots(ownerId);
-  const pu = snaps.find((s) =>
-    isUnlimitedListingPlanCode(String(s.meta?.planCode || ""))
+  throw new RouteError(
+    HttpStatusCodes.GONE,
+    "Portfolio Unlimited is no longer available, so a custom domain is not included with any listing plan."
   );
-
-  request.amount = 0;
-  request.planCode = pu?.meta?.planCode || request.planCode;
-  request.billingInterval = pu?.meta?.billingInterval || request.billingInterval;
-  if (pu?._id) request.subscriptionSnapshot = pu._id as Types.ObjectId;
-  request.status = "paid";
-  await request.save();
-
-  const siteDoc =
-    payload.site.siteKind === "deal-site"
-      ? await DB.Models.DealSite.findById(payload.site.id)
-      : await DB.Models.ProfessionalSite.findById(payload.site.id);
-  if (siteDoc) {
-    siteDoc.customDomainStatus = "pending";
-    await siteDoc.save();
-  }
-
-  void notifyAllActiveAdmins({
-    type: "custom_domain_package_paid",
-    title: "Custom domain included with Portfolio Unlimited",
-    message: `Portfolio Unlimited subscriber submitted preferred domain (${names.join(", ")}). Forward to tech — no extra white-labeling charge.`,
-    meta: {
-      customDomainRequestId: String(request._id),
-      ownerId,
-      siteKind: payload.site.siteKind,
-      preferredNames: names,
-      includedWithPortfolioUnlimited: true,
-      planCode: request.planCode,
-    },
-  });
-
-  return getOrCreateCustomDomainRequest(ownerId);
 }
 
 export async function prepareCustomDomainRequestForUnlimitedCheckout(
-  ownerId: string
+  _ownerId: string
 ) {
-  const payload = await getOrCreateCustomDomainRequest(ownerId);
-  if (payload.needsPublicPage || !payload.request || !payload.site) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "Set up your public page and save at least one preferred domain name before subscribing to Portfolio Unlimited."
-    );
-  }
-  if (payload.needsKyc) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "KYC must be approved before requesting a custom domain."
-    );
-  }
-  if (["live", "forwarded-to-tech", "paid"].includes(payload.request.status)) {
-    return payload;
-  }
-  if (!payload.request.preferredNames?.length) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "Save at least one preferred domain name and a contact email before subscribing to Portfolio Unlimited."
-    );
-  }
-  return payload;
+  throw new RouteError(
+    HttpStatusCodes.GONE,
+    "Portfolio Unlimited is no longer available."
+  );
 }
 
 export async function linkCustomDomainRequestToUnlimitedCheckout(
-  ownerId: string,
-  opts: {
+  _ownerId: string,
+  _opts: {
     snapshotId: string;
     transactionId: string;
     planCode: string;
   }
 ) {
-  const payload = await prepareCustomDomainRequestForUnlimitedCheckout(ownerId);
-  const request = payload.request;
-  if (!request) return payload;
-  if (!["live", "forwarded-to-tech", "paid"].includes(request.status)) {
-    request.status = "awaiting-payment";
-    request.planCode = opts.planCode;
-    request.amount = 0;
-    request.subscriptionSnapshot = new Types.ObjectId(opts.snapshotId);
-    request.transaction = new Types.ObjectId(opts.transactionId);
-    await request.save();
-  }
-
-  if (payload.site?.id) {
-    await DB.Models.UserSubscriptionSnapshot.findByIdAndUpdate(opts.snapshotId, {
-      $set: {
-        "meta.customDomainRequestId": String(request._id),
-        "meta.includedWithPortfolioUnlimited": true,
-        "meta.siteId": payload.site.id,
-        "meta.siteKind": payload.site.siteKind,
-      },
-    });
-  }
-  return { ...payload, request };
+  throw new RouteError(
+    HttpStatusCodes.GONE,
+    "Portfolio Unlimited is no longer available."
+  );
 }
 
 export async function initializeCustomDomainPackagePayment(
@@ -712,13 +573,7 @@ export async function syncCustomDomainExpiryFromSubscription(snapshot: {
   expiresAt?: Date;
   meta?: Record<string, any>;
 }) {
-  const includedWithPortfolioUnlimited =
-    !!snapshot.meta?.includedWithPortfolioUnlimited ||
-    isUnlimitedListingPlanCode(snapshot.meta?.planCode);
-  if (
-    !isWhiteLabelingCategory(snapshot.meta?.category) &&
-    !includedWithPortfolioUnlimited
-  ) {
+  if (!isWhiteLabelingCategory(snapshot.meta?.category)) {
     return null;
   }
   const siteId = snapshot.meta?.siteId;

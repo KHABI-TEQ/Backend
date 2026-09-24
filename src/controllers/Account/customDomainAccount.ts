@@ -6,7 +6,6 @@ import {
   getOrCreateCustomDomainRequest,
   initializeCustomDomainPackagePayment,
   initializeCustomDomainRenewalPayment,
-  submitCustomDomainIncludedWithPortfolioUnlimited,
 } from "../../services/customDomain.service";
 
 export const getMyCustomDomain = async (
@@ -50,31 +49,16 @@ export const upsertMyCustomDomainRequest = async (
 };
 
 export const submitIncludedCustomDomainRequest = async (
-  req: AppRequest,
-  res: Response,
+  _req: AppRequest,
+  _res: Response,
   next: NextFunction
 ) => {
-  try {
-    if (!req.user?._id) {
-      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Login required.");
-    }
-    const data = await submitCustomDomainIncludedWithPortfolioUnlimited(
-      String(req.user._id),
-      {
-        preferredNames: req.body?.preferredNames,
-        contactEmail: req.body?.contactEmail,
-        notes: req.body?.notes,
-      }
-    );
-    return res.status(HttpStatusCodes.OK).json({
-      success: true,
-      message:
-        "Preferred domain submitted. Custom domain is included with your Portfolio Unlimited plan — our team will set it up.",
-      data,
-    });
-  } catch (err) {
-    next(err);
-  }
+  next(
+    new RouteError(
+      HttpStatusCodes.GONE,
+      "Portfolio Unlimited is no longer available, so a custom domain is not included with any listing plan."
+    )
+  );
 };
 
 export const payCustomDomainPackage = async (

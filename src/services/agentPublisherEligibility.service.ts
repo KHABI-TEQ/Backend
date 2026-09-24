@@ -104,7 +104,11 @@ export async function resumeAgentPolicyPausedDealSites(userId: string): Promise<
     {
       createdBy: userId,
       status: "paused",
-      pausedByPolicy: { $in: ["kyc", "subscription"] },
+      $or: [
+        { pausedByPolicy: { $in: ["kyc", "subscription", "setup"] } },
+        { pausedByPolicy: { $exists: false } },
+        { pausedByPolicy: null },
+      ],
     },
     { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
   );

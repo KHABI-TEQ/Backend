@@ -5,6 +5,7 @@ import { DealSiteService } from "../../services/dealSite.service";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
+import { resumeAgentPolicyPausedDealSites } from "../../services/agentPublisherEligibility.service";
 
 /** After DealSite exists and is running: require owner KYC (after grace) and subscription when applicable. */
 async function applyPublicDealSiteAccessGates(
@@ -150,7 +151,10 @@ export const getDealSiteDetailsByUser = async (
   try {
  
     const userId = req.user?._id;
-  
+    if (userId) {
+      await resumeAgentPolicyPausedDealSites(String(userId));
+    }
+
     const dealSites = await DealSiteService.getByAgent(userId);
     const dealSite = dealSites?.[0];
 

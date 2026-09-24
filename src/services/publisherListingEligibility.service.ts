@@ -4,12 +4,10 @@ import HttpStatusCodes from "../common/HttpStatusCodes";
 import { RouteError } from "../common/classes";
 import {
   isPublisherUserType,
-  isUnlimitedListingPlanCode,
+  listingLimitForPlanCode,
+  listingLimitMessage,
   LISTING_LIMIT_SPECIAL_PLAN_CODE,
-  PUBLISHER_LISTING_LIMIT_MESSAGE,
   PUBLISHER_STANDARD_LISTING_LIMIT,
-  SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
-  SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME,
 } from "../common/constants/publisherListingLimits";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 
@@ -22,29 +20,36 @@ export async function countPublisherOwnedProperties(
   });
 }
 
-async function snapshotGrantsUnlimitedListings(
-  userId: string
-): Promise<boolean> {
+export async function resolvePublisherListingLimit(userId: string): Promise<number> {
   const snapshots = await UserSubscriptionSnapshotService.getActiveSnapshots(userId);
-  if (!snapshots.length) return false;
+  if (!snapshots.length) return PUBLISHER_STANDARD_LISTING_LIMIT;
 
+  let maxLimit = 0;
   for (const snapshot of snapshots) {
     const plan = await DB.Models.SubscriptionPlan.findById(snapshot.plan)
-      .select("code unlimitedListings hiddenFromCatalog")
+      .select("code listingLimit discountedPlans.code discountedPlans.listingLimit")
       .lean();
-    if (!plan) continue;
-    if (plan.unlimitedListings || isUnlimitedListingPlanCode(plan.code)) {
-      return true;
-    }
-    const planCode = snapshot.meta?.planCode ?? plan.code;
-    if (isUnlimitedListingPlanCode(planCode)) return true;
+    const planCode = String(snapshot.meta?.planCode || plan?.code || "").toUpperCase();
+    const discounted = plan?.discountedPlans?.find(
+      (dp) => String(dp.code || "").toUpperCase() === planCode
+    );
+    const explicit =
+      snapshot.meta?.listingLimit && Number(snapshot.meta.listingLimit) > 0
+        ? Number(snapshot.meta.listingLimit)
+        : discounted?.listingLimit && discounted.listingLimit > 0
+          ? discounted.listingLimit
+          : plan?.listingLimit && plan.listingLimit > 0
+            ? plan.listingLimit
+            : null;
+    maxLimit = Math.max(maxLimit, listingLimitForPlanCode(planCode, explicit));
   }
 
-  return false;
+  return maxLimit || PUBLISHER_STANDARD_LISTING_LIMIT;
 }
 
-export async function publisherHasUnlimitedListings(userId: string): Promise<boolean> {
-  return snapshotGrantsUnlimitedListings(userId);
+/** Portfolio Unlimited is retired — never grant an uncapped listing allowance. */
+export async function publisherHasUnlimitedListings(_userId: string): Promise<boolean> {
+  return false;
 }
 
 export interface PublisherListingSnapshot {
@@ -70,45 +75,39 @@ export async function getPublisherListingSnapshot(
   const { getActivePaidAgentSubscriptionSnapshot } = await import(
     "./agentSubscriptionIncentive.service"
   );
-  const [unlimitedListings, paidSubscription] = await Promise.all([
-    publisherHasUnlimitedListings(userId),
+  const [listingLimit, paidSubscription] = await Promise.all([
+    resolvePublisherListingLimit(userId),
     getActivePaidAgentSubscriptionSnapshot(userId),
   ]);
   const hasPaidSubscription = !!paidSubscription;
-  const listingLimit = unlimitedListings ? null : PUBLISHER_STANDARD_LISTING_LIMIT;
-  const listingsRemaining =
-    listingLimit != null ? Math.max(0, listingLimit - ownedProperties) : null;
-  const requiresSpecialPlan =
-    hasPaidSubscription && !unlimitedListings && ownedProperties >= PUBLISHER_STANDARD_LISTING_LIMIT;
-  const underStandardCap = unlimitedListings || ownedProperties < PUBLISHER_STANDARD_LISTING_LIMIT;
+  const listingsRemaining = Math.max(0, listingLimit - ownedProperties);
+  const atCap = hasPaidSubscription && ownedProperties >= listingLimit;
 
   return {
     ownedProperties,
     listingLimit,
     listingsRemaining,
-    unlimitedListings,
+    unlimitedListings: false,
     hasPaidSubscription,
     requiresActiveSubscription: !hasPaidSubscription,
-    canListProperties: hasPaidSubscription && underStandardCap,
-    requiresSpecialPlan,
-    specialPlanCode: SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
-    specialPlanName: SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME,
+    canListProperties: hasPaidSubscription && ownedProperties < listingLimit,
+    requiresSpecialPlan: atCap,
+    specialPlanCode: LISTING_LIMIT_SPECIAL_PLAN_CODE,
+    specialPlanName: "Listing allowance",
   };
 }
 
 export function buildListingLimitRouteErrorDetails(
-  ownedProperties: number
+  ownedProperties: number,
+  listingLimit: number
 ): string {
   return JSON.stringify({
     code: LISTING_LIMIT_SPECIAL_PLAN_CODE,
     ownedProperties,
-    listingLimit: PUBLISHER_STANDARD_LISTING_LIMIT,
-    specialPlanCode: SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
-    specialPlanName: SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME,
+    listingLimit,
   });
 }
 
-/** Blocks the 26th+ listing unless Portfolio Unlimited is active. */
 export async function assertPublisherListingCapacity(params: {
   ownerId: Types.ObjectId | string;
   userType: string;
@@ -116,14 +115,13 @@ export async function assertPublisherListingCapacity(params: {
   const { ownerId, userType } = params;
   if (!isPublisherUserType(userType)) return;
 
-  if (await publisherHasUnlimitedListings(String(ownerId))) return;
-
+  const listingLimit = await resolvePublisherListingLimit(String(ownerId));
   const owned = await countPublisherOwnedProperties(ownerId);
-  if (owned >= PUBLISHER_STANDARD_LISTING_LIMIT) {
+  if (owned >= listingLimit) {
     throw new RouteError(
       HttpStatusCodes.FORBIDDEN,
-      PUBLISHER_LISTING_LIMIT_MESSAGE,
-      buildListingLimitRouteErrorDetails(owned)
+      listingLimitMessage(listingLimit),
+      buildListingLimitRouteErrorDetails(owned, listingLimit)
     );
   }
 }

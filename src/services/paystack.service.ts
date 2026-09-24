@@ -28,7 +28,7 @@ import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.s
 import { sendTransactionVoiceNote } from './voiceNote.service';
 import { shortletHostPayoutEligibleAt } from '../utils/shortletPricing';
 import { isWhiteLabelingCategory } from '../common/constants/subscriptionCategories';
-import { isUnlimitedListingPlanCode } from '../common/constants/publisherListingLimits';
+import { listingLimitForPlanCode } from '../common/constants/publisherListingLimits';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -1103,24 +1103,30 @@ export class PaystackService {
       if (!plan) return null;
 
       let planDuration: number;
+      let resolvedDiscountedPlan: any = null;
 
       let startDate = new Date();
       const isWhiteLabeling = isWhiteLabelingCategory(snapshot.meta?.category);
 
       if (snapshot.meta.planType === "discounted" && snapshot.meta.planCode) {
         // find exact discounted plan under this plan
-        const discountedPlan = plan.discountedPlans?.find(
+        resolvedDiscountedPlan = plan.discountedPlans?.find(
           (p: any) => p.code === snapshot.meta.planCode
         );
 
-        if (!discountedPlan) {
+        if (!resolvedDiscountedPlan) {
           throw new Error(`Discounted plan with code name ${snapshot.meta.appliedPlanName} not found`);
         }
 
-        planDuration = discountedPlan.durationInDays;
+        planDuration = resolvedDiscountedPlan.durationInDays;
       } else {
         planDuration = plan.durationInDays;
       }
+
+      const resolvedListingLimit = listingLimitForPlanCode(
+        snapshot.meta?.planCode ?? plan.code,
+        resolvedDiscountedPlan?.listingLimit ?? plan.listingLimit
+      );
 
       if (isWhiteLabeling && snapshot.meta?.isRenewal && snapshot.meta?.siteId) {
         const site =
@@ -1151,6 +1157,20 @@ export class PaystackService {
         remaining: f.type === "count" ? f.value : undefined,
       })) || [];
 
+      const listingsFeatureDoc = await DB.Models.PlanFeature.findOne({ key: "LISTINGS" })
+        .select("_id")
+        .lean();
+      if (listingsFeatureDoc) {
+        const listingsFeature = planFeatures.find(
+          (f: any) => String(f.feature) === String(listingsFeatureDoc._id)
+        );
+        if (listingsFeature) {
+          listingsFeature.type = "count";
+          listingsFeature.value = resolvedListingLimit;
+          listingsFeature.remaining = resolvedListingLimit;
+        }
+      }
+
       snapshot.status = newStatus;
       snapshot.startedAt = startDate;
       snapshot.expiresAt = paidExpiresAt;
@@ -1159,6 +1179,7 @@ export class PaystackService {
         ...snapshot.meta,
         bonusDays: 0,
         baseDurationInDays: planDuration,
+        listingLimit: resolvedListingLimit,
       };
       await snapshot.save();
 
@@ -1211,20 +1232,6 @@ export class PaystackService {
           } else {
             await handleCustomDomainPackagePaid(transaction);
           }
-        } else if (
-          isUnlimitedListingPlanCode(snapshot.meta?.planCode) ||
-          snapshot.meta?.includedWithPortfolioUnlimited
-        ) {
-          const { handleCustomDomainPackagePaid } = await import(
-            "./customDomain.service"
-          );
-          if (!transaction.meta?.customDomainRequestId && snapshot.meta?.customDomainRequestId) {
-            transaction.meta = {
-              ...(transaction.meta || {}),
-              customDomainRequestId: snapshot.meta.customDomainRequestId,
-            };
-          }
-          await handleCustomDomainPackagePaid(transaction);
         }
 
         const previousSubscription = await DB.Models.UserSubscriptionSnapshot.exists({

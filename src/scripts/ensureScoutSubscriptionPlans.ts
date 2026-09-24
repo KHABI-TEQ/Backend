@@ -15,7 +15,7 @@ import {
   SUBSCRIPTION_PLAN_CATEGORIES,
 } from "../common/constants/subscriptionCategories";
 import { CATALOG_PLANS } from "../common/constants/subscriptionCatalog";
-import { SCOUT_PORTFOLIO_UNLIMITED_PRICING } from "../common/constants/publisherListingLimits";
+import { RETIRED_UNLIMITED_LISTINGS_PLAN_CODES } from "../common/constants/publisherListingLimits";
 
 async function run() {
   await mongoose.connect(process.env.MONGO_URL!);
@@ -65,13 +65,15 @@ async function run() {
     {
       audience: SUBSCRIPTION_PLAN_AUDIENCES.SCOUT,
       code: {
-        $nin: [
-          SCOUT_STANDARD_PRICING.quarterlyCode,
-          SCOUT_PORTFOLIO_UNLIMITED_PRICING.monthlyCode,
-        ],
+        $nin: [SCOUT_STANDARD_PRICING.quarterlyCode],
       },
     },
     { $set: { hiddenFromCatalog: true, isActive: false } }
+  );
+
+  await DB.Models.SubscriptionPlan.updateMany(
+    { code: { $in: [...RETIRED_UNLIMITED_LISTINGS_PLAN_CODES] } },
+    { $set: { isActive: false, hiddenFromCatalog: true, unlimitedListings: false } }
   );
 
   await mongoose.disconnect();

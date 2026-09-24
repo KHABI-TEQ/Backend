@@ -147,7 +147,7 @@ export async function getActivePaidAgentSubscriptionSnapshot(
 
 import { publisherHasUnlimitedListings } from "./publisherListingEligibility.service";
 
-/** Paid Portfolio Unlimited subscribers receive unlimited property listings. */
+/** Portfolio Unlimited is retired. Always false. */
 export async function agentHasUnlimitedPropertyListings(userId: string): Promise<boolean> {
   return publisherHasUnlimitedListings(userId);
 }

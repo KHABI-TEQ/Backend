@@ -138,7 +138,7 @@ export async function provisionProfessionalSiteOnKycApprove(params: {
   if (existing && existing.status === "deleted") {
     existing.kind = params.kind;
     existing.publicSlug = slug;
-    existing.status = "paused";
+    existing.status = "running";
     existing.title = displayName;
     existing.logoUrl = params.logoUrl || existing.logoUrl;
     existing.about = params.about || existing.about;
@@ -156,7 +156,7 @@ export async function provisionProfessionalSiteOnKycApprove(params: {
     kind: params.kind,
     ownerId: params.ownerId,
     publicSlug: slug,
-    status: "paused",
+    status: "running",
     title: displayName,
     tagline:
       params.kind === "lawyer"

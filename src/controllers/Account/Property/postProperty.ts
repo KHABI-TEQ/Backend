@@ -13,7 +13,6 @@ import { formatPropertyPayload } from "../../../utils/propertiesFromatter.ts";
 import { UserSubscriptionSnapshotService } from "../../../services/userSubscriptionSnapshot.service";
 import { assertPropertyListingAllowedForOwner } from "../../../services/propertyListingEligibility.service";
 import { assertCanListOffPlanIfRequested } from "../../../services/developerPlanEntitlement.service";
-import { publisherHasUnlimitedListings } from "../../../services/publisherListingEligibility.service";
 import { isPublisherUserType } from "../../../common/constants/publisherListingLimits";
 import { validatePropertyPayload } from "../../../services/propertyValidation.service";
 import { listingCommissionFields } from "../../../common/constants/listingCommission";
@@ -123,7 +122,7 @@ export const postProperty = async (
       (formatted as any).listingScope = "agent_listing";
     }
 
-    // Publisher listing policy (25 cap / Portfolio Unlimited) for all listing roles
+    // Publisher listing policy (plan listing cap) for all listing roles
     let activeSnapshot = null;
     if (userType === "Agent" || userType === "Developer" || userType === "Landowners" || userType === "PropertyScout") {
       const { activeSnapshot: snap } = await assertPropertyListingAllowedForOwner({
@@ -161,12 +160,8 @@ export const postProperty = async (
     // ✅ Create property first (inside session)
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    const unlimitedListings = isPublisherUserType(userType)
-      ? await publisherHasUnlimitedListings(String(userId))
-      : false;
-
-    // Deduct LISTINGS quota on paid plans that are not Portfolio Unlimited.
-    if (activeSnapshot && isPublisherUserType(userType) && !unlimitedListings) {
+    // Deduct LISTINGS quota on paid publisher plans.
+    if (activeSnapshot && isPublisherUserType(userType)) {
       try {
         if (preferenceId) {
           await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
@@ -175,11 +170,17 @@ export const postProperty = async (
             1
           );
         } else {
-          await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
-            activeSnapshot._id.toString(),
-            "LISTINGS",
-            1
-          );
+          try {
+            await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
+              activeSnapshot._id.toString(),
+              "LISTINGS",
+              1
+            );
+          } catch (err: any) {
+            if (!/not found/i.test(String(err?.message || ""))) {
+              throw err;
+            }
+          }
         }
       } catch (err: any) {
         // rollback property creation if quota fails

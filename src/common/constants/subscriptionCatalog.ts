@@ -19,6 +19,7 @@ export type SubscriptionCatalogGroupKey =
 export const CATALOG_PLAN_CODES = {
   SCOUT: "SCOUT_STANDARD_QTR",
   LICENSED_AGENT: "LICENSED_AGENT_QTR",
+  LICENSED_AGENT_YEARLY: "LICENSED_AGENT_YEARLY",
   DEV_DISTRIBUTION: "DEV_DISTRIBUTION_QTR",
   DEV_OFFPLAN: "DEV_OFFPLAN_QTR",
   DEV_OFFPLAN_YEARLY: "DEV_OFFPLAN_YEARLY",
@@ -45,6 +46,7 @@ export const CATALOG_VISIBLE_PLAN_CODES: string[] = [
 ];
 
 export const CATALOG_DISCOUNTED_PLAN_CODES: string[] = [
+  CATALOG_PLAN_CODES.LICENSED_AGENT_YEARLY,
   CATALOG_PLAN_CODES.LAWYER_YEARLY,
   CATALOG_PLAN_CODES.SURVEYOR_YEARLY,
   CATALOG_PLAN_CODES.VALUER_YEARLY,
@@ -67,6 +69,7 @@ export type CatalogBillingOption = {
   durationInDays: number;
   billingInterval: SubscriptionBillingInterval;
   label: string;
+  listingLimit?: number;
 };
 
 export type CatalogPlanDefinition = {
@@ -85,6 +88,7 @@ export type CatalogPlanDefinition = {
   allowsOffPlan?: boolean;
   discountedPlans?: CatalogBillingOption[];
   displayWithCode?: string;
+  listingLimit?: number;
 };
 
 export type CatalogGroupDefinition = {
@@ -274,13 +278,29 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
     name: "Licensed Agent Plan",
     audience: SUBSCRIPTION_PLAN_AUDIENCES.LICENSED,
     group: "licensed",
-    price: 50_000,
+    price: 40_000,
     durationInDays: 90,
     billingInterval: SUBSCRIPTION_BILLING_INTERVALS.QUARTERLY,
+    listingLimit: 25,
     designedFor:
       "For licensed real estate agents who want a verified professional page, listings and demand matching.",
     headline: "Grow Your Real Estate Business with Khabiteq",
+    discountedPlans: [
+      {
+        code: CATALOG_PLAN_CODES.LICENSED_AGENT_YEARLY,
+        name: "Licensed Agent Plan — Yearly",
+        price: 140_000,
+        durationInDays: 365,
+        billingInterval: SUBSCRIPTION_BILLING_INTERVALS.YEARLY,
+        label: "per year",
+        listingLimit: 50,
+      },
+    ],
     featureDetails: [
+      {
+        title: "Listing allowance",
+        description: "List up to 25 properties on the 3-month plan, or up to 50 on the annual plan.",
+      },
       {
         title: "Verified Practitioner Page",
         description: "Showcase your license, experience, listings, reviews and contact details.",
@@ -303,6 +323,7 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
       },
     ],
     benefits: [
+      "List up to 25 properties (3 months) or 50 properties (annual)",
       "Verified Practitioner Page",
       "Property Listing Management",
       "Property Demand Matching",

@@ -22,7 +22,7 @@ export type ActiveSnapshot = IUserSubscriptionSnapshotDoc | null;
 /**
  * Publishers (Agent, Developer, Landowner, Property Scout) must have a paid
  * subscription to list. Agents also need approved KYC. Listing volume is then
- * capped at 25 unless Portfolio Unlimited is active.
+ * capped by the active plan (25 on quarterly, 50 on the Licensed Agent annual plan).
  */
 export async function assertPropertyListingAllowedForOwner(params: {
   ownerId: Types.ObjectId | string;

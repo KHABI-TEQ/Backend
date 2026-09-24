@@ -71,7 +71,15 @@ async function pauseAgentDealSiteForPolicy(
 
 async function resumeAgentDealSiteIfPolicyPaused(siteId: unknown): Promise<boolean> {
   const updateResult = await DB.Models.DealSite.updateOne(
-    { _id: siteId, status: "paused", pausedByPolicy: { $in: ["kyc", "subscription"] } },
+    {
+      _id: siteId,
+      status: "paused",
+      $or: [
+        { pausedByPolicy: { $in: ["kyc", "subscription", "setup"] } },
+        { pausedByPolicy: { $exists: false } },
+        { pausedByPolicy: null },
+      ],
+    },
     { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
   );
   return updateResult.modifiedCount > 0;

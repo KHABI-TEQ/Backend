@@ -16,15 +16,9 @@ import {
   SUBSCRIPTION_PLAN_CATEGORIES,
   isWhiteLabelingPlanCode,
 } from "../common/constants/subscriptionCategories";
-import {
-  SCOUT_PORTFOLIO_UNLIMITED_PRICING,
-  SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
-} from "../common/constants/publisherListingLimits";
+import { RETIRED_UNLIMITED_LISTINGS_PLAN_CODES } from "../common/constants/publisherListingLimits";
 
-const KEEP_ACTIVE_HIDDEN_CODES = new Set([
-  SPECIAL_UNLIMITED_LISTINGS_PLAN_CODE,
-  SCOUT_PORTFOLIO_UNLIMITED_PRICING.monthlyCode,
-]);
+const KEEP_ACTIVE_HIDDEN_CODES = new Set<string>();
 
 async function releaseDiscountedCodes(codes: string[]) {
   const plans = await DB.Models.SubscriptionPlan.find({
@@ -59,6 +53,7 @@ async function upsertCatalogPlan(definition: (typeof CATALOG_PLANS)[number]) {
     isTrial: false,
     hiddenFromCatalog: false,
     unlimitedListings: false,
+    listingLimit: definition.listingLimit || 0,
     maxProfessionals: definition.maxProfessionals || 0,
     allowsOffPlan: !!definition.allowsOffPlan,
     discountedPlans: (definition.discountedPlans || []).map((dp) => ({
@@ -68,6 +63,7 @@ async function upsertCatalogPlan(definition: (typeof CATALOG_PLANS)[number]) {
       durationInDays: dp.durationInDays,
       billingInterval: dp.billingInterval,
       benefits: definition.benefits,
+      listingLimit: dp.listingLimit || definition.listingLimit || 0,
     })),
   };
 
@@ -127,6 +123,12 @@ async function run() {
   }
 
   await retireNonCatalogPlans();
+
+  const retired = await DB.Models.SubscriptionPlan.updateMany(
+    { code: { $in: [...RETIRED_UNLIMITED_LISTINGS_PLAN_CODES] } },
+    { $set: { isActive: false, hiddenFromCatalog: true, unlimitedListings: false } }
+  );
+  console.log(`Retired ${retired.modifiedCount} Portfolio Unlimited plan(s).`);
 
   await mongoose.disconnect();
   console.log("Catalog subscription plans synced.");

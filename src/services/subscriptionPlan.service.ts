@@ -487,6 +487,12 @@ export class SubscriptionPlanService {
           : null,
         grantsListingEligibility,
         grantsCustomDomain: false,
+        listingLimit:
+          dp.listingLimit ||
+          definition?.discountedPlans?.find((item) => item.code === dp.code)?.listingLimit ||
+          definition?.listingLimit ||
+          plan.listingLimit ||
+          0,
         benefits: listPlanBenefits({
           benefits: dp.benefits?.length ? dp.benefits : benefits,
           features: plan.features,
@@ -515,6 +521,7 @@ export class SubscriptionPlanService {
         : null,
       grantsListingEligibility,
       grantsCustomDomain: false,
+      listingLimit: definition?.listingLimit || plan.listingLimit || 0,
       benefits,
       discountedPlans,
     };

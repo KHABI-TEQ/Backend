@@ -11,6 +11,23 @@ import {
   getPublicDealSiteKycGate,
 } from "./dealSiteKycEligibility.service";
 import { getAgentAccessGate } from "./agentPublisherEligibility.service";
+import { isPublisherKycApproved } from "./publisherKyc.service";
+
+async function shouldStartDealSiteRunning(userId: string): Promise<boolean> {
+  const owner = await DB.Models.User.findById(userId).select("userType").lean();
+  if (!owner) return false;
+  if (owner.userType === "Agent") {
+    const gate = await getAgentAccessGate(userId);
+    return gate.ok === true;
+  }
+  if (owner.userType === "Developer") {
+    const kycOk = await isPublisherKycApproved(userId);
+    const snap = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(userId);
+    const paid = Boolean(snap && String(snap.status || "").toLowerCase() === "active");
+    return kycOk && paid;
+  }
+  return false;
+}
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
 
@@ -96,11 +113,12 @@ export class DealSiteService {
       );
     }
 
-    // Save the DealSite with status "paused" (newly created pages start paused)
+    const startRunning = await shouldStartDealSiteRunning(userId);
     const dealSite = await DB.Models.DealSite.create({
       ...payload,
       createdBy: userId,
-      status: "paused",
+      status: startRunning ? "running" : "paused",
+      ...(startRunning ? {} : { pausedByPolicy: "setup" }),
     });
 
     return dealSite;
@@ -171,6 +189,7 @@ export class DealSiteService {
     }
 
     dealSite.status = "running";
+    dealSite.pausedByPolicy = undefined;
     await dealSite.save();
 
     return dealSite;
@@ -199,7 +218,7 @@ export class DealSiteService {
     }
 
     dealSite.status = "paused";
-    dealSite.pausedByPolicy = undefined;
+    dealSite.pausedByPolicy = "manual";
     await dealSite.save();
 
     return dealSite;

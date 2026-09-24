@@ -156,7 +156,7 @@ export const adminPauseDealSite = async (
 
     const dealSite = await DB.Models.DealSite.findOneAndUpdate(
       { publicSlug },
-      { status: "paused" },
+      { status: "paused", pausedByPolicy: "manual" },
       { new: true }
     );
 

@@ -24,6 +24,7 @@ export interface IDiscountedPlan {
   discountPercentage?: number;
   billingInterval?: SubscriptionBillingInterval;
   benefits?: string[];
+  listingLimit?: number;
 }
 
 export interface ISubscriptionPlan {
@@ -37,8 +38,10 @@ export interface ISubscriptionPlan {
   isTrial?: boolean;
   /** When true, plan is omitted from the public catalog (e.g. Portfolio Unlimited). */
   hiddenFromCatalog?: boolean;
-  /** When true, subscribers may list properties without the standard 25-property cap. */
+  /** @deprecated Portfolio Unlimited is retired. Always treat as false. */
   unlimitedListings?: boolean;
+  /** Max properties this plan may publish. Defaults to the standard 25-listing cap. */
+  listingLimit?: number;
   /** Catalog grouping: Standard (practitioner) vs Custom Domain / White Labeling. */
   category?: SubscriptionPlanCategory;
   /** licensed = Agent with a license; scout = no license; developer = Developer catalog. */
@@ -72,6 +75,7 @@ export class SubscriptionPlan {
           enum: Object.values(SUBSCRIPTION_BILLING_INTERVALS),
         },
         benefits: { type: [String], default: [] },
+        listingLimit: { type: Number, default: 0 },
       },
       { _id: false }
     );
@@ -101,6 +105,7 @@ export class SubscriptionPlan {
         isTrial: { type: Boolean, default: false },
         hiddenFromCatalog: { type: Boolean, default: false },
         unlimitedListings: { type: Boolean, default: false },
+        listingLimit: { type: Number, default: 0 },
         category: {
           type: String,
           enum: Object.values(SUBSCRIPTION_PLAN_CATEGORIES),
