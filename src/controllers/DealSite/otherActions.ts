@@ -238,8 +238,12 @@ export const createDealSiteContactUs = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "DealSite owner not found");
     }
 
-    const { name, email, phoneNumber, whatsAppNumber, subject, message } =
+    const { name, email, phoneNumber, whatsAppNumber, subject, message, propertyInterest } =
       req.body;
+
+    const composedMessage = propertyInterest
+      ? `${String(message || "").trim()}\n\nProperty interested in: ${String(propertyInterest).trim()}`
+      : message;
 
     // ✅ Create Contact Us record
     const contact = await DB.Models.ContactUs.create({
@@ -247,8 +251,8 @@ export const createDealSiteContactUs = async (
       email,
       phoneNumber,
       whatsAppNumber,
-      subject,
-      message,
+      subject: subject || (propertyInterest ? `Enquiry: ${propertyInterest}` : "Public page enquiry"),
+      message: composedMessage,
       status: "pending",
       receiverMode: {
         type: "dealSite",
@@ -275,15 +279,15 @@ export const createDealSiteContactUs = async (
       email,
       phoneNumber,
       whatsAppNumber,
-      subject,
-      message,
+      subject: subject || (propertyInterest ? `Enquiry: ${propertyInterest}` : "Public page enquiry"),
+      message: composedMessage,
     });
 
     const buyerEmailRaw = generateDealSiteContactUserMail({
       name,
       email,
-      subject,
-      message,
+      subject: subject || (propertyInterest ? `Enquiry: ${propertyInterest}` : "Public page enquiry"),
+      message: composedMessage,
       phoneNumber,
       whatsAppNumber,
       dealSiteName: dealSite?.title || dealSite?.paymentDetails?.businessName,

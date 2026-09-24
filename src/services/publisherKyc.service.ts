@@ -41,7 +41,7 @@ export async function getPublisherKycStatus(
   const profile = await DB.Models.PublisherProfile.findOne({ userId: id })
     .select("kycStatus kycApprovedAt")
     .lean();
-  if (profile?.kycStatus) {
+  if (profile?.kycStatus && profile.kycStatus !== "none") {
     return profile.kycStatus as PublisherKycStatus;
   }
 
@@ -50,7 +50,7 @@ export async function getPublisherKycStatus(
     return agent.kycStatus as PublisherKycStatus;
   }
 
-  return "none";
+  return (profile?.kycStatus as PublisherKycStatus) || "none";
 }
 
 export async function ensurePublisherProfile(params: {

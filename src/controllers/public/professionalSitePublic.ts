@@ -78,6 +78,45 @@ export const submitProfessionalSiteDocumentVerification = async (
   }
 };
 
+export const reportProfessionalSite = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const publicSlug = String(req.params.publicSlug || "").trim();
+    const { reportedBy, reason, description } = req.body || {};
+    if (!reportedBy?.email || !reason) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Reporter email and reason are required"
+      );
+    }
+
+    const site = await getRunningProfessionalSiteBySlug(publicSlug);
+    const { notifyAllActiveAdmins } = await import("../../services/adminNotification.service");
+    void notifyAllActiveAdmins({
+      type: "dealsite_reported",
+      title: "Public profile reported",
+      message: `Professional page "${publicSlug}" was reported (${reason}).`,
+      meta: {
+        publicSlug,
+        professionalSiteId: String(site._id),
+        reason,
+        description: description || null,
+        reporterEmail: reportedBy.email,
+      },
+    });
+
+    return res.status(HttpStatusCodes.CREATED).json({
+      success: true,
+      message: "Profile reported successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const submitProfessionalSiteSurveyRequest = async (
   req: AppRequest,
   res: Response,

@@ -348,7 +348,7 @@ export class DealSite {
         },
         contactVisibility: {
           showEmail: { type: Boolean, default: true },
-          showPhone: { type: Boolean, default: true },
+          showPhone: { type: Boolean, default: false },
           enableContactForm: { type: Boolean, default: true },
           showWhatsAppButton: { type: Boolean, default: false },
           whatsappNumber: { type: String, default: "" },

@@ -344,6 +344,19 @@ export async function buildPublicProfessionalCard(site: IProfessionalSiteDoc) {
     throw new RouteError(HttpStatusCodes.NOT_FOUND, "Owner not found.");
   }
 
+  const { buildPublicPractitionerProfile } = await import("./publicPractitionerProfile.service");
+  const publicProfile = await buildPublicPractitionerProfile({
+    ownerId: site.ownerId,
+    professionalKind: site.kind,
+    site: {
+      title: site.title,
+      description: site.about || site.tagline,
+      logoUrl: site.logoUrl,
+      status: site.status,
+      about: { whoWeAre: { description: site.about } },
+    },
+  });
+
   if (site.kind === "lawyer") {
     const profile = await DB.Models.LawyerProfile.findOne({
       userId: site.ownerId,
@@ -371,6 +384,7 @@ export async function buildPublicProfessionalCard(site: IProfessionalSiteDoc) {
       displayName:
         `${user.firstName || ""} ${user.lastName || ""}`.trim() || site.title,
       photoUrl: profile.profilePhoto || user.profile_picture || site.logoUrl,
+      publicProfile,
     };
   }
 
@@ -400,6 +414,7 @@ export async function buildPublicProfessionalCard(site: IProfessionalSiteDoc) {
     displayName:
       `${user.firstName || ""} ${user.lastName || ""}`.trim() || site.title,
     photoUrl: profile.profilePhoto || user.profile_picture || site.logoUrl,
+    publicProfile,
   };
 }
 

@@ -270,9 +270,28 @@ export const getDealSiteBySlug = async (
       typeof (dealSite as any).toObject === "function" ? (dealSite as any).toObject() : dealSite,
     );
     const inspectionSettings = publicView.inspectionSettings ?? { defaultInspectionFee: 0 };
+    const ownerId = resolveLeanRefToObjectId((dealSite as any).createdBy);
+    let publicProfile = null;
+    if (ownerId) {
+      const { buildPublicPractitionerProfile } = await import(
+        "../../services/publicPractitionerProfile.service"
+      );
+      publicProfile = await buildPublicPractitionerProfile({
+        ownerId,
+        site: {
+          title: publicView.title,
+          description: publicView.description,
+          logoUrl: publicView.logoUrl,
+          about: publicView.about,
+          publicPage: publicView.publicPage,
+          contactUs: publicView.contactUs,
+          status: publicView.status,
+        },
+      });
+    }
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: publicView,
+      data: { ...publicView, publicProfile },
       dealSite: { inspectionSettings },
     });
   } catch (err) {
@@ -346,8 +365,8 @@ export const getDealSiteOwnerContact = async (
     }
 
     const visibility = (dealSite as any).contactVisibility || {};
-    const showEmail = visibility.showEmail !== false;
-    const showPhone = visibility.showPhone !== false;
+    const showEmail = visibility.showEmail === true;
+    const showPhone = visibility.showPhone === true;
 
     const ownerAddress = (owner as any).address || {};
     const contactLocation = (dealSite as any)?.contactUs?.location || {};

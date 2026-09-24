@@ -2,6 +2,7 @@ import express from "express";
 import multer from "multer";
 import {
   getProfessionalSiteBySlug,
+  reportProfessionalSite,
   submitProfessionalSiteDocumentVerification,
   submitProfessionalSiteSurveyRequest,
 } from "../controllers/public/professionalSitePublic";
@@ -34,6 +35,8 @@ ProfessionalSiteRouter.post(
   "/:publicSlug/survey-request",
   submitProfessionalSiteSurveyRequest
 );
+
+ProfessionalSiteRouter.post("/:publicSlug/report", reportProfessionalSite);
 
 ProfessionalSiteRouter.get("/:publicSlug/verify-payment", paymentVerification);
 

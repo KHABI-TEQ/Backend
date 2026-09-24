@@ -132,13 +132,12 @@ export const postProperty = async (
       activeSnapshot = snap;
     }
 
-    const listingType = String(
-      (formatted as { propertyType?: string }).propertyType || payload.propertyType || ""
-    ).toLowerCase();
     await assertCanListOffPlanIfRequested({
       userId: String(userId),
       userType,
-      propertyType: listingType,
+      propertyType: String(
+        (formatted as { propertyType?: string }).propertyType || payload.propertyType || listingType || ""
+      ).toLowerCase(),
     });
 
     const pictureUrls = Array.isArray((formatted as any).pictures)
