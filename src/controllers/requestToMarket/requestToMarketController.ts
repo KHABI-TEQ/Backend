@@ -228,15 +228,26 @@ export const listRequestToMarket = async (
       DB.Models.RequestToMarket.countDocuments(filter),
     ]);
 
-    const requests = (rawRequests as any[]).map((r) => ({
-      ...r,
-      agentCommissionAmount: r.agentCommissionAmount ?? r.marketingFeeNaira ?? 0,
-      agentCommissionPercent:
-        r.agentCommissionPercent ??
-        r.propertyId?.agentCommissionPercent ??
-        undefined,
-      ...(r.marketingFeeNaira !== undefined && { marketingFeeNaira: undefined }),
-    }));
+    const requests = (rawRequests as any[]).map((r) => {
+      const percent = Number(
+        r.commissionPercent ?? r.agentCommissionPercent ?? r.propertyId?.agentCommissionPercent
+      );
+      const salePrice = Number(r.actualSalePriceNaira);
+      const registeredCommission =
+        r.saleRegisteredAt && Number.isFinite(salePrice) && salePrice > 0 && Number.isFinite(percent) && percent > 0
+          ? Math.round((salePrice * percent) / 100)
+          : null;
+      return {
+        ...r,
+        agentCommissionAmount:
+          registeredCommission ?? r.agentCommissionAmount ?? r.marketingFeeNaira ?? 0,
+        agentCommissionPercent:
+          r.agentCommissionPercent ??
+          r.propertyId?.agentCommissionPercent ??
+          undefined,
+        ...(r.marketingFeeNaira !== undefined && { marketingFeeNaira: undefined }),
+      };
+    });
 
     const developerEntitlement =
       userType === "Developer" ? await getDeveloperPlanSnapshot(String(userId)) : undefined;
@@ -523,6 +534,7 @@ export const registerSaleForRequestToMarket = async (
     const updatePayload: Record<string, unknown> = {
       actualSalePriceNaira: actualPrice,
       commissionPercent,
+      agentCommissionAmount,
       saleRegisteredAt: new Date(),
       receiptVerificationStatus: "pending",
     };

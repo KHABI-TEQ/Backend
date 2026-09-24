@@ -42,11 +42,8 @@ function serializeSale(doc: any) {
       ? doc.receiptVerifiedBy
       : null;
   const salePrice = Number(doc.actualSalePriceNaira) || 0;
-  const commissionPercent = Number(doc.commissionPercent) || 0;
-  const agentCommissionAmount =
-    Number(doc.agentCommissionAmount) > 0
-      ? Math.round(doc.agentCommissionAmount)
-      : Math.round((salePrice * commissionPercent) / 100);
+  const commissionPercent = Number(doc.commissionPercent) || Number(doc.agentCommissionPercent) || 0;
+  const agentCommissionAmount = Math.round((salePrice * commissionPercent) / 100);
 
   return {
     _id: doc._id,
