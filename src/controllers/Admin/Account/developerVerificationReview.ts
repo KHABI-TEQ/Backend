@@ -14,6 +14,12 @@ import {
   publishApprovedProject,
 } from "../../../services/offPlanProject.service";
 import { DB } from "../..";
+import sendEmail from "../../../common/send.email";
+import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
+import {
+  accountApproved,
+  accountDisapproved,
+} from "../../../common/emailTemplates/agentMails";
 
 export const listPendingDeveloperVerification = async (
   _req: AppRequest,
@@ -34,7 +40,11 @@ export const listPendingDeveloperVerification = async (
       .populate("userId", "firstName lastName email phoneNumber accountId")
       .sort({ updatedAt: -1 })
       .lean();
-    return res.status(HttpStatusCodes.OK).json({ success: true, data: profiles });
+    const data = profiles.map((profile) => ({
+      ...profile,
+      view: verificationPublicView(profile, profile.userId || {}),
+    }));
+    return res.status(HttpStatusCodes.OK).json({ success: true, data });
   } catch (err) {
     next(err);
   }
@@ -67,17 +77,37 @@ function reviewHandler(dimension: "company" | "representative" | "address") {
       if (!["approve", "reject"].includes(response)) {
         throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Response must be approve or reject.");
       }
-      const data = await adminReviewDimension(
+      const result = await adminReviewDimension(
         req.params.userId,
         dimension,
         response,
         note,
         req.admin?._id ? String(req.admin._id) : undefined
       );
+      const user = result.user;
+      if (user?.email && (result.becameApproved || result.rejected)) {
+        const emailBody = generalEmailLayout(
+          result.becameApproved
+            ? accountApproved(user.firstName, "developer")
+            : accountDisapproved(user.firstName, note),
+        );
+        try {
+          await sendEmail({
+            to: user.email,
+            subject: result.becameApproved
+              ? "Welcome to Khabi-Teq – Your Partnership Opportunity Awaits!"
+              : "Update on Your Khabi-Teq KYC Application",
+            text: emailBody,
+            html: emailBody,
+          });
+        } catch (emailErr) {
+          console.warn("[reviewDeveloperDimension] email failed:", emailErr);
+        }
+      }
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: `${dimension} ${response === "approve" ? "verified" : "marked as requiring attention"}.`,
-        data,
+        data: result.view,
       });
     } catch (err) {
       next(err);

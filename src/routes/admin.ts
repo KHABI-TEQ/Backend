@@ -292,6 +292,7 @@ AdminRouter.get("/landowners/:userId/allProperties", getAllLandlordProperties);
 // DEVELOPERS MANAGEMENT ROUTES (User records with userType Developer)
 AdminRouter.get("/developers/pending-kyc", listPendingDeveloperVerification);
 AdminRouter.get("/developers/:userId/kyc", getDeveloperVerificationAdmin);
+AdminRouter.post("/developers/:userId/reviewKycRequest", reviewPublisherKyc);
 AdminRouter.post("/developers/:userId/review/company", reviewDeveloperCompany);
 AdminRouter.post("/developers/:userId/review/representative", reviewDeveloperRepresentative);
 AdminRouter.post("/developers/:userId/review/address", reviewDeveloperAddress);

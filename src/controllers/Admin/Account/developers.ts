@@ -7,6 +7,10 @@ import { RouteError } from "../../../common/classes";
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { deleteDeveloperMail } from "../../../common/emailTemplates/developerMails";
+import {
+  ensureDeveloperProfile,
+  verificationPublicView,
+} from "../../../services/developerVerification.service";
 
 const ALLOWED_SORT_FIELDS = new Set([
   "createdAt",
@@ -99,6 +103,7 @@ export const getAllDevelopers = async (
 
     const userIds = developers.map((d) => d._id);
     const slugByUserId = new Map<string, string | null>();
+    const kycByUserId = new Map<string, string>();
     if (userIds.length > 0) {
       const dealSites = await DB.Models.DealSite.find({
         createdBy: { $in: userIds },
@@ -112,11 +117,21 @@ export const getAllDevelopers = async (
           slugByUserId.set(uid, row.publicSlug ?? null);
         }
       }
+      const profiles = await DB.Models.PublisherProfile.find({
+        userId: { $in: userIds },
+        userType: "Developer",
+      })
+        .select("userId kycStatus")
+        .lean();
+      for (const row of profiles) {
+        kycByUserId.set(String(row.userId), row.kycStatus || "none");
+      }
     }
 
     const data = developers.map((d) => ({
       ...d,
       publicSlug: slugByUserId.get(String(d._id)) ?? null,
+      kycStatus: kycByUserId.get(String(d._id)) || "none",
     }));
 
     const total = await DB.Models.User.countDocuments(query);
@@ -155,10 +170,26 @@ export const getSingleDeveloper = async (
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Developer not found"));
     }
 
+    let kyc = null as ReturnType<typeof verificationPublicView> | null;
+    let profile = null as unknown;
+    try {
+      const loaded = await ensureDeveloperProfile(String(user._id));
+      profile = loaded.profile;
+      kyc = verificationPublicView(loaded.profile, loaded.user);
+    } catch {
+      profile = null;
+      kyc = null;
+    }
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Developer fetched successfully",
-      data: user,
+      data: {
+        ...user,
+        profile,
+        kyc,
+        kycStatus: kyc?.kycStatus || "none",
+      },
     });
   } catch (err) {
     next(err);

@@ -1,12 +1,12 @@
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 
-export const accountApproved = (name: string): string => {
+export const accountApproved = (name: string, role = "agent"): string => {
   const dashboard = getClientDashboardUrl();
   return `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <p>Dear <strong>${name}</strong>,</p>
 
-      <p>Congratulations! 🎉 Your application has been <strong style="color:green;">approved</strong> and your agent account with <strong>Khabi-Teq</strong> is now active.</p>
+      <p>Congratulations! 🎉 Your application has been <strong style="color:green;">approved</strong> and your ${role} account with <strong>Khabi-Teq</strong> is now active.</p>
 
       <p>As part of our network, you now have access to:</p>
       <ul>
@@ -18,7 +18,7 @@ export const accountApproved = (name: string): string => {
 
       <p><strong>What’s next?</strong></p>
       <ol>
-        <li><a href="${dashboard}">Log into your agent dashboard</a></li>
+        <li><a href="${dashboard}">Log into your ${role} dashboard</a></li>
         <li>Complete your profile and upload any pending documents</li>
         <li>Start exploring buyer preferences and property opportunities</li>
       </ol>
@@ -130,7 +130,7 @@ export const kycSubmissionAcknowledgement = (name: string): string => {
     <p>Thank you for submitting your KYC verification request with <strong>Khabi-Teq</strong>.</p>
     <p>We have successfully received your request and our team will process it shortly. 
     You can expect a wonderful feedback once the review has been completed.</p>
-    <p>We appreciate your patience and cooperation as we ensure compliance and the highest standards for all our agents.</p>
+    <p>We appreciate your patience and cooperation as we ensure compliance and the highest standards for all our professionals.</p>
     <p>Best regards,<br/>The Khabi-Teq Team</p>
   `;
 };

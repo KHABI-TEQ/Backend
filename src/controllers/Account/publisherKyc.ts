@@ -3,23 +3,12 @@ import { AppRequest } from "../../types/express";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
-import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
-import sendEmail from "../../common/send.email";
-import { kycSubmissionAcknowledgement } from "../../common/emailTemplates/agentMails";
-import { SystemSettingService } from "../../services/systemSetting.service";
-import { notifyAllActiveAdmins } from "../../services/adminNotification.service";
-import { kycVerificationAdminNotification } from "../../common/emailTemplates/adminMails";
 import { isPublisherKycUserType } from "../../common/kycTypes";
+import { notifyKycSubmitted } from "../../services/kycNotification.service";
 import {
   normalizePublisherKycPayload,
   submitPublisherKyc,
 } from "../../services/publisherKyc.service";
-const KYC_USER_TYPE_LABEL: Record<string, string> = {
-  Agent: "Agent",
-  Developer: "Developer",
-  Landowners: "Landlord",
-  PropertyScout: "Property Scout",
-};
 
 export const completePublisherKYC = async (
   req: AppRequest,
@@ -70,37 +59,11 @@ export const completePublisherKYC = async (
       });
     }
 
-    const roleLabel = KYC_USER_TYPE_LABEL[authUser.userType] || authUser.userType;
-
-    const emailBody = generalEmailLayout(kycSubmissionAcknowledgement(authUser?.firstName));
-    await sendEmail({
-      to: authUser?.email,
-      subject: "KYC Verification Request Received – Khabi-Teq",
-      html: emailBody,
-      text: emailBody,
-    });
-
-    const companyEmailData = await SystemSettingService.getSetting("company_email");
-    const reviewLink = `${process.env.ADMIN_CLIENT_LINK}/${authUser.userType === "Agent" ? "agents" : authUser.userType === "Developer" ? "developers" : "landlords"}/${authUser?._id}`;
-    const adminEmailBody = generalEmailLayout(
-      kycVerificationAdminNotification(authUser?.firstName, authUser?.email, reviewLink)
-    );
-    await sendEmail({
-      to: companyEmailData?.value || process.env.ADMIN_EMAIL,
-      subject: `New ${roleLabel} KYC Verification Request – Khabi-Teq`,
-      html: adminEmailBody,
-      text: adminEmailBody,
-    });
-
-    void notifyAllActiveAdmins({
-      type: "kyc_submitted",
-      title: `New ${roleLabel} KYC verification request`,
-      message: `${authUser?.firstName || roleLabel} (${authUser?.email}) submitted KYC for review.`,
-      meta: {
-        userId: String(authUser._id),
-        userType: authUser.userType,
-        reviewPath: reviewLink,
-      },
+    await notifyKycSubmitted({
+      userId: String(authUser._id),
+      userType: authUser.userType,
+      firstName: authUser?.firstName,
+      email: authUser?.email,
     });
 
     return res.status(HttpStatusCodes.OK).json({

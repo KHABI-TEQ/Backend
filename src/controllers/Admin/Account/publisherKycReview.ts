@@ -13,6 +13,7 @@ import { isPublisherKycUserType } from "../../../common/kycTypes";
 import { getPublisherKycStatus } from "../../../services/publisherKyc.service";
 import { resumeAgentPolicyPausedDealSites } from "../../../services/agentPublisherEligibility.service";
 import { completeProfessionalUpgradeIfPending } from "../../../services/professionalUpgrade.service";
+import { applyDeveloperAdminKycDecision } from "../../../services/developerVerification.service";
 
 const ROLE_LABEL: Record<string, string> = {
   Agent: "Agent",
@@ -86,6 +87,15 @@ export const reviewPublisherKyc = async (
         existingProfile?.advancedKycStatus === "in_review"
     );
 
+    if (userAcct.userType === "Developer") {
+      await applyDeveloperAdminKycDecision(
+        String(userAcct._id),
+        approved,
+        note,
+        req.admin?._id ? String(req.admin._id) : undefined,
+      );
+    }
+
     const profile = await DB.Models.PublisherProfile.findOneAndUpdate(
       { userId: userAcct._id },
       {
@@ -135,7 +145,12 @@ export const reviewPublisherKyc = async (
       ? "Welcome to Khabi-Teq – Your Partnership Opportunity Awaits!"
       : "Update on Your Khabi-Teq KYC Application";
     const emailBody = generalEmailLayout(
-      approved ? accountApproved(userAcct.firstName) : accountDisapproved(userAcct.firstName, note)
+      approved
+        ? accountApproved(
+            userAcct.firstName,
+            userAcct.userType === "Developer" ? "developer" : "agent",
+          )
+        : accountDisapproved(userAcct.firstName, note)
     );
 
     await sendEmail({

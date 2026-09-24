@@ -12,6 +12,7 @@ import {
   submitDeveloperVerification,
   verificationPublicView,
 } from "../../../services/developerVerification.service";
+import { notifyKycSubmitted } from "../../../services/kycNotification.service";
 
 function requireDeveloper(req: AppRequest) {
   if (!req.user?._id) {
@@ -125,6 +126,17 @@ export const submitDeveloperVerificationController = async (
   try {
     const userId = requireDeveloper(req);
     const data = await submitDeveloperVerification(userId);
+    const user = req.user as { firstName?: string; email?: string; userType?: string };
+    try {
+      await notifyKycSubmitted({
+        userId,
+        userType: "Developer",
+        firstName: user?.firstName,
+        email: user?.email,
+      });
+    } catch (emailErr) {
+      console.warn("[submitDeveloperVerification] KYC notification failed:", emailErr);
+    }
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Verification submitted for review where automatic checks could not complete.",

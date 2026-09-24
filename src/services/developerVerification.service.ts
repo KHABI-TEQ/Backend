@@ -435,6 +435,44 @@ export async function submitDeveloperVerification(userId: string) {
   return verificationPublicView(profile, user);
 }
 
+export async function applyDeveloperAdminKycDecision(
+  userId: string,
+  approved: boolean,
+  note?: string,
+  adminId?: string,
+) {
+  const { user, profile } = await ensureDeveloperProfile(userId);
+  const mark: DeveloperDimensionStatus = approved ? "verified" : "requires_attention";
+  const stamp = {
+    status: mark,
+    note: note?.trim(),
+    reviewedAt: new Date(),
+    reviewedBy: adminId ? new Types.ObjectId(adminId) : undefined,
+  };
+  const next: {
+    company?: VerificationSlot;
+    representative?: VerificationSlot;
+    address?: VerificationSlot;
+  } = {};
+  const current = asPlainVerification(profile.verification);
+  next.representative = dropUndefined({ ...(current.representative || {}), ...stamp });
+  next.address = dropUndefined({ ...(current.address || {}), ...stamp });
+  if (profile.practitionerType === "Company" || current.company) {
+    next.company = dropUndefined({ ...(current.company || {}), ...stamp });
+  }
+  setDeveloperVerification(profile, next);
+  profile.kycStatus = approved ? "approved" : "rejected";
+  if (approved) {
+    profile.kycApprovedAt = new Date();
+    user.accountApproved = true;
+    user.accountStatus = "active";
+    user.isDeleted = false;
+    await user.save();
+  }
+  await profile.save();
+  return { user, profile, view: verificationPublicView(profile, user) };
+}
+
 export async function adminReviewDimension(
   userId: string,
   dimension: "company" | "representative" | "address",
@@ -443,6 +481,7 @@ export async function adminReviewDimension(
   adminId?: string
 ) {
   const { user, profile } = await ensureDeveloperProfile(userId);
+  const wasApproved = profile.kycStatus === "approved";
   const v = asPlainVerification(profile.verification);
   const slot = v[dimension] || {};
   const approved = response === "approve";
@@ -456,16 +495,25 @@ export async function adminReviewDimension(
   });
   profile.verification = v;
   profile.markModified("verification");
+  let becameApproved = false;
   if (isDeveloperFullyVerified(profile)) {
     profile.kycStatus = "approved";
+    profile.kycApprovedAt = new Date();
     user.accountApproved = true;
     user.accountStatus = "active";
     await user.save();
+    becameApproved = !wasApproved;
   } else if (!approved) {
     profile.kycStatus = "rejected";
   }
   await profile.save();
-  return verificationPublicView(profile, user);
+  return {
+    view: verificationPublicView(profile, user),
+    becameApproved,
+    rejected: !approved,
+    user,
+    note,
+  };
 }
 
 export function isDimensionStatus(value: string): value is DeveloperDimensionStatus {
