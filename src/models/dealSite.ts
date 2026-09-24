@@ -395,8 +395,14 @@ export class DealSite {
           subTitle: { type: String, default: "" },
           miniTitle: { type: String, default: "" },
           cta: {
-            text: { type: String, default: "" },
-            color: { type: String, default: "" },
+            type: new Schema(
+              {
+                text: { type: String, default: "" },
+                color: { type: String, default: "" },
+              },
+              { _id: false },
+            ),
+            default: () => ({ text: "", color: "" }),
           },
           enableEmailSubscription: { type: Boolean, default: true },
           subscriptionPlaceholder: { type: String, default: "Enter your email" },

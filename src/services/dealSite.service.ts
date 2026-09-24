@@ -31,6 +31,36 @@ async function shouldStartDealSiteRunning(userId: string): Promise<boolean> {
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
 
+function asPlainObject(value: unknown): Record<string, any> {
+  if (!value || typeof value !== "object") return {};
+  if (typeof (value as { toObject?: () => Record<string, any> }).toObject === "function") {
+    return (value as { toObject: () => Record<string, any> }).toObject();
+  }
+  return { ...(value as Record<string, any>) };
+}
+
+function omitUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => omitUndefinedDeep(item)) as T;
+  }
+  if (value && typeof value === "object" && !(value instanceof Date) && !Buffer.isBuffer(value)) {
+    const out: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+      if (nested === undefined) continue;
+      out[key] = omitUndefinedDeep(nested);
+    }
+    return out as T;
+  }
+  return value;
+}
+
+function mergeDealSiteSection(existing: unknown, updates: Record<string, any>) {
+  return omitUndefinedDeep({
+    ...asPlainObject(existing),
+    ...asPlainObject(updates),
+  });
+}
+
 function ownerCreatedByQuery(userId: string | Types.ObjectId) {
   const ids: Array<string | Types.ObjectId> = [userId, String(userId)];
   if (Types.ObjectId.isValid(String(userId))) {
@@ -345,20 +375,21 @@ export class DealSiteService {
         (dealSite as any)[key] = updates[key];
       }
     } else if (sectionName === "paymentDetails") {
-      const mergedPaymentDetails = {
-        ...(dealSite as any).paymentDetails,
-        ...updates,
-      };
+      const mergedPaymentDetails = mergeDealSiteSection((dealSite as any).paymentDetails, updates);
       (dealSite as any).paymentDetails =
         await DealSiteService.buildSubAccountPaymentDetails(mergedPaymentDetails);
     } else if (sectionName === "customPages" && Array.isArray(updates)) {
       (dealSite as any).customPages = updates;
     } else {
-      // ✅ For nested/grouped sections, merge the updates
-      (dealSite as any)[sectionName] = {
-        ...(dealSite as any)[sectionName],
-        ...updates,
-      };
+      const merged = mergeDealSiteSection((dealSite as any)[sectionName], updates);
+      if (sectionName === "subscribeSettings") {
+        const cta = asPlainObject(merged.cta);
+        merged.cta = {
+          text: String(cta.text ?? ""),
+          color: String(cta.color ?? ""),
+        };
+      }
+      (dealSite as any)[sectionName] = merged;
     }
 
     await dealSite.save();
