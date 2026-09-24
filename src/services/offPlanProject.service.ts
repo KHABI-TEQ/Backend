@@ -208,7 +208,16 @@ export async function publishApprovedProject(projectId: string) {
   if (project.status !== "approved" && project.status !== "live") {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Only approved projects can go live.");
   }
-  const propertyId = await upsertMarketplaceProjection(project);
+  const propertyId = await upsertMarketplaceProjection({
+    _id: project._id as Types.ObjectId,
+    developerId: project.developerId as Types.ObjectId,
+    name: String(project.name),
+    location: project.location,
+    developmentStage: project.developmentStage,
+    expectedCompletionDate: project.expectedCompletionDate,
+    priceMin: project.priceMin,
+    marketplacePropertyId: project.marketplacePropertyId as Types.ObjectId | undefined,
+  });
   project.marketplacePropertyId = propertyId as Types.ObjectId;
   project.status = "live";
   project.liveAt = new Date();

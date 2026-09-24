@@ -477,9 +477,9 @@ export function stripPreferenceClientIdentity(formatted: { [key: string]: any })
   for (const key of lifestyleKeys) {
     if (contact[key] !== undefined) kept[key] = contact[key];
   }
+  const { buyer: _buyer, ...rest } = formatted;
   return {
-    ...formatted,
-    buyer: undefined,
+    ...rest,
     contactInfo: Object.keys(kept).length ? kept : {},
   };
 }
