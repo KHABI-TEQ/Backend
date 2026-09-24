@@ -7,6 +7,9 @@ import { getPropertyTitleFromLocation } from "../../../utils/helper";
 
 const RECEIPT_STATUSES = ["pending", "verified", "rejected"] as const;
 const PUBLISHER_TYPES = ["Landowners", "Developer"] as const;
+const REGISTERED_SALE_FILTER = {
+  saleRegisteredAt: { $exists: true, $ne: null as Date | null },
+};
 
 type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
 
@@ -148,9 +151,7 @@ export const listRequestToMarketSales = async (
     const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
     const skip = (pageNum - 1) * limitNum;
 
-    const filter: Record<string, unknown> = {
-      saleRegisteredAt: { $exists: true, $ne: null },
-    };
+    const filter: Record<string, unknown> = { ...REGISTERED_SALE_FILTER };
 
     if (publisherType && PUBLISHER_TYPES.includes(publisherType as (typeof PUBLISHER_TYPES)[number])) {
       filter.publisherType = publisherType;
@@ -225,7 +226,7 @@ export const getRequestToMarketSaleStats = async (
   next: NextFunction
 ) => {
   try {
-    const registeredFilter = { saleRegisteredAt: { $exists: true, $ne: null } };
+    const registeredFilter = REGISTERED_SALE_FILTER;
     const [total, pending, verified, rejected, withReceipt] = await Promise.all([
       DB.Models.RequestToMarket.countDocuments(registeredFilter),
       DB.Models.RequestToMarket.countDocuments({
