@@ -22,6 +22,7 @@ import {
   getDeveloperPlanSnapshot,
 } from "../../services/developerPlanEntitlement.service";
 import { resolveListingCommissionPercent } from "../../common/constants/listingCommission";
+import { notifyAllActiveAdmins } from "../../services/adminNotification.service";
 
 /**
  * POST /account/request-to-market
@@ -515,13 +516,18 @@ export const registerSaleForRequestToMarket = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Computed agent commission is zero; ensure actualSalePriceNaira and commissionPercent are valid.");
     }
 
+    const receiptUrl =
+      commissionReceiptUrl && typeof commissionReceiptUrl === "string"
+        ? commissionReceiptUrl.trim()
+        : "";
     const updatePayload: Record<string, unknown> = {
       actualSalePriceNaira: actualPrice,
       commissionPercent,
       saleRegisteredAt: new Date(),
+      receiptVerificationStatus: "pending",
     };
-    if (commissionReceiptUrl && typeof commissionReceiptUrl === "string" && commissionReceiptUrl.trim()) {
-      updatePayload.commissionReceiptUrl = commissionReceiptUrl.trim();
+    if (receiptUrl) {
+      updatePayload.commissionReceiptUrl = receiptUrl;
     }
 
     await DB.Models.RequestToMarket.updateOne(
@@ -559,6 +565,18 @@ export const registerSaleForRequestToMarket = async (
         console.warn("[requestToMarket] notifyAgentSaleRegistered email failed:", e);
       }
     }
+
+    void notifyAllActiveAdmins({
+      type: "general",
+      title: "Agent sale registered",
+      message: `${(request as any).publisherType || "Publisher"} registered a sale for ${propertySummary}${
+        receiptUrl ? " and uploaded a commission receipt." : "."
+      } Review the submission for admin verification.`,
+      meta: {
+        requestToMarketId: String(requestId),
+        reviewPath: `/request-to-market-sales/${requestId}`,
+      },
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,

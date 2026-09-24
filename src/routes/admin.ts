@@ -108,6 +108,12 @@ import {
   getTransactionRegistrationById,
 } from "../controllers/Admin/TransactionRegistration/adminTransactionRegistration";
 import {
+  listRequestToMarketSales,
+  getRequestToMarketSaleStats,
+  getRequestToMarketSaleById,
+  verifyRequestToMarketSaleReceipt,
+} from "../controllers/Admin/RequestToMarket/adminRequestToMarketSales";
+import {
   verifyTransactionRegistration,
   forwardTransactionRegistrationToLasrera,
   lasreraReviewTransactionRegistration,
@@ -401,6 +407,28 @@ AdminRouter.get("/transactions/stats", getTransactionStats);
 AdminRouter.get("/transactions/:transactionId", getTransactionById);
 AdminRouter.delete("/transactions/:transactionId", deleteTransactionDetails);
 AdminRouter.post("/transactions/:transactionId/manaualVerification", validateTransaction);
+
+// Request-to-market sale registrations (Developer/Landowner + Agent receipt)
+AdminRouter.get(
+  "/request-to-market-sales/stats",
+  requirePermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getRequestToMarketSaleStats
+);
+AdminRouter.get(
+  "/request-to-market-sales",
+  requirePermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  listRequestToMarketSales
+);
+AdminRouter.patch(
+  "/request-to-market-sales/:requestId/verify",
+  requirePermission(PERMISSIONS.TRANSACTIONS_EDIT),
+  verifyRequestToMarketSaleReceipt
+);
+AdminRouter.get(
+  "/request-to-market-sales/:requestId",
+  requirePermission(PERMISSIONS.TRANSACTIONS_VIEW),
+  getRequestToMarketSaleById
+);
 
 // TRANSACTION REGISTRATION (LASRERA) MANAGEMENT ROUTES
 AdminRouter.get(

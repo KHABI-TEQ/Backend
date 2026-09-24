@@ -27,6 +27,11 @@ export interface IRequestToMarket {
   saleRegisteredAt?: Date;
   /** Optional URL to receipt/proof of payment to Agent (uploaded by Publisher when registering sale). Used for admin verification. */
   commissionReceiptUrl?: string;
+  /** Admin review of the uploaded commission receipt. */
+  receiptVerificationStatus?: "pending" | "verified" | "rejected";
+  receiptVerifiedAt?: Date;
+  receiptVerifiedBy?: Types.ObjectId;
+  receiptVerificationNote?: string;
 }
 
 export interface IRequestToMarketDoc extends IRequestToMarket, Document {
@@ -58,6 +63,13 @@ const schema = new Schema<IRequestToMarketDoc>(
     commissionPercent: { type: Number },
     saleRegisteredAt: { type: Date },
     commissionReceiptUrl: { type: String },
+    receiptVerificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+    },
+    receiptVerifiedAt: { type: Date },
+    receiptVerifiedBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+    receiptVerificationNote: { type: String },
   },
   { timestamps: true }
 );
@@ -65,6 +77,8 @@ const schema = new Schema<IRequestToMarketDoc>(
 schema.index({ propertyId: 1, requestedByAgentId: 1 }, { unique: true });
 schema.index({ publisherId: 1, status: 1 });
 schema.index({ requestedByAgentId: 1, status: 1 });
+schema.index({ saleRegisteredAt: -1 });
+schema.index({ receiptVerificationStatus: 1, saleRegisteredAt: -1 });
 
 export class RequestToMarketModel {
   private _model: IRequestToMarketModel;
