@@ -101,7 +101,7 @@ export const preferenceMail = (mailData: any): string => {
     : `<li style="margin-bottom: 0;">Details captured from your submission.</li>`;
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: white; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: white; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
 
       <p style="font-size: 16px;">Thank you for sharing your property preference with <strong>Khabiteq</strong>.</p>
@@ -172,7 +172,7 @@ export const matchedPropertiesMail = (mailData: {
   const remaining = remainingCount ?? Math.max(0, total - shown);
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
@@ -268,7 +268,7 @@ export const rejectedPreferenceMail = (mailData: {
   } = preferenceSummary;
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
@@ -341,7 +341,7 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
   const firstName = String(mailData.buyerName || "").trim().split(/\s+/)[0] || "there";
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
 
       <p style="font-size: 16px;">Thank you for your patience while we reviewed your property preference.</p>
@@ -376,7 +376,7 @@ export const stillSearchingPreferenceMail = (mailData: {
     : "";
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${buyerName}</strong>,</p>
 
       <p style="font-size: 16px;">
@@ -426,7 +426,7 @@ export const listingMatchedPreferenceMail = (mailData: {
     .join("");
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${practitionerName}</strong>,</p>
 
       <p style="font-size: 16px;">
@@ -484,7 +484,7 @@ export const preferenceMarketReviewMail = (mailData: {
       : "Realistic for this market";
 
   return `
-    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="font-family: Arial, sans-serif; background-color: #ffffff; color: #333; line-height: 1.6; max-width: 100%; padding: 0;">
       <p style="font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
 
       <p style="font-size: 16px;">

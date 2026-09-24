@@ -11,7 +11,7 @@ import {
 } from "../../../common/emailTemplates/agentMails";
 import { isPublisherKycUserType } from "../../../common/kycTypes";
 import { getPublisherKycStatus } from "../../../services/publisherKyc.service";
-import { resumeAgentPolicyPausedDealSites } from "../../../services/agentPublisherEligibility.service";
+import { syncPractitionerPageEligibility } from "../../../services/agentPublisherEligibility.service";
 import { completeProfessionalUpgradeIfPending } from "../../../services/professionalUpgrade.service";
 import { applyDeveloperAdminKycDecision } from "../../../services/developerVerification.service";
 
@@ -134,11 +134,9 @@ export const reviewPublisherKyc = async (
       if (refreshed) {
         userAcct.userType = refreshed.userType;
       }
-
-      if (userAcct.userType === "Agent") {
-        await resumeAgentPolicyPausedDealSites(String(userAcct._id));
-      }
     }
+
+    await syncPractitionerPageEligibility(String(userAcct._id));
 
     const roleLabel = ROLE_LABEL[userAcct.userType] || userAcct.userType;
     const subject = approved

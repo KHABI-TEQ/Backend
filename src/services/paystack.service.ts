@@ -23,7 +23,7 @@ import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from './whatsappClient.service';
 import { notifyAllActiveAdmins } from './adminNotification.service';
 import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from './buyerConfirmationDevScheduler.service';
-import { resumeAgentPolicyPausedDealSites } from './agentPublisherEligibility.service';
+import { syncPractitionerPageEligibility } from './agentPublisherEligibility.service';
 import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.service';
 import { sendTransactionVoiceNote } from './voiceNote.service';
 import { shortletHostPayoutEligibleAt } from '../utils/shortletPricing';
@@ -1289,9 +1289,7 @@ export class PaystackService {
           text: successMailBody,
         });
 
-        if (user.userType === "Agent") {
-          await resumeAgentPolicyPausedDealSites(String(user._id));
-        }
+        await syncPractitionerPageEligibility(String(user._id));
 
       } else { 
         const failureMailBody = generalEmailLayout(

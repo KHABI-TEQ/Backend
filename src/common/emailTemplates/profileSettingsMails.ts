@@ -12,7 +12,7 @@ export const generateAccountDeletionRequestEmail = ({
   revertDeletionLink,
 }: GenerateAccountDeletionRequestEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>This email confirms that we have received your request to delete your account, submitted on <strong>${deletionRequestDate}</strong>.</p>
@@ -49,7 +49,7 @@ export const generateAccountDeletedEmail = ({
   deletionDate,
 }: GenerateAccountDeletedEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>This is to confirm that your account has been successfully and permanently deleted as per your request on <strong>${deletionDate}</strong>.</p>
@@ -84,7 +84,7 @@ export const generateAccountUpdatedEmail = ({
     : '<p>Some details of your account have been updated.</p>';
 
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>This is to confirm that your account information has been successfully updated.</p>

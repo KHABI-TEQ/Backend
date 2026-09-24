@@ -7,6 +7,8 @@ export interface IValuerProfile {
   profilePhoto?: string;
   bio?: string;
   licenseNumber?: string;
+  certificateKind?: "cac" | "lasrera";
+  certificateNumber?: string;
   kycDocuments?: { name: string; url: string }[];
   kycStatus: ProfessionalKycStatus;
   kycNote?: string;
@@ -36,6 +38,8 @@ export class ValuerProfile {
         profilePhoto: { type: String, trim: true },
         bio: { type: String, trim: true },
         licenseNumber: { type: String, trim: true },
+        certificateKind: { type: String, enum: ["cac", "lasrera"] },
+        certificateNumber: { type: String, trim: true },
         kycDocuments: [
           {
             name: { type: String, required: true },

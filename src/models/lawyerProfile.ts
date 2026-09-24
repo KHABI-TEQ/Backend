@@ -15,6 +15,8 @@ export interface ILawyerProfile {
   practiceAreas?: string[];
   verificationFee: number;
   licenseNumber?: string;
+  certificateKind?: "cac" | "lasrera";
+  certificateNumber?: string;
   kycDocuments?: { name: string; url: string }[];
   kycStatus: ProfessionalKycStatus;
   kycNote?: string;
@@ -54,6 +56,8 @@ export class LawyerProfile {
         practiceAreas: { type: [String], default: [] },
         verificationFee: { type: Number, default: 0, min: 0 },
         licenseNumber: { type: String, trim: true },
+        certificateKind: { type: String, enum: ["cac", "lasrera"] },
+        certificateNumber: { type: String, trim: true },
         kycDocuments: [
           {
             name: { type: String, required: true },

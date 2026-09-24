@@ -31,6 +31,10 @@ export type PublicPractitionerProfile = {
     verificationReference: string | null;
     lastVerifiedAt: string | null;
     professionalRegistration: string | null;
+    /** Public preview URL — only when KYC is approved and a CAC file exists. */
+    cacCertificateUrl: string | null;
+    /** Public preview URL — only when KYC is approved and a LASRERA file exists. */
+    lasreraCertificateUrl: string | null;
   };
   trust: {
     activeListings: number;
@@ -106,6 +110,53 @@ function yearsSince(date?: Date | string | null): number {
   return Math.max(0, Math.floor((Date.now() - start) / (365.25 * 24 * 60 * 60 * 1000)));
 }
 
+function firstPublicUrl(values?: unknown): string | null {
+  if (!values) return null;
+  const list = Array.isArray(values) ? values : [values];
+  for (const item of list) {
+    if (typeof item === "string" && /^https?:\/\//i.test(item.trim())) {
+      return item.trim();
+    }
+    if (item && typeof item === "object") {
+      const raw =
+        (item as { url?: unknown; fileUrl?: unknown; src?: unknown }).url ||
+        (item as { fileUrl?: unknown }).fileUrl ||
+        (item as { src?: unknown }).src;
+      if (typeof raw === "string" && /^https?:\/\//i.test(raw.trim())) {
+        return raw.trim();
+      }
+      const nested = firstPublicUrl((item as { docImg?: unknown }).docImg);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
+function docsMatchingKind(
+  docs: Array<{ name?: string; url?: string }> | undefined,
+  kind: "cac" | "lasrera"
+): Array<{ name?: string; url?: string }> {
+  const list = Array.isArray(docs) ? docs : [];
+  return list.filter((d) => {
+    const name = String(d?.name || "").toLowerCase();
+    return kind === "cac"
+      ? name.includes("cac")
+      : name.includes("lasrera") || name.includes("lasrear");
+  });
+}
+
+function certificateUrlFromProfessional(profile: {
+  certificateKind?: string;
+  kycDocuments?: Array<{ name?: string; url?: string }>;
+} | null | undefined, kind: "cac" | "lasrera"): string | null {
+  if (!profile) return null;
+  const docs = profile.kycDocuments || [];
+  const named = docsMatchingKind(docs, kind);
+  if (named.length) return firstPublicUrl(named);
+  if (profile.certificateKind === kind) return firstPublicUrl(docs);
+  return null;
+}
+
 const ACTIVE_LISTING_FILTER = {
   isApproved: true,
   isDeleted: { $ne: true },
@@ -140,26 +191,34 @@ export async function buildPublicPractitionerProfile(params: {
 
   const [publisher, agent, lawyer, surveyor, valuer] = await Promise.all([
     DB.Models.PublisherProfile.findOne({ userId: ownerId })
-      .select("kycStatus kycApprovedAt kycData regionOfOperation companyDetails practitionerType")
+      .select(
+        "kycStatus kycApprovedAt kycData regionOfOperation companyDetails practitionerType verification meansOfId"
+      )
       .lean(),
     kind === "lawyer" || kind === "surveyor" || kind === "valuer"
       ? null
       : DB.Models.Agent.findOne({ userId: ownerId })
-          .select("kycStatus kycData updatedAt")
+          .select("kycStatus kycData updatedAt meansOfId")
           .lean(),
     kind === "lawyer"
       ? DB.Models.LawyerProfile.findOne({ userId: ownerId })
-          .select("firmName profilePhoto bio practiceAreas licenseNumber kycStatus updatedAt")
+          .select(
+            "firmName profilePhoto bio practiceAreas licenseNumber certificateKind kycDocuments kycStatus updatedAt"
+          )
           .lean()
       : null,
     kind === "surveyor"
       ? DB.Models.SurveyorProfile.findOne({ userId: ownerId })
-          .select("firmName profilePhoto bio serviceTypes licenseNumber kycStatus updatedAt")
+          .select(
+            "firmName profilePhoto bio serviceTypes licenseNumber certificateKind kycDocuments kycStatus updatedAt"
+          )
           .lean()
       : null,
     kind === "valuer"
       ? DB.Models.ValuerProfile.findOne({ userId: ownerId })
-          .select("firmName profilePhoto bio licenseNumber kycStatus updatedAt")
+          .select(
+            "firmName profilePhoto bio licenseNumber certificateKind kycDocuments kycStatus updatedAt"
+          )
           .lean()
       : null,
   ]);
@@ -187,14 +246,37 @@ export async function buildPublicPractitionerProfile(params: {
       ).trim() || null
     : null;
 
+  const companyVerification = (publisher as any)?.verification?.company || {};
+  const companyDetails = (publisher as any)?.companyDetails || {};
+  const identityDocs = [
+    ...(((publisher as any)?.meansOfId as unknown[]) || []),
+    ...(((agent as any)?.meansOfId as unknown[]) || []),
+  ];
+  const professional =
+    kind === "lawyer" ? lawyer : kind === "surveyor" ? surveyor : kind === "valuer" ? valuer : null;
+
+  const cacCertificateUrl = khabiteqVerified
+    ? firstPublicUrl(companyVerification.cacCertificateUrls) ||
+      certificateUrlFromProfessional(professional, "cac") ||
+      firstPublicUrl(docsMatchingKind(identityDocs as Array<{ name?: string }>, "cac"))
+    : null;
+
+  const lasreraCertificateUrl = khabiteqVerified
+    ? firstPublicUrl(companyVerification.lasreraCertificateUrls) ||
+      certificateUrlFromProfessional(professional, "lasrera") ||
+      firstPublicUrl(docsMatchingKind(identityDocs as Array<{ name?: string }>, "lasrera"))
+    : null;
+
+  const lasreraNumber = String(
+    companyVerification.lasreraNumber || companyDetails.lasreraNumber || ""
+  ).trim();
+  const lasreraApplies = kind === "agent" || kind === "developer" || kind === "scout";
   const lasreraStatus: PublicPractitionerProfile["verification"]["lasreraStatus"] =
-    kind === "agent" || kind === "developer" || kind === "scout"
-      ? licenseNumber
-        ? "verified"
-        : kycApproved
-          ? "not_verified"
-          : "not_verified"
-      : "not_applicable";
+    khabiteqVerified && (lasreraCertificateUrl || lasreraNumber || (lasreraApplies && licenseNumber))
+      ? "verified"
+      : lasreraApplies
+        ? "not_verified"
+        : "not_applicable";
 
   const lastVerifiedAt =
     publisher?.kycApprovedAt ||
@@ -305,6 +387,8 @@ export async function buildPublicPractitionerProfile(params: {
             ? "Approved"
             : "Not verified"
           : null,
+      cacCertificateUrl,
+      lasreraCertificateUrl,
     },
     trust: {
       activeListings,

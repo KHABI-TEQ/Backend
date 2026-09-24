@@ -4,29 +4,16 @@ import { RouteError } from "../common/classes";
 import { IDealSite, IDealSiteDoc } from "../models";
 import { Types } from "mongoose";
 import { PaystackService } from "./paystack.service";
-import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import { resolveLeanRefToObjectId } from "../utils/mongooseId";
 import {
   assertDealSiteKycAllowed,
   getPublicDealSiteKycGate,
 } from "./dealSiteKycEligibility.service";
 import { getAgentAccessGate } from "./agentPublisherEligibility.service";
-import { isPublisherKycApproved } from "./publisherKyc.service";
 
 async function shouldStartDealSiteRunning(userId: string): Promise<boolean> {
-  const owner = await DB.Models.User.findById(userId).select("userType").lean();
-  if (!owner) return false;
-  if (owner.userType === "Agent") {
-    const gate = await getAgentAccessGate(userId);
-    return gate.ok === true;
-  }
-  if (owner.userType === "Developer") {
-    const kycOk = await isPublisherKycApproved(userId);
-    const snap = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(userId);
-    const paid = Boolean(snap && String(snap.status || "").toLowerCase() === "active");
-    return kycOk && paid;
-  }
-  return false;
+  const gate = await getAgentAccessGate(userId);
+  return gate.ok === true;
 }
 
 const confidentialFields = "-paymentDetails -createdBy -__v";
@@ -622,7 +609,7 @@ export class DealSiteService {
     return { ok: true } as const;
   }
 
-  /** Public visitor gate: Agent owners must satisfy KYC and paid-subscription rules. */
+  /** Public visitor gate: practitioner-page owners must satisfy KYC and subscription rules. */
   static async getPublicDealSiteKycGate(ownerUserId: string) {
     return getPublicDealSiteKycGate(ownerUserId);
   }

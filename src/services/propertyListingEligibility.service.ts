@@ -7,7 +7,6 @@ import {
   getAgentAccessGate,
   SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE,
 } from "./agentPublisherEligibility.service";
-import { getActivePaidAgentSubscriptionSnapshot } from "./agentSubscriptionIncentive.service";
 import { assertPublisherListingCapacity } from "./publisherListingEligibility.service";
 import { isPublisherUserType } from "../common/constants/publisherListingLimits";
 
@@ -38,8 +37,8 @@ export async function assertPropertyListingAllowedForOwner(params: {
         throw new RouteError(HttpStatusCodes.FORBIDDEN, gate.message);
       }
     } else {
-      const paid = await getActivePaidAgentSubscriptionSnapshot(ownerIdStr);
-      if (!paid) {
+      const active = await UserSubscriptionSnapshotService.getActiveSnapshot(ownerIdStr);
+      if (!active) {
         throw new RouteError(HttpStatusCodes.FORBIDDEN, SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE);
       }
     }

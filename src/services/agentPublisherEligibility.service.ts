@@ -1,6 +1,15 @@
+import { Types } from "mongoose";
 import { DB } from "../controllers";
-import { isPublisherKycApproved } from "./publisherKyc.service";
-import { getActivePaidAgentSubscriptionSnapshot } from "./agentSubscriptionIncentive.service";
+import { isPractitionerKycApproved } from "./publisherKyc.service";
+import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
+
+function ownerCreatedByFilter(userId: string) {
+  const ids: Array<string | Types.ObjectId> = [userId];
+  if (Types.ObjectId.isValid(userId)) {
+    ids.push(new Types.ObjectId(userId));
+  }
+  return { createdBy: { $in: ids } };
+}
 
 export const SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE =
   "Subscribe to an active plan to list properties. Listing is only available with a paid subscription.";
@@ -49,9 +58,9 @@ export async function isAgentTrialPeriodActive(_userId: string): Promise<boolean
   return false;
 }
 
-/** Agents must have approved KYC. No signup grace period. */
+/** Practitioners must have approved KYC. No signup grace period. */
 export async function isAgentKycRequirementSatisfied(userId: string): Promise<boolean> {
-  return isPublisherKycApproved(userId);
+  return isPractitionerKycApproved(userId);
 }
 
 export async function countAgentOwnedProperties(userId: string): Promise<number> {
@@ -70,13 +79,13 @@ export type AgentAccessGate =
   | { readonly ok: true }
   | { readonly ok: false; readonly message: string; readonly reason: "kyc" | "subscription" };
 
-/** KYC + paid subscription gate for Agent listing and DealSite owner actions. */
+/** KYC + active subscription gate for practitioner listing and public-page actions. */
 export async function getAgentAccessGate(userId: string): Promise<AgentAccessGate> {
   if (!(await isAgentKycRequirementSatisfied(userId))) {
     return { ok: false as const, message: AGENT_KYC_REQUIRED_MESSAGE, reason: "kyc" as const };
   }
 
-  const active = await getActivePaidAgentSubscriptionSnapshot(userId);
+  const active = await UserSubscriptionSnapshotService.getActiveSnapshot(userId);
   if (!active) {
     return {
       ok: false as const,
@@ -93,7 +102,7 @@ export async function isAgentKycGraceListingLimitReached(_userId: string): Promi
   return false;
 }
 
-/** Auto-resume Agent DealSites that were paused by policy when the owner is eligible again. */
+/** Auto-resume practitioner pages paused by policy only when KYC is approved and a subscription is active. */
 export async function resumeAgentPolicyPausedDealSites(userId: string): Promise<number> {
   const gate = await getAgentAccessGate(userId);
   if (gate.ok === false) {
@@ -102,7 +111,7 @@ export async function resumeAgentPolicyPausedDealSites(userId: string): Promise<
 
   const updateResult = await DB.Models.DealSite.updateMany(
     {
-      createdBy: userId,
+      ...ownerCreatedByFilter(userId),
       status: "paused",
       $or: [
         { pausedByPolicy: { $in: ["kyc", "subscription", "setup"] } },
@@ -114,4 +123,27 @@ export async function resumeAgentPolicyPausedDealSites(userId: string): Promise<
   );
 
   return updateResult.modifiedCount;
+}
+
+export async function pausePractitionerPagesForPolicy(
+  userId: string,
+  reason: "kyc" | "subscription"
+): Promise<number> {
+  const updateResult = await DB.Models.DealSite.updateMany(
+    { ...ownerCreatedByFilter(userId), status: "running" },
+    { $set: { status: "paused", pausedByPolicy: reason } }
+  );
+  return updateResult.modifiedCount;
+}
+
+/** Sync page status: pause without KYC or subscription; resume only with both. */
+export async function syncPractitionerPageEligibility(userId: string): Promise<{
+  resumed: number;
+  paused: number;
+}> {
+  const gate = await getAgentAccessGate(userId);
+  if (gate.ok === true) {
+    return { resumed: await resumeAgentPolicyPausedDealSites(userId), paused: 0 };
+  }
+  return { resumed: 0, paused: await pausePractitionerPagesForPolicy(userId, gate.reason) };
 }

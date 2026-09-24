@@ -72,14 +72,11 @@ export async function getPublisherListingSnapshot(
   if (!isPublisherUserType(userType)) return null;
 
   const ownedProperties = await countPublisherOwnedProperties(userId);
-  const { getActivePaidAgentSubscriptionSnapshot } = await import(
-    "./agentSubscriptionIncentive.service"
-  );
-  const [listingLimit, paidSubscription] = await Promise.all([
+  const [listingLimit, activeSnapshots] = await Promise.all([
     resolvePublisherListingLimit(userId),
-    getActivePaidAgentSubscriptionSnapshot(userId),
+    UserSubscriptionSnapshotService.getActiveSnapshots(userId),
   ]);
-  const hasPaidSubscription = !!paidSubscription;
+  const hasPaidSubscription = activeSnapshots.length > 0;
   const listingsRemaining = Math.max(0, listingLimit - ownedProperties);
   const atCap = hasPaidSubscription && ownedProperties >= listingLimit;
 

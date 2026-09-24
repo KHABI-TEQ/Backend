@@ -125,6 +125,14 @@ export function verificationPublicView(profile: any, user: any) {
           rawStatus: v.company?.status || "none",
           legalName: v.company?.legalName || profile.companyDetails?.companyName,
           cacNumber: v.company?.cacNumber || profile.companyDetails?.cacNumber,
+          certificateKind: v.company?.certificateKind || profile.companyDetails?.certificateKind || "cac",
+          lasreraNumber: v.company?.lasreraNumber || profile.companyDetails?.lasreraNumber,
+          cacCertificateUrls: Array.isArray(v.company?.cacCertificateUrls)
+            ? v.company.cacCertificateUrls
+            : [],
+          lasreraCertificateUrls: Array.isArray(v.company?.lasreraCertificateUrls)
+            ? v.company.lasreraCertificateUrls
+            : [],
           companyType: v.company?.companyType,
           note: v.company?.note,
           retrieved: v.company?.youverify
@@ -246,7 +254,10 @@ export async function saveCompanyVerification(
   userId: string,
   body: {
     legalName?: string;
-    cacNumber: string;
+    cacNumber?: string;
+    certificateKind?: "cac" | "lasrera";
+    lasreraNumber?: string;
+    lasreraCertificateUrls?: string[];
     companyType?: "business_name" | "limited_liability" | "other";
     cacCertificateUrls?: string[];
     registeredAddress?: { homeNo?: string; street?: string; localGovtArea?: string; state?: string };
@@ -254,10 +265,25 @@ export async function saveCompanyVerification(
   }
 ) {
   const { user, profile } = await ensureDeveloperProfile(userId);
-  const cacNumber = normalizeCacNumber(body.cacNumber);
-  let lookup = profile.verification?.company?.youverify
-    ? null
-    : await lookupNigerianCompany(cacNumber);
+  const certificateKind = body.certificateKind === "lasrera" ? "lasrera" : "cac";
+  const cacNumber = normalizeCacNumber(body.cacNumber || "");
+  const lasreraNumber = String(body.lasreraNumber || "").trim();
+  if (certificateKind === "cac" && !cacNumber) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "CAC registration number is required.");
+  }
+  if (certificateKind === "lasrera" && !lasreraNumber) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "LASRERA certificate number is required.");
+  }
+  if (certificateKind === "cac" && !(body.cacCertificateUrls || []).length) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Upload the CAC certificate for admin review.");
+  }
+  if (certificateKind === "lasrera" && !(body.lasreraCertificateUrls || []).length) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Upload the LASRERA certificate for admin review.");
+  }
+  let lookup =
+    certificateKind === "cac" && !profile.verification?.company?.youverify
+      ? await lookupNigerianCompany(cacNumber)
+      : null;
 
   const nextStatus = lookup
     ? dimensionFromYouverify(lookup)
@@ -269,11 +295,16 @@ export async function saveCompanyVerification(
   profile.companyDetails = {
     companyName: body.legalName || lookup?.legalName || profile.companyDetails?.companyName,
     cacNumber,
+    certificateKind,
+    lasreraNumber,
   };
   setDeveloperVerification(profile, {
     company: {
       legalName: body.legalName || lookup?.legalName,
       cacNumber,
+      certificateKind,
+      lasreraNumber,
+      lasreraCertificateUrls: body.lasreraCertificateUrls || [],
       companyType: body.companyType,
       cacCertificateUrls: body.cacCertificateUrls || [],
       registeredAddress: body.registeredAddress || lookup?.registeredAddress,

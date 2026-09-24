@@ -14,6 +14,12 @@ import {
   listPendingLawyers,
   listPendingSurveyors,
   listPendingValuers,
+  listAllLawyers,
+  listAllSurveyors,
+  listAllValuers,
+  deleteLawyerAccount,
+  deleteSurveyorAccount,
+  deleteValuerAccount,
   getLawyerKyc,
   getSurveyorKyc,
   getValuerKyc,
@@ -245,14 +251,20 @@ AdminRouter.post("/agents/:userId/reviewKycRequest", reviewPublisherKyc);
 AdminRouter.post("/users/:userId/reviewKycRequest", reviewPublisherKyc);
 
 AdminRouter.get("/lawyers/pending-kyc", listPendingLawyers);
+AdminRouter.get("/lawyers", listAllLawyers);
 AdminRouter.get("/lawyers/:userId/kyc", getLawyerKyc);
 AdminRouter.post("/lawyers/:userId/reviewKycRequest", reviewLawyerKyc);
+AdminRouter.delete("/lawyers/:userId", deleteLawyerAccount);
 AdminRouter.get("/surveyors/pending-kyc", listPendingSurveyors);
+AdminRouter.get("/surveyors", listAllSurveyors);
 AdminRouter.get("/surveyors/:userId/kyc", getSurveyorKyc);
 AdminRouter.post("/surveyors/:userId/reviewKycRequest", reviewSurveyorKyc);
+AdminRouter.delete("/surveyors/:userId", deleteSurveyorAccount);
 AdminRouter.get("/valuers/pending-kyc", listPendingValuers);
+AdminRouter.get("/valuers", listAllValuers);
 AdminRouter.get("/valuers/:userId/kyc", getValuerKyc);
 AdminRouter.post("/valuers/:userId/reviewKycRequest", reviewValuerKyc);
+AdminRouter.delete("/valuers/:userId", deleteValuerAccount);
 
 AdminRouter.get("/custom-domain-requests", listCustomDomainRequests);
 AdminRouter.post(

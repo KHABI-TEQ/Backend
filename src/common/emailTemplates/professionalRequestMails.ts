@@ -11,7 +11,7 @@ export function professionalNewRequestEmail(params: {
     ? `A new <strong>${params.kindLabel}</strong> request is available. The first professional to accept will be assigned.`
     : `A buyer selected you for a <strong>${params.kindLabel}</strong> request.`;
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${params.professionalName},</p>
       <p>${intro}</p>
       <p><strong>Reference:</strong> ${params.referenceCode}</p>
@@ -32,7 +32,7 @@ export function buyerRequestAcceptedPayEmail(params: {
   referenceCode: string;
 }): string {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${params.buyerName},</p>
       <p><strong>${params.professionalName}</strong> accepted your <strong>${params.kindLabel}</strong> request (${params.referenceCode}).</p>
       <p>Please pay <strong>₦${Number(params.amount).toLocaleString()}</strong> in the Khabi-Teq Buyers app (Track / Pay now) to unlock the service.</p>
@@ -49,7 +49,7 @@ export function buyerRequestDeclinedEmail(params: {
   reason?: string;
 }): string {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${params.buyerName},</p>
       <p><strong>${params.professionalName}</strong> declined your <strong>${params.kindLabel}</strong> request.</p>
       ${params.reason ? `<p><strong>Reason:</strong> ${params.reason}</p>` : ""}
@@ -70,7 +70,7 @@ export function professionalContactsUnlockedEmail(params: {
   amount: number;
 }): string {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${params.professionalName},</p>
       <p>Payment was received for <strong>${params.kindLabel}</strong> (${params.referenceCode}).</p>
       <p><strong>Amount:</strong> ₦${Number(params.amount).toLocaleString()}</p>

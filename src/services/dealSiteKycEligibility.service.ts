@@ -18,14 +18,24 @@ export type DealSiteKycReconciliationResult = {
   skippedNoOwner: number;
 };
 
-function isAgentUserType(userType: string | undefined): boolean {
-  return userType === "Agent";
+const PRACTITIONER_PAGE_TYPES = new Set([
+  "Agent",
+  "Developer",
+  "PropertyScout",
+  "Lawyer",
+  "Surveyor",
+  "Valuer",
+  "Landowners",
+]);
+
+function isPractitionerPageOwner(userType: string | undefined): boolean {
+  return PRACTITIONER_PAGE_TYPES.has(String(userType || ""));
 }
 
-/** Blocks Agent DealSite setup/enable when KYC or paid-subscription rules fail. */
+/** Blocks DealSite setup/enable when KYC or subscription rules fail. */
 export async function assertDealSiteKycAllowed(userId: string): Promise<void> {
   const user = await DB.Models.User.findById(userId).select("userType").lean();
-  if (!user || user.userType !== "Agent") {
+  if (!user || !isPractitionerPageOwner(user.userType)) {
     return;
   }
 
@@ -42,7 +52,7 @@ export async function getPublicDealSiteKycGate(
   | { readonly ok: false; readonly errorCode: "KYC_REQUIRED" | "SUBSCRIPTION_REQUIRED"; readonly message: string }
 > {
   const owner = await DB.Models.User.findById(ownerUserId).select("userType").lean();
-  if (!owner || owner.userType !== "Agent") {
+  if (!owner || !isPractitionerPageOwner(owner.userType)) {
     return { ok: true } as const;
   }
 
@@ -114,7 +124,7 @@ export async function reconcileRunningDealSitesWithoutKycApproval(): Promise<Dea
 
     const ownerIdStr = String(ownerId);
     const owner = await DB.Models.User.findById(ownerId).select("userType").lean();
-    if (!owner || !isAgentUserType(owner.userType)) {
+    if (!owner || !isPractitionerPageOwner(owner.userType)) {
       result.skippedNotAgent += 1;
       continue;
     }

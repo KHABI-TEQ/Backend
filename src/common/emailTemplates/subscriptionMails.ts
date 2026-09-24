@@ -90,7 +90,7 @@ export const generateSubscriptionFailureEmail = ({
   subscriptionPlansLink
 }: GenerateSubscriptionFailureEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>Unfortunately, we were unable to process your subscription payment.</p>
@@ -141,7 +141,7 @@ export const generateSubscriptionCancellationEmail = ({
   cancelledDate
 }: GenerateSubscriptionCancellationEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>Your subscription has been successfully <strong>cancelled</strong> as of ${cancelledDate}.</p>
@@ -178,7 +178,7 @@ export const generateAutoRenewalStoppedEmail = ({
   lastBillingDate
 }: GenerateAutoRenewalStoppedEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>The auto-renewal for your subscription <strong>${planName}</strong> has been <strong>stopped</strong> as of ${lastBillingDate}.</p>
@@ -210,7 +210,7 @@ export const generateSubscriptionExpiredEmail = ({
   publicAccessLink,
 }: GenerateSubscriptionExpiredEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>We wanted to let you know that your subscription has <strong>expired</strong> as of ${expiredDate}.</p>
@@ -258,7 +258,7 @@ export const generateSubscriptionExpiringSoonEmail = ({
   autoRenewEnabled = false,
 }: GenerateSubscriptionExpiringSoonEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>Just a friendly reminder that your subscription is set to <strong>expire in ${daysLeft} day${daysLeft > 1 ? 's' : ''}</strong>, on ${expiryDate}.</p>

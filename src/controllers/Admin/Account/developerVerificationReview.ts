@@ -33,7 +33,7 @@ export const listPendingDeveloperVerification = async (
         { "verification.company.status": { $in: ["pending", "requires_attention"] } },
         { "verification.representative.status": { $in: ["pending", "requires_attention"] } },
         { "verification.address.status": { $in: ["pending", "requires_attention"] } },
-        { kycStatus: { $in: ["pending", "in_review"] } },
+        { kycStatus: { $in: ["pending", "in_review", "none"] } },
         { advancedKycStatus: { $in: ["pending", "in_review"] } },
       ],
     })

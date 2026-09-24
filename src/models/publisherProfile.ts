@@ -25,6 +25,9 @@ export interface IDeveloperVerification {
     legalName?: string;
     cacNumber?: string;
     companyType?: DeveloperCompanyType;
+    certificateKind?: "cac" | "lasrera";
+    lasreraNumber?: string;
+    lasreraCertificateUrls?: string[];
     cacCertificateUrls?: string[];
     registeredAddress?: IDeveloperAddressBlock;
     youverify?: IYouverifySnapshot;
@@ -71,6 +74,8 @@ export interface IPublisherProfile {
   companyDetails?: {
     companyName?: string;
     cacNumber?: string;
+    certificateKind?: "cac" | "lasrera";
+    lasreraNumber?: string;
   };
   meansOfId?: {
     name: string;
@@ -135,6 +140,8 @@ export class PublisherProfile {
         companyDetails: {
           companyName: { type: String },
           cacNumber: { type: String },
+          certificateKind: { type: String, enum: ["cac", "lasrera"] },
+          lasreraNumber: { type: String },
         },
         meansOfId: [
           {
@@ -171,6 +178,9 @@ export class PublisherProfile {
               type: String,
               enum: ["business_name", "limited_liability", "other"],
             },
+            certificateKind: { type: String, enum: ["cac", "lasrera"] },
+            lasreraNumber: { type: String, trim: true },
+            lasreraCertificateUrls: { type: [String], default: [] },
             cacCertificateUrls: { type: [String], default: [] },
             registeredAddress: {
               homeNo: { type: String },

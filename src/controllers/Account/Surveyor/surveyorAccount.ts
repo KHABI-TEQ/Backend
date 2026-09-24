@@ -121,7 +121,7 @@ export const submitSurveyorKyc = async (
   try {
     const user = requireSurveyor(req);
     const profile = await getOrCreateProfile(String(user._id));
-    const { kycDocuments, licenseNumber, surveyFee, bio, profilePhoto } = req.body;
+    const { kycDocuments, licenseNumber, surveyFee, bio, profilePhoto, certificateKind, certificateNumber } = req.body;
 
     if (!Array.isArray(kycDocuments) || kycDocuments.length === 0) {
       throw new RouteError(
@@ -151,6 +151,10 @@ export const submitSurveyorKyc = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "KYC document URLs are required.");
     }
     if (licenseNumber) profile.licenseNumber = String(licenseNumber).trim();
+    if (certificateKind === "cac" || certificateKind === "lasrera") {
+      profile.certificateKind = certificateKind;
+    }
+    if (certificateNumber) profile.certificateNumber = String(certificateNumber).trim();
     if (bio) profile.bio = String(bio).trim();
     if (profilePhoto) profile.profilePhoto = String(profilePhoto).trim();
     profile.kycStatus = "pending";

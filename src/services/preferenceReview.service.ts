@@ -17,6 +17,19 @@ import {
 } from "../models/preferenceReview";
 
 const MIN_OUTLOOK_SAMPLE = 3;
+export const MAX_PREFERENCE_REVIEWS = 5;
+
+export function reviewCapacity(reviewCount: number, hasOwnReview: boolean) {
+  const remaining = Math.max(0, MAX_PREFERENCE_REVIEWS - reviewCount);
+  const slotsFull = !hasOwnReview && reviewCount >= MAX_PREFERENCE_REVIEWS;
+  return {
+    maxReviews: MAX_PREFERENCE_REVIEWS,
+    reviewCount,
+    remaining,
+    canSubmit: !slotsFull,
+    slotsFull,
+  };
+}
 
 export type ReviewUpsertBody = {
   budgetFit?: string;
@@ -291,6 +304,22 @@ export async function upsertReview(
   const preference = await DB.Models.Preference.findById(preferenceId).lean();
   assertMarketplacePreference(preference);
 
+  const existing = await DB.Models.PreferenceReview.findOne({
+    agentId,
+    preferenceId,
+  }).select("_id");
+  if (!existing) {
+    const otherCount = await DB.Models.PreferenceReview.countDocuments({
+      preferenceId,
+    });
+    if (otherCount >= MAX_PREFERENCE_REVIEWS) {
+      throw new RouteError(
+        HttpStatusCodes.FORBIDDEN,
+        `This preference already has ${MAX_PREFERENCE_REVIEWS} agent reviews. Further reviews are closed.`,
+      );
+    }
+  }
+
   const loc = extractLocationKeys(preference.location);
   if (!loc.state) {
     throw new RouteError(
@@ -339,7 +368,11 @@ export async function upsertReview(
   const summary = await getPreferenceReviewSummary(preferenceId);
   const review = formatOwnReview(doc);
   void notifyBuyerOfMarketReview(String(preferenceId), review);
-  return { review, summary };
+  return {
+    review,
+    summary,
+    capacity: reviewCapacity(summary.reviewCount, true),
+  };
 }
 
 export async function getMyReview(agentId: string, preferenceId: string) {
@@ -353,7 +386,11 @@ export async function getMyReview(agentId: string, preferenceId: string) {
     DB.Models.PreferenceReview.findOne({ agentId, preferenceId }).lean(),
     getPreferenceReviewSummary(preferenceId),
   ]);
-  return { review: formatOwnReview(mine), summary };
+  return {
+    review: formatOwnReview(mine),
+    summary,
+    capacity: reviewCapacity(summary.reviewCount, Boolean(mine)),
+  };
 }
 
 export async function getPreferenceReviewSummary(preferenceId: string) {
@@ -397,9 +434,11 @@ export async function attachReviewsToPreferences(
     const mine = agentId
       ? rows.find((r) => String(r.agentId) === String(agentId))
       : null;
+    const summary = summarize(rows);
     return {
       ...p,
-      reviewSummary: summarize(rows),
+      reviewSummary: summary,
+      reviewCapacity: reviewCapacity(summary.reviewCount, Boolean(mine)),
       myReview: mine
         ? {
             budgetFit: mine.budgetFit === "too_low" ? "too_low" : "moderate",

@@ -56,6 +56,10 @@ export const submitValuerKyc = async (req: AppRequest, res: Response, next: Next
     }
     profile.kycDocuments = docs;
     if (req.body?.licenseNumber) profile.licenseNumber = String(req.body.licenseNumber).trim();
+    if (req.body?.certificateKind === "cac" || req.body?.certificateKind === "lasrera") {
+      profile.certificateKind = req.body.certificateKind;
+    }
+    if (req.body?.certificateNumber) profile.certificateNumber = String(req.body.certificateNumber).trim();
     if (req.body?.firmName) profile.firmName = String(req.body.firmName).trim();
     if (req.body?.bio) profile.bio = String(req.body.bio).trim();
     profile.kycStatus = "pending";

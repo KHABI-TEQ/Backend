@@ -20,7 +20,18 @@ export type PublisherKycSubmitPayload = {
     fileUrl?: string;
     dateAwarded?: Date | string;
   }[];
-  companyDetails?: { companyName?: string; cacNumber?: string };
+  companyDetails?: {
+    companyName?: string;
+    cacNumber?: string;
+    certificateKind?: "cac" | "lasrera";
+    lasreraNumber?: string;
+    cacCertificateUrls?: string[];
+    lasreraCertificateUrls?: string[];
+  };
+  certificateKind?: "cac" | "lasrera";
+  certificateNumber?: string;
+  cacCertificateUrls?: string[];
+  lasreraCertificateUrls?: string[];
   kycTier?: "basic" | "advanced";
   advancedKyc?: {
     companyName?: string;
@@ -95,6 +106,17 @@ export function normalizePublisherKycPayload(body: Record<string, unknown>): Pub
     servicesOffered: body.servicesOffered as string[] | undefined,
     achievements: body.achievements as PublisherKycSubmitPayload["achievements"],
     companyDetails: body.companyDetails as PublisherKycSubmitPayload["companyDetails"],
+    certificateKind:
+      body.certificateKind === "lasrera" || body.certificateKind === "cac"
+        ? body.certificateKind
+        : undefined,
+    certificateNumber: body.certificateNumber ? String(body.certificateNumber).trim() : undefined,
+    cacCertificateUrls: Array.isArray(body.cacCertificateUrls)
+      ? (body.cacCertificateUrls as string[]).filter((u) => typeof u === "string" && u.trim())
+      : undefined,
+    lasreraCertificateUrls: Array.isArray(body.lasreraCertificateUrls)
+      ? (body.lasreraCertificateUrls as string[]).filter((u) => typeof u === "string" && u.trim())
+      : undefined,
     kycTier: body.kycTier === "advanced" ? "advanced" : body.kycTier === "basic" ? "basic" : undefined,
     advancedKyc: body.advancedKyc as PublisherKycSubmitPayload["advancedKyc"],
   };
@@ -118,7 +140,36 @@ export async function submitPublisherKyc(params: {
   const advanced = payload.advancedKyc || {};
   const companyName =
     payload.companyDetails?.companyName || advanced.companyName || undefined;
-  const cacNumber = payload.companyDetails?.cacNumber || advanced.cacNumber || undefined;
+  const requestedKind =
+    payload.certificateKind === "lasrera" || payload.companyDetails?.certificateKind === "lasrera"
+      ? "lasrera"
+      : payload.certificateKind === "cac" || payload.companyDetails?.certificateKind === "cac"
+        ? "cac"
+        : undefined;
+  const cacCertificateUrls =
+    payload.cacCertificateUrls || payload.companyDetails?.cacCertificateUrls || [];
+  const lasreraCertificateUrls =
+    payload.lasreraCertificateUrls || payload.companyDetails?.lasreraCertificateUrls || [];
+  const certificateNumber = String(
+    payload.certificateNumber ||
+      (requestedKind === "lasrera"
+        ? payload.companyDetails?.lasreraNumber
+        : payload.companyDetails?.cacNumber) ||
+      ""
+  ).trim();
+  const certificateKind =
+    certificateNumber || cacCertificateUrls.length || lasreraCertificateUrls.length
+      ? requestedKind
+      : undefined;
+  const cacNumber =
+    (certificateKind === "cac" ? certificateNumber : undefined) ||
+    payload.companyDetails?.cacNumber ||
+    advanced.cacNumber ||
+    undefined;
+  const lasreraNumber =
+    (certificateKind === "lasrera" ? certificateNumber : undefined) ||
+    payload.companyDetails?.lasreraNumber ||
+    undefined;
 
   const profileUpdate: Record<string, unknown> = {
     userId,
@@ -126,8 +177,17 @@ export async function submitPublisherKyc(params: {
     regionOfOperation: payload.regionOfOperation,
     practitionerType: payload.practitionerType,
     companyDetails:
-      payload.practitionerType === "Company" || companyName || cacNumber
-        ? { companyName, cacNumber }
+      payload.practitionerType === "Company" ||
+      companyName ||
+      cacNumber ||
+      lasreraNumber ||
+      certificateKind
+        ? {
+            companyName,
+            cacNumber,
+            certificateKind,
+            lasreraNumber,
+          }
         : undefined,
     kycData: {
       licenseOrRegistrationNumber: license,
@@ -174,6 +234,30 @@ export async function submitPublisherKyc(params: {
     { upsert: true, new: true }
   );
 
+  if (certificateKind || cacCertificateUrls.length || lasreraCertificateUrls.length) {
+    const existing =
+      profile.verification && typeof (profile.verification as { toObject?: () => unknown }).toObject === "function"
+        ? (profile.verification as { toObject: () => Record<string, unknown> }).toObject()
+        : { ...((profile.verification as Record<string, unknown>) || {}) };
+    const existingCompany =
+      existing.company && typeof existing.company === "object"
+        ? { ...(existing.company as Record<string, unknown>) }
+        : {};
+    profile.verification = {
+      ...existing,
+      company: {
+        ...existingCompany,
+        ...(certificateKind ? { certificateKind } : {}),
+        ...(cacNumber ? { cacNumber } : {}),
+        ...(lasreraNumber ? { lasreraNumber } : {}),
+        ...(cacCertificateUrls.length ? { cacCertificateUrls } : {}),
+        ...(lasreraCertificateUrls.length ? { lasreraCertificateUrls } : {}),
+      },
+    };
+    profile.markModified("verification");
+    await profile.save();
+  }
+
   if (userType === "Agent") {
     const agent = await DB.Models.Agent.findOne({ userId });
     if (agent) {
@@ -210,4 +294,26 @@ export async function submitPublisherKyc(params: {
 
 export async function isPublisherKycApproved(userId: Types.ObjectId | string): Promise<boolean> {
   return (await getPublisherKycStatus(userId)) === "approved";
+}
+
+/** KYC approval for any practitioner who can own a public page. */
+export async function isPractitionerKycApproved(
+  userId: Types.ObjectId | string
+): Promise<boolean> {
+  const user = await DB.Models.User.findById(userId).select("userType").lean();
+  if (!user) return false;
+  const kind = String(user.userType || "");
+  if (kind === "Lawyer") {
+    const profile = await DB.Models.LawyerProfile.findOne({ userId }).select("kycStatus").lean();
+    return profile?.kycStatus === "approved";
+  }
+  if (kind === "Surveyor") {
+    const profile = await DB.Models.SurveyorProfile.findOne({ userId }).select("kycStatus").lean();
+    return profile?.kycStatus === "approved";
+  }
+  if (kind === "Valuer") {
+    const profile = await DB.Models.ValuerProfile.findOne({ userId }).select("kycStatus").lean();
+    return profile?.kycStatus === "approved";
+  }
+  return isPublisherKycApproved(userId);
 }

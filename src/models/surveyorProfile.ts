@@ -11,6 +11,8 @@ export interface ISurveyorProfile {
   serviceTypes?: SurveyorServiceType[];
   surveyFee: number;
   licenseNumber?: string;
+  certificateKind?: "cac" | "lasrera";
+  certificateNumber?: string;
   kycDocuments?: { name: string; url: string }[];
   kycStatus: ProfessionalKycStatus;
   kycNote?: string;
@@ -54,6 +56,8 @@ export class SurveyorProfile {
         },
         surveyFee: { type: Number, default: 0, min: 0 },
         licenseNumber: { type: String, trim: true },
+        certificateKind: { type: String, enum: ["cac", "lasrera"] },
+        certificateNumber: { type: String, trim: true },
         kycDocuments: [
           {
             name: { type: String, required: true },

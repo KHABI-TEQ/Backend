@@ -12,7 +12,7 @@ import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 import { getPublisherKycStatus } from "../../services/publisherKyc.service";
-import { resumeAgentPolicyPausedDealSites } from "../../services/agentPublisherEligibility.service";
+import { syncPractitionerPageEligibility } from "../../services/agentPublisherEligibility.service";
 import {
   dashboardListingCountFilters,
   INACTIVE_LISTING_STATUSES,
@@ -33,7 +33,7 @@ async function buildPublisherProfileExtensions(user: { _id: unknown; accountAppr
   const activeSnapshot = await UserSubscriptionSnapshotService.getActiveSnapshotWithFeatures(
     String(user._id)
   );
-  await resumeAgentPolicyPausedDealSites(String(user._id));
+  await syncPractitionerPageEligibility(String(user._id));
   const dealSites = await DealSiteService.getByAgent(String(user._id), true);
   const dealSite = dealSites?.[0] ?? null;
   const snap = activeSnapshot || null;

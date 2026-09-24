@@ -18,7 +18,7 @@ export const generateVerificationSubmissionEmail = ({
   const docsList = `<li><strong>Document 1:</strong> ${documents.documentType} (No: ${documents.documentNumber})</li>`
 
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${fullName},</p>
 
       <p>Thank you for submitting your documents for verification.</p>
@@ -67,7 +67,7 @@ export const generateThirdPartyVerificationEmail = ({
   accessLink
 }: GenerateThirdPartyVerificationEmailParams): string => {
   return `
-    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 600px; margin: auto;">
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${recipientName},</p>
 
       <p>${requesterName} has requested you to review and verify a submitted document.</p>
@@ -164,7 +164,7 @@ export const generateAdminVerificationReportEmail = ({
       : "";
 
   return `
-    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;max-width:600px;margin:auto;line-height:1.6;">
+    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;max-width:100%;line-height:1.6;">
       <p>Dear ${adminName},</p>
 
       <p>
@@ -266,7 +266,7 @@ export const generateBuyerVerificationReportForBuyer = ({
       : "";
 
   return `
-    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;max-width:600px;margin:auto;line-height:1.6;">
+    <div style="font-family:Arial,sans-serif;font-size:15px;color:#333;max-width:100%;line-height:1.6;">
       <p>Dear ${buyerName},</p>
 
       <p>
