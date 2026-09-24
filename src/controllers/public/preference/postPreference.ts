@@ -26,6 +26,7 @@ export const postPreference = async (
     // Validate payload
     const payload = await preferenceValidationSchema.validateAsync(req.body, {
       abortEarly: false,
+      stripUnknown: true,
     });
 
     const rawContactInfo = payload.contactInfo || {};

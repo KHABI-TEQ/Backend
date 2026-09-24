@@ -25,6 +25,58 @@ export function uiStatus(status?: string | null) {
   return "Pending";
 }
 
+type VerificationSlot = Record<string, unknown>;
+
+/** Mongoose nested objects cannot be assigned `undefined` — spreading a subdoc does that. */
+function asPlainVerification(verification: unknown): {
+  company?: VerificationSlot;
+  representative?: VerificationSlot;
+  address?: VerificationSlot;
+} {
+  if (!verification || typeof verification !== "object") return {};
+  const src =
+    typeof (verification as { toObject?: () => Record<string, unknown> }).toObject === "function"
+      ? (verification as { toObject: () => Record<string, unknown> }).toObject()
+      : { ...(verification as Record<string, unknown>) };
+  const next: {
+    company?: VerificationSlot;
+    representative?: VerificationSlot;
+    address?: VerificationSlot;
+  } = {};
+  if (src.company && typeof src.company === "object") next.company = { ...(src.company as VerificationSlot) };
+  if (src.representative && typeof src.representative === "object") {
+    next.representative = { ...(src.representative as VerificationSlot) };
+  }
+  if (src.address && typeof src.address === "object") next.address = { ...(src.address as VerificationSlot) };
+  return next;
+}
+
+function dropUndefined<T extends Record<string, unknown>>(obj: T): T {
+  const out = { ...obj };
+  for (const key of Object.keys(out)) {
+    if (out[key] === undefined) delete out[key];
+  }
+  return out;
+}
+
+function setDeveloperVerification(
+  profile: { verification?: unknown; markModified?: (path: string) => void },
+  patch: {
+    company?: VerificationSlot;
+    representative?: VerificationSlot;
+    address?: VerificationSlot;
+  },
+) {
+  const next = asPlainVerification(profile.verification);
+  if (patch.company) next.company = dropUndefined({ ...(next.company || {}), ...patch.company });
+  if (patch.representative) {
+    next.representative = dropUndefined({ ...(next.representative || {}), ...patch.representative });
+  }
+  if (patch.address) next.address = dropUndefined({ ...(next.address || {}), ...patch.address });
+  profile.verification = next;
+  profile.markModified?.("verification");
+}
+
 export async function ensureDeveloperProfile(userId: string) {
   const user = await DB.Models.User.findById(userId).exec();
   if (!user || user.userType !== "Developer") {
@@ -93,6 +145,11 @@ export function verificationPublicView(profile: any, user: any) {
       rawStatus: v.representative?.status || "none",
       fullName: v.representative?.fullName,
       position: v.representative?.position,
+      idType: v.representative?.idType,
+      idNumber: v.representative?.idNumber,
+      idDocumentUrls: Array.isArray(v.representative?.idDocumentUrls)
+        ? v.representative.idDocumentUrls
+        : [],
       note: v.representative?.note,
       retrieved: v.representative?.youverify
         ? {
@@ -213,37 +270,41 @@ export async function saveCompanyVerification(
     companyName: body.legalName || lookup?.legalName || profile.companyDetails?.companyName,
     cacNumber,
   };
-  profile.verification = {
-    ...(profile.verification || {}),
+  setDeveloperVerification(profile, {
     company: {
       legalName: body.legalName || lookup?.legalName,
       cacNumber,
       companyType: body.companyType,
       cacCertificateUrls: body.cacCertificateUrls || [],
       registeredAddress: body.registeredAddress || lookup?.registeredAddress,
-      youverify: lookup
+      ...(lookup
         ? {
-            status: lookup.status,
-            retrievedAt: new Date(),
-            retrievedFields: lookup.retrievedFields,
-            raw: lookup.raw,
+            youverify: {
+              status: lookup.status,
+              retrievedAt: new Date(),
+              retrievedFields: lookup.retrievedFields,
+              raw: lookup.raw,
+            },
           }
-        : profile.verification?.company?.youverify,
+        : {}),
       status: nextStatus,
     },
-  };
+    ...(body.registeredAddress
+      ? {
+          address: {
+            ...body.registeredAddress,
+            source: lookup?.found ? "kyb" : "manual",
+            status: profile.verification?.address?.status || "pending",
+          },
+        }
+      : {}),
+  });
   if (body.registeredAddress) {
     profile.address = {
       homeNo: body.registeredAddress.homeNo || "",
       street: body.registeredAddress.street || "",
       localGovtArea: body.registeredAddress.localGovtArea || "",
       state: body.registeredAddress.state || "",
-    };
-    profile.verification.address = {
-      ...(profile.verification.address || {}),
-      ...body.registeredAddress,
-      source: lookup?.found ? "kyb" : "manual",
-      status: profile.verification.address?.status || "pending",
     };
   }
   await profile.save();
@@ -291,8 +352,7 @@ export async function saveRepresentativeVerification(
     });
   }
   const status = lookup ? dimensionFromYouverify(lookup) : "pending";
-  profile.verification = {
-    ...(profile.verification || {}),
+  setDeveloperVerification(profile, {
     representative: {
       fullName: lookup?.fullName || body.fullName,
       position: body.position,
@@ -301,17 +361,19 @@ export async function saveRepresentativeVerification(
       idType: body.idType,
       idNumber: body.idNumber,
       idDocumentUrls: body.idDocumentUrls || [],
-      youverify: lookup
+      ...(lookup
         ? {
-            status: lookup.status,
-            retrievedAt: new Date(),
-            retrievedFields: lookup.retrievedFields,
-            raw: lookup.raw,
+            youverify: {
+              status: lookup.status,
+              retrievedAt: new Date(),
+              retrievedFields: lookup.retrievedFields,
+              raw: lookup.raw,
+            },
           }
-        : undefined,
+        : {}),
       status,
     },
-  };
+  });
   profile.meansOfId = [
     { name: body.idType, docImg: body.idDocumentUrls || [] },
   ];
@@ -336,10 +398,8 @@ export async function saveAddressVerification(
     state: body.state,
   };
   const existing = profile.verification?.address?.status;
-  profile.verification = {
-    ...(profile.verification || {}),
+  setDeveloperVerification(profile, {
     address: {
-      ...(profile.verification?.address || {}),
       homeNo: body.homeNo,
       street: body.street,
       localGovtArea: body.localGovtArea,
@@ -347,7 +407,7 @@ export async function saveAddressVerification(
       source: profile.verification?.address?.source || "manual",
       status: existing === "verified" ? "verified" : "pending",
     },
-  };
+  });
   await profile.save();
   return verificationPublicView(profile, user);
 }
@@ -355,20 +415,21 @@ export async function saveAddressVerification(
 export async function submitDeveloperVerification(userId: string) {
   const { user, profile } = await ensureDeveloperProfile(userId);
   const isCompany = profile.practitionerType === "Company";
-  const v = profile.verification || {};
+  const v = asPlainVerification(profile.verification);
   const markPending = (status?: string) =>
     !status || status === "none" ? "pending" : status;
 
   if (isCompany && v.company) {
-    v.company.status = markPending(v.company.status) as DeveloperDimensionStatus;
+    v.company.status = markPending(String(v.company.status || "")) as DeveloperDimensionStatus;
   }
   if (v.representative) {
-    v.representative.status = markPending(v.representative.status) as DeveloperDimensionStatus;
+    v.representative.status = markPending(String(v.representative.status || "")) as DeveloperDimensionStatus;
   }
   if (v.address) {
-    v.address.status = markPending(v.address.status) as DeveloperDimensionStatus;
+    v.address.status = markPending(String(v.address.status || "")) as DeveloperDimensionStatus;
   }
   profile.verification = v;
+  profile.markModified("verification");
   profile.kycStatus = isDeveloperFullyVerified(profile) ? "approved" : "pending";
   await profile.save();
   return verificationPublicView(profile, user);
@@ -382,18 +443,19 @@ export async function adminReviewDimension(
   adminId?: string
 ) {
   const { user, profile } = await ensureDeveloperProfile(userId);
-  const v = profile.verification || {};
+  const v = asPlainVerification(profile.verification);
   const slot = v[dimension] || {};
   const approved = response === "approve";
   const next: DeveloperDimensionStatus = approved ? "verified" : "requires_attention";
-  (v as any)[dimension] = {
+  v[dimension] = dropUndefined({
     ...slot,
     status: next,
     note: note?.trim() || slot.note,
     reviewedAt: new Date(),
     reviewedBy: adminId ? new Types.ObjectId(adminId) : undefined,
-  };
+  });
   profile.verification = v;
+  profile.markModified("verification");
   if (isDeveloperFullyVerified(profile)) {
     profile.kycStatus = "approved";
     user.accountApproved = true;

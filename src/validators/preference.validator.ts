@@ -6,11 +6,11 @@ import {
 } from "../common/constants/preferenceConditionBuilding";
 import {
   JV_DEVELOPMENT_TYPE_VALUES,
-  PREFERENCE_DOCUMENT_TYPE_VALUES,
   normalizeJvDevelopmentType,
   normalizeOffPlanDevelopmentStage,
   normalizeOffPlanPaymentPlan,
   normalizePreferenceDocumentType,
+  normalizePreferenceDocumentTypeList,
   normalizeShortletPropertyType,
   normalizeTravelType,
 } from "../common/constants/preferenceSelectableOptions";
@@ -78,19 +78,6 @@ const jvDevelopmentType = Joi.string()
   .messages({
     "any.only":
       "developmentTypes must be one of: residential, commercial, mixed-use, industrial",
-  });
-
-const jvTitleRequirement = Joi.string()
-  .trim()
-  .custom((value, helpers) => {
-    const next = normalizePreferenceDocumentType(value);
-    if (next && (PREFERENCE_DOCUMENT_TYPE_VALUES as readonly string[]).includes(next)) {
-      return next;
-    }
-    return helpers.error("any.only");
-  })
-  .messages({
-    "any.only": `minimumTitleRequirements must be one of: ${PREFERENCE_DOCUMENT_TYPE_VALUES.join(", ")}`,
   });
 
 export const preferenceValidationSchema = Joi.object({
@@ -181,15 +168,18 @@ export const preferenceValidationSchema = Joi.object({
 
 
   developmentDetails: Joi.object({
-    minLandSize: Joi.string().trim(),
-    maxLandSize: Joi.string().trim(),
+    minLandSize: Joi.string().trim().allow(""),
+    maxLandSize: Joi.string().trim().allow(""),
     measurementUnit: preferenceMeasurementUnit,
     developmentTypes: Joi.array().items(jvDevelopmentType).default([]),
-    preferredSharingRatio: Joi.string().trim(),
-    proposalDetails: Joi.string().trim(),
-    minimumTitleRequirements: Joi.array().items(jvTitleRequirement).default([]),
+    preferredSharingRatio: Joi.string().trim().allow(""),
+    proposalDetails: Joi.string().trim().allow(""),
+    minimumTitleRequirements: Joi.array()
+      .items(Joi.string().trim().allow(""))
+      .custom((value) => normalizePreferenceDocumentTypeList(value))
+      .default([]),
     willingToConsiderPendingTitle: Joi.boolean(),
-    additionalRequirements: Joi.string().trim(),
+    additionalRequirements: Joi.string().trim().allow(""),
   }).optional(),
 
   // For Shortlet
