@@ -137,6 +137,39 @@ export const getMySurveyRequests = async (
   }
 };
 
+export const getMyProfessionalServiceRequests = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyer = req.buyer;
+    if (!buyer?._id) {
+      throw new RouteError(
+        HttpStatusCodes.UNAUTHORIZED,
+        "Buyer not authenticated."
+      );
+    }
+
+    const email = String(buyer.email || "")
+      .toLowerCase()
+      .trim();
+
+    const requests = await DB.Models.ProfessionalServiceRequest.find({
+      $or: [{ buyerId: buyer._id }, { "contact.email": email }],
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: { requests },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const getMyTransactionRegistrations = async (
   req: AppRequest,
   res: Response,
@@ -190,7 +223,7 @@ export const getMyActivitySummary = async (
       .toLowerCase()
       .trim();
 
-    const [preferences, inspections, documents, surveys, transactions, policies, claims] =
+    const [preferences, inspections, documents, surveys, transactions, policies, claims, professionalServices] =
       await Promise.all([
         DB.Models.Preference.find({ buyer: buyerId })
           .select(
@@ -236,6 +269,15 @@ export const getMyActivitySummary = async (
           .sort({ createdAt: -1 })
           .limit(20)
           .lean(),
+        DB.Models.ProfessionalServiceRequest.find({
+          $or: [{ buyerId }, { "contact.email": email }],
+        })
+          .select(
+            "reference slug serviceName category status customerPrice createdAt updatedAt"
+          )
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean(),
       ]);
 
     return res.status(HttpStatusCodes.OK).json({
@@ -249,6 +291,7 @@ export const getMyActivitySummary = async (
           transactions: transactions.length,
           searchInsurancePolicies: policies.length,
           searchInsuranceClaims: claims.length,
+          professionalServices: professionalServices.length,
         },
         preferences,
         inspections,
@@ -257,6 +300,7 @@ export const getMyActivitySummary = async (
         transactions,
         searchInsurancePolicies: policies,
         searchInsuranceClaims: claims,
+        professionalServices,
       },
     });
   } catch (err) {

@@ -104,6 +104,17 @@ export interface IInspectionBooking {
   reminder3hSentAt?: Date;
   /** Cron: 1h-before inspection reminder sent at. */
   reminder1hSentAt?: Date;
+
+  /** Buyer chose to proceed with this property after inspection (or keep searching). */
+  wishToProceed?: boolean;
+  /** How the buyer will handle due diligence before transaction registration. */
+  dueDiligencePath?: "platform" | "independent";
+  /** Stored when the buyer declares they completed due diligence off-platform. */
+  independentDeclaration?: {
+    acceptedAt?: Date;
+    acceptedText?: string;
+  };
+  buyerIntentRecordedAt?: Date;
 }
 
 export interface IInspectionBookingDoc extends IInspectionBooking, Document {
@@ -253,6 +264,16 @@ export class InspectionBooking {
         reminder24hSentAt: { type: Date },
         reminder3hSentAt: { type: Date },
         reminder1hSentAt: { type: Date },
+        wishToProceed: { type: Boolean },
+        dueDiligencePath: {
+          type: String,
+          enum: ["platform", "independent"],
+        },
+        independentDeclaration: {
+          acceptedAt: { type: Date },
+          acceptedText: { type: String },
+        },
+        buyerIntentRecordedAt: { type: Date },
       },
       {
         timestamps: true,

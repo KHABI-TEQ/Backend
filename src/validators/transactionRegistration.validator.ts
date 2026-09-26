@@ -40,7 +40,22 @@ const propertyIdentificationLand = Joi.object({
 export const buyerIntentSchema = Joi.object({
   inspectionId: Joi.string().required(),
   email: Joi.string().email().trim().required(),
-  wishToProceed: Joi.boolean().valid(true).required(),
+  wishToProceed: Joi.boolean().required(),
+  dueDiligencePath: Joi.string()
+    .valid("platform", "independent")
+    .when("wishToProceed", {
+      is: true,
+      then: Joi.required(),
+      otherwise: Joi.optional(),
+    }),
+  independentDeclaration: Joi.object({
+    accepted: Joi.boolean().valid(true).required(),
+    acceptedText: Joi.string().trim().min(10).max(2000).required(),
+  }).when("dueDiligencePath", {
+    is: "independent",
+    then: Joi.required(),
+    otherwise: Joi.optional(),
+  }),
 });
 
 export const registerTransactionSchema = Joi.object({

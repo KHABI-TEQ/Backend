@@ -1,4 +1,5 @@
 import { Response, NextFunction } from "express";
+import bcrypt from "bcryptjs";
 import { DB } from "..";
 import { AppRequest } from "../../types/express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
@@ -60,6 +61,9 @@ export const updateBuyerProfile = async (
       whatsAppNumber,
       address,
       profilePicture,
+      enableNotifications,
+      currentPassword,
+      newPassword,
     } = req.body;
 
     if (fullName != null) buyer.fullName = String(fullName).trim();
@@ -67,6 +71,26 @@ export const updateBuyerProfile = async (
     if (whatsAppNumber != null) buyer.whatsAppNumber = String(whatsAppNumber).trim();
     if (address != null) buyer.address = String(address).trim();
     if (profilePicture != null) buyer.profilePicture = String(profilePicture).trim();
+    if (typeof enableNotifications === "boolean") {
+      buyer.enableNotifications = enableNotifications;
+    }
+
+    if (newPassword) {
+      if (!buyer.password) {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Set a password by claiming this account first."
+        );
+      }
+      const matches = await bcrypt.compare(String(currentPassword || ""), buyer.password);
+      if (!matches) {
+        throw new RouteError(
+          HttpStatusCodes.UNAUTHORIZED,
+          "Current password is incorrect."
+        );
+      }
+      buyer.password = await bcrypt.hash(String(newPassword), 10);
+    }
 
     let emailChanged = false;
     if (email != null) {

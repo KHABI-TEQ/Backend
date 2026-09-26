@@ -113,4 +113,7 @@ export const updateBuyerProfileSchema = Joi.object({
   whatsAppNumber: Joi.string().trim().allow("").optional(),
   address: Joi.string().trim().allow("").optional(),
   profilePicture: Joi.string().trim().uri({ allowRelative: false }).allow("").optional(),
+  enableNotifications: Joi.boolean().optional(),
+  currentPassword: Joi.string().min(6).optional(),
+  newPassword: Joi.string().min(6).optional(),
 }).min(1);

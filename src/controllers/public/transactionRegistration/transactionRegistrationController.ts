@@ -217,11 +217,16 @@ export const submitBuyerIntent = async (
       const errorMessage = validation.errors.map((e) => `${e.field}: ${e.message}`).join(", ");
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, errorMessage);
     }
-    const { inspectionId, email } = validation.data!;
+    const {
+      inspectionId,
+      email,
+      wishToProceed,
+      dueDiligencePath,
+      independentDeclaration,
+    } = validation.data!;
 
     const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
-      .populate("requestedBy")
-      .lean();
+      .populate("requestedBy");
     if (!inspection) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found.");
     }
@@ -232,19 +237,57 @@ export const submitBuyerIntent = async (
         "The provided email does not match the buyer for this inspection."
       );
     }
-    if (inspection.status !== "completed") {
+    if (wishToProceed && inspection.status !== "completed") {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         "Only completed inspections can proceed to transaction registration. Please complete the inspection first."
       );
     }
 
+    inspection.wishToProceed = wishToProceed;
+    inspection.buyerIntentRecordedAt = new Date();
+    if (dueDiligencePath) {
+      inspection.dueDiligencePath = dueDiligencePath;
+    }
+    if (dueDiligencePath === "independent" && independentDeclaration) {
+      inspection.independentDeclaration = {
+        acceptedAt: new Date(),
+        acceptedText: String(independentDeclaration.acceptedText || "").trim(),
+      };
+    } else if (dueDiligencePath === "platform") {
+      inspection.independentDeclaration = undefined;
+    }
+
+    await inspection.save();
+
+    if (!wishToProceed) {
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "We'll keep matching properties to your preference.",
+        data: {
+          inspectionId,
+          wishToProceed: false,
+          nextStep: "Continue searching for properties that match your preference.",
+          matchesPath: "/preference",
+        },
+      });
+    }
+
+    const nextIsPlatform = dueDiligencePath === "platform";
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Intent recorded. You may proceed to review the guidelines and register your transaction.",
+      message: nextIsPlatform
+        ? "Intent recorded. Engage a professional on Khabiteq, then register your transaction."
+        : "Intent recorded. You may proceed to review the guidelines and register your transaction.",
       data: {
         inspectionId,
-        nextStep: "Review the Safe Transaction Guidelines and submit your transaction registration.",
+        wishToProceed: true,
+        dueDiligencePath: dueDiligencePath || null,
+        nextStep: nextIsPlatform
+          ? "Select a professional service, then continue to transaction registration."
+          : "Review the Safe Transaction Guidelines and submit your transaction registration.",
+        professionalServicesPath: "/professional-services",
+        documentVerificationPath: "/document-verification",
         guidelinesPath: "/transaction-registration/guidelines",
         registerPath: "/transaction-registration/register",
       },
