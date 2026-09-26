@@ -7,6 +7,7 @@ import {
   listingLimitForPlanCode,
   listingLimitMessage,
   LISTING_LIMIT_SPECIAL_PLAN_CODE,
+  PROPERTY_SCOUT_LISTING_LIMIT,
   PUBLISHER_STANDARD_LISTING_LIMIT,
 } from "../common/constants/publisherListingLimits";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
@@ -29,7 +30,7 @@ export async function resolvePublisherListingLimit(
     const user = await DB.Models.User.findById(userId).select("userType").lean();
     resolvedType = user?.userType;
   }
-  if (resolvedType === "PropertyScout") return null;
+  if (resolvedType === "PropertyScout") return PROPERTY_SCOUT_LISTING_LIMIT;
 
   const snapshots = await UserSubscriptionSnapshotService.getActiveSnapshots(userId);
   if (!snapshots.length) return PUBLISHER_STANDARD_LISTING_LIMIT;
@@ -143,7 +144,7 @@ export async function assertPublisherListingCapacity(params: {
   if (owned >= listingLimit) {
     throw new RouteError(
       HttpStatusCodes.FORBIDDEN,
-      listingLimitMessage(listingLimit),
+      listingLimitMessage(listingLimit, userType),
       buildListingLimitRouteErrorDetails(owned, listingLimit)
     );
   }

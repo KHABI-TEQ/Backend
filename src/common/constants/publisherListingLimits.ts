@@ -4,6 +4,9 @@ export const PUBLISHER_STANDARD_LISTING_LIMIT = 25;
 /** Licensed Agent annual plan listing cap. */
 export const PUBLISHER_ANNUAL_LISTING_LIMIT = 50;
 
+/** Property Scout plan listing cap. The 11th listing is rejected. */
+export const PROPERTY_SCOUT_LISTING_LIMIT = 10;
+
 export const LICENSED_AGENT_ANNUAL_PLAN_CODE = "LICENSED_AGENT_YEARLY";
 
 /** @deprecated Unpaid trial listings are retired. Paid publishers use PUBLISHER_STANDARD_LISTING_LIMIT. */
@@ -26,7 +29,10 @@ export const SPECIAL_UNLIMITED_LISTINGS_PLAN_NAME = "Portfolio Unlimited";
 
 export const LISTING_LIMIT_SPECIAL_PLAN_CODE = "LISTING_LIMIT_REACHED";
 
-export function listingLimitMessage(limit: number): string {
+export function listingLimitMessage(limit: number, userType?: string | null): string {
+  if (userType === "PropertyScout") {
+    return `You have reached the maximum of ${limit} property listings on the Property Scout plan.`;
+  }
   const extra =
     limit < PUBLISHER_ANNUAL_LISTING_LIMIT
       ? ` The annual Licensed Agent plan allows up to ${PUBLISHER_ANNUAL_LISTING_LIMIT} listings.`
@@ -38,7 +44,7 @@ export const PUBLISHER_LISTING_LIMIT_MESSAGE = listingLimitMessage(
   PUBLISHER_STANDARD_LISTING_LIMIT
 );
 
-/** Property Scout plans are not on the 25 / 50 publisher cap. */
+/** Property Scout plans are capped at PROPERTY_SCOUT_LISTING_LIMIT, not the 25 / 50 publisher cap. */
 export function isPropertyScoutStandardPlanCode(planCode?: string | null): boolean {
   const code = String(planCode || "").trim().toUpperCase();
   return code.startsWith("SCOUT_STANDARD");
@@ -50,7 +56,7 @@ export function listingLimitForPlanCode(
 ): number {
   const code = String(planCode || "").trim().toUpperCase();
   if (isPropertyScoutStandardPlanCode(code)) {
-    return 0;
+    return PROPERTY_SCOUT_LISTING_LIMIT;
   }
   if (explicitLimit != null && Number.isFinite(Number(explicitLimit)) && Number(explicitLimit) > 0) {
     return Number(explicitLimit);

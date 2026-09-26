@@ -159,8 +159,8 @@ export const postProperty = async (
     // ✅ Create property first (inside session)
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    // Deduct LISTINGS quota on capped publisher plans.
-    // Property Scouts are not limited to the 25-listing agent, developer, and landlord cap.
+    // Property Scout listings are capped by owned-property count (10), not this feature counter.
+    // Older scout snapshots stored a 25-listing remainder, which must not raise or lower that cap.
     if (activeSnapshot && isPublisherUserType(userType) && userType !== "PropertyScout") {
       try {
         if (preferenceId) {

@@ -240,6 +240,7 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
     price: 23_500,
     durationInDays: 90,
     billingInterval: SUBSCRIPTION_BILLING_INTERVALS.QUARTERLY,
+    listingLimit: 10,
     designedFor:
       "Designed for verified Property Scouts who want to participate in property opportunities without a real estate license.",
     headline: "Turn Opportunities into Income",
