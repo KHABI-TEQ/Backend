@@ -6,6 +6,12 @@ import {
   buildRegistrationSearchFilter,
   mergeRegistrationFilters,
 } from "../../../utils/transactionRegistrationSearch";
+import {
+  enrichRegistrationWithBrmParticipants,
+  registrationMatchForUsers,
+} from "../../../services/brmPractitionerJourney.service";
+import { BRM_BOOK_USER_TYPES } from "../../../common/constants/brmBook";
+import mongoose from "mongoose";
 
 const ALLOWED_STATUSES = [
   "submitted",
@@ -63,6 +69,7 @@ export const getAllTransactionRegistrations = async (
       transactionType,
       registrationSource,
       search,
+      brmId,
     } = req.query as {
       page?: string;
       limit?: string;
@@ -70,6 +77,7 @@ export const getAllTransactionRegistrations = async (
       transactionType?: string;
       registrationSource?: string;
       search?: string;
+      brmId?: string;
     };
 
     const pageNum = Math.max(parseInt(page, 10), 1);
@@ -87,7 +95,33 @@ export const getAllTransactionRegistrations = async (
       ? buildRegistrationSourceFilter(String(registrationSource))
       : null;
     const searchFilter = search ? buildRegistrationSearchFilter(String(search)) : null;
-    const filter = mergeRegistrationFilters(baseFilter, sourceFilter, searchFilter);
+    let brmFilter: Record<string, unknown> | null = null;
+    if (brmId) {
+      if (!mongoose.isValidObjectId(String(brmId))) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Invalid BRM id",
+        });
+      }
+      const bookUsers = await DB.Models.User.find({
+        brmId,
+        isDeleted: { $ne: true },
+        userType: { $in: [...BRM_BOOK_USER_TYPES] },
+      })
+        .select("email userType")
+        .lean();
+      const match = await registrationMatchForUsers(bookUsers);
+      if (!match.filter) {
+        return res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "Transaction registrations fetched successfully",
+          data: [],
+          pagination: { total: 0, page: pageNum, totalPages: 0, limit: limitNum },
+        });
+      }
+      brmFilter = match.filter;
+    }
+    const filter = mergeRegistrationFilters(baseFilter, sourceFilter, searchFilter, brmFilter);
 
     const [registrations, total] = await Promise.all([
       DB.Models.TransactionRegistration.find(filter)
@@ -234,10 +268,15 @@ export const getTransactionRegistrationById = async (
       });
     }
 
+    const brmParticipants = await enrichRegistrationWithBrmParticipants(registration);
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Transaction registration details",
-      data: registration,
+      data: {
+        ...registration,
+        brmParticipants,
+      },
     });
   } catch (err) {
     next(err);

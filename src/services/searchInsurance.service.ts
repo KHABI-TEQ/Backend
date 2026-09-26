@@ -249,6 +249,40 @@ export async function fileSearchInsuranceClaim(input: {
     );
   }
 
+  const preferenceId = String(policy.preference || "");
+  const journey = await DB.Models.InspectionBooking.find({
+    bookedBy: input.buyerId,
+    dueDiligencePath: "platform",
+    $or: [
+      { "meta.preferenceId": preferenceId },
+      { "meta.requestSource.preferenceId": preferenceId },
+    ],
+  })
+    .select("_id dueDiligencePath")
+    .lean();
+  const { hasKhabiteqProfessionalEngagement } = await import(
+    "../utils/seekerTransactionGate"
+  );
+  const platformWithProfessional = await (async () => {
+    for (const booking of journey) {
+      if (
+        await hasKhabiteqProfessionalEngagement(
+          input.buyerId,
+          String(booking._id)
+        )
+      ) {
+        return true;
+      }
+    }
+    return false;
+  })();
+  if (!platformWithProfessional) {
+    throw new RouteError(
+      HttpStatusCodes.FORBIDDEN,
+      "Claims are only available when this insured search includes due diligence with a Khabiteq professional. An external declaration does not qualify."
+    );
+  }
+
   const openClaim = await DB.Models.SearchInsuranceClaim.findOne({
     policy: policy._id,
     status: { $in: OPEN_CLAIM_STATUSES },

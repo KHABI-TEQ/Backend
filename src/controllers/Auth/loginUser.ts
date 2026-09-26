@@ -261,7 +261,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       });
     }
 
-    // All other users (e.g. FieldAgent)
+    // All other users
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Login successful",

@@ -10,6 +10,11 @@ import {
   assertProfessionalPayoutReady,
   notifyProfessionalOfNewRequest,
 } from "../../services/professionalRequest.service";
+import {
+  inspectionLinkFields,
+  loadBuyerFromRequest,
+  resolveBuyerInspectionLink,
+} from "../../utils/seekerTransactionGate";
 
 export const submitDocumentVerification = async (
   req: AppRequest,
@@ -17,7 +22,7 @@ export const submitDocumentVerification = async (
   next: NextFunction
 ) => {
   try {
-    const { contactInfo, documentsMetadata, lawyerId } = req.body;
+    const { contactInfo, documentsMetadata, lawyerId, inspectionId } = req.body;
 
     if (
       !contactInfo?.email ||
@@ -69,21 +74,29 @@ export const submitDocumentVerification = async (
     const expectedAmount = Number(lawyerProfile.verificationFee);
     const assignedLawyerId = new Types.ObjectId(String(lawyerId));
 
-    const buyer = await DB.Models.Buyer.findOneAndUpdate(
-      { email: String(contactInfo.email).toLowerCase().trim() },
-      {
-        $set: {
-          fullName: contactInfo.fullName || undefined,
-          phoneNumber: contactInfo.phoneNumber || undefined,
+    const authBuyer = await loadBuyerFromRequest(req);
+    const buyer =
+      authBuyer ||
+      (await DB.Models.Buyer.findOneAndUpdate(
+        { email: String(contactInfo.email).toLowerCase().trim() },
+        {
+          $set: {
+            fullName: contactInfo.fullName || undefined,
+            phoneNumber: contactInfo.phoneNumber || undefined,
+          },
+          $setOnInsert: {
+            email: String(contactInfo.email).toLowerCase().trim(),
+          },
         },
-        $setOnInsert: {
-          email: String(contactInfo.email).toLowerCase().trim(),
-        },
-      },
-      { upsert: true, new: true }
-    );
+        { upsert: true, new: true }
+      ));
 
     const docCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const inspectionLink = await resolveBuyerInspectionLink({
+      inspectionId,
+      buyerId: String(buyer._id),
+    });
+    const linkFields = inspectionLinkFields(inspectionLink);
 
     const createdDocs = await Promise.all(
       documentsMetadata.map((doc: any) => {
@@ -101,6 +114,7 @@ export const submitDocumentVerification = async (
           documents: documentPayload,
           docType: doc.documentType,
           status: "awaiting-acceptance",
+          ...linkFields,
         });
       })
     );

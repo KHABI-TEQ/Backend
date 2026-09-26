@@ -181,6 +181,12 @@ export const getSingleDeveloper = async (
       kyc = null;
     }
 
+    const brm = user.brmId
+      ? await DB.Models.BusinessRelationManager.findById(user.brmId)
+          .select("fullName profilePicture phoneNumber gender serviceMessage isActive")
+          .lean()
+      : null;
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Developer fetched successfully",
@@ -189,6 +195,23 @@ export const getSingleDeveloper = async (
         profile,
         kyc,
         kycStatus: kyc?.kycStatus || "none",
+        brm: brm
+          ? {
+              id: String(brm._id),
+              fullName: brm.fullName,
+              profilePicture: brm.profilePicture,
+              phoneNumber: brm.phoneNumber,
+              gender: brm.gender,
+              serviceMessage: brm.serviceMessage,
+              isActive: brm.isActive,
+            }
+          : null,
+        journey: user.brmId
+          ? {
+              brmId: String(user.brmId),
+              path: `/admin/brms/${user.brmId}/users/${user._id}/journey`,
+            }
+          : null,
       },
     });
   } catch (err) {

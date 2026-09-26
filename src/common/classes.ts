@@ -11,7 +11,6 @@ interface TokenPayload {
     | "Agent"
     | "Landowners"
     | "Admin"
-    | "FieldAgent"
     | "Developer"
     | "Buyer"
     | "Lawyer"

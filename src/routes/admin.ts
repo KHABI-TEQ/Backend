@@ -49,6 +49,11 @@ import {
   deleteBrmAdmin,
 } from "../controllers/Admin/Account/brmAdmin";
 import {
+  listBrmBookAdmin,
+  getBrmPractitionerJourneyAdmin,
+  getPractitionerJourneyAdmin,
+} from "../controllers/Admin/Account/brmBookAdmin";
+import {
   createBrmSchema,
   updateBrmSchema,
 } from "../validators/brm.validator";
@@ -73,9 +78,7 @@ import { deleteVerifyDoc, fetchAllVerifyDocs, fetchSingleVerifyDoc, fetchVerifyD
 import { adminDocumentVerification, sendToVerificationProvider } from "../controllers/Admin/DocumentVerification/DocumentVerificationUploader";
 import { editPropertyAsAdmin } from "../controllers/Admin/Property/editProperty";
 import { deletePropertyById } from "../controllers/Admin/Property/deleteProperty";
-import { assignInspectionToFieldAgent, createFieldAgent, deleteFieldAgentAccount, flagOrUnflagFieldAgentAccount, getAllFieldAgents, getFieldAgentAssignedInspections, getFieldAgentDashboardStatistics, getSingleFieldAgentProfile, toggleFieldAgentStatus, updateFieldAgent } from "../controllers/Admin/Account/fieldAgent";
 import { validateJoi } from "../middlewares/validateJoi";
-import { createFieldAgentSchema } from "../validators/fieldAgent.validator";
 import { deleteFileFromCloudinary, uploadFileToCloudinary } from "../controllers/General/UploadFileController";
 import { deleteTransactionDetails, getAllTransactions, getTransactionById, getTransactionStats, validateTransaction } from "../controllers/Admin/Transaction/adminTransaction";
 import { bulkUpsertSettings, createSetting, deleteSetting, getAllSettings, getSetting, updateSetting } from "../controllers/Admin/Settings/mySettings";
@@ -107,6 +110,10 @@ import {
   getTransactionRegistrationStats,
   getTransactionRegistrationById,
 } from "../controllers/Admin/TransactionRegistration/adminTransactionRegistration";
+import {
+  listAdminSeekerJourneys,
+  getAdminSeekerJourney,
+} from "../controllers/Admin/TransactionRegistration/adminSeekerJourneys";
 import {
   listRequestToMarketSales,
   getRequestToMarketSaleStats,
@@ -323,18 +330,18 @@ AdminRouter.get("/developers/:userId/allProperties", getAllDeveloperProperties);
 AdminRouter.delete("/developers/:userId", deleteDeveloperAccount);
 AdminRouter.get("/developers/:userId", getSingleDeveloper);
 
-AdminRouter.get("/field-agents", getAllFieldAgents);
-AdminRouter.get("/field-agents/dashboard", getFieldAgentDashboardStatistics);
-AdminRouter.post("/field-agents/assignInspection", assignInspectionToFieldAgent);
-AdminRouter.post("/field-agents/create", validateJoi(createFieldAgentSchema), createFieldAgent);
-AdminRouter.get("/field-agents/:userId", getSingleFieldAgentProfile);
-AdminRouter.put("/field-agents/:userId/status", toggleFieldAgentStatus);
-AdminRouter.delete("/field-agents/:userId/delete", deleteFieldAgentAccount);
-AdminRouter.put("/field-agents/:userId/flag-account", flagOrUnflagFieldAgentAccount);
-AdminRouter.put("/field-agents/:userId/update-account", updateFieldAgent);
-AdminRouter.get("/field-agents/:userId/allAssignedInspections", getFieldAgentAssignedInspections);
 
 AdminRouter.get("/brms", listBrmsAdmin);
+AdminRouter.get(
+  "/brms/:id/book",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW),
+  listBrmBookAdmin
+);
+AdminRouter.get(
+  "/brms/:id/users/:userId/journey",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW),
+  getBrmPractitionerJourneyAdmin
+);
 AdminRouter.get("/brms/:id", getBrmAdmin);
 AdminRouter.post("/brms", validateJoi(createBrmSchema), createBrmAdmin);
 AdminRouter.put("/brms/:id", validateJoi(updateBrmSchema), updateBrmAdmin);
@@ -468,6 +475,22 @@ AdminRouter.post(
   postRegistrationEscalation
 );
 AdminRouter.get("/transaction-registrations/:registrationId", getTransactionRegistrationById);
+
+AdminRouter.get(
+  "/seeker-journeys",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW),
+  listAdminSeekerJourneys
+);
+AdminRouter.get(
+  "/seeker-journeys/:preferenceId",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW),
+  getAdminSeekerJourney
+);
+AdminRouter.get(
+  "/practitioner-journeys/:userId",
+  requirePermission(PERMISSIONS.KHABITEQ_REGISTRATIONS_VIEW),
+  getPractitionerJourneyAdmin
+);
 
 // LASRERA certificate settings
 AdminRouter.get(

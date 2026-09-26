@@ -101,6 +101,17 @@ export function toAuthorizedCertificateView(reg: ITransactionRegistrationDoc) {
           providedByInsurer: true,
         }
       : null,
+    seekerJourney: (reg as any).seekerJourney
+      ? {
+          searchInsured: Boolean((reg as any).seekerJourney.searchInsured),
+          policyReference: (reg as any).seekerJourney.policyReference || null,
+          dueDiligencePath: (reg as any).seekerJourney.dueDiligencePath || null,
+          dueDiligenceWithKhabiteqProfessionals: Boolean(
+            (reg as any).seekerJourney.dueDiligenceWithKhabiteqProfessionals
+          ),
+          inspectionFeeStatus: (reg as any).seekerJourney.inspectionFeeStatus || null,
+        }
+      : null,
     versions: (reg.certificateVersions || []).map((version) => ({
       version: version.version,
       snapshotAt: formatLongDate(version.snapshotAt),

@@ -4,6 +4,7 @@ import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { AppRequest } from "../../types/express";
+import { isBrmBookUserType } from "../../common/constants/brmBook";
 
 export async function resolveActiveBrmId(
   raw: unknown
@@ -42,10 +43,10 @@ export const updateAccountBrm = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "User not found");
     }
 
-    if (user.userType !== "Agent" && user.userType !== "Developer") {
+    if (!isBrmBookUserType(user.userType)) {
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
-        "Only Agents and Developers can assign a BRM"
+        "Only agents, developers, lawyers, valuers, and surveyors can assign a BRM"
       );
     }
 
@@ -53,12 +54,12 @@ export const updateAccountBrm = async (
     const updated = resolved
       ? await DB.Models.User.findByIdAndUpdate(
           userId,
-          { brmId: resolved },
+          { brmId: resolved, brmAssignedAt: new Date() },
           { new: true }
         )
       : await DB.Models.User.findByIdAndUpdate(
           userId,
-          { $unset: { brmId: 1 } },
+          { $unset: { brmId: 1, brmAssignedAt: 1 } },
           { new: true }
         );
 

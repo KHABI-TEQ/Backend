@@ -12,7 +12,7 @@ import { syncPractitionerPageEligibility } from "../../../services/agentPublishe
 type Kind = "Lawyer" | "Surveyor" | "Valuer";
 
 const USER_SELECT =
-  "firstName lastName email phoneNumber accountId accountApproved accountStatus profile_picture createdAt isAccountVerified userType isInActive isFlagged isDeleted pendingProfessionalType";
+  "firstName lastName email phoneNumber accountId accountApproved accountStatus profile_picture createdAt isAccountVerified userType isInActive isFlagged isDeleted pendingProfessionalType brmId brmAssignedAt";
 
 function profileModel(kind: Kind): mongoose.Model<any> {
   if (kind === "Lawyer") return DB.Models.LawyerProfile;
@@ -218,7 +218,32 @@ async function getProfessionalKycPayload(kind: Kind, userId: string) {
   if (!profile) {
     throw new RouteError(HttpStatusCodes.NOT_FOUND, `${kind} profile not found.`);
   }
-  return { user, profile };
+  const brm = user.brmId
+    ? await DB.Models.BusinessRelationManager.findById(user.brmId)
+        .select("fullName profilePicture phoneNumber gender serviceMessage isActive")
+        .lean()
+    : null;
+  return {
+    user,
+    profile,
+    brm: brm
+      ? {
+          id: String(brm._id),
+          fullName: brm.fullName,
+          profilePicture: brm.profilePicture,
+          phoneNumber: brm.phoneNumber,
+          gender: brm.gender,
+          serviceMessage: brm.serviceMessage,
+          isActive: brm.isActive,
+        }
+      : null,
+    journey: user.brmId
+      ? {
+          brmId: String(user.brmId),
+          path: `/admin/brms/${user.brmId}/users/${user._id}/journey`,
+        }
+      : null,
+  };
 }
 
 export const getLawyerKyc = async (

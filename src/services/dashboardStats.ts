@@ -7,7 +7,6 @@ import { getFieldAgentRepresentationCounts } from "./fieldAgentRepresentationAle
 const PRACTITIONER_LABELS: Record<string, string> = {
   Landowners: "Landlords",
   Agent: "Agents",
-  FieldAgent: "Field Agents",
   Developer: "Developers",
   Lawyer: "Lawyers",
   Surveyor: "Surveyors",

@@ -202,6 +202,13 @@ export interface ITransactionRegistration {
   parties?: ICertificateParty[];
   dueDiligence?: ICertificateDueDiligence[];
   insurance?: ICertificateInsurance;
+  seekerJourney?: {
+    searchInsured?: boolean;
+    policyReference?: string;
+    dueDiligencePath?: string;
+    dueDiligenceWithKhabiteqProfessionals?: boolean;
+    inspectionFeeStatus?: string;
+  };
   certificateVersions?: ICertificateVersionSnapshot[];
 }
 
@@ -370,6 +377,13 @@ export class TransactionRegistration {
           policyReference: { type: String, required: false },
           status: { type: String, required: false },
           date: { type: Date, required: false },
+        },
+        seekerJourney: {
+          searchInsured: { type: Boolean, required: false },
+          policyReference: { type: String, required: false },
+          dueDiligencePath: { type: String, required: false },
+          dueDiligenceWithKhabiteqProfessionals: { type: Boolean, required: false },
+          inspectionFeeStatus: { type: String, required: false },
         },
         certificateVersions: [
           {

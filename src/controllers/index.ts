@@ -37,8 +37,6 @@ import {
   Testimonial,
   IReferralLog,
   ReferralLogModel,
-  IFieldAgentModel,
-  FieldAgent,
   NewTransaction,
   INewTransactionModel,
   UserSubscriptionSnapshot,
@@ -149,7 +147,6 @@ declare interface IModels {
   PropertyView: typeof PropertyView;
   ReferralLog: typeof ReferralLogModel;
   Testimonial: ITestimonialModel;
-  FieldAgent: IFieldAgentModel;
   NewTransaction: INewTransactionModel;
   UserSubscriptionSnapshot: IUserSubscriptionSnapshotModel;
   SubscriptionPlan: ISubscriptionPlanModel;
@@ -232,7 +229,6 @@ export class DB {
       ReferralLog: ReferralLogModel,
       InspectionActivityLog: InspectionActivityLogModel,
       BookingActivityLog: BookingActivityLogModel,
-      FieldAgent: new FieldAgent().model,
       NewTransaction: new NewTransaction().model,
       UserSubscriptionSnapshot: new UserSubscriptionSnapshot().model,
       SubscriptionPlan: new SubscriptionPlan().model,

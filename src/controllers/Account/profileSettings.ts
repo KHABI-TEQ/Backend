@@ -126,10 +126,7 @@ export const getProfile = async (
       };
     }
 
-    if (
-      (ut === "Agent" || ut === "Developer") &&
-      user.brmId
-    ) {
+    if (user.brmId) {
       const brm = await DB.Models.BusinessRelationManager.findById(user.brmId)
         .select("fullName profilePicture phoneNumber gender serviceMessage isActive")
         .lean();
@@ -617,43 +614,7 @@ export const getDashboardData = async (
     }
 
     
-    // FieldAgent: inspection-focused dashboard
-    if (user.userType === "FieldAgent") {
-      const totalInspections = await DB.Models.InspectionBooking.countDocuments({
-        assignedFieldAgent: userId,
-      });
-
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-
-      const assignedToday = await DB.Models.InspectionBooking.countDocuments({
-        assignedFieldAgent: userId,
-        createdAt: { $gte: startOfToday },
-      });
-
-      const completedInspections = await DB.Models.InspectionBooking.countDocuments({
-        assignedFieldAgent: userId,
-        status: "completed",
-      });
-
-      const completionRate =
-        totalInspections > 0
-          ? parseFloat(((completedInspections / totalInspections) * 100).toFixed(2))
-          : 0;
-
-      return res.status(HttpStatusCodes.OK).json({
-        success: true,
-        message: "Dashboard data fetched successfully",
-        data: {
-          totalInspections,
-          assignedToday,
-          completedInspections,
-          completionRate,
-        },
-      });
-    }
-
-    // Other user types (Landowners, Agent) keep their existing logic
+    // Landowners, Agent, Developer, and professional dashboards
     const listingFilters = dashboardListingCountFilters(userId);
     const basePropertyQuery = listingFilters.total;
 

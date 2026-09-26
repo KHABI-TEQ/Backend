@@ -1,10 +1,54 @@
 import { DB } from "../controllers";
 import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
-import {
-  fieldAgentRepresentationAdminAlert,
-  fieldAgentRepresentationPendingDigest,
-} from "../common/emailTemplates/fieldAgentMails";
+function fieldAgentRepresentationAdminAlert(params: {
+  agentName: string;
+  agentEmail: string;
+  fieldAgentName: string;
+  fieldAgentEmail: string;
+  propertySummary: string;
+  inspectionDate?: string;
+  note?: string;
+  reviewLink: string;
+  queueLink: string;
+}): string {
+  return `
+    <p>A licensed Agent representation request is pending.</p>
+    <p><strong>Requested by:</strong> ${params.agentName} (${params.agentEmail})</p>
+    <p><strong>Requested agent:</strong> ${params.fieldAgentName} (${params.fieldAgentEmail})</p>
+    <p><strong>Property:</strong> ${params.propertySummary}</p>
+    ${params.inspectionDate ? `<p><strong>Inspection:</strong> ${params.inspectionDate}</p>` : ""}
+    ${params.note ? `<p><strong>Note:</strong> ${params.note}</p>` : ""}
+    <p><a href="${params.reviewLink}">Review inspection</a> · <a href="${params.queueLink}">Open queue</a></p>
+  `;
+}
+
+function fieldAgentRepresentationPendingDigest(params: {
+  pendingCount: number;
+  acceptedAwaitingAssignment: number;
+  queueLink: string;
+  rows: Array<{
+    inspectionId: string;
+    propertyLabel: string;
+    location: string;
+    agentName: string;
+    fieldAgentName: string;
+    requestedAt: string;
+    reviewLink: string;
+  }>;
+}): string {
+  const items = params.rows
+    .map(
+      (row) =>
+        `<li><a href="${row.reviewLink}">${row.propertyLabel}</a> — ${row.location} · ${row.agentName} → ${row.fieldAgentName} (${row.requestedAt})</li>`,
+    )
+    .join("");
+  return `
+    <p>${params.pendingCount} pending representation request(s). ${params.acceptedAwaitingAssignment} accepted and awaiting assignment.</p>
+    <ul>${items}</ul>
+    <p><a href="${params.queueLink}">Open representation queue</a></p>
+  `;
+}
 import { SystemSettingService } from "./systemSetting.service";
 import { notifyAllActiveAdmins } from "./adminNotification.service";
 

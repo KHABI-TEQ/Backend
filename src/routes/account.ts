@@ -12,20 +12,13 @@ import {
 import { fetchUserInspections, getInspectionStats, getOneUserInspection } from "../controllers/Account/fetchInpections";
 import { respondToInspectionRequest } from "../controllers/Account/inspectionRespond";
 import {
-  cancelFieldAgentRequest,
-  getFieldAgentRepresentationTerms,
-  listAvailableFieldAgents,
-  listFieldAgentRepresentationRequests,
-  requestFieldAgentForInspection,
-  respondToFieldAgentRepresentationRequest,
-} from "../controllers/Account/fieldAgentRepresentation";
-import {
   getLicensedAgentRepresentationTerms,
   getMyPropertyScoutStatus,
   listAvailableLicensedAgents,
   listLicensedAgentRepresentationRequests,
   requestLicensedAgentForInspection,
   respondLicensedAgentRepresentation,
+  cancelLicensedAgentForInspection,
 } from "../controllers/Account/licensedAgentRepresentation";
  
 import {
@@ -114,7 +107,6 @@ import {
 import { applyProfessionalUpgradeSchema } from "../validators/professionalUpgrade.validator";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
-import { completeInspection, fetchAssignedInspections, fetchRecentAssignedInspections, getAssignedInspectionStats, getOneAssignedInspection, sendInspectionParticipantDetails, startInspection, submitInspectionReport } from "../controllers/Account/FieldAgent/getAllAssignedInspections";
 import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
 import {
   listMyTransactionRegistrations,
@@ -302,28 +294,8 @@ AccountRouter.get("/my-inspections/fetchAll", fetchUserInspections);
 AccountRouter.get("/my-inspections/stats", getInspectionStats);
 AccountRouter.post("/my-inspections/:inspectionId/respond", respondToInspectionRequest);
 AccountRouter.get("/my-inspections/:inspectionId", getOneUserInspection);
-AccountRouter.post(
-  "/my-inspections/:inspectionId/request-field-agent",
-  requestFieldAgentForInspection,
-);
-AccountRouter.delete(
-  "/my-inspections/:inspectionId/field-agent-request",
-  cancelFieldAgentRequest,
-);
 
-// Field Agent representation (legacy — prefer licensed-agents routes below)
-AccountRouter.get("/field-agents/representation-terms", getFieldAgentRepresentationTerms);
-AccountRouter.get("/field-agents/available", listAvailableFieldAgents);
-AccountRouter.get(
-  "/inspectionsFieldAgent/representation-requests",
-  listFieldAgentRepresentationRequests,
-);
-AccountRouter.post(
-  "/inspectionsFieldAgent/:inspectionId/representation/respond",
-  respondToFieldAgentRepresentationRequest,
-);
-
-// Property Scout → licensed Agent representation (replaces Field Agent request UX)
+// Property Scout → licensed Agent representation
 AccountRouter.get("/property-scout/status", getMyPropertyScoutStatus);
 AccountRouter.get(
   "/licensed-agents/representation-terms",
@@ -337,6 +309,10 @@ AccountRouter.get(
 AccountRouter.post(
   "/my-inspections/:inspectionId/request-licensed-agent",
   requestLicensedAgentForInspection,
+);
+AccountRouter.delete(
+  "/my-inspections/:inspectionId/request-licensed-agent",
+  cancelLicensedAgentForInspection,
 );
 AccountRouter.post(
   "/licensed-agents/:inspectionId/representation/respond",
@@ -406,16 +382,6 @@ AccountRouter.put("/dealSite/:publicSlug/pause", disableDealSite);
 AccountRouter.put("/dealSite/:publicSlug/resume", enableDealSite);
 AccountRouter.delete("/dealSite/:publicSlug/delete", deleteDealSite);
 
-
-// FIELD AGENT INSPECTIONS ROUTES
-AccountRouter.get("/inspectionsFieldAgent/fetchAll", fetchAssignedInspections);
-AccountRouter.get("/inspectionsFieldAgent/fetchRecent", fetchRecentAssignedInspections);
-AccountRouter.get("/inspectionsFieldAgent/stats", getAssignedInspectionStats);
-AccountRouter.get("/inspectionsFieldAgent/:inspectionId", getOneAssignedInspection);
-AccountRouter.post("/inspectionsFieldAgent/:inspectionId/sendDetails", sendInspectionParticipantDetails);
-AccountRouter.post("/inspectionsFieldAgent/:inspectionId/submitReport", submitInspectionReport);
-AccountRouter.post("/inspectionsFieldAgent/:inspectionId/startInspection", startInspection);
-AccountRouter.post("/inspectionsFieldAgent/:inspectionId/stopInspection", completeInspection);
 
 // MARKETPLACE — general (main-site) preferences for agent dashboard (review-only)
 AccountRouter.get("/marketplace/general-preferences", fetchGeneralMarketplacePreferences);

@@ -34,7 +34,7 @@ export interface IUser {
   isDeleted: boolean;
   accountApproved: boolean;
   accountStatus: "active" | "inactive" | "deleted" | "flagged" | "pending_deletion";
-  userType: "Landowners" | "Agent" | "FieldAgent" | "Developer" | "Lawyer" | "Surveyor" | "Valuer" | "PropertyScout";
+  userType: "Landowners" | "Agent" | "Developer" | "Lawyer" | "Surveyor" | "Valuer" | "PropertyScout";
   /** In-place upgrade from Property Scout to a licensed professional role. */
   pendingProfessionalType?: "Agent" | "Developer" | "Lawyer" | "Surveyor" | "Valuer";
   professionalUpgradeStatus?: "none" | "pending" | "approved" | "rejected";
@@ -52,8 +52,9 @@ export interface IUser {
   mustChangePassword?: boolean;
   /** Landlords / Developers only: CC list for new inspection requests (email + WhatsApp). */
   inspectionNotificationRepresentatives?: IInspectionNotificationRepresentative[];
-  /** Optional Business Relation Manager (Agents / Developers). */
+  /** Optional Business Relation Manager (Agent, Developer, Lawyer, Surveyor, Valuer). */
   brmId?: Types.ObjectId;
+  brmAssignedAt?: Date;
 }
  
 export interface IUserDoc extends IUser, Document {
@@ -93,7 +94,7 @@ export class User {
         },
         userType: {
           type: String,
-          enum: ["Landowners", "Agent", "FieldAgent", "Developer", "Lawyer", "Surveyor", "Valuer", "PropertyScout"],
+          enum: ["Landowners", "Agent", "Developer", "Lawyer", "Surveyor", "Valuer", "PropertyScout"],
           required: true,
         },
         pendingProfessionalType: {
@@ -131,7 +132,9 @@ export class User {
           type: Schema.Types.ObjectId,
           ref: "BusinessRelationManager",
           required: false,
+          index: true,
         },
+        brmAssignedAt: { type: Date },
         inspectionNotificationRepresentatives: {
           type: [
             {

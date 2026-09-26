@@ -4,6 +4,7 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
+import { getBrmBookCounts } from "../../../services/brmPractitionerJourney.service";
 
 export const listBrmsAdmin = async (
   req: AppRequest,
@@ -40,9 +41,15 @@ export const listBrmsAdmin = async (
       DB.Models.BusinessRelationManager.countDocuments(filter),
     ]);
 
+    const bookCounts = await getBrmBookCounts(items.map((item) => String(item._id)));
+    const data = items.map((item) => {
+      const book = bookCounts.get(String(item._id)) || { total: 0, byRole: {} };
+      return { ...item, book };
+    });
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: items,
+      data,
       pagination: {
         page: +page,
         limit: +limit,
@@ -69,7 +76,12 @@ export const getBrmAdmin = async (
     if (!brm) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "BRM not found");
     }
-    return res.status(HttpStatusCodes.OK).json({ success: true, data: brm });
+    const bookCounts = await getBrmBookCounts([String(brm._id)]);
+    const book = bookCounts.get(String(brm._id)) || { total: 0, byRole: {} };
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: { ...brm, book },
+    });
   } catch (err) {
     next(err);
   }

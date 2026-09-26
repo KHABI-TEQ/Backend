@@ -729,9 +729,32 @@ export const getSingleAgentProfile = async (
     );
 
     const completedInspections = inspections.filter((i: any) => i.status === "completed");
+    const brm = user.brmId
+      ? await DB.Models.BusinessRelationManager.findById(user.brmId)
+          .select("fullName profilePicture phoneNumber gender serviceMessage isActive")
+          .lean()
+      : null;
 
     const profileData = {
       user,
+      brm: brm
+        ? {
+            id: String(brm._id),
+            fullName: brm.fullName,
+            profilePicture: brm.profilePicture,
+            phoneNumber: brm.phoneNumber,
+            gender: brm.gender,
+            serviceMessage: brm.serviceMessage,
+            isActive: brm.isActive,
+          }
+        : null,
+      journey:
+        user.brmId
+          ? {
+              brmId: String(user.brmId),
+              path: `/admin/brms/${user.brmId}/users/${user._id}/journey`,
+            }
+          : null,
       agentData,
       transactions,
       inspections,

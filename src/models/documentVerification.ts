@@ -55,6 +55,9 @@ export interface IDocumentVerification {
   declineReason?: string;
   /** marketplace = accept-then-pay; public-page = immediate Paystack */
   source?: "marketplace" | "public-page";
+  inspectionId?: Types.ObjectId;
+  propertyId?: Types.ObjectId;
+  preferenceId?: Types.ObjectId;
 }
 
 export interface IDocumentVerificationDoc extends IDocumentVerification, Document {}
@@ -154,6 +157,9 @@ export class DocumentVerification {
           default: "marketplace",
           index: true,
         },
+        inspectionId: { type: Schema.Types.ObjectId, ref: "InspectionBooking", index: true },
+        propertyId: { type: Schema.Types.ObjectId, ref: "Property", index: true },
+        preferenceId: { type: Schema.Types.ObjectId, ref: "Preference", index: true },
       },
       { timestamps: true }
     );

@@ -77,7 +77,7 @@ export const getMyInspections = async (
   try {
     const buyerId = requireBuyerId(req);
     const inspections = await DB.Models.InspectionBooking.find({
-      requestedBy: buyerId,
+      $or: [{ requestedBy: buyerId }, { bookedBy: buyerId }],
     })
       .sort({ createdAt: -1 })
       .populate(

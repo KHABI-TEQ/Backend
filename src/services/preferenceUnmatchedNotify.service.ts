@@ -8,6 +8,12 @@ import {
 import { dealSiteBaseUrlFromPublicSlug } from "../utils/matchedPropertiesDealSiteUrl";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 import { createBuyerInboxNotification } from "./buyerNotification.service";
+import {
+  clientAbsoluteUrl,
+  isDealSitePreference,
+  isMainSiteWebsitePreference,
+  isPreferenceInsuredSearch,
+} from "../utils/seekerJourney";
 
 export const UNMATCHED_SEARCH_REMINDER_MS = 48 * 60 * 60 * 1000;
 const CRON_BATCH_LIMIT = 200;
@@ -75,13 +81,15 @@ async function resolveSubmitPreferenceUrl(preference: any): Promise<string | und
 function unmatchedInboxMeta(preference: any) {
   const preferenceId = String(preference._id);
   const buyerId = String(preference.buyer?._id || preference.buyer || "");
+  const insuredMainSite =
+    isMainSiteWebsitePreference(preference) && isPreferenceInsuredSearch(preference);
   return {
     source: "system" as const,
     audience: "buyer" as const,
-    screen: "preferences",
+    screen: insuredMainSite ? "searches" : "preferences",
     preferenceId,
     buyerId,
-    actionPath: `/preferences/${preferenceId}`,
+    actionPath: insuredMainSite ? "/buyer/searches" : `/preferences/${preferenceId}`,
   };
 }
 
@@ -114,7 +122,11 @@ async function deliverUnmatchedChannels(params: {
     );
   }
 
-  if (buyerId) {
+  const sendInbox =
+    !isMainSiteWebsitePreference(preference) ||
+    isPreferenceInsuredSearch(preference) ||
+    isDealSitePreference(preference);
+  if (buyerId && sendInbox) {
     await createBuyerInboxNotification({
       buyerId,
       title: inboxTitle,
@@ -166,7 +178,15 @@ export async function notifyPreferenceNoMatches(preferenceId: string): Promise<v
   const buyerName = buyerNameFromPreference(preference);
   const submitPreferenceUrl = await resolveSubmitPreferenceUrl(preference);
   const firstName = String(buyerName).trim().split(/\s+/)[0] || "there";
-  const inner = noMatchesPreferenceFeedbackMail({ buyerName, submitPreferenceUrl });
+  const accountLink =
+    isMainSiteWebsitePreference(preference) && isPreferenceInsuredSearch(preference)
+      ? clientAbsoluteUrl("/buyer/searches")
+      : undefined;
+  const inner = noMatchesPreferenceFeedbackMail({
+    buyerName,
+    submitPreferenceUrl,
+    accountLink,
+  });
   const text =
     `Hi ${firstName}, thank you for your patience while we reviewed your property preference. ` +
     `At this time, we have not identified a suitable match based on your current requirements. ` +
@@ -193,9 +213,14 @@ export async function notifyPreferenceStillSearching(preference: any): Promise<v
   const email = await resolvePreferenceRecipientEmail(preference);
   const buyerName = buyerNameFromPreference(preference);
   const summary = preferenceSummaryLine(preference);
+  const accountLink =
+    isMainSiteWebsitePreference(preference) && isPreferenceInsuredSearch(preference)
+      ? clientAbsoluteUrl("/buyer/searches")
+      : undefined;
   const inner = stillSearchingPreferenceMail({
     buyerName,
     preferenceSummary: summary,
+    accountLink,
   });
   const text =
     `Hi ${buyerName}, we are still actively searching for a listing that matches your preference` +

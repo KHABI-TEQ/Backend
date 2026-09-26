@@ -9,6 +9,7 @@ import {
   listMyProfessionalServiceRequests,
   listProfessionalServiceCatalog,
 } from "../../services/professionalCatalog.service";
+import { loadBuyerFromRequest } from "../../utils/seekerTransactionGate";
 
 export const listProfessionalServices = async (
   _req: AppRequest,
@@ -46,17 +47,20 @@ export const createCatalogServiceRequest = async (
   next: NextFunction
 ) => {
   try {
-    const { contact, answers } = req.body || {};
+    const { contact, answers, inspectionId } = req.body || {};
     if (!contact?.email || !contact?.fullName) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
         "Contact name and email are required."
       );
     }
+    const authBuyer = await loadBuyerFromRequest(req);
     const result = await createProfessionalServiceRequest({
       slug: req.params.slug,
       contact,
       answers,
+      inspectionId,
+      buyerId: authBuyer?._id ? String(authBuyer._id) : undefined,
     });
     return res.status(HttpStatusCodes.OK).json({
       success: true,

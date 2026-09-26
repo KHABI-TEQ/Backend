@@ -21,7 +21,6 @@ export * from "./user";
 export * from "./propertyView";
 export * from "./testimonial";
 export * from "./referralLog";
-export * from "./fieldAgent";
 export * from "./newTransaction";
 export * from "./bookingRequests";
 export * from "./userSubscriptionSnapshot";

@@ -15,6 +15,11 @@ import {
   marketplaceSearchRegex,
   notifyProfessionalOfNewRequest,
 } from "../../services/professionalRequest.service";
+import {
+  inspectionLinkFields,
+  loadBuyerFromRequest,
+  resolveBuyerInspectionLink,
+} from "../../utils/seekerTransactionGate";
 
 function mapLawyerCard(p: any) {
   return {
@@ -193,6 +198,7 @@ export const createSurveyRequest = async (
       propertyAddress,
       surveyPlanUrl,
       notes,
+      inspectionId,
     } = req.body;
 
     if (!contactInfo?.email || !surveyorId || !serviceType) {
@@ -220,19 +226,27 @@ export const createSurveyRequest = async (
     assertProfessionalPayoutReady(profile);
     await assertSurveyorFeeInRange(profile.surveyFee);
 
-    const buyer = await DB.Models.Buyer.findOneAndUpdate(
-      { email: String(contactInfo.email).toLowerCase().trim() },
-      {
-        $set: {
-          fullName: contactInfo.fullName || undefined,
-          phoneNumber: contactInfo.phoneNumber || undefined,
+    const authBuyer = await loadBuyerFromRequest(req);
+    const buyer =
+      authBuyer ||
+      (await DB.Models.Buyer.findOneAndUpdate(
+        { email: String(contactInfo.email).toLowerCase().trim() },
+        {
+          $set: {
+            fullName: contactInfo.fullName || undefined,
+            phoneNumber: contactInfo.phoneNumber || undefined,
+          },
+          $setOnInsert: {
+            email: String(contactInfo.email).toLowerCase().trim(),
+          },
         },
-        $setOnInsert: {
-          email: String(contactInfo.email).toLowerCase().trim(),
-        },
-      },
-      { upsert: true, new: true }
-    );
+        { upsert: true, new: true }
+      ));
+
+    const inspectionLink = await resolveBuyerInspectionLink({
+      inspectionId,
+      buyerId: String(buyer._id),
+    });
 
     const request = await DB.Models.SurveyRequest.create({
       buyerId: buyer._id,
@@ -243,6 +257,7 @@ export const createSurveyRequest = async (
       notes,
       amountPaid: profile.surveyFee,
       status: "awaiting-acceptance",
+      ...inspectionLinkFields(inspectionLink),
     });
 
     const surveyorName =

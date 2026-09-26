@@ -13,6 +13,7 @@ import {
   notifyPublisherRepresentativesInspectionRequest,
 } from "../../../services/inspectionWorkflow.service";
 import { getPropertyTitleFromLocation } from "../../../utils/helper";
+import { isPreferenceInsuredSearch } from "../../../utils/seekerJourney";
 
 export const submitInspectionRequest = async (
   req: AppRequest,
@@ -56,7 +57,11 @@ export const submitInspectionRequest = async (
         totalInspectionAmount += optionalInspectionFeeNaira(property.inspectionFee);
       }
 
-      if (clientAmount != null && Number(clientAmount) !== totalInspectionAmount) {
+      if (
+        clientAmount != null &&
+        Number(clientAmount) !== 0 &&
+        Number(clientAmount) !== totalInspectionAmount
+      ) {
         throw new RouteError(
           HttpStatusCodes.BAD_REQUEST,
           `Inspection amount must equal the sum of selected properties' inspection fees (₦${totalInspectionAmount}).`,
@@ -84,7 +89,18 @@ export const submitInspectionRequest = async (
         const inspectionType = prop.inspectionType;
         const stage = isNegotiating || isLOI ? "negotiation" : "inspection";
 
-        const propertyAmount = optionalInspectionFeeNaira((property as any).inspectionFee);
+        const requestSource = prop.requestSource || null;
+        const preferenceId = requestSource?.preferenceId || requestSource?.preference;
+        let isInsuredSearch = false;
+        if (preferenceId) {
+          const pref = await DB.Models.Preference.findById(preferenceId)
+            .select("searchInsurance")
+            .lean();
+          isInsuredSearch = isPreferenceInsuredSearch(pref);
+        }
+        const propertyAmount = isInsuredSearch
+          ? 0
+          : optionalInspectionFeeNaira((property as any).inspectionFee);
 
         const inspection = await DB.Models.InspectionBooking.create({
           propertyId: prop.propertyId,
@@ -105,7 +121,11 @@ export const submitInspectionRequest = async (
           owner: property.owner,
           pendingResponseFrom: "seller",
           stage,
-          meta: { requestSource: prop.requestSource || null },
+          isInsuredSearch,
+          meta: {
+            requestSource,
+            preferenceId: preferenceId ? String(preferenceId) : undefined,
+          },
         });
 
         savedInspections.push(inspection);
@@ -141,6 +161,7 @@ export const submitInspectionRequest = async (
             inspectionDate: inspection.inspectionDate,
             inspectionTime: inspection.inspectionTime,
             amount: propertyAmount,
+            isInsuredSearch,
           });
           await notifyMarketingAgentsInspectionRequest({
             property: property as any,

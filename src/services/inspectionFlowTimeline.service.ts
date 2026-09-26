@@ -1,5 +1,4 @@
 import { IInspectionBookingDoc } from "../models";
-import { FIELD_AGENT_COMMISSION_TIMELINE_DETAIL } from "../common/constants/fieldAgentRepresentation";
 
 export type InspectionFlowStepStatus = "done" | "pending" | "skipped" | "active";
 
@@ -176,7 +175,7 @@ export function buildInspectionFlowTimeline(
       label: "Buyer confirmed transaction completed",
       status: ins.buyerConfirmedTransactionAt ? "done" : "skipped",
       at: iso(ins.buyerConfirmedTransactionAt as Date),
-      detail: FIELD_AGENT_COMMISSION_TIMELINE_DETAIL,
+      detail: "Licensed Agent representation and inspection fee split apply when a representing agent is assigned.",
     },
   ];
 

@@ -105,6 +105,11 @@ export interface IInspectionBooking {
   /** Cron: 1h-before inspection reminder sent at. */
   reminder1hSentAt?: Date;
 
+  /** True when the booking came from an insured preference search. */
+  isInsuredSearch?: boolean;
+  /** Cron: 2 hours after agreed slot — proceed-to-transaction prompt sent. */
+  proceedToTransactionPromptSentAt?: Date;
+
   /** Buyer chose to proceed with this property after inspection (or keep searching). */
   wishToProceed?: boolean;
   /** How the buyer will handle due diligence before transaction registration. */
@@ -264,6 +269,8 @@ export class InspectionBooking {
         reminder24hSentAt: { type: Date },
         reminder3hSentAt: { type: Date },
         reminder1hSentAt: { type: Date },
+        isInsuredSearch: { type: Boolean, default: false },
+        proceedToTransactionPromptSentAt: { type: Date },
         wishToProceed: { type: Boolean },
         dueDiligencePath: {
           type: String,

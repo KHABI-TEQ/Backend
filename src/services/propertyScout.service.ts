@@ -18,8 +18,6 @@ export function displayRoleFromUserType(userType?: string | null): string {
       return "Property Scout";
     case "Landowners":
       return "Property Owner";
-    case "FieldAgent":
-      return "Field Agent";
     case "Agent":
       return "Agent";
     case "Developer":

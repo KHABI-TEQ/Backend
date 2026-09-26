@@ -13,7 +13,6 @@ import {
 } from "../../services/inspectionWorkflow.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
-import { optionalInspectionFeeNaira } from "../../services/propertyValidation.service";
 import {
   computeInspectionFeeSplit,
 } from "../../common/constants/inspectionFeeSplit";
@@ -116,9 +115,23 @@ export const respondToInspectionRequest = async (
     const buyer = inspection.requestedBy as any;
     const propertyLocation = getPropertyTitleFromLocation(property?.location) || "Property";
 
-    // Base amount from the listing fee (0 = none). Agent may override on accept.
-    let amount = optionalInspectionFeeNaira(property?.inspectionFee);
-    if (action === "accept" && bodyFee !== undefined && bodyFee !== null && bodyFee !== "") {
+    const isInsuredSearch = Boolean((inspection as any).isInsuredSearch);
+
+    if (action === "accept" && isInsuredSearch) {
+      const requested = bodyFee !== undefined && bodyFee !== null && bodyFee !== ""
+        ? Number(bodyFee)
+        : 0;
+      if (Number.isFinite(requested) && requested > 0) {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "Inspection fee is waived for insured searches. Accept without a fee.",
+        );
+      }
+    }
+
+    // Uninsured: charge only if the agent explicitly requests a fee. Do not auto-use listing fee.
+    let amount = 0;
+    if (action === "accept" && !isInsuredSearch && bodyFee !== undefined && bodyFee !== null && bodyFee !== "") {
       const numFee = Number(bodyFee);
       if (!Number.isFinite(numFee) || numFee < 0) {
         throw new RouteError(
@@ -175,8 +188,11 @@ export const respondToInspectionRequest = async (
     // DealSite: Agent/Developer may optionally set inspection fee (₦1,000–₦50,000) when accepting.
     // If set, create payment link and notify buyer with it; otherwise notify acceptance only (no payment).
     if (isDealSite) {
-      let dealSiteAmount = 0;
-      if (bodyFee !== undefined && bodyFee !== null) {
+      if (isInsuredSearch) {
+        // Insured searches never charge a deal-site fee.
+      }
+      let dealSiteAmount = isInsuredSearch ? 0 : 0;
+      if (!isInsuredSearch && bodyFee !== undefined && bodyFee !== null) {
         const numFee = Number(bodyFee);
         if (Number.isFinite(numFee) && numFee >= INSPECTION_FEE_MIN && numFee <= INSPECTION_FEE_MAX) {
           dealSiteAmount = Math.round(numFee);

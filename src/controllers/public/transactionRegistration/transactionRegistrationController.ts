@@ -36,6 +36,10 @@ import { ensureTransactionCertificateIdentity } from "../../../services/transact
 import { logCertificateActivity } from "../../../services/transactionCertificateAudit.service";
 import { isTransactionReference, normalizeTransactionReference } from "../../../services/transactionReference.service";
 import { normalizePropertyCode } from "../../../services/propertyCode.service";
+import {
+  assertSeekerCanRegisterTransaction,
+  loadBuyerFromRequest,
+} from "../../../utils/seekerTransactionGate";
 
 const ACTIVE_OR_COMPLETED_STATUSES = [
   "submitted",
@@ -586,6 +590,14 @@ export const registerTransaction = async (
       if (!agent) {
         throw new RouteError(HttpStatusCodes.NOT_FOUND, "Agent not found.");
       }
+    }
+
+    if (inspectionId) {
+      const sessionBuyer = await loadBuyerFromRequest(req);
+      await assertSeekerCanRegisterTransaction({
+        inspectionId,
+        buyerId: sessionBuyer?._id ? String(sessionBuyer._id) : undefined,
+      });
     }
 
     const fee = getProcessingFeeNaira(transactionType, transactionValue);

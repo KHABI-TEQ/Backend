@@ -50,8 +50,10 @@ export async function notifyAgentOfInspectionRequest(params: {
   inspectionDate: Date;
   inspectionTime: string;
   amount: number;
+  isInsuredSearch?: boolean;
 }): Promise<void> {
-  const { inspectionId, propertyId, ownerId, buyerName, inspectionDate, inspectionTime, amount } = params;
+  const { inspectionId, propertyId, ownerId, buyerName, inspectionDate, inspectionTime, isInsuredSearch } = params;
+  const amount = isInsuredSearch ? 0 : params.amount;
   const property = await DB.Models.Property.findById(propertyId).select("location").lean();
   const owner = await DB.Models.User.findById(ownerId).select("email firstName lastName phoneNumber").lean();
   if (!owner) return;
@@ -59,9 +61,13 @@ export async function notifyAgentOfInspectionRequest(params: {
   const location = property
     ? getPropertyTitleFromLocation(property.location) || "Property"
     : "Property";
-  const title = "New inspection request";
-  const hasFee = amount != null && amount > 0;
-  const message = hasFee
+  const title = isInsuredSearch
+    ? "New inspection request — insured search, fee waived"
+    : "New inspection request";
+  const hasFee = !isInsuredSearch && amount != null && amount > 0;
+  const message = isInsuredSearch
+    ? `${buyerName} has requested an inspection for ${location}. Insured search — inspection fee waived. Please accept or reject the request.`
+    : hasFee
     ? `${buyerName} has requested an inspection for ${location} (₦${amount.toLocaleString()}). Please accept or reject the request.`
     : `${buyerName} has requested an inspection for ${location}. Please accept or reject the request.`;
 
@@ -80,10 +86,16 @@ export async function notifyAgentOfInspectionRequest(params: {
   });
 
   const link = getClientDashboardUrl();
-  const feeLine = hasFee ? `<p>Inspection fee: ₦${amount.toLocaleString()}</p>` : "";
-  const acceptLine = hasFee
+  const feeLine = isInsuredSearch
+    ? "<p><strong>Insured search — inspection fee waived.</strong> The client will not pay an inspection fee.</p>"
+    : hasFee
+      ? `<p>Inspection fee: ₦${amount.toLocaleString()}</p>`
+      : "<p>You may request an inspection fee (₦1,000–₦50,000) when you accept, or confirm no fee.</p>";
+  const acceptLine = isInsuredSearch
+    ? "<p>Please accept or reject this request. Accepting confirms the slot immediately — no payment is required.</p>"
+    : hasFee
     ? "<p>Please accept or reject this request. If you accept, the buyer will receive a payment link.</p>"
-    : "<p>Please accept or reject this request. If you accept, the buyer will be notified.</p>";
+    : "<p>Please accept or reject this request. If you accept, you can request a fee or confirm no fee.</p>";
   const html = generalEmailLayout(`
     <p>Hello ${(owner as any).firstName || (owner as any).lastName || "there"},</p>
     <p><strong>${buyerName}</strong> has requested an inspection for your property at <strong>${location}</strong>.</p>

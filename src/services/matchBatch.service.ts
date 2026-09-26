@@ -10,6 +10,14 @@ import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
 import { resolveMatchedPropertiesEmailBaseUrl, dealSitePublicSlugForProperty } from "../utils/matchedPropertiesDealSiteUrl";
 import { calculateDetailedMatchScore } from "../controllers/Admin/preference/findMatchProerty";
 import { getPropertyTitleFromLocation } from "../utils/helper";
+import {
+  clientAbsoluteUrl,
+  insuredMatchPath,
+  isDealSitePreference,
+  isMainSiteWebsitePreference,
+  isPreferenceInsuredSearch,
+  publicFrontendPropertyPath,
+} from "../utils/seekerJourney";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "./whatsappClient.service";
 import { getBuyerConfirmationApiPath } from "./buyerConfirmationToken.service";
 import {
@@ -164,14 +172,23 @@ export async function notifyMatchBatch(params: {
     (matchedRecord.matchedProperties || []).map((id: Types.ObjectId) => id)
   );
   const trimmedOverride = matchEmailBaseUrlOverride?.replace(/\/$/, "").trim();
+  const isDealSite =
+    isDealSitePreference(preference) || Boolean(trimmedOverride);
+  const insured = isPreferenceInsuredSearch(preference);
+  const mainSiteWebsite = !isDealSite && isMainSiteWebsitePreference(preference);
+
   const matchBaseUrl = trimmedOverride
     ? trimmedOverride
-    : await resolveMatchedPropertiesEmailBaseUrl(propertiesOrdered);
-  const matchLink = `${matchBaseUrl}/matched-properties/${matchedRecord._id}/${preference._id}`;
+    : isDealSite
+      ? await resolveMatchedPropertiesEmailBaseUrl(propertiesOrdered)
+      : "";
+  const matchLink = isDealSite
+    ? `${(matchBaseUrl || (await resolveMatchedPropertiesEmailBaseUrl(propertiesOrdered))).replace(/\/$/, "")}/matched-properties/${matchedRecord._id}/${preference._id}`
+    : "";
   const api = apiBase();
   const token = String(matchedRecord.batchAccessToken || "");
   const nextBatchLink =
-    batch.hasMore && token
+    isDealSite && batch.hasMore && token
       ? api
         ? `${api}/preferences/matches/${matchedRecord._id}/${preference._id}/next-batch?token=${encodeURIComponent(token)}`
         : `${matchLink}?pullNext=1&token=${encodeURIComponent(token)}`
@@ -184,6 +201,27 @@ export async function notifyMatchBatch(params: {
     ? "app"
     : "website";
 
+  const batchDocs = batchPropertyIds
+    .map((id) => propertiesOrdered.find((p: any) => String(p._id) === String(id)))
+    .filter(Boolean) as any[];
+  const listingLinks = mainSiteWebsite
+    ? batchDocs.map((p) => {
+        const title =
+          getPropertyTitleFromLocation(p.location) || p.propertyType || "Property";
+        const loc = p.location
+          ? [p.location.area, p.location.localGovernment, p.location.state]
+              .filter(Boolean)
+              .join(", ")
+          : "";
+        const path = insured
+          ? insuredMatchPath(String(p._id), String(preference._id), String(matchedRecord._id))
+          : publicFrontendPropertyPath(p);
+        return { title, location: loc, url: clientAbsoluteUrl(path), path };
+      })
+    : [];
+  const firstListing = listingLinks[0];
+  const emailMatchLink = firstListing?.url || matchLink || clientAbsoluteUrl("/buyer/searches");
+
   const title = `${batch.total} match${batch.total === 1 ? "" : "es"} found`;
   const message = batch.hasMore
     ? `${batchSize} ${batchSize === 1 ? "is" : "are"} ready to view (${batch.revealedCount} of ${batch.total}). Open this batch, or request the next ${batch.nextBatchSize}.`
@@ -192,16 +230,22 @@ export async function notifyMatchBatch(params: {
   const pushTitle = title;
   const pushBody = message;
 
+  const webActionPath =
+    mainSiteWebsite && insured && firstListing
+      ? firstListing.path
+      : `/matches/${matchedRecord._id}/${preference._id}`;
+
   const inboxMeta = {
     source: via === "app" ? "system" : "email",
     audience: "buyer" as const,
     screen: "matches",
     matchedId: String(matchedRecord._id),
     preferenceId: String(preference._id),
+    propertyId: firstListing ? String(batchDocs[0]?._id || "") : undefined,
     buyerId,
     hasMore: batch.hasMore,
     nextBatchSize: batch.nextBatchSize,
-    actionPath: `/matches/${matchedRecord._id}/${preference._id}`,
+    actionPath: webActionPath,
   };
 
   const sendInbox = async () => {
@@ -227,9 +271,10 @@ export async function notifyMatchBatch(params: {
         matchCount: batchSize,
         totalMatchCount: batch.total,
         revealedCount: batch.revealedCount,
-        matchLink,
+        matchLink: emailMatchLink,
         nextBatchLink: nextBatchLink || undefined,
         remainingCount: batch.remaining,
+        listingLinks: listingLinks.length ? listingLinks : undefined,
       })
     );
     await sendEmail({
@@ -255,12 +300,25 @@ export async function notifyMatchBatch(params: {
         preferenceId: String(preference._id),
         buyerId,
         hasMore: batch.hasMore ? "true" : "false",
-        actionPath: `/matches/${matchedRecord._id}/${preference._id}`,
+        actionPath: webActionPath,
       },
     });
   };
 
-  if (notifyChannels === "all") {
+  if (mainSiteWebsite) {
+    try {
+      await sendMatchEmail();
+    } catch (e) {
+      console.warn("[matchBatch] Match email failed:", e);
+    }
+    if (insured) {
+      try {
+        await sendInbox();
+      } catch (e) {
+        console.warn("[matchBatch] Match in-app notify failed:", e);
+      }
+    }
+  } else if (notifyChannels === "all") {
     try {
       await sendMatchEmail();
     } catch (e) {

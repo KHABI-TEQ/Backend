@@ -13,17 +13,18 @@ export const DEFAULT_DEAL_SITE_NAV: DealSiteNavItem[] = [
   { key: "faq", label: "FAQ", href: "/faq", enabled: false },
   { key: "contact", label: "Contact Us", href: "/contact", enabled: true },
   { key: "preferences", label: "Submit Preference", href: "/preferences", enabled: true },
-  { key: "transaction-registration", label: "Transaction registration", href: "/transaction-registration", enabled: true },
 ];
 
 export function resolveDealSiteNav(items?: DealSiteNavItem[] | null): DealSiteNavItem[] {
   if (!Array.isArray(items) || items.length === 0) return DEFAULT_DEAL_SITE_NAV;
-  return items.map((item) => ({
-    key: String(item.key || "").trim() || "custom",
-    label: String(item.label || "").trim() || "Page",
-    href: String(item.href || "/").trim() || "/",
-    enabled: item.enabled !== false,
-  }));
+  return items
+    .filter((item) => String(item.key || "") !== "transaction-registration")
+    .map((item) => ({
+      key: String(item.key || "").trim() || "custom",
+      label: String(item.label || "").trim() || "Page",
+      href: String(item.href || "/").trim() || "/",
+      enabled: item.enabled !== false,
+    }));
 }
 
 /** Normalize editor aliases so hero/footer/contact actually persist. */

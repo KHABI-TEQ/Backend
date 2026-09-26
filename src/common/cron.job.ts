@@ -9,13 +9,13 @@ import { sendTransactionConfirmationRequestEmails } from '../services/transactio
 import { sendInspectionConfirmationRequestEmails } from '../services/inspectionConfirmationCron.service';
 import { getClientDashboardUrl } from '../utils/clientAppUrl';
 import { processInspectionReminders } from '../services/inspectionReminderCron.service';
+import { processProceedToTransactionPrompts } from '../services/proceedToTransactionPromptCron.service';
 import { processShortletViewingWhatsappReminders } from '../services/shortletViewingWhatsapp.cron.service';
 import { runShortletHostPayoutCron } from '../services/shortletHostPayout.cron.service';
 import { reconcileRunningDealSitesWithoutActiveSubscription } from '../services/dealSiteReconciliation.service';
 import { reconcileRunningDealSitesWithoutKycApproval } from '../services/dealSiteKycEligibility.service';
 import { computePaidSubscriptionExpiresAt } from '../services/agentSubscriptionIncentive.service';
 import { dispatchPendingSyndicationJobs } from '../services/propertySyndication.service';
-import { sendPendingFieldAgentRepresentationDigest } from '../services/fieldAgentRepresentationAlert.service';
 import { runCustomDomainRenewalCron, syncCustomDomainExpiryFromSubscription } from '../services/customDomain.service';
 import { processUnmatchedPreferenceSearchReminders } from '../services/preferenceUnmatchedNotify.service';
 
@@ -482,6 +482,14 @@ cron.schedule('*/10 * * * *', async () => {
     console.error('[CRON] Inspection reminders error:', err);
   }
   try {
+    const { sent } = await processProceedToTransactionPrompts();
+    if (sent > 0) {
+      console.log(`[CRON] Proceed-to-transaction prompts: ${sent} booking(s) notified`);
+    }
+  } catch (err) {
+    console.error('[CRON] Proceed-to-transaction prompts error:', err);
+  }
+  try {
     const { sent24h, sent2h } = await processShortletViewingWhatsappReminders();
     const t = sent24h + sent2h;
     if (t > 0) {
@@ -511,19 +519,6 @@ cron.schedule('* * * * *', async () => {
     await dispatchPendingSyndicationJobs();
   } catch (err) {
     console.error('[CRON] Syndication dispatcher error:', err);
-  }
-});
-
-// Every day at 08:00 – pending Field Agent representation digest for admins
-cron.schedule('0 8 * * *', async () => {
-  try {
-    console.log('[CRON] Field Agent representation pending digest...');
-    const sent = await sendPendingFieldAgentRepresentationDigest();
-    if (sent > 0) {
-      console.log(`[CRON] Field Agent representation digest emailed (${sent} pending row(s)).`);
-    }
-  } catch (err) {
-    console.error('[CRON] Field Agent representation digest error:', err);
   }
 });
 

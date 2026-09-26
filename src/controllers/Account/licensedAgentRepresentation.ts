@@ -529,3 +529,72 @@ export async function listLicensedAgentRepresentationRequests(
     next(err);
   }
 }
+
+export async function cancelLicensedAgentForInspection(
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const userId = req.user?._id;
+    const userType = req.user?.userType;
+    if (!userId) {
+      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
+    }
+
+    const { inspectionId } = req.params;
+    const inspection = await DB.Models.InspectionBooking.findById(inspectionId).exec();
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
+    }
+
+    const allowed = await publisherCanManageInspection(userId, userType, inspection);
+    if (!allowed) {
+      throw new RouteError(HttpStatusCodes.FORBIDDEN, "Not allowed to cancel this request.");
+    }
+
+    if (inspection.fieldAgentRequestStatus !== "pending") {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Only pending licensed Agent requests can be cancelled.",
+      );
+    }
+
+    const targetId = inspection.fieldAgentRequestTargetId?.toString();
+    inspection.fieldAgentRequestStatus = "cancelled";
+    inspection.fieldAgentRespondedAt = new Date();
+    await inspection.save();
+
+    const propertyIdStr = inspectionPropertyId(inspection);
+    if (propertyIdStr) {
+      await InspectionLogService.logActivity({
+        inspectionId: String(inspection._id),
+        propertyId: propertyIdStr,
+        senderId: String(userId),
+        senderRole: "seller",
+        senderModel: "User",
+        message: "Pending licensed Agent representation request cancelled.",
+        status: inspection.status,
+        stage: inspection.stage,
+        meta: { fieldAgentRequestStatus: "cancelled" },
+      });
+    }
+
+    if (targetId) {
+      await notificationService.createNotification({
+        user: targetId,
+        title: "Representation request cancelled",
+        message: "A licensed Agent representation request was cancelled.",
+        type: "inspection",
+        meta: { inspectionId: String(inspection._id) },
+      });
+    }
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Licensed Agent request cancelled.",
+    });
+  } catch (err) {
+    next(err);
+  }
+}

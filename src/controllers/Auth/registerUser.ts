@@ -14,6 +14,7 @@ import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whats
 import { ensurePublisherProfile } from "../../services/publisherKyc.service";
 import { isPublisherKycUserType } from "../../common/kycTypes";
 import { resolveActiveBrmId } from "../Account/assignBrm";
+import { isBrmBookUserType } from "../../common/constants/brmBook";
 
 /**
  * Traditional Registration
@@ -66,10 +67,7 @@ export const registerUser = async (
     }
 
     let resolvedBrmId: Types.ObjectId | null = null;
-    if (
-      req.body.brmId &&
-      (userType === "Agent" || userType === "Developer")
-    ) {
+    if (req.body.brmId && isBrmBookUserType(userType)) {
       resolvedBrmId = await resolveActiveBrmId(req.body.brmId);
     }
 
@@ -96,7 +94,7 @@ export const registerUser = async (
       isFlagged: false,
       isAccountVerified: false,
       accountApproved: false,
-      ...(resolvedBrmId ? { brmId: resolvedBrmId } : {}),
+      ...(resolvedBrmId ? { brmId: resolvedBrmId, brmAssignedAt: new Date() } : {}),
     });
 
     if (userType === "Agent") {

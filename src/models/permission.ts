@@ -11,7 +11,6 @@ export interface IPermission {
     | 'landlords'
     | 'buyers'
     | 'inspections'
-    | 'field-agents'
     | 'admins'
     | 'preferences'
     | 'promotions'
@@ -70,7 +69,6 @@ export class Permission {
             'landlords',
             'buyers',
             'inspections',
-            'field-agents',
             'admins',
             'preferences',
             'promotions',

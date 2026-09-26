@@ -32,6 +32,9 @@ export interface IProfessionalServiceRequest {
   professionalFee: number;
   amountPaid?: number;
   transaction?: Types.ObjectId;
+  inspectionId?: Types.ObjectId;
+  propertyId?: Types.ObjectId;
+  preferenceId?: Types.ObjectId;
   linkedDocumentVerificationId?: Types.ObjectId;
   linkedSurveyRequestId?: Types.ObjectId;
   status: ProfessionalServiceRequestStatus;
@@ -43,6 +46,8 @@ export interface IProfessionalServiceRequest {
   declinedBy?: Types.ObjectId[];
   broadcastAt?: Date;
   unclaimedAdminNotified?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface IProfessionalServiceRequestDoc
@@ -71,6 +76,9 @@ export class ProfessionalServiceRequest {
           required: true,
         },
         buyerId: { type: Schema.Types.ObjectId, ref: "Buyer", index: true },
+        inspectionId: { type: Schema.Types.ObjectId, ref: "InspectionBooking", index: true },
+        propertyId: { type: Schema.Types.ObjectId, ref: "Property", index: true },
+        preferenceId: { type: Schema.Types.ObjectId, ref: "Preference", index: true },
         professionalId: { type: Schema.Types.ObjectId, ref: "User", index: true },
         contact: {
           fullName: { type: String, required: true },

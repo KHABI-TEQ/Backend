@@ -62,7 +62,36 @@ export function extractDeepLinkMetaFromContent(
         return meta;
       }
 
-      // Buyer matched-properties page
+      const insuredMatch = path.match(/\/buyer\/matches\/([^/?#]+)/i);
+      if (insuredMatch) {
+        meta.propertyId = insuredMatch[1];
+        const pref = path.match(/[?&]preferenceId=([^&]+)/i);
+        const matched = path.match(/[?&]matchedId=([^&]+)/i);
+        if (pref) meta.preferenceId = decodeURIComponent(pref[1]);
+        if (matched) meta.matchedId = decodeURIComponent(matched[1]);
+        meta.screen = "matches";
+        meta.actionPath = `/buyer/matches/${insuredMatch[1]}`;
+        meta.audience = "buyer";
+        return meta;
+      }
+
+      const buyerInspection = path.match(/\/buyer\/inspections\/([^/?#]+)/i);
+      if (buyerInspection) {
+        meta.inspectionId = buyerInspection[1];
+        meta.screen = "inspection";
+        meta.actionPath = `/buyer/inspections/${buyerInspection[1]}`;
+        meta.audience = "buyer";
+        return meta;
+      }
+
+      if (/\/buyer\/searches/i.test(path)) {
+        meta.screen = "searches";
+        meta.actionPath = "/buyer/searches";
+        meta.audience = "buyer";
+        return meta;
+      }
+
+      // Buyer matched-properties page (deal-site / mobile batch)
       const matches = path.match(/\/matched-properties\/([^/]+)\/([^/?#]+)/i);
       if (matches) {
         meta.matchedId = matches[1];

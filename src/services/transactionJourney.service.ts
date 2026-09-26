@@ -96,6 +96,13 @@ export async function snapshotTransactionCertificateRecord(
   participatingProfessionals: ICertificateProfessional[];
   parties: ICertificateParty[];
   dueDiligence: ICertificateDueDiligence[];
+  seekerJourney?: {
+    searchInsured?: boolean;
+    policyReference?: string;
+    dueDiligencePath?: string;
+    dueDiligenceWithKhabiteqProfessionals?: boolean;
+    inspectionFeeStatus?: string;
+  };
 }> {
   const property = reg.propertyId
     ? await DB.Models.Property.findById(reg.propertyId)
@@ -362,6 +369,19 @@ export async function snapshotTransactionCertificateRecord(
     });
   }
 
+  const { seekerJourneyFieldsFromInspection } = await import("./seekerJourneyTrail.service");
+  const seekerJourney = inspection
+    ? await seekerJourneyFieldsFromInspection(inspection)
+    : undefined;
+  if (seekerJourney?.searchInsured && seekerJourney.policyReference) {
+    (reg as any).insurance = {
+      ...((reg as any).insurance || {}),
+      provider: (reg as any).insurance?.provider || "Consolidated Hallmark Insurance Plc",
+      policyReference: seekerJourney.policyReference,
+      status: "active",
+    };
+  }
+
   return {
     propertyCode,
     propertyTypeLabel: propertyTypeLabel(property, reg.transactionType),
@@ -370,6 +390,7 @@ export async function snapshotTransactionCertificateRecord(
     participatingProfessionals: professionals,
     parties,
     dueDiligence,
+    seekerJourney,
   };
 }
 
@@ -384,6 +405,9 @@ export async function applyCertificateSnapshot(
   reg.participatingProfessionals = snapshot.participatingProfessionals;
   reg.parties = snapshot.parties;
   reg.dueDiligence = snapshot.dueDiligence;
+  if (snapshot.seekerJourney) {
+    (reg as any).seekerJourney = snapshot.seekerJourney;
+  }
   return reg;
 }
 

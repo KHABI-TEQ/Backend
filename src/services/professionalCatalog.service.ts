@@ -30,6 +30,10 @@ import type {
   IProfessionalServiceRequestDoc,
 } from "../models/professionalServiceRequest";
 import { buildBuyerDocumentMeta } from "../utils/notificationDeepLinks";
+import {
+  inspectionLinkFields,
+  resolveBuyerInspectionLink,
+} from "../utils/seekerTransactionGate";
 
 function newReference(): string {
   return `KHT-PS-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 9000 + 1000)}`;
@@ -108,6 +112,8 @@ export async function createProfessionalServiceRequest(body: {
   slug: string;
   contact: { fullName: string; email: string; phoneNumber?: string };
   answers?: Record<string, unknown>;
+  inspectionId?: string;
+  buyerId?: string;
 }) {
   const service = getCatalogService(body.slug);
   if (!service) {
@@ -122,7 +128,16 @@ export async function createProfessionalServiceRequest(body: {
 
   const answers = body.answers || {};
   validateAnswers(service, answers);
-  const buyer = await upsertBuyer(body.contact);
+  const buyer = body.buyerId
+    ? await DB.Models.Buyer.findById(body.buyerId)
+    : await upsertBuyer(body.contact);
+  if (!buyer) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Buyer record not found.");
+  }
+  const inspectionLink = await resolveBuyerInspectionLink({
+    inspectionId: body.inspectionId,
+    buyerId: String(buyer._id),
+  });
 
   const platformFee = Math.round(
     (service.customerPrice * service.platformFeePercent) / 100
@@ -138,6 +153,7 @@ export async function createProfessionalServiceRequest(body: {
     category: service.category,
     fulfillment: service.fulfillment,
     buyerId: buyer._id,
+    ...inspectionLinkFields(inspectionLink),
     contact: {
       fullName: body.contact.fullName.trim(),
       email: String(body.contact.email).toLowerCase().trim(),
@@ -468,6 +484,9 @@ async function createLinkedJobAfterAccept(
       docType,
       status: "awaiting-payment",
       source: "marketplace",
+      inspectionId: request.inspectionId,
+      propertyId: request.propertyId,
+      preferenceId: request.preferenceId,
     });
     request.linkedDocumentVerificationId = job._id as Types.ObjectId;
   }
@@ -486,6 +505,9 @@ async function createLinkedJobAfterAccept(
       amountPaid: request.customerPrice,
       status: "awaiting-payment",
       source: "marketplace",
+      inspectionId: request.inspectionId,
+      propertyId: request.propertyId,
+      preferenceId: request.preferenceId,
     });
     request.linkedSurveyRequestId = job._id as Types.ObjectId;
   }

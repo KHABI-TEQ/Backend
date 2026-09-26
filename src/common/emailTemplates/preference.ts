@@ -143,6 +143,7 @@ export const matchedPropertiesMail = (mailData: {
   revealedCount?: number;
   remainingCount?: number;
   nextBatchLink?: string;
+  listingLinks?: Array<{ title: string; url: string; location?: string }>;
 }): string => {
   const {
     contactInfo,
@@ -153,6 +154,7 @@ export const matchedPropertiesMail = (mailData: {
     revealedCount,
     remainingCount,
     nextBatchLink,
+    listingLinks,
   } = mailData;
 
   const buyerName =
@@ -194,13 +196,33 @@ export const matchedPropertiesMail = (mailData: {
         </ul>
       </div>
 
+      ${
+        listingLinks && listingLinks.length
+          ? `
+      <p style="font-size: 16px;">Open each listing below to review the match:</p>
+      <div style="margin: 24px 0;">
+        ${listingLinks
+          .map(
+            (item) => `
+        <div style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; margin: 0 0 12px;">
+          <p style="margin: 0 0 6px; font-weight: bold; font-size: 15px;">${item.title}</p>
+          ${item.location ? `<p style="margin: 0 0 10px; font-size: 13px; color: #5A5D63;">${item.location}</p>` : ""}
+          <a href="${item.url}" style="background-color: #007B55; color: #fff; padding: 10px 16px; text-decoration: none; border-radius: 5px; font-size: 14px; display: inline-block;">
+            View listing
+          </a>
+        </div>`
+          )
+          .join("")}
+      </div>`
+          : `
       <p style="font-size: 16px;">To view this batch of matched properties, please click the button below:</p>
 
       <div style="text-align: center; margin: 30px 0;">
         <a href="${matchLink}" style="background-color: #007B55; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
           View ${matchCount} Matched Propert${matchCount === 1 ? "y" : "ies"}
         </a>
-      </div>
+      </div>`
+      }
 
       ${
         nextBatchLink && remaining > 0
@@ -337,6 +359,7 @@ export const rejectedPreferenceMail = (mailData: {
 export const noMatchesPreferenceFeedbackMail = (mailData: {
   buyerName: string;
   submitPreferenceUrl?: string;
+  accountLink?: string;
 }): string => {
   const firstName = String(mailData.buyerName || "").trim().split(/\s+/)[0] || "there";
 
@@ -356,6 +379,17 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
 
       <p style="font-size: 16px;">We'll continue to keep you informed as relevant opportunities become available.</p>
 
+      ${
+        mailData.accountLink
+          ? `
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${mailData.accountLink}" style="background-color: #09391C; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+          View your searches
+        </a>
+      </div>`
+          : ""
+      }
+
       <p style="font-size: 16px;">Best regards,<br/>
       <strong>The Khabiteq Team</strong></p>
     </div>
@@ -366,6 +400,7 @@ export const noMatchesPreferenceFeedbackMail = (mailData: {
 export const stillSearchingPreferenceMail = (mailData: {
   buyerName: string;
   preferenceSummary?: string;
+  accountLink?: string;
 }): string => {
   const { buyerName, preferenceSummary } = mailData;
   const summaryBlock = preferenceSummary
@@ -392,6 +427,17 @@ export const stillSearchingPreferenceMail = (mailData: {
       <p style="font-size: 16px;">
         No action is needed from you. We will check in again in 48 hours if we have not found a match yet.
       </p>
+
+      ${
+        mailData.accountLink
+          ? `
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${mailData.accountLink}" style="background-color: #09391C; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px;">
+          View your searches
+        </a>
+      </div>`
+          : ""
+      }
 
       <p style="font-size: 16px;">Best regards,<br/>
       <strong>The Khabi-Teq Team</strong></p>

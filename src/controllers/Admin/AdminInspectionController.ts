@@ -16,11 +16,10 @@ import notificationService from "../../services/notification.service";
 import { InspectionLogService } from "../../services/inspectionLog.service";
 import { sendInspectionRateReportEmailToBuyer } from "../../services/inspectionWorkflow.service";
 import { AppRequest } from "../../types/express";
-import { FieldAgentAssignmentTemplate, FieldAgentRemovalTemplate, InspectionLoiRejectionTemplate } from "../../common/emailTemplates/inspectionMails";
+import { FieldAgentRemovalTemplate, InspectionLoiRejectionTemplate } from "../../common/emailTemplates/inspectionMails";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
 import { buildInspectionFlowTimeline } from "../../services/inspectionFlowTimeline.service";
-import { assertInspectionReadyForFieldAgent } from "../../services/fieldAgentAssignment.service";
 import { getFieldAgentRepresentationCounts } from "../../services/fieldAgentRepresentationAlert.service";
 
 const ADMIN_USER_SELECT = {
@@ -485,262 +484,6 @@ export class AdminInspectionController {
     });
   }
 
-  /**
- * Attach a field agent to an inspection
- */
-  public async attachFieldAgentToInspection(
-    req: AppRequest,
-    res: Response,
-  ): Promise<Response> {
-    const { id } = req.params;
-    const { fieldAgentId } = req.body;
-
-    if (!mongoose.isValidObjectId(id)) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Invalid inspection ID",
-      );
-    }
-
-    if (!mongoose.isValidObjectId(fieldAgentId)) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Invalid field agent ID",
-      );
-    }
-
-    // Fetch Field Agent by userId (since fieldAgentId refers to user)
-    const fieldAgent = await DB.Models.FieldAgent.findOne({ userId: fieldAgentId })
-      .populate({
-        path: 'userId',
-        model: DB.Models.User.modelName,
-        select: 'firstName lastName email phoneNumber accountApproved isDeleted isAccountVerified accountStatus',
-      });
-
-    if (!fieldAgent) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Field Agent not found");
-    }
-
-    const userData = fieldAgent.userId as any;
-
-    // Ensure field agent is approved
-    if (!userData.accountApproved) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Only approved field agents can be assigned to inspections"
-      );
-    }
-
-    // Fetch inspection with related data
-    const inspection = await DB.Models.InspectionBooking.findById(id)
-      .populate("requestedBy")
-      .populate("propertyId")
-      .populate("owner")
-      .populate("transaction");
-
-    if (!inspection) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
-    }
-
-    await assertInspectionReadyForFieldAgent(inspection as any);
-
-    // Prevent assignment if already completed or cancelled
-    if (["completed", "cancelled"].includes(inspection.stage)) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        `Action not allowed when stage is '${inspection.stage}'`
-      );
-    }
-
-    // Ensure no field agent is already assigned
-    if (inspection.assignedFieldAgent) {
-      throw new RouteError(
-        HttpStatusCodes.CONFLICT,
-        inspection.assignedFieldAgent.toString() === fieldAgentId
-          ? "This field agent is already assigned to this inspection"
-          : "This inspection already has a field agent assigned"
-      );
-    }
-
-    // Assign the field agent
-    inspection.assignedFieldAgent = fieldAgentId;
-    await inspection.save();
-
-    const buyer = inspection.requestedBy as any;
-    const property = inspection.propertyId as any;
-    const owner = inspection.owner as any;
-
-    // Update the field agent's assigned inspections
-    fieldAgent.assignedInspections.push(id);
-    await fieldAgent.save();
-
-    const propertyData = {
-      propertyType: property.propertyType,
-      location: property.location,
-      inspectionDate: inspection.inspectionDate,
-      inspectionTime: inspection.inspectionTime,
-      inspectionMode: inspection.inspectionMode
-    };
-
-    const fieldAgentData = fieldAgent.userId as any;
-
-    const attachFieldAgentBody = generalEmailLayout(
-      FieldAgentAssignmentTemplate(fieldAgentData, propertyData)
-    );
-
-    // Send email + notification
-    await sendEmail({
-      to: fieldAgentData.email,
-      subject: `New Inspection Assignment`,
-      html: attachFieldAgentBody,
-      text: attachFieldAgentBody
-    });
-
-    await notificationService.createNotification({
-      user: fieldAgent.userId._id.toString(),
-      title: "New Inspection Assignment",
-      message: `You have been assigned to an inspection for ${property.propertyType} at ${property.location.area}, ${property.location.localGovernment}, ${property.location.state}.`,
-      meta: {
-        propertyId: property._id,
-        inspectionId: inspection._id,
-      },
-    });
-
-    // Log activity
-    await InspectionLogService.logActivity({
-      inspectionId: inspection._id.toString(),
-      propertyId: property._id.toString(),
-      senderId: req.admin?._id.toString(),
-      senderModel: "Admin",
-      senderRole: "admin",
-      message: `Field agent ${fieldAgentId} assigned to inspection.`,
-      status: inspection.status,
-      stage: inspection.stage,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: `Field agent assigned to inspection successfully.`,
-      data: inspection,
-    });
-  }
-
-  /**
- * Remove a field agent from an inspection
- */
-  public async removeFieldAgentFromInspection(
-    req: AppRequest,
-    res: Response,
-  ): Promise<Response> {
-    const { id } = req.params;
-
-    if (!mongoose.isValidObjectId(id)) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Invalid inspection ID",
-      );
-    }
-
-    const inspection = await DB.Models.InspectionBooking.findById(id)
-      .populate("requestedBy")
-      .populate("propertyId")
-      .populate("owner")
-      .populate({
-        path: "transaction",
-        select: "-paymentDetails" // exclude paymentDetails
-      })
-      .populate({
-        path: "assignedFieldAgent",
-        model: DB.Models.User.modelName,
-        select: "firstName lastName email phoneNumber"
-      });
-
-
-    if (!inspection) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
-    }
-
-    // Prevent removal if completed or cancelled
-    if (["completed", "cancelled"].includes(inspection.stage)) {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        `Action not allowed when stage is '${inspection.stage}'`
-      );
-    }
-
-    // Ensure a field agent is actually assigned
-    if (!inspection.assignedFieldAgent) {
-      throw new RouteError(
-        HttpStatusCodes.CONFLICT,
-        "No field agent assigned to this inspection"
-      );
-    }
-
-    const property = inspection.propertyId as any;
-    const removedAgent = inspection.assignedFieldAgent as any;
-
-    // Remove the field agent from inspection
-    inspection.assignedFieldAgent = undefined;
-    await inspection.save();
-
-    // Remove this inspection from the agent's assigned inspections array
-    await DB.Models.FieldAgent.updateOne(
-      { userId: removedAgent._id },
-      { $pull: { assignedInspections: id } }
-    );
-
-    // Prepare notification + email
-    const propertyData = {
-      propertyType: property.propertyType,
-      location: property.location,
-      inspectionDate: inspection.inspectionDate,
-      inspectionTime: inspection.inspectionTime,
-      inspectionMode: inspection.inspectionMode,
-    };
-
-    const removeFieldAgentBody = generalEmailLayout(
-      FieldAgentRemovalTemplate(removedAgent, propertyData)
-    );
-
-    if (removedAgent) {
-      await sendEmail({
-        to: removedAgent.email,
-        subject: `Inspection Assignment Removed`,
-        html: removeFieldAgentBody,
-        text: removeFieldAgentBody,
-      });
-
-      await notificationService.createNotification({
-        user: removedAgent._id.toString(),
-        title: "Inspection Assignment Removed",
-        message: `Your assignment for ${property.propertyType} at ${property.location.area}, ${property.location.localGovernment}, ${property.location.state} has been removed.`,
-        meta: {
-          propertyId: property._id,
-          inspectionId: inspection._id,
-        },
-      });
-    }
-
-    // Log activity
-    await InspectionLogService.logActivity({
-      inspectionId: inspection._id.toString(),
-      propertyId: property._id.toString(),
-      senderId: req.admin?._id.toString(),
-      senderModel: "Admin",
-      senderRole: "admin",
-      message: `Field agent removed from inspection.`,
-      status: inspection.status,
-      stage: inspection.stage,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: `Field agent removed from inspection successfully.`,
-      data: inspection,
-    });
-  }
-
-
   public async approveOrRejectLOIDocs(
     req: AppRequest,
     res: Response
@@ -1019,16 +762,10 @@ export class AdminInspectionController {
       );
     }
 
-    // If a field agent is assigned, remove inspection reference from their profile
     if (inspection.assignedFieldAgent) {
       const removedAgent = inspection.assignedFieldAgent as any;
 
-      await DB.Models.FieldAgent.updateOne(
-        { userId: removedAgent._id },
-        { $pull: { assignedInspections: inspection._id } }
-      );
-
-      // Notify the agent (optional but recommended)
+      // Notify the assigned representing agent
       const property = inspection.propertyId as any;
       const propertyData = {
         propertyType: property.propertyType,
@@ -1070,7 +807,7 @@ export class AdminInspectionController {
 
     return res.status(200).json({
       success: true,
-      message: `Inspection, linked transaction, and field agent assignment removed successfully.`,
+      message: `Inspection and linked transaction removed successfully.`,
     });
   }
 
