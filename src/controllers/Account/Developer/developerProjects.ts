@@ -86,7 +86,7 @@ export const submitMyOffPlanProject = async (
     const data = await submitDeveloperProject(userId, req.params.id);
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Project submitted for review.",
+      message: "Project submitted for review. It will go live after an admin approves it.",
       data,
     });
   } catch (err) {

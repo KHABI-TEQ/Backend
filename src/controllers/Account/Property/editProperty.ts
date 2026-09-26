@@ -119,9 +119,9 @@ export const editProperty = async (
       ...payload,
       isTenanted: normalizeIsTenantedForDb(payload.isTenanted),
     });
-    if (userType === "PropertyScout") {
+    if (userType === "PropertyScout" || userType === "Landowners" || (userType === "Developer" && String((property as any).propertyType || "").toLowerCase().includes("off"))) {
       const nextStatus = payload.status || property.status;
-      if (nextStatus === "approved" || nextStatus === "available") {
+      if (nextStatus === "approved" || nextStatus === "available" || nextStatus === "back_on_market") {
         property.status = property.status === "approved" ? property.status : "pending";
         property.isApproved = property.status === "approved";
         property.isAvailable = property.status === "approved" && property.isAvailable;

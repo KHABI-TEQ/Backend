@@ -82,7 +82,11 @@ export const postProperty = async (
 
     // Agent commission: Landlord/Developer only. Default 5% sale / 10% rent; landlord min 3%, developer min 1%.
     const allowCommission = userType === "Landowners" || userType === "Developer";
-    const goesLiveImmediately = !standaloneScout;
+    const requiresAdminApproval =
+      userType === "PropertyScout" ||
+      userType === "Landowners" ||
+      (userType === "Developer" && (listingType === "off-plan" || listingType === "offplan"));
+    const goesLiveImmediately = !requiresAdminApproval;
     const propertyData = {
       ...payload,
       isTenanted,
@@ -244,17 +248,21 @@ export const postProperty = async (
     }
 
     try {
-      await autoPairPreferencesForNewProperty(createdProperty._id.toString());
+      if (goesLiveImmediately) {
+        await autoPairPreferencesForNewProperty(createdProperty._id.toString());
+      }
     } catch (pairErr) {
       console.warn("[postProperty] autoPairPreferencesForNewProperty failed:", pairErr);
     }
 
     try {
-      void enqueuePropertySyndicationJobs({
-        propertyId: createdProperty._id.toString(),
-        userId: userId.toString(),
-        eventType: "property.created",
-      });
+      if (goesLiveImmediately) {
+        void enqueuePropertySyndicationJobs({
+          propertyId: createdProperty._id.toString(),
+          userId: userId.toString(),
+          eventType: "property.created",
+        });
+      }
     } catch (syndicationErr) {
       console.warn("[postProperty] enqueue syndication failed:", syndicationErr);
     }
@@ -273,7 +281,9 @@ export const postProperty = async (
 
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
-      message: "Property created successfully",
+      message: requiresAdminApproval
+        ? "Property submitted and pending admin approval. It will go live after it is approved."
+        : "Property created successfully",
       data: createdProperty,
     });
 

@@ -28,11 +28,17 @@ export const setPropertyApprovalStatus = async (
       });
     }
 
-    const update: Partial<{ isApproved: boolean; isRejected: boolean; isAvailable?: boolean }> = {};
+    const update: Partial<{
+      isApproved: boolean;
+      isRejected: boolean;
+      isAvailable?: boolean;
+      status?: string;
+    }> = {};
     if (action === "approve") {
       update.isApproved = true;
       update.isRejected = false;
       update.isAvailable = true;
+      update.status = "approved";
     } else if (action === "unpublish") {
       update.isApproved = false;
       update.isRejected = false;

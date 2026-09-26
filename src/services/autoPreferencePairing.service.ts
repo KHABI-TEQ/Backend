@@ -41,6 +41,7 @@ const PROPERTY_STATUSES_EXCLUDED_FROM_MATCHING = [
   "failed",
   "never_listed",
   "booked",
+  "pending",
   "flagged",
   "hold",
   "temporarily_off_market",
