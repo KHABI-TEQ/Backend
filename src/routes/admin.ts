@@ -8,6 +8,13 @@ import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin,
 import { deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { reviewPublisherKyc } from "../controllers/Admin/Account/publisherKycReview";
 import {
+  deletePropertyScoutAccount,
+  getPropertyScoutKyc,
+  getPropertyScoutProperties,
+  listAllPropertyScouts,
+  listPendingPropertyScoutKyc,
+} from "../controllers/Admin/Account/propertyScouts";
+import {
   reviewLawyerKyc,
   reviewSurveyorKyc,
   reviewValuerKyc,
@@ -329,6 +336,13 @@ AdminRouter.get("/developers", getAllDevelopers);
 AdminRouter.get("/developers/:userId/allProperties", getAllDeveloperProperties);
 AdminRouter.delete("/developers/:userId", deleteDeveloperAccount);
 AdminRouter.get("/developers/:userId", getSingleDeveloper);
+
+AdminRouter.get("/property-scouts/pending-kyc", listPendingPropertyScoutKyc);
+AdminRouter.get("/property-scouts", listAllPropertyScouts);
+AdminRouter.get("/property-scouts/:userId/kyc", getPropertyScoutKyc);
+AdminRouter.get("/property-scouts/:userId/properties", getPropertyScoutProperties);
+AdminRouter.post("/property-scouts/:userId/reviewKycRequest", reviewPublisherKyc);
+AdminRouter.delete("/property-scouts/:userId", deletePropertyScoutAccount);
 
 
 AdminRouter.get("/brms", listBrmsAdmin);

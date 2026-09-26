@@ -403,7 +403,7 @@ export async function getPractitionerJourney(params: {
   if (!isBrmBookUserType(user.userType)) {
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
-      "Transaction journey tracking is available for agents, developers, lawyers, valuers, and surveyors."
+      "Transaction journey tracking is available for agents, developers, lawyers, valuers, surveyors, and property scouts."
     );
   }
   if (!user.brmId) {

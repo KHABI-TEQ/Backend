@@ -4,6 +4,7 @@ export const BRM_BOOK_USER_TYPES = [
   "Lawyer",
   "Surveyor",
   "Valuer",
+  "PropertyScout",
 ] as const;
 
 export type BrmBookUserType = (typeof BRM_BOOK_USER_TYPES)[number];
@@ -18,4 +19,5 @@ export const BRM_BOOK_ROLE_LABEL: Record<BrmBookUserType, string> = {
   Lawyer: "Lawyer",
   Surveyor: "Surveyor",
   Valuer: "Valuer",
+  PropertyScout: "Property Scout",
 };
