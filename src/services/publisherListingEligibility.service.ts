@@ -20,7 +20,17 @@ export async function countPublisherOwnedProperties(
   });
 }
 
-export async function resolvePublisherListingLimit(userId: string): Promise<number> {
+export async function resolvePublisherListingLimit(
+  userId: string,
+  userType?: string | null
+): Promise<number | null> {
+  let resolvedType = userType;
+  if (!resolvedType) {
+    const user = await DB.Models.User.findById(userId).select("userType").lean();
+    resolvedType = user?.userType;
+  }
+  if (resolvedType === "PropertyScout") return null;
+
   const snapshots = await UserSubscriptionSnapshotService.getActiveSnapshots(userId);
   if (!snapshots.length) return PUBLISHER_STANDARD_LISTING_LIMIT;
 
@@ -73,10 +83,24 @@ export async function getPublisherListingSnapshot(
 
   const ownedProperties = await countPublisherOwnedProperties(userId);
   const [listingLimit, activeSnapshots] = await Promise.all([
-    resolvePublisherListingLimit(userId),
+    resolvePublisherListingLimit(userId, userType),
     UserSubscriptionSnapshotService.getActiveSnapshots(userId),
   ]);
   const hasPaidSubscription = activeSnapshots.length > 0;
+  if (listingLimit == null) {
+    return {
+      ownedProperties,
+      listingLimit: null,
+      listingsRemaining: null,
+      unlimitedListings: true,
+      hasPaidSubscription,
+      requiresActiveSubscription: !hasPaidSubscription,
+      canListProperties: hasPaidSubscription,
+      requiresSpecialPlan: false,
+      specialPlanCode: LISTING_LIMIT_SPECIAL_PLAN_CODE,
+      specialPlanName: "Listing allowance",
+    };
+  }
   const listingsRemaining = Math.max(0, listingLimit - ownedProperties);
   const atCap = hasPaidSubscription && ownedProperties >= listingLimit;
 
@@ -112,7 +136,9 @@ export async function assertPublisherListingCapacity(params: {
   const { ownerId, userType } = params;
   if (!isPublisherUserType(userType)) return;
 
-  const listingLimit = await resolvePublisherListingLimit(String(ownerId));
+  const listingLimit = await resolvePublisherListingLimit(String(ownerId), userType);
+  if (listingLimit == null) return;
+
   const owned = await countPublisherOwnedProperties(ownerId);
   if (owned >= listingLimit) {
     throw new RouteError(

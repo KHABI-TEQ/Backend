@@ -115,7 +115,7 @@ export const postPropertyAsAdmin = async (
 
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    if (activeSnapshot) {
+    if (activeSnapshot && userType !== "PropertyScout") {
       try {
         await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(
           activeSnapshot._id.toString(),

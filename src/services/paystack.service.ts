@@ -28,7 +28,7 @@ import { computePaidSubscriptionExpiresAt } from './agentSubscriptionIncentive.s
 import { sendTransactionVoiceNote } from './voiceNote.service';
 import { shortletHostPayoutEligibleAt } from '../utils/shortletPricing';
 import { isWhiteLabelingCategory } from '../common/constants/subscriptionCategories';
-import { listingLimitForPlanCode } from '../common/constants/publisherListingLimits';
+import { isPropertyScoutStandardPlanCode, listingLimitForPlanCode } from '../common/constants/publisherListingLimits';
 
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
@@ -1123,10 +1123,14 @@ export class PaystackService {
         planDuration = plan.durationInDays;
       }
 
-      const resolvedListingLimit = listingLimitForPlanCode(
-        snapshot.meta?.planCode ?? plan.code,
-        resolvedDiscountedPlan?.listingLimit ?? plan.listingLimit
-      );
+      const planCodeForLimit = snapshot.meta?.planCode ?? plan.code;
+      const scoutPlan = isPropertyScoutStandardPlanCode(planCodeForLimit);
+      const resolvedListingLimit = scoutPlan
+        ? 0
+        : listingLimitForPlanCode(
+            planCodeForLimit,
+            resolvedDiscountedPlan?.listingLimit ?? plan.listingLimit
+          );
 
       if (isWhiteLabeling && snapshot.meta?.isRenewal && snapshot.meta?.siteId) {
         const site =
@@ -1165,9 +1169,15 @@ export class PaystackService {
           (f: any) => String(f.feature) === String(listingsFeatureDoc._id)
         );
         if (listingsFeature) {
-          listingsFeature.type = "count";
-          listingsFeature.value = resolvedListingLimit;
-          listingsFeature.remaining = resolvedListingLimit;
+          if (scoutPlan) {
+            listingsFeature.type = "unlimited";
+            listingsFeature.value = undefined;
+            listingsFeature.remaining = undefined;
+          } else {
+            listingsFeature.type = "count";
+            listingsFeature.value = resolvedListingLimit;
+            listingsFeature.remaining = resolvedListingLimit;
+          }
         }
       }
 
@@ -1179,7 +1189,7 @@ export class PaystackService {
         ...snapshot.meta,
         bonusDays: 0,
         baseDurationInDays: planDuration,
-        listingLimit: resolvedListingLimit,
+        listingLimit: scoutPlan ? undefined : resolvedListingLimit,
       };
       await snapshot.save();
 

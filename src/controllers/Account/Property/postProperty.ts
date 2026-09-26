@@ -159,8 +159,9 @@ export const postProperty = async (
     // ✅ Create property first (inside session)
     const [createdProperty] = await DB.Models.Property.create([formatted], { session });
 
-    // Deduct LISTINGS quota on paid publisher plans.
-    if (activeSnapshot && isPublisherUserType(userType)) {
+    // Deduct LISTINGS quota on capped publisher plans.
+    // Property Scouts are not limited to the 25-listing agent, developer, and landlord cap.
+    if (activeSnapshot && isPublisherUserType(userType) && userType !== "PropertyScout") {
       try {
         if (preferenceId) {
           await UserSubscriptionSnapshotService.adjustFeatureUsageByKey(

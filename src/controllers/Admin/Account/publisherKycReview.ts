@@ -22,6 +22,13 @@ const ROLE_LABEL: Record<string, string> = {
   PropertyScout: "Property Scout",
 };
 
+const APPROVAL_ROLE_PHRASE: Record<string, string> = {
+  Agent: "agent",
+  Developer: "developer",
+  Landowners: "landlord",
+  PropertyScout: "property scout",
+};
+
 /**
  * Approve or reject KYC for Agent, Developer, or Landowner accounts.
  * POST /admin/users/:userId/reviewKycRequest
@@ -146,7 +153,7 @@ export const reviewPublisherKyc = async (
       approved
         ? accountApproved(
             userAcct.firstName,
-            userAcct.userType === "Developer" ? "developer" : "agent",
+            APPROVAL_ROLE_PHRASE[userAcct.userType] || "agent",
           )
         : accountDisapproved(userAcct.firstName, note)
     );

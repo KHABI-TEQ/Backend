@@ -38,14 +38,23 @@ export const PUBLISHER_LISTING_LIMIT_MESSAGE = listingLimitMessage(
   PUBLISHER_STANDARD_LISTING_LIMIT
 );
 
+/** Property Scout plans are not on the 25 / 50 publisher cap. */
+export function isPropertyScoutStandardPlanCode(planCode?: string | null): boolean {
+  const code = String(planCode || "").trim().toUpperCase();
+  return code.startsWith("SCOUT_STANDARD");
+}
+
 export function listingLimitForPlanCode(
   planCode?: string | null,
   explicitLimit?: number | null
 ): number {
+  const code = String(planCode || "").trim().toUpperCase();
+  if (isPropertyScoutStandardPlanCode(code)) {
+    return 0;
+  }
   if (explicitLimit != null && Number.isFinite(Number(explicitLimit)) && Number(explicitLimit) > 0) {
     return Number(explicitLimit);
   }
-  const code = String(planCode || "").trim().toUpperCase();
   if (code === LICENSED_AGENT_ANNUAL_PLAN_CODE) {
     return PUBLISHER_ANNUAL_LISTING_LIMIT;
   }
