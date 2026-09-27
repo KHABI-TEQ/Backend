@@ -24,8 +24,8 @@ export const submitInspectionSchema = Joi.object({
     inspectionMode: Joi.string().valid("in_person", "virtual").required()
   }).required(),
 
-  /** Total inspection amount; if omitted, computed from sum of each property's inspectionFee. */
-  inspectionAmount: Joi.number().positive().optional(),
+  /** Optional at request time. 0 is valid: the agent sets any fee when accepting. Insured matches stay at 0. */
+  inspectionAmount: Joi.number().min(0).optional(),
 
   properties: Joi.array()
     .items(
@@ -40,7 +40,7 @@ export const submitInspectionSchema = Joi.object({
         // 🔹 requestSource is optional
         requestSource: Joi.object({
           page: Joi.string()
-            .valid("market-place", "home-page", "matched-properties")
+            .valid("market-place", "home-page", "matched-properties", "insured-match")
             .required(),
           matchedId: Joi.string().allow("", null).optional(),
           preferenceId: Joi.string().allow("", null).optional()
