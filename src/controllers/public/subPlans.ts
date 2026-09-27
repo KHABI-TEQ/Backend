@@ -14,7 +14,12 @@ export const getAllSubscriptionPlans = async (
   next: NextFunction
 ) => {
   try {
-    const plans = await DB.Models.SubscriptionPlan.find().sort({ createdAt: -1 }).lean();
+    const plans = await DB.Models.SubscriptionPlan.find({
+      isTrial: { $ne: true },
+      price: { $gt: 0 },
+    })
+      .sort({ createdAt: -1 })
+      .lean();
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -37,7 +42,7 @@ export const getSubscriptionPlan = async (
     const { planId } = req.params;
 
     const plan = await DB.Models.SubscriptionPlan.findById(planId).lean();
-    if (!plan) {
+    if (!plan || plan.isTrial || Number(plan.price) <= 0) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Plan not found");
     }
 

@@ -89,7 +89,7 @@ async function retireNonCatalogPlans() {
   let hidden = 0;
   for (const plan of plans) {
     const code = String(plan.code || "").toUpperCase();
-    const keepHiddenActive = KEEP_ACTIVE_HIDDEN_CODES.has(code) || !!plan.isTrial;
+    const keepHiddenActive = KEEP_ACTIVE_HIDDEN_CODES.has(code);
     const isWhiteLabel =
       plan.category === SUBSCRIPTION_PLAN_CATEGORIES.WHITE_LABELING ||
       isWhiteLabelingPlanCode(code);

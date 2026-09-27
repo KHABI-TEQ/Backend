@@ -170,6 +170,10 @@ export class SubscriptionPlanService {
       }
     }
 
+    if (isTrial || Number(price) <= 0) {
+      throw new Error("Subscription plans require a paid price.");
+    }
+
     const assignedFeatures = await this.validateAndFormatFeatures(features);
 
     const plan = new this.PlanModel({
@@ -180,7 +184,7 @@ export class SubscriptionPlanService {
       currency,
       features: assignedFeatures,
       isActive,
-      isTrial,
+      isTrial: false,
       hiddenFromCatalog,
       unlimitedListings,
       category: resolvedCategory,
@@ -246,11 +250,19 @@ export class SubscriptionPlanService {
     }
 
     if (updates.name !== undefined) plan.name = updates.name;
-    if (updates.price !== undefined) plan.price = updates.price;
+    if (updates.price !== undefined) {
+      if (Number(updates.price) <= 0) {
+        throw new Error("Subscription plans require a paid price.");
+      }
+      plan.price = updates.price;
+    }
     if (updates.durationInDays !== undefined) plan.durationInDays = updates.durationInDays;
     if (updates.currency !== undefined) plan.currency = updates.currency;
     if (updates.isActive !== undefined) plan.isActive = updates.isActive;
-    if (updates.isTrial !== undefined) plan.isTrial = updates.isTrial;
+    if (updates.isTrial) {
+      throw new Error("Trial plans are not available.");
+    }
+    plan.isTrial = false;
     if (updates.hiddenFromCatalog !== undefined) plan.hiddenFromCatalog = updates.hiddenFromCatalog;
     if (updates.unlimitedListings !== undefined) plan.unlimitedListings = updates.unlimitedListings;
     if (updates.category !== undefined) plan.category = resolvePlanCategory(updates.category);
@@ -330,7 +342,11 @@ export class SubscriptionPlanService {
     audience?: SubscriptionPlanAudience | "all";
     catalogOnly?: boolean;
   }): Promise<ISubscriptionPlanDoc[]> {
-    const filter: Record<string, unknown> = { isActive: true };
+    const filter: Record<string, unknown> = {
+      isActive: true,
+      isTrial: { $ne: true },
+      price: { $gt: 0 },
+    };
     const and: Record<string, unknown>[] = [];
     const category = options?.category ?? SUBSCRIPTION_PLAN_CATEGORIES.STANDARD;
 
@@ -435,6 +451,10 @@ export class SubscriptionPlanService {
         benefits: discounted.benefits,
         features: plan.features,
       });
+    }
+
+    if (plan.isTrial || Number(price) <= 0) {
+      throw new Error("This plan is no longer available.");
     }
 
     const category = resolvePlanCategory(plan.category);
@@ -616,18 +636,5 @@ export class SubscriptionPlanService {
     }));
   }
 
-
-  /**
-   * Get the active free trial plan (price = 0 and isTrial = true)
-   */
-  static async getActiveTrialPlan(): Promise<ISubscriptionPlanDoc | null> {
-    return this.PlanModel.findOne({
-      isActive: true,
-      price: 0,
-      isTrial: true,
-    })
-      .populate("features.feature")
-      .lean();
-  }
 
 }

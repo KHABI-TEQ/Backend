@@ -24,14 +24,7 @@ const OPEN_INSPECTION_STATUSES = [
   "negotiation_accepted",
 ];
 
-const COMPLIMENTARY_PLAN_MATCH = {
-  $or: [
-    { "meta.planType": "Free Plan" },
-    { "planDetails.isTrial": true },
-    { "planDetails.price": { $lte: 0 } },
-  ],
-};
-
+/** Legacy unpaid snapshots are excluded from paid counts. */
 const PAID_PLAN_MATCH = {
   "meta.planType": { $ne: "Free Plan" },
   "planDetails.isTrial": { $ne: true },
@@ -259,26 +252,16 @@ export class DashboardStatsService {
   }> {
     const now = new Date();
     const activeMatch = { status: "active", expiresAt: { $gte: now } };
-    const [paidResult, complimentaryResult] = await Promise.all([
-      this.subscriptionModel
-        .aggregate([
-          { $match: activeMatch },
-          ...this.subscriptionPlanLookup(),
-          { $match: PAID_PLAN_MATCH },
-          { $count: "total" },
-        ])
-        .then((result) => result[0]?.total || 0),
-      this.subscriptionModel
-        .aggregate([
-          { $match: activeMatch },
-          ...this.subscriptionPlanLookup(),
-          { $match: COMPLIMENTARY_PLAN_MATCH },
-          { $count: "total" },
-        ])
-        .then((result) => result[0]?.total || 0),
-    ]);
+    const paidResult = await this.subscriptionModel
+      .aggregate([
+        { $match: activeMatch },
+        ...this.subscriptionPlanLookup(),
+        { $match: PAID_PLAN_MATCH },
+        { $count: "total" },
+      ])
+      .then((result) => result[0]?.total || 0);
 
-    return { paid: paidResult, complimentary: complimentaryResult };
+    return { paid: paidResult, complimentary: 0 };
   }
 
   private getDateRange(filter: TimeFilter, customRange?: DateRange): DateRange {
@@ -1623,7 +1606,7 @@ export class DashboardStatsService {
         byStatus: subscriptionByStatus,
         byPlan: subscriptionByPlan,
         byAudience: subscriptionByAudience,
-        activeSubscriptions: paidVsComplimentary.paid + paidVsComplimentary.complimentary,
+        activeSubscriptions: paidVsComplimentary.paid,
         paidActiveSubscriptions: paidVsComplimentary.paid,
         complimentaryActiveSubscriptions: paidVsComplimentary.complimentary,
         expiredSubscriptions: expiredSubCount,
