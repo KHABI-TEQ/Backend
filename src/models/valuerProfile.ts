@@ -13,6 +13,7 @@ export interface IValuerProfile {
   kycStatus: ProfessionalKycStatus;
   kycNote?: string;
   isMarketplaceVisible: boolean;
+  paystackSubaccountCode?: string;
 }
 
 export interface IValuerProfileDoc extends IValuerProfile, Document {
@@ -54,6 +55,7 @@ export class ValuerProfile {
         },
         kycNote: { type: String, trim: true },
         isMarketplaceVisible: { type: Boolean, default: false, index: true },
+        paystackSubaccountCode: { type: String, trim: true },
       },
       { timestamps: true }
     );

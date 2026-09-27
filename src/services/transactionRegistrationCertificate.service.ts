@@ -389,7 +389,34 @@ async function buildKhabiteqCertificatePdf(reg: ITransactionRegistrationDoc): Pr
       });
     }
 
-    doc.moveDown(0.8);
+    const qrSize = 86;
+    const qrX = pageWidth - 42 - qrSize;
+    const qrY = doc.y + 6;
+    doc
+      .lineWidth(0.8)
+      .strokeColor("#C9A227")
+      .roundedRect(qrX - 8, qrY - 8, qrSize + 16, qrSize + 36, 4)
+      .stroke();
+    if (qrBuffer) {
+      doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+    }
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(6.5)
+      .fillColor("#09391C")
+      .text("DIGITAL TRAIL", qrX - 8, qrY + qrSize + 4, {
+        width: qrSize + 16,
+        align: "center",
+      });
+    doc.font("Helvetica").fontSize(8).fillColor("#374151").text(
+      "Scan the code to open this property's journey, from the preference search through inspection and due diligence to transaction registration.",
+      42,
+      qrY + 8,
+      { width: qrX - 58 }
+    );
+    doc.y = qrY + qrSize + 40;
+
+    doc.moveDown(0.6);
     doc.font("Helvetica-Bold").fontSize(9).fillColor("#09391C").text("TRANSACTION SUMMARY");
     doc.moveDown(0.25);
 
@@ -438,13 +465,6 @@ async function buildKhabiteqCertificatePdf(reg: ITransactionRegistrationDoc): Pr
         );
         doc.moveDown(0.15);
       }
-    }
-
-    if (qrBuffer && view.verifyUrl) {
-      const qrY = pageHeight - 198;
-      doc.image(qrBuffer, pageWidth - 148, qrY, { width: 78, height: 78 });
-      doc.font("Helvetica-Bold").fontSize(8).fillColor("#09391C").text("VERIFY THIS CERTIFICATE", 42, qrY + 8);
-      doc.font("Helvetica").fontSize(8).fillColor("#374151").text(view.verifyUrl, 42, qrY + 24, { width: 320 });
     }
 
     doc

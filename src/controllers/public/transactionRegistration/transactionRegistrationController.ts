@@ -241,11 +241,24 @@ export const submitBuyerIntent = async (
         "The provided email does not match the buyer for this inspection."
       );
     }
+    const readyToClose = [
+      "inspection_approved",
+      "pending_transaction",
+      "active_negotiation",
+      "negotiation_accepted",
+      "inspection_rescheduled",
+    ];
     if (wishToProceed && inspection.status !== "completed") {
-      throw new RouteError(
-        HttpStatusCodes.BAD_REQUEST,
-        "Only completed inspections can proceed to transaction registration. Please complete the inspection first."
-      );
+      if (readyToClose.includes(String(inspection.status || ""))) {
+        inspection.status = "completed";
+        inspection.stage = "completed";
+        inspection.buyerConfirmedInspectionAt = new Date();
+      } else {
+        throw new RouteError(
+          HttpStatusCodes.BAD_REQUEST,
+          "The agent must accept this inspection before you can engage a professional. After the visit, confirm it here to continue."
+        );
+      }
     }
 
     inspection.wishToProceed = wishToProceed;

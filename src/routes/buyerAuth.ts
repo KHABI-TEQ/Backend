@@ -46,6 +46,9 @@ import {
   getMyDocumentVerifications,
   getMySurveyRequests,
   getMyProfessionalServiceRequests,
+  createMyServiceBrief,
+  getMyServiceBrief,
+  selectMyServiceOffer,
   getMyTransactionRegistrations,
   getMyActivitySummary,
 } from "../controllers/BuyerAuth/meActivity";
@@ -148,6 +151,21 @@ BuyerAuthRouter.get(
   "/me/professional-service-requests",
   buyerAuth,
   getMyProfessionalServiceRequests
+);
+BuyerAuthRouter.post(
+  "/me/professional-service-requests/briefs",
+  buyerAuth,
+  createMyServiceBrief
+);
+BuyerAuthRouter.get(
+  "/me/professional-service-requests/:id",
+  buyerAuth,
+  getMyServiceBrief
+);
+BuyerAuthRouter.post(
+  "/me/professional-service-requests/:id/select-offer",
+  buyerAuth,
+  selectMyServiceOffer
 );
 
 BuyerAuthRouter.get(

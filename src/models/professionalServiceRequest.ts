@@ -1,6 +1,7 @@
 import { Schema, model, Document, Model, Types } from "mongoose";
 
 export type ProfessionalServiceRequestStatus =
+  | "awaiting-offers"
   | "awaiting-acceptance"
   | "awaiting-payment"
   | "awaiting-assignment"
@@ -42,6 +43,16 @@ export interface IProfessionalServiceRequest {
   deliverableNotes?: string;
   deliveredAt?: Date;
   declineReason?: string;
+  offers?: Array<{
+    professionalId: Types.ObjectId;
+    professionalName?: string;
+    coverageNote: string;
+    professionalFee: number;
+    platformFee: number;
+    customerPrice: number;
+    commissionAccepted: boolean;
+    createdAt?: Date;
+  }>;
   offeredTo?: Types.ObjectId[];
   declinedBy?: Types.ObjectId[];
   broadcastAt?: Date;
@@ -103,6 +114,7 @@ export class ProfessionalServiceRequest {
         status: {
           type: String,
           enum: [
+            "awaiting-offers",
             "awaiting-acceptance",
             "awaiting-payment",
             "awaiting-assignment",
@@ -121,6 +133,21 @@ export class ProfessionalServiceRequest {
         deliverableNotes: { type: String },
         deliveredAt: { type: Date },
         declineReason: { type: String },
+        offers: {
+          type: [
+            {
+              professionalId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+              professionalName: { type: String, trim: true },
+              coverageNote: { type: String, required: true, trim: true },
+              professionalFee: { type: Number, required: true, min: 0 },
+              platformFee: { type: Number, required: true, min: 0 },
+              customerPrice: { type: Number, required: true, min: 0 },
+              commissionAccepted: { type: Boolean, required: true },
+              createdAt: { type: Date, default: Date.now },
+            },
+          ],
+          default: [],
+        },
         offeredTo: {
           type: [{ type: Schema.Types.ObjectId, ref: "User" }],
           default: [],

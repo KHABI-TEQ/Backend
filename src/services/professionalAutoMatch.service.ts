@@ -130,9 +130,6 @@ export async function findEligibleProfessionals(
     const user = userById.get(String(profile.userId));
     if (!user || user.userType !== userType) continue;
     if (!isUsableAccount(user)) continue;
-    if (category !== "valuer" && !(profile as { paystackSubaccountCode?: string }).paystackSubaccountCode) {
-      continue;
-    }
     if (atCapacity.has(String(user._id))) continue;
     eligible.push({
       userId: user._id as Types.ObjectId,
@@ -162,7 +159,9 @@ function requestSummary(request: IProfessionalServiceRequestDoc): string {
   const answers = (request.answers || {}) as Record<string, unknown>;
   const location = String(answers.propertyAddress || "").trim();
   const locBit = location ? ` Location: ${location}.` : "";
-  return `${request.serviceName}.${locBit} Fee: ₦${Number(request.customerPrice || 0).toLocaleString()}.`;
+  const fee = Number(request.customerPrice || 0);
+  const feeBit = fee > 0 ? ` Fee: ₦${fee.toLocaleString()}.` : " Set your own fee when you respond.";
+  return `${request.serviceName}.${locBit}${feeBit}`;
 }
 
 export async function broadcastNewServiceRequest(

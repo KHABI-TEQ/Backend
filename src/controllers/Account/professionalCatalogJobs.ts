@@ -7,6 +7,7 @@ import {
   categoryForAccountUser,
   getCatalogJobForProfessional,
   listCatalogJobsForProfessional,
+  submitServiceOffer,
 } from "../../services/professionalCatalog.service";
 
 function requireProfessional(req: AppRequest) {
@@ -76,6 +77,20 @@ export const respondProfessionalServiceJob = async (
 ) => {
   try {
     const { user } = requireProfessional(req);
+    if (req.body?.coverageNote || req.body?.fee) {
+      const job = await submitServiceOffer({
+        requestId: req.params.id,
+        userId: String(user._id),
+        coverageNote: String(req.body.coverageNote || ""),
+        fee: Number(req.body.fee),
+        commissionAccepted: req.body.commissionAccepted === true,
+      });
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Offer sent. The client can compare it with other professionals.",
+        data: job,
+      });
+    }
     const accept = req.body?.accept === true;
     const reason = req.body?.reason as string | undefined;
     const job = await acceptCatalogServiceRequest({

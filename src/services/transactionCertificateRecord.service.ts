@@ -57,6 +57,13 @@ export function toPublicCertificateView(reg: ITransactionRegistrationDoc) {
     lastUpdated: formatDate(reg.certificateLastUpdatedAt || reg.updatedAt),
     valid: ["ACTIVE", "UPDATED"].includes(String(reg.certificateStatus || "")),
     verifyUrl: reference ? certificateVerifyUrl(reference) : null,
+    journey: (reg.journeyEvents || []).map((item, index) => ({
+      step: String(index + 1).padStart(2, "0"),
+      code: item.code,
+      title: item.title,
+      date: formatLongDate(item.occurredAt),
+      notApplicable: Boolean(item.notApplicable),
+    })),
     disclaimer: CERTIFICATE_DISCLAIMER,
   };
 }

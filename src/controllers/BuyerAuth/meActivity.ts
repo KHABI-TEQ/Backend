@@ -4,6 +4,10 @@ import { AppRequest } from "../../types/express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { effectiveRevealedCount } from "../../services/matchBatch.service";
+import {
+  createServiceBrief,
+  selectServiceOffer,
+} from "../../services/professionalCatalog.service";
 
 function requireBuyerId(req: AppRequest) {
   const id = req.buyer?._id;
@@ -210,7 +214,18 @@ export const getMyProfessionalServiceRequests = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      data: { requests },
+      data: {
+        requests: requests.map((row) => ({
+          _id: row._id,
+          serviceName: row.serviceName,
+          status: row.status,
+          reference: row.reference,
+          serviceFee: row.customerPrice,
+          offers: (row.offers || []).map((offer) => ({
+            professionalId: offer.professionalId,
+          })),
+        })),
+      },
     });
   } catch (err) {
     next(err);
@@ -349,6 +364,96 @@ export const getMyActivitySummary = async (
         searchInsuranceClaims: claims,
         professionalServices,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createMyServiceBrief = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyerId = requireBuyerId(req);
+    const buyer = req.buyer as { fullName?: string; email?: string; phoneNumber?: string };
+    const result = await createServiceBrief({
+      category: req.body?.category,
+      serviceName: String(req.body?.serviceName || "Professional service"),
+      inspectionId: String(req.body?.inspectionId || ""),
+      buyerId: String(buyerId),
+      contact: {
+        fullName: buyer.fullName || String(req.body?.fullName || ""),
+        email: String(buyer.email || ""),
+        phoneNumber: buyer.phoneNumber,
+      },
+      brief: req.body?.brief || {},
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Your brief is published. Related verified professionals have been notified.",
+      data: result,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyServiceBrief = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyerId = requireBuyerId(req);
+    const request = await DB.Models.ProfessionalServiceRequest.findOne({
+      _id: req.params.id,
+      buyerId,
+    }).lean();
+    if (!request) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Brief not found.");
+    }
+    const offers = (request.offers || []).map((offer) => ({
+      professionalId: offer.professionalId,
+      professionalName: offer.professionalName,
+      coverageNote: offer.coverageNote,
+      serviceFee: offer.customerPrice,
+    }));
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: {
+        _id: request._id,
+        serviceName: request.serviceName,
+        status: request.status,
+        reference: request.reference,
+        professionalId: request.professionalId,
+        serviceFee: request.customerPrice,
+        answers: request.answers,
+        offers,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const selectMyServiceOffer = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyerId = requireBuyerId(req);
+    const request = await selectServiceOffer({
+      requestId: req.params.id,
+      buyerId: String(buyerId),
+      professionalId: String(req.body?.professionalId || ""),
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Offer selected. Continue to payment.",
+      data: request,
     });
   } catch (err) {
     next(err);

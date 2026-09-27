@@ -30,6 +30,7 @@ import type {
   IProfessionalServiceRequestDoc,
 } from "../models/professionalServiceRequest";
 import { buildBuyerDocumentMeta } from "../utils/notificationDeepLinks";
+import { createBuyerInboxNotification } from "./buyerNotification.service";
 import {
   inspectionLinkFields,
   resolveBuyerInspectionLink,
@@ -300,7 +301,21 @@ export async function initializeCatalogRequestPayment(params: {
       metadata,
     });
   } else {
-    payment = await PaystackService.initializePayment({
+    const profile = await DB.Models.ValuerProfile.findOne({
+      userId: request.professionalId,
+      kycStatus: "approved",
+    });
+    if (!profile) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Assigned professional is not available on the marketplace."
+      );
+    }
+    assertProfessionalPayoutReady(profile);
+    payment = await PaystackService.initializeSplitPayment({
+      subAccount: profile.paystackSubaccountCode!,
+      publicPageUrl,
+      amountCharge: request.platformFee,
       email,
       amount: request.customerPrice,
       fromWho: {
@@ -309,7 +324,6 @@ export async function initializeCatalogRequestPayment(params: {
       },
       transactionType: "professional-service",
       metadata,
-      callbackUrl: `${publicPageUrl}/payment-verification`,
     });
   }
 
@@ -555,7 +569,7 @@ export async function listCatalogJobsForProfessional(
     category,
     $or: [
       {
-        status: "awaiting-acceptance",
+        status: { $in: ["awaiting-acceptance", "awaiting-offers"] },
         offeredTo: userOid,
         declinedBy: { $nin: [userOid] },
         ...unassignedFilter(),
@@ -580,7 +594,7 @@ export async function getCatalogJobForProfessional(params: {
     category: params.category,
     $or: [
       {
-        status: "awaiting-acceptance",
+        status: { $in: ["awaiting-acceptance", "awaiting-offers"] },
         offeredTo: userOid,
         ...unassignedFilter(),
       },
@@ -695,4 +709,257 @@ export function categoryForAccountUser(
   userType?: string
 ): "lawyer" | "surveyor" | "valuer" | null {
   return categoryFromUserType(userType);
+}
+
+const BRIEF_CLOSE_STATUSES = [
+  "inspection_approved",
+  "pending_transaction",
+  "active_negotiation",
+  "negotiation_accepted",
+  "inspection_rescheduled",
+  "completed",
+];
+
+async function profileForPayout(
+  category: "lawyer" | "surveyor" | "valuer",
+  userId: Types.ObjectId
+) {
+  if (category === "lawyer") {
+    return DB.Models.LawyerProfile.findOne({ userId, kycStatus: "approved" });
+  }
+  if (category === "surveyor") {
+    return DB.Models.SurveyorProfile.findOne({ userId, kycStatus: "approved" });
+  }
+  return DB.Models.ValuerProfile.findOne({ userId, kycStatus: "approved" });
+}
+
+export async function createServiceBrief(body: {
+  category: "lawyer" | "surveyor" | "valuer";
+  serviceName: string;
+  inspectionId: string;
+  buyerId: string;
+  contact: { fullName: string; email: string; phoneNumber?: string };
+  brief: {
+    objective: string;
+    questions?: string;
+    timeline?: string;
+    deliverable?: string;
+    additional?: string;
+  };
+}) {
+  if (!["lawyer", "surveyor", "valuer"].includes(body.category)) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Choose a professional service.");
+  }
+  const objective = String(body.brief?.objective || "").trim();
+  if (objective.length < 10) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Describe what you need the professional to do."
+    );
+  }
+  const buyer = await DB.Models.Buyer.findById(body.buyerId);
+  if (!buyer) {
+    throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Sign in to publish this brief.");
+  }
+  const inspectionLink = await resolveBuyerInspectionLink({
+    inspectionId: body.inspectionId,
+    buyerId: String(buyer._id),
+  });
+  const inspection = await DB.Models.InspectionBooking.findById(body.inspectionId);
+  if (!inspection) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found.");
+  }
+  if (!BRIEF_CLOSE_STATUSES.includes(String(inspection.status || ""))) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "The agent must accept this inspection before you can engage a professional."
+    );
+  }
+  if (inspection.status !== "completed") {
+    inspection.status = "completed";
+    inspection.stage = "completed";
+    inspection.buyerConfirmedInspectionAt = new Date();
+  }
+  inspection.wishToProceed = true;
+  inspection.dueDiligencePath = "platform";
+  inspection.buyerIntentRecordedAt = new Date();
+  await inspection.save();
+
+  const reference = newReference();
+  const request = await DB.Models.ProfessionalServiceRequest.create({
+    reference,
+    slug: `brief-${body.category}`,
+    serviceName: body.serviceName,
+    category: body.category,
+    fulfillment: "catalog-request",
+    buyerId: buyer._id,
+    ...inspectionLinkFields(inspectionLink),
+    contact: {
+      fullName: body.contact.fullName.trim(),
+      email: String(body.contact.email).toLowerCase().trim(),
+      phoneNumber: body.contact.phoneNumber,
+    },
+    answers: {
+      objective,
+      questions: body.brief.questions || "",
+      timeline: body.brief.timeline || "",
+      deliverable: body.brief.deliverable || "",
+      additional: body.brief.additional || "",
+      documentsHandledOutsidePlatform: true,
+    },
+    documentUrls: [],
+    customerPrice: 0,
+    platformFee: 0,
+    professionalFee: 0,
+    status: "awaiting-offers",
+  });
+
+  const offered = await broadcastNewServiceRequest(request);
+  void notifyAllActiveAdmins({
+    type: "general",
+    title: "New due diligence brief",
+    message: `${body.contact.email} published ${body.serviceName} (${reference}). ${offered.length} professional(s) notified.`,
+    meta: { reference, requestId: String(request._id), category: body.category },
+  });
+
+  return { request, notifiedCount: offered.length };
+}
+
+export async function submitServiceOffer(params: {
+  requestId: string;
+  userId: string;
+  coverageNote: string;
+  fee: number;
+  commissionAccepted: boolean;
+}) {
+  if (!params.commissionAccepted) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Agree that Khabiteq keeps 10% of the service fee before you send this offer."
+    );
+  }
+  const fee = Math.round(Number(params.fee));
+  if (!Number.isFinite(fee) || fee < 1000) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Set a service fee of at least ₦1,000."
+    );
+  }
+  const note = String(params.coverageNote || "").trim();
+  if (note.length < 20) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Describe what this service covers in this offer."
+    );
+  }
+
+  const user = await DB.Models.User.findById(params.userId);
+  const category = categoryFromUserType(user?.userType);
+  if (!user || !category) {
+    throw new RouteError(HttpStatusCodes.FORBIDDEN, "A lawyer, surveyor, or valuer account is required.");
+  }
+  const profile = await profileForPayout(category, user._id as Types.ObjectId);
+  if (!profile) {
+    throw new RouteError(HttpStatusCodes.FORBIDDEN, "Your professional profile is not approved.");
+  }
+  assertProfessionalPayoutReady(profile);
+
+  const request = await DB.Models.ProfessionalServiceRequest.findOne({
+    _id: params.requestId,
+    category,
+    status: "awaiting-offers",
+    offeredTo: user._id,
+  });
+  if (!request) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "This brief is no longer open for offers.");
+  }
+
+  const platformFee = Math.round(fee * 0.1);
+  const customerPrice = fee;
+  const professionalNet = fee - platformFee;
+  const professionalName =
+    `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Professional";
+  const offers = (request.offers || []).filter(
+    (offer) => String(offer.professionalId) !== String(user._id)
+  );
+  offers.push({
+    professionalId: user._id as Types.ObjectId,
+    professionalName,
+    coverageNote: note,
+    professionalFee: professionalNet,
+    platformFee,
+    customerPrice,
+    commissionAccepted: true,
+    createdAt: new Date(),
+  });
+  request.offers = offers;
+  await request.save();
+  void notifyAllActiveAdmins({
+    type: "general",
+    title: "Professional offer on a due diligence brief",
+    message: `${professionalName} offered ₦${fee.toLocaleString()} on ${request.reference}.`,
+    meta: { requestId: String(request._id), reference: request.reference },
+  });
+
+  const buyerId = request.buyerId ? String(request.buyerId) : "";
+  if (buyerId) {
+    await createBuyerInboxNotification({
+      buyerId,
+      title: `New offer for ${request.serviceName}`,
+      message: `${professionalName} offered to cover: ${note} Service fee ₦${fee.toLocaleString()}.`,
+      type: "document",
+      meta: {
+        source: "system",
+        audience: "buyer",
+        screen: "professional_service",
+        actionPath: `/buyer/service-requests/${request._id}`,
+        catalogRequestId: String(request._id),
+      },
+    });
+  }
+  if (request.contact?.email) {
+    void sendEmail({
+      to: request.contact.email,
+      subject: `New offer for ${request.serviceName}`,
+      text: `${professionalName} offered this service for ₦${fee.toLocaleString()}. ${note}`,
+      html: generalEmailLayout(
+        `<p>${professionalName} sent an offer on your ${request.serviceName} brief.</p><p><strong>What the service covers:</strong> ${note}</p><p><strong>Service fee:</strong> ₦${fee.toLocaleString()}</p>`
+      ),
+    });
+  }
+  return request;
+}
+
+export async function selectServiceOffer(params: {
+  requestId: string;
+  buyerId: string;
+  professionalId: string;
+}) {
+  const request = await DB.Models.ProfessionalServiceRequest.findOne({
+    _id: params.requestId,
+    buyerId: params.buyerId,
+    status: "awaiting-offers",
+  });
+  if (!request) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "Brief not found.");
+  }
+  const offer = (request.offers || []).find(
+    (row) => String(row.professionalId) === String(params.professionalId)
+  );
+  if (!offer) {
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "That offer is no longer available.");
+  }
+  request.professionalId = offer.professionalId;
+  request.professionalFee = offer.professionalFee;
+  request.platformFee = offer.platformFee;
+  request.customerPrice = offer.customerPrice;
+  request.status = "awaiting-payment";
+  await request.save();
+  void notifyAllActiveAdmins({
+    type: "general",
+    title: "Client selected a due diligence offer",
+    message: `A client selected an offer on ${request.reference} and can now pay ₦${Number(request.customerPrice).toLocaleString()}.`,
+    meta: { requestId: String(request._id), reference: request.reference },
+  });
+  return request;
 }
