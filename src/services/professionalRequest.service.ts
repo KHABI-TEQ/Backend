@@ -88,12 +88,7 @@ export async function notifyProfessionalOfNewRequest(params: {
     user: params.professionalUserId,
     title,
     message,
-    type:
-      params.kind === "lawyer"
-        ? "document"
-        : params.kind === "surveyor"
-          ? "survey"
-          : "general",
+    type: "general",
     meta: { ...meta, referenceCode: params.referenceCode },
   });
 
