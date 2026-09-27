@@ -12,7 +12,7 @@ import {
   notifyAgentSaleRegistered,
 } from "../../services/requestToMarketEmail.service";
 import { getPropertyTitleFromLocation } from "../../utils/helper";
-import { getClientDashboardUrl } from "../../utils/clientAppUrl";
+import { getClientLoginThenUrl } from "../../utils/clientAppUrl";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 import { enqueuePropertySyndicationJobs } from "../../services/propertySyndication.service";
@@ -120,19 +120,29 @@ export const createRequestToMarket = async (
       agentCommissionPercent,
     });
 
-    await notificationService.createNotification({
-      user: String(publisherId),
-      title: "Request To Market",
-      message: `An Agent has requested to market your KHABITEQ Market Place property. Accept or reject from your dashboard.`,
-      meta: { requestToMarketId: String(request._id), propertyId },
-    });
-
     const agentName =
       (user as any).fullName ||
       [((user as any).firstName || "").trim(), ((user as any).lastName || "").trim()].filter(Boolean).join(" ") ||
       "An agent";
     const propertySummary = getPropertyTitleFromLocation((property as any).location) || "your property";
-    const respondUrl = getClientDashboardUrl();
+    const respondPath = `/my-request-to-market/${request._id}`;
+    const respondUrl = getClientLoginThenUrl(respondPath);
+
+    try {
+      await notificationService.createNotification({
+        user: String(publisherId),
+        title: "Request to market your property",
+        message: `${agentName} requested to market ${propertySummary}. Accept or reject the request.`,
+        type: "property_update",
+        meta: {
+          requestToMarketId: String(request._id),
+          propertyId,
+          actionPath: respondPath,
+        },
+      });
+    } catch (e) {
+      console.warn("[requestToMarket] in-app notification failed:", e);
+    }
 
     let agentPublicPageUrl: string | undefined;
     const dealSite = await DB.Models.DealSite.findOne({ createdBy: userId })

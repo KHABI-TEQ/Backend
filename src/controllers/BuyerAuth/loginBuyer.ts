@@ -21,19 +21,22 @@ export const loginBuyer = async (
 
     const buyer = await DB.Models.Buyer.findOne({ email: normalizedEmail });
     if (!buyer) {
-      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Account not found.");
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "No account was found for this email.");
     }
 
     if (!buyer.password) {
       throw new RouteError(
         HttpStatusCodes.BAD_REQUEST,
-        "This email is a guest search account. Set a password to continue."
+        "This account already exists. Please log in."
       );
     }
 
     const isMatch = await bcrypt.compare(passwordInput, buyer.password);
     if (!isMatch) {
-      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Invalid password.");
+      throw new RouteError(
+        HttpStatusCodes.UNAUTHORIZED,
+        "The sign-in details do not match this account."
+      );
     }
 
     const token = generateToken({

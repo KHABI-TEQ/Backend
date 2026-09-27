@@ -27,6 +27,23 @@ export type EmailShellOptions = {
   twitterUrl?: string;
 };
 
+/** Drop a sign-off already written in the body so the shell adds it once. */
+function stripEmbeddedSignOff(html: string): string {
+  let next = html.replace(
+    /<p\b[^>]*>(?:(?!<\/p>)[\s\S])*?Prefer the app\?(?:(?!<\/p>)[\s\S])*?<\/p>/gi,
+    "",
+  );
+  next = next.replace(
+    /<(p|div)\b[^>]*>\s*(?:Best regards|Warm regards|Kind regards|Sincerely),?[\s\S]*?<\/\1>/gi,
+    "",
+  );
+  next = next.replace(
+    /<(p|div)\b[^>]*>\s*(?:<(?:strong|b|span)\b[^>]*>\s*)?(?:The\s+)?Khabi-?Teq(?:\s+(?:Team|System))?(?:\s*<\/(?:strong|b|span)>)?\s*<\/\1>/gi,
+    "",
+  );
+  return next;
+}
+
 function socialCell(href: string | undefined, iconSrc: string, alt: string): string {
   if (!href) return "";
   return `
@@ -93,7 +110,7 @@ export function renderEmailShell(body: string, options: EmailShellOptions = {}):
                 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background-color:#ffffff;border-radius:8px;">
                   <tr>
                     <td class="email-card-pad" style="padding:32px 36px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#333333;word-break:normal;overflow-wrap:break-word;">
-                      ${body}
+                      ${stripEmbeddedSignOff(body)}
                       ${signOffHtml}
                     </td>
                   </tr>

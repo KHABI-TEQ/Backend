@@ -504,11 +504,6 @@ export const listingMatchedPreferenceMail = (mailData: {
           Open dashboard
         </a>
       </div>
-
-      <p style="font-size: 13px; color: #5A5D63;">Prefer the app? Open <strong>Listings</strong> in Khabi-Teq Practitioners.</p>
-
-      <p style="font-size: 16px;">Best regards,<br>
-      <strong>The Khabi-Teq Team</strong></p>
     </div>
   `;
 };

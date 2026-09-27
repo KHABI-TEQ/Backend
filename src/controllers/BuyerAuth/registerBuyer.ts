@@ -19,9 +19,7 @@ export const registerBuyer = async (
     if (existing) {
       throw new RouteError(
         HttpStatusCodes.CONFLICT,
-        existing.password
-          ? "Email already registered. Please log in or reset your password."
-          : "A guest search exists for this email. Set a password on that account to continue."
+        "This account already exists. Please log in."
       );
     }
 

@@ -260,9 +260,15 @@ export async function notifyMatchBatch(params: {
   };
 
   const sendMatchEmail = async () => {
+    const linkedBuyerId = preference.buyer?._id || preference.buyer;
+    let accountEmail = String((preference.buyer as any)?.email || "").trim();
+    if (!accountEmail && linkedBuyerId) {
+      const linkedBuyer = await DB.Models.Buyer.findById(linkedBuyerId).select("email").lean();
+      accountEmail = String((linkedBuyer as { email?: string } | null)?.email || "").trim();
+    }
     const to =
-      String((preference.contactInfo as any)?.email || "").trim() ||
-      String((preference.buyer as any)?.email || "").trim();
+      accountEmail ||
+      String((preference.contactInfo as any)?.email || "").trim();
     if (!to || to === "unknown@example.com") return;
     const mailBody = generalEmailLayout(
       matchedPropertiesMail({

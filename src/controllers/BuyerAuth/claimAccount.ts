@@ -21,13 +21,13 @@ export const claimBuyerAccount = async (
     if (!existing) {
       throw new RouteError(
         HttpStatusCodes.NOT_FOUND,
-        "No guest search account was found for this email. Please register instead."
+        "No account was found for this email. Please register instead."
       );
     }
     if (existing.password) {
       throw new RouteError(
         HttpStatusCodes.CONFLICT,
-        "This email already has a password. Please log in."
+        "This account already exists. Please log in."
       );
     }
 

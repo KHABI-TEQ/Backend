@@ -76,6 +76,10 @@ export const postPreference = async (
       buyer = await DB.Models.Buyer.create(normalizedBuyerPayload);
     }
 
+    if (buyer.email) {
+      normalizedBuyerPayload.email = String(buyer.email).toLowerCase().trim();
+    }
+
     const { insureSearch, ...preferenceFields } = payload;
     const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
 

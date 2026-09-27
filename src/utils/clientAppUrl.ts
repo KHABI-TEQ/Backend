@@ -26,3 +26,14 @@ export function getClientDashboardUrl(): string {
   const base = getClientBaseUrl();
   return base ? `${base}/dashboard` : "#";
 }
+
+/**
+ * Sign-in URL that returns the user to a same-site path after login.
+ * `nextPath` is a path such as `/my-request-to-market?requestId=...`.
+ */
+export function getClientLoginThenUrl(nextPath: string): string {
+  const base = getClientBaseUrl();
+  const login = base ? `${base}/auth/login` : getMainWebLoginUrl();
+  const path = nextPath.startsWith("/") ? nextPath : `/${nextPath}`;
+  return `${login}?from=${encodeURIComponent(path)}`;
+}

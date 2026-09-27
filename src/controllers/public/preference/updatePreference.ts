@@ -73,6 +73,9 @@ export const updateBuyerPreferenceById = async (
     if (!buyer) {
       return next(new RouteError(HttpStatusCodes.NOT_FOUND, "Buyer not found"));
     }
+    if (buyer.email) {
+      normalizedBuyerPayload.email = String(buyer.email).toLowerCase().trim();
+    }
 
     const sortedLocation = sortPreferenceLocationAlphabetically(payload.location);
     const submittedVia =

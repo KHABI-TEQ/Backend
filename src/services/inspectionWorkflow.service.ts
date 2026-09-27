@@ -103,7 +103,6 @@ export async function notifyAgentOfInspectionRequest(params: {
     <p>Preferred date: ${inspectionDate} at ${inspectionTime}</p>
     ${acceptLine}
     <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
-    <p style="font-size:13px;color:#555;">Prefer the app? Open <strong>Tools → Inspections</strong> in Khabi-Teq Practitioners.</p>
   `);
 
   await sendEmail({

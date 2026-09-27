@@ -48,7 +48,7 @@ export async function notifyPublisherOfRequestToMarket(params: {
     ${publicPageBlock}
     ${contactBlock}
     <p>If you accept, the property will appear on the agent's public page and you will pay an agent commission of <strong>₦${agentCommissionAmount.toLocaleString()}</strong> to the agent.</p>
-    <p>Please accept or reject this request from your dashboard.</p>
+    <p>Use the button below to accept or reject this request. If you are not signed in, you will log in first and then return to this request.</p>
     <p><a href="${respondUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
   `);
 
