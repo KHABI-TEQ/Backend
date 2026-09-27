@@ -81,8 +81,8 @@ export async function notifyProfessionalOfNewRequest(params: {
         ? "New survey request"
         : "New valuation request";
   const message = params.broadcast
-    ? `New ${kindLabel} request (${params.referenceCode}). Accept in Jobs.`
-    : `A buyer selected you for ${kindLabel} (${params.referenceCode}). Accept or decline in Jobs.`;
+    ? `New ${kindLabel} brief (${params.referenceCode}). Open Service briefs, describe what you cover, set your fee, and agree that Khabiteq keeps 10%. A KYC bank account is required before you can send the offer.`
+    : `A client selected you for ${kindLabel} (${params.referenceCode}). Open Service briefs to describe your coverage, set your fee, and agree that Khabiteq keeps 10%.`;
 
   await notificationService.createNotification({
     user: params.professionalUserId,
@@ -104,9 +104,9 @@ export async function notifyProfessionalOfNewRequest(params: {
     );
     void sendEmail({
       to: params.professionalEmail,
-      subject: `New ${kindLabel} request – accept in app`,
+      subject: `New ${kindLabel} brief – send an offer`,
       html,
-      text: `New ${kindLabel} request (${params.referenceCode}). Open Jobs in the Practitioners app.`,
+      text: `New ${kindLabel} brief (${params.referenceCode}). Open Service briefs on your Khabiteq account. Describe what the service covers, set the fee the client will pay, and agree that Khabiteq deducts 10%. Connect the bank account from your KYC before you send the offer.`,
       skipBuyerInbox: true,
     });
   }

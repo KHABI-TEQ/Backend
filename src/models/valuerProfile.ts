@@ -14,6 +14,13 @@ export interface IValuerProfile {
   kycNote?: string;
   isMarketplaceVisible: boolean;
   paystackSubaccountCode?: string;
+  paystackSubaccountId?: string;
+  bankDetails?: {
+    businessName?: string;
+    bankCode?: string;
+    accountNumber?: string;
+    accountName?: string;
+  };
 }
 
 export interface IValuerProfileDoc extends IValuerProfile, Document {
@@ -56,6 +63,13 @@ export class ValuerProfile {
         kycNote: { type: String, trim: true },
         isMarketplaceVisible: { type: Boolean, default: false, index: true },
         paystackSubaccountCode: { type: String, trim: true },
+        paystackSubaccountId: { type: String, trim: true },
+        bankDetails: {
+          businessName: { type: String, trim: true },
+          bankCode: { type: String, trim: true },
+          accountNumber: { type: String, trim: true },
+          accountName: { type: String, trim: true },
+        },
       },
       { timestamps: true }
     );

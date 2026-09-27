@@ -7,7 +7,9 @@ import {
   acceptCatalogServiceRequest,
   getCatalogJobForProfessional,
   listCatalogJobsForProfessional,
+  submitServiceOffer,
 } from "../../../services/professionalCatalog.service";
+import { PaystackService } from "../../../services/paystack.service";
 
 function requireValuerOrUpgrade(req: AppRequest) {
   const pending = (req.user as any)?.pendingProfessionalType;
@@ -112,6 +114,52 @@ export const getValuerJob = async (
   }
 };
 
+export const setupValuerBank = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user = requireValuerOrUpgrade(req);
+    const profile = await getOrCreateProfile(String(user._id));
+    const { businessName, bankCode, accountNumber } = req.body;
+    if (!businessName || !bankCode || !accountNumber) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "businessName, bankCode and accountNumber are required."
+      );
+    }
+    const sub = await PaystackService.createSubaccount({
+      businessName: String(businessName).trim(),
+      settlementBank: String(bankCode).trim(),
+      accountNumber: String(accountNumber).trim(),
+      percentageCharge: 0,
+      primaryContactEmail: user.email,
+      primaryContactName: `${user.firstName} ${user.lastName}`.trim(),
+      primaryContactPhone: user.phoneNumber,
+    });
+    profile.bankDetails = {
+      businessName: String(businessName).trim(),
+      bankCode: String(bankCode).trim(),
+      accountNumber: String(accountNumber).trim(),
+      accountName: sub.accountName || "",
+    };
+    profile.paystackSubaccountCode = sub.subAccountCode;
+    profile.paystackSubaccountId = sub.subAccountCode;
+    await profile.save();
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Settlement account connected.",
+      data: {
+        paystackSubaccountCode: profile.paystackSubaccountCode,
+        bankDetails: profile.bankDetails,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const respondValuerJob = async (
   req: AppRequest,
   res: Response,
@@ -119,6 +167,20 @@ export const respondValuerJob = async (
 ) => {
   try {
     const user = requireValuerOrUpgrade(req);
+    if (req.body?.coverageNote || req.body?.fee) {
+      const job = await submitServiceOffer({
+        requestId: req.params.id,
+        userId: String(user._id),
+        coverageNote: String(req.body.coverageNote || ""),
+        fee: Number(req.body.fee),
+        commissionAccepted: req.body.commissionAccepted === true,
+      });
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Offer sent. The client can compare it with other professionals.",
+        data: job,
+      });
+    }
     const accept = req.body?.accept === true;
     const reason = req.body?.reason as string | undefined;
     const job = await acceptCatalogServiceRequest({

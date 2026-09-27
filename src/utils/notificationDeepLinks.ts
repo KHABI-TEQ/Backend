@@ -199,7 +199,7 @@ export function buildLawyerJobMeta(jobId: string): InboxDeepLinkMeta {
     audience: "practitioner",
     screen: "lawyer_job",
     jobId: String(jobId),
-    actionPath: `/lawyer/jobs/${jobId}`,
+    actionPath: `/dashboard?section=briefs&brief=${jobId}`,
   };
 }
 
@@ -209,7 +209,7 @@ export function buildSurveyorJobMeta(surveyRequestId: string): InboxDeepLinkMeta
     audience: "practitioner",
     screen: "surveyor_job",
     surveyRequestId: String(surveyRequestId),
-    actionPath: `/surveyor/jobs`,
+    actionPath: `/dashboard?section=briefs&brief=${surveyRequestId}`,
   };
 }
 
@@ -237,7 +237,7 @@ export function buildCatalogJobMeta(params: {
     screen: "valuer_job",
     jobId: requestId,
     catalogRequestId: requestId,
-    actionPath: `/valuer/jobs/${requestId}`,
+    actionPath: `/dashboard?section=briefs&brief=${requestId}`,
   };
 }
 

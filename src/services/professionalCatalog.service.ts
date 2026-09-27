@@ -459,6 +459,22 @@ function redactCatalogJob(
         ? { email: contact.email, phoneNumber: contact.phoneNumber }
         : {}),
     },
+    myOffer: myOfferForProfessional(request.offers, userId),
+  };
+}
+
+function myOfferForProfessional(offers: unknown, userId: string) {
+  if (!Array.isArray(offers)) return null;
+  const mine = offers.find(
+    (offer) =>
+      offer &&
+      typeof offer === "object" &&
+      String((offer as { professionalId?: unknown }).professionalId) === String(userId)
+  ) as { coverageNote?: string; customerPrice?: number } | undefined;
+  if (!mine) return null;
+  return {
+    coverageNote: mine.coverageNote || "",
+    serviceFee: Number(mine.customerPrice || 0),
   };
 }
 

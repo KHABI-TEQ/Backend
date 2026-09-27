@@ -1,4 +1,9 @@
-/** Emails for accept-then-pay lawyer / surveyor marketplace flows. */
+/** Emails for professional service briefs and assigned marketplace work. */
+
+function briefsUrl(): string {
+  const base = (process.env.CLIENT_LINK || "https://khabiteq.com").replace(/\/$/, "");
+  return `${base}/dashboard?section=briefs`;
+}
 
 export function professionalNewRequestEmail(params: {
   professionalName: string;
@@ -8,16 +13,18 @@ export function professionalNewRequestEmail(params: {
   broadcast?: boolean;
 }): string {
   const intro = params.broadcast
-    ? `A new <strong>${params.kindLabel}</strong> request is available. The first professional to accept will be assigned.`
-    : `A buyer selected you for a <strong>${params.kindLabel}</strong> request.`;
+    ? `A client published a <strong>${params.kindLabel}</strong> brief. Open Service briefs on your Khabiteq account to send an offer.`
+    : `A client selected you for a <strong>${params.kindLabel}</strong> brief. Open Service briefs on your Khabiteq account to send an offer.`;
   return `
     <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
       <p>Dear ${params.professionalName},</p>
       <p>${intro}</p>
       <p><strong>Reference:</strong> ${params.referenceCode}</p>
       <p>${params.summary}</p>
-      <p>Buyer contact details are hidden until you accept and the buyer completes payment.</p>
-      <p>Open Jobs in the Khabi-Teq Practitioners app to Accept or Decline.</p>
+      <p>On Service briefs, describe what your service covers, set the fee the client will pay, and agree that Khabiteq deducts 10% of that fee from your settlement.</p>
+      <p>You cannot send an offer until the bank account from your KYC is connected.</p>
+      <p>The client compares offers and pays only the fee you set. Their contact details stay hidden until they complete payment.</p>
+      <p><a href="${briefsUrl()}">Open Service briefs</a></p>
       <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;" />
       <p style="font-size: 13px; color: #999;">This is an automated message.</p>
     </div>

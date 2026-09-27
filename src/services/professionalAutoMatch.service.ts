@@ -159,9 +159,9 @@ function requestSummary(request: IProfessionalServiceRequestDoc): string {
   const answers = (request.answers || {}) as Record<string, unknown>;
   const location = String(answers.propertyAddress || "").trim();
   const locBit = location ? ` Location: ${location}.` : "";
-  const fee = Number(request.customerPrice || 0);
-  const feeBit = fee > 0 ? ` Fee: ₦${fee.toLocaleString()}.` : " Set your own fee when you respond.";
-  return `${request.serviceName}.${locBit}${feeBit}`;
+  const objective = String(answers.objective || "").trim();
+  const detail = objective ? ` ${objective}` : "";
+  return `${request.serviceName}.${locBit}${detail}`;
 }
 
 export async function broadcastNewServiceRequest(

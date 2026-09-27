@@ -98,6 +98,7 @@ import {
   listValuerJobs,
   getValuerJob,
   respondValuerJob,
+  setupValuerBank,
 } from "../controllers/Account/Valuer/valuerAccount";
 import {
   listProfessionalServiceJobs,
@@ -475,5 +476,6 @@ AccountRouter.put("/valuer/kyc", submitValuerKyc);
 AccountRouter.get("/valuer/jobs", listValuerJobs);
 AccountRouter.get("/valuer/jobs/:id", getValuerJob);
 AccountRouter.post("/valuer/jobs/:id/respond", respondValuerJob);
+AccountRouter.post("/valuer/bank", setupValuerBank);
 
 export default AccountRouter;
