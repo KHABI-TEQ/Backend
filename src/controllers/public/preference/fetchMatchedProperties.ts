@@ -48,7 +48,8 @@ export const getPaginatedMatchedProperties = async (
       revealedCount: (match as any).revealedCount,
       matchedProperties: allProperties,
     });
-    const visible = allProperties.slice(0, revealed);
+    const visibleCount = revealed > 0 ? revealed : allProperties.length;
+    const visible = allProperties.slice(0, visibleCount);
 
     const page = parseInt(req.query.page as string) || 1;
     const defaultLimit = visible.length || 5;

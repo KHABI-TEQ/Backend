@@ -39,12 +39,55 @@ function inferType(subject: string): BuyerNotificationType {
   return "email";
 }
 
+function looksLikeHtml(value: string): boolean {
+  return /<[a-z!/][^>]*>/i.test(value);
+}
+
+function decodeHtmlEntities(value: string): string {
+  return value
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => {
+      const point = Number(code);
+      return Number.isFinite(point) ? String.fromCharCode(point) : " ";
+    });
+}
+
+/** Turn an email document into a short notification sentence. */
+export function htmlToNotificationText(value: string): string {
+  let next = String(value || "");
+  next = next.replace(/<!--[\s\S]*?-->/g, " ");
+  next = next.replace(/<style[\s\S]*?<\/style>/gi, " ");
+  next = next.replace(/<script[\s\S]*?<\/script>/gi, " ");
+  next = next.replace(/<head[\s\S]*?<\/head>/gi, " ");
+  next = next.replace(/<br\s*\/?>/gi, " ");
+  next = next.replace(/<\/(p|div|tr|li|h[1-6])>/gi, " ");
+  next = next.replace(/<[^>]+>/g, " ");
+  next = decodeHtmlEntities(next).replace(/\s+/g, " ").trim();
+  const greeting = next.search(/\bDear\b/i);
+  if (greeting > 0 && greeting < 120) next = next.slice(greeting);
+  next = next.replace(/\b(Facebook|Instagram|LinkedIn|Twitter)\b/g, " ");
+  next = next.replace(/\s*Copyright\s*©[\s\S]*$/i, "");
+  return next.replace(/\s+/g, " ").trim();
+}
+
 function cleanMessage(text: string, subject: string) {
-  const trimmed = String(text || "")
+  const raw = String(text || "");
+  const trimmed = (looksLikeHtml(raw) ? htmlToNotificationText(raw) : raw)
     .replace(/\s+/g, " ")
     .trim();
   if (!trimmed) return subject;
-  return trimmed.length > 600 ? `${trimmed.slice(0, 597)}…` : trimmed;
+  return trimmed.length > 280 ? `${trimmed.slice(0, 277)}…` : trimmed;
+}
+
+function presentStoredMessage(message: string, subject: string) {
+  const raw = String(message || "");
+  if (!looksLikeHtml(raw)) return raw;
+  return cleanMessage(raw, subject);
 }
 
 async function pruneInvalidBuyerTokens(
@@ -268,8 +311,16 @@ export async function listBuyerNotifications(
       .lean(),
   ]);
 
+  const readable = data.map((row) => ({
+    ...row,
+    message: presentStoredMessage(
+      String(row.message || ""),
+      String(row.title || row.emailSubject || "")
+    ),
+  }));
+
   return {
-    data,
+    data: readable,
     unreadCount,
     pagination: {
       total,

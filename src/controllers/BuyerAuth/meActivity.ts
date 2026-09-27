@@ -3,6 +3,7 @@ import { DB } from "..";
 import { AppRequest } from "../../types/express";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
+import { effectiveRevealedCount } from "../../services/matchBatch.service";
 
 function requireBuyerId(req: AppRequest) {
   const id = req.buyer?._id;
@@ -42,10 +43,56 @@ export const getMyPreferences = async (
       reviewsByPref.set(key, list);
     }
 
+    const matchRows = prefIds.length
+      ? await DB.Models.MatchedPreferenceProperty.find({
+          preference: { $in: prefIds },
+        })
+          .select("preference matchedProperties revealedCount")
+          .lean()
+      : [];
+
+    const revealedByPref = new Map<string, { matchedId: string; propertyIds: string[] }>();
+    const revealedPropertyIds: string[] = [];
+    for (const match of matchRows) {
+      const allIds = match.matchedProperties || [];
+      const revealed = effectiveRevealedCount(match);
+      const visible = revealed > 0 ? revealed : allIds.length;
+      const propertyIds = allIds
+        .slice(0, visible)
+        .map((id) => String(id));
+      revealedByPref.set(String(match.preference), {
+        matchedId: String(match._id),
+        propertyIds,
+      });
+      revealedPropertyIds.push(...propertyIds);
+    }
+
+    const matchedProperties = revealedPropertyIds.length
+      ? await DB.Models.Property.find({ _id: { $in: revealedPropertyIds } })
+          .select("location propertyType")
+          .lean()
+      : [];
+    const titleByProperty = new Map(
+      matchedProperties.map((property: any) => {
+        const location = property.location || {};
+        const title =
+          [location.area, location.localGovernment, location.state].filter(Boolean).join(", ") ||
+          property.propertyType ||
+          "Property";
+        return [String(property._id), title];
+      })
+    );
+
     const withReviews = preferences.map((pref) => {
       const rows = reviewsByPref.get(String(pref._id)) || [];
+      const match = revealedByPref.get(String(pref._id));
       return {
         ...pref,
+        matchedId: match?.matchedId || null,
+        matches: (match?.propertyIds || []).map((propertyId) => ({
+          propertyId,
+          title: titleByProperty.get(propertyId) || "Property",
+        })),
         marketReviews: rows.map((row) => ({
           budgetFit: row.budgetFit === "too_low" ? "too_low" : "moderate",
           suggestedBudget: row.suggestedBudget?.min
