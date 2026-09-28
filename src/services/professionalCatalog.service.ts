@@ -364,15 +364,15 @@ async function notifyProfessionalOfPaidBrief(request: IProfessionalServiceReques
   const buyer = request.buyerId
     ? await DB.Models.Buyer.findById(request.buyerId).select("fullName email phoneNumber").lean()
     : null;
-  const contact = request.contact || {};
+  const contact = request.contact;
   const sent = await emailProfessionalBuyerContacts({
     kind: request.category === "valuer" ? "valuer" : request.category,
     kindLabel: request.serviceName,
     professionalUserId: request.professionalId,
     buyer: {
-      fullName: contact.fullName || buyer?.fullName,
-      email: contact.email || buyer?.email,
-      phoneNumber: contact.phoneNumber || buyer?.phoneNumber,
+      fullName: contact?.fullName || buyer?.fullName,
+      email: contact?.email || buyer?.email,
+      phoneNumber: contact?.phoneNumber || buyer?.phoneNumber,
     },
     referenceCode: request.reference,
     amount: request.customerPrice,
