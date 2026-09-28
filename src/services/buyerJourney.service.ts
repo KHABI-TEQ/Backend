@@ -33,7 +33,7 @@ const INSPECTION_READY = new Set([
 ]);
 
 const BRIEF_PAID = new Set(["in-progress", "delivered", "completed"]);
-const CERTIFICATE_READY = new Set(["certificate_issued", "completed", "approved"]);
+const CERTIFICATE_READY = new Set(["certificate_issued", "completed"]);
 const FEE_PAID = new Set([
   "pending_completion",
   "khabiteq_verified",
@@ -89,6 +89,9 @@ function registrationDetail(status: string): string {
   if (status === "rejected") return "This registration was not approved.";
   if (status === "info_requested") return "More information was requested.";
   if (status === "submitted") return "The registration form is saved. The registration fee is still due.";
+  if (status === "approved") return "LASRERA has approved this registration. The certificate is issued next.";
+  if (status === "khabiteq_verified") return "Khabiteq has verified this registration. It is waiting for LASRERA.";
+  if (status === "forwarded_to_lasrera") return "This registration is with LASRERA for review.";
   if (FEE_PAID.has(status)) return "Registration fee paid. Khabiteq is reviewing this registration.";
   return "Your registration has been submitted and is under review.";
 }
@@ -180,7 +183,8 @@ function propertySteps(params: {
     path === "independent" || (path === "platform" && BRIEF_PAID.has(briefStatus));
   const registration = params.registration;
   const regStatus = String(registration?.status || "");
-  const certificateReady = Boolean(registration) && (CERTIFICATE_READY.has(regStatus) || Boolean(registration?.certificateUrl));
+  const certificateReady =
+    Boolean(registration?.certificateUrl) && CERTIFICATE_READY.has(regStatus);
 
   const steps: DraftStep[] = [
     {
@@ -232,7 +236,7 @@ function propertySteps(params: {
       title: "Certificate",
       detail: certificateReady
         ? "Your certificate is ready to download."
-        : "The certificate appears here after the registration is issued.",
+        : "The certificate appears here after LASRERA issues it.",
       complete: certificateReady,
       action: certificateReady
         ? { label: "Download certificate", href: "/transaction-registration?tab=certificate" }

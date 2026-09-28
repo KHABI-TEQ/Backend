@@ -37,6 +37,7 @@ export interface CertificateDocumentInput {
   transactionValue: number;
   issuedAt: Date;
   certificateNumber: string;
+  verifyUrl?: string;
 }
 
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
@@ -109,6 +110,7 @@ export function buildSampleCertificateInput(): CertificateDocumentInput {
     transactionValue: 4_500_000,
     issuedAt: new Date(),
     certificateNumber: `LASRERA/TRC/${new Date().getFullYear()}/SAMPLE01`,
+    verifyUrl: certificateVerifyUrl("KHT-TR-000000"),
   };
 }
 
@@ -126,6 +128,29 @@ function inputFromRegistration(
   };
 }
 
+function drawDigitalTrailQr(
+  doc: InstanceType<typeof PDFDocument>,
+  qrBuffer: Buffer,
+  pageWidth: number
+) {
+  const qrSize = 62;
+  const qrX = pageWidth - 116;
+  const qrY = 56;
+  doc.save();
+  doc.lineWidth(0.7).strokeColor("#0B5D3B").roundedRect(qrX - 6, qrY - 6, qrSize + 12, qrSize + 18, 3).stroke();
+  doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+  doc
+    .font("Helvetica-Bold")
+    .fontSize(5.5)
+    .fillColor("#0B5D3B")
+    .text("SCAN FOR DIGITAL TRAIL", qrX - 8, qrY + qrSize + 2, {
+      width: qrSize + 16,
+      align: "center",
+      lineBreak: false,
+    });
+  doc.restore();
+}
+
 async function buildCertificatePdf(
   input: CertificateDocumentInput,
   config: ILasreraCertificateConfig
@@ -133,6 +158,7 @@ async function buildCertificatePdf(
   const logoBuffer = await resolveLogoBuffer(config.logoUrl);
   const signatureBuffer = await resolvePdfImage(config.signatureUrl);
   const stampBuffer = await resolvePdfImage(config.stampUrl);
+  const qrBuffer = input.verifyUrl ? await fetchQrBuffer(input.verifyUrl) : null;
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
@@ -157,6 +183,10 @@ async function buildCertificatePdf(
       .strokeColor("#C9A227")
       .rect(42, 42, pageWidth - 84, pageHeight - 84)
       .stroke();
+
+    if (qrBuffer) {
+      drawDigitalTrailQr(doc, qrBuffer, pageWidth);
+    }
 
     if (logoBuffer) {
       doc.image(logoBuffer, pageWidth / 2 - 70, 52, { width: 140 });
@@ -504,7 +534,14 @@ export async function generateAndStoreRegistrationCertificate(
 
   const nextVersion = previousVersion > 0 ? previousVersion + 1 : 1;
   const certificateNumber = reg.certificateNumber || generateCertificateNumber(String(reg._id));
-  const pdfBuffer = await buildKhabiteqCertificatePdf(reg);
+  const config = await getLasreraCertificateConfig();
+  const pdfBuffer = await buildCertificatePdf(
+    {
+      ...inputFromRegistration(reg, certificateNumber),
+      verifyUrl: reg.transactionReference ? certificateVerifyUrl(reg.transactionReference) : undefined,
+    },
+    config
+  );
   const base64 = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
   const filename = `khabiteq-certificate-${reg.transactionReference || String(reg._id).slice(-8)}`;
 
