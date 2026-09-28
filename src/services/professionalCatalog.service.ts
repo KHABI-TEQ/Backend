@@ -784,7 +784,7 @@ async function profileForPayout(
 export async function createServiceBrief(body: {
   category: "lawyer" | "surveyor" | "valuer";
   serviceName: string;
-  inspectionId: string;
+  inspectionId?: string;
   buyerId: string;
   contact: { fullName: string; email: string; phoneNumber?: string };
   brief: {
@@ -809,29 +809,34 @@ export async function createServiceBrief(body: {
   if (!buyer) {
     throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Sign in to publish this brief.");
   }
-  const inspectionLink = await resolveBuyerInspectionLink({
-    inspectionId: body.inspectionId,
-    buyerId: String(buyer._id),
-  });
-  const inspection = await DB.Models.InspectionBooking.findById(body.inspectionId);
-  if (!inspection) {
-    throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found.");
+  const inspectionId = String(body.inspectionId || "").trim();
+  let inspectionFields: Record<string, Types.ObjectId> = {};
+  if (inspectionId) {
+    const inspectionLink = await resolveBuyerInspectionLink({
+      inspectionId,
+      buyerId: String(buyer._id),
+    });
+    const inspection = await DB.Models.InspectionBooking.findById(inspectionId);
+    if (!inspection) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found.");
+    }
+    if (!BRIEF_CLOSE_STATUSES.includes(String(inspection.status || ""))) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "The agent must accept this inspection before you can engage a professional."
+      );
+    }
+    if (inspection.status !== "completed") {
+      inspection.status = "completed";
+      inspection.stage = "completed";
+      inspection.buyerConfirmedInspectionAt = new Date();
+    }
+    inspection.wishToProceed = true;
+    inspection.dueDiligencePath = "platform";
+    inspection.buyerIntentRecordedAt = new Date();
+    await inspection.save();
+    inspectionFields = inspectionLinkFields(inspectionLink);
   }
-  if (!BRIEF_CLOSE_STATUSES.includes(String(inspection.status || ""))) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "The agent must accept this inspection before you can engage a professional."
-    );
-  }
-  if (inspection.status !== "completed") {
-    inspection.status = "completed";
-    inspection.stage = "completed";
-    inspection.buyerConfirmedInspectionAt = new Date();
-  }
-  inspection.wishToProceed = true;
-  inspection.dueDiligencePath = "platform";
-  inspection.buyerIntentRecordedAt = new Date();
-  await inspection.save();
 
   const reference = newReference();
   const request = await DB.Models.ProfessionalServiceRequest.create({
@@ -841,7 +846,7 @@ export async function createServiceBrief(body: {
     category: body.category,
     fulfillment: "catalog-request",
     buyerId: buyer._id,
-    ...inspectionLinkFields(inspectionLink),
+    ...inspectionFields,
     contact: {
       fullName: body.contact.fullName.trim(),
       email: String(body.contact.email).toLowerCase().trim(),
