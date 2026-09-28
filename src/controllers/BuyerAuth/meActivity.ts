@@ -9,6 +9,7 @@ import {
   professionalContactAfterPayment,
   selectServiceOffer,
 } from "../../services/professionalCatalog.service";
+import { buildPreferenceJourney } from "../../services/buyerJourney.service";
 
 function requireBuyerId(req: AppRequest) {
   const id = req.buyer?._id;
@@ -116,6 +117,20 @@ export const getMyPreferences = async (
       success: true,
       data: { preferences: withReviews, buyerId: String(buyerId) },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyPreferenceJourney = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyerId = requireBuyerId(req);
+    const journey = await buildPreferenceJourney(String(buyerId), String(req.params.id || ""));
+    return res.status(HttpStatusCodes.OK).json({ success: true, data: journey });
   } catch (err) {
     next(err);
   }

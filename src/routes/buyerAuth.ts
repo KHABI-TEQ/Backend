@@ -42,6 +42,7 @@ import { updateBuyerBrm } from "../controllers/BuyerAuth/assignBrm";
 import { assignBrmSchema } from "../validators/brm.validator";
 import {
   getMyPreferences,
+  getMyPreferenceJourney,
   getMyInspections,
   getMyDocumentVerifications,
   getMySurveyRequests,
@@ -136,6 +137,7 @@ BuyerAuthRouter.get(
 );
 
 BuyerAuthRouter.get("/me/preferences", buyerAuth, getMyPreferences);
+BuyerAuthRouter.get("/me/preferences/:id/journey", buyerAuth, getMyPreferenceJourney);
 
 BuyerAuthRouter.get("/me/inspections", buyerAuth, getMyInspections);
 
