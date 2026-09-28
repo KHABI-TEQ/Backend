@@ -31,6 +31,46 @@ export function professionalNewRequestEmail(params: {
   `;
 }
 
+function clientBase(): string {
+  return (process.env.CLIENT_LINK || "https://www.khabiteq.com").replace(/\/$/, "");
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function buyerNewOfferEmail(params: {
+  buyerName: string;
+  professionalName: string;
+  serviceName: string;
+  coverageNote: string;
+  fee: number;
+  requestId: string;
+}): string {
+  const href = `${clientBase()}/buyer/service-requests/${params.requestId}`;
+  const buyerName = escapeHtml(params.buyerName || "Client");
+  const professionalName = escapeHtml(params.professionalName);
+  const serviceName = escapeHtml(params.serviceName);
+  const coverageNote = escapeHtml(params.coverageNote);
+  return `
+    <div style="font-family: Arial, sans-serif; font-size: 15px; color: #333; line-height: 1.6; max-width: 100%;">
+      <p>Dear ${buyerName},</p>
+      <p><strong>${professionalName}</strong> has sent an offer on your <strong>${serviceName}</strong> brief.</p>
+      <p><strong>What the service covers:</strong> ${coverageNote}</p>
+      <p><strong>Service fee:</strong> ₦${Number(params.fee).toLocaleString()}</p>
+      <p>Open the offer and review the coverage and fee. If you want this professional, choose the offer and pay that fee. After payment, their name, phone and email appear on the same page so you can share your documents with them directly.</p>
+      <p style="margin: 24px 0;">
+        <a href="${href}" style="display:inline-block;background:#09391C;color:#ffffff;padding:12px 20px;text-decoration:none;border-radius:6px;">View this offer</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;" />
+      <p style="font-size: 13px; color: #999;">This is an automated message.</p>
+    </div>
+  `;
+}
+
 export function buyerRequestAcceptedPayEmail(params: {
   buyerName: string;
   kindLabel: string;

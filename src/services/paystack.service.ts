@@ -209,6 +209,7 @@ export class PaystackService {
     paymentMode = 'card',
     currency = 'NGN',
     metadata = {},
+    callbackUrl,
   }: {
     subAccount: string;
     publicPageUrl: string;
@@ -220,6 +221,7 @@ export class PaystackService {
     paymentMode?: string;
     currency?: string;
     metadata?: Record<string, any>;
+    callbackUrl?: string;
   }) {
 
     const reference = 'KT' + Math.floor(Math.random() * 9e14 + 1e14).toString();
@@ -244,7 +246,7 @@ export class PaystackService {
       {
         email,
         amount: amount * 100, // convert to kobo
-        callback_url: `${publicPageUrl}/payment-verification`,
+        callback_url: callbackUrl?.trim() || `${publicPageUrl}/payment-verification`,
         reference,
         currency,
         subaccount: subAccount,

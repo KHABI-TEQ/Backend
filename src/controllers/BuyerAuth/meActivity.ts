@@ -6,6 +6,7 @@ import { RouteError } from "../../common/classes";
 import { effectiveRevealedCount } from "../../services/matchBatch.service";
 import {
   createServiceBrief,
+  professionalContactAfterPayment,
   selectServiceOffer,
 } from "../../services/professionalCatalog.service";
 
@@ -420,6 +421,7 @@ export const getMyServiceBrief = async (
       coverageNote: offer.coverageNote,
       serviceFee: offer.customerPrice,
     }));
+    const professional = await professionalContactAfterPayment(request);
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: {
@@ -431,6 +433,7 @@ export const getMyServiceBrief = async (
         serviceFee: request.customerPrice,
         answers: request.answers,
         offers,
+        professional,
       },
     });
   } catch (err) {

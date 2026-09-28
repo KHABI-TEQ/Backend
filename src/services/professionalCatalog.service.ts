@@ -18,7 +18,7 @@ import {
 import { PaystackService } from "./paystack.service";
 import sendEmail from "../common/send.email";
 import { generalEmailLayout } from "../common/emailTemplates/emailLayout";
-import { buyerRequestAcceptedPayEmail } from "../common/emailTemplates/professionalRequestMails";
+import { buyerNewOfferEmail, buyerRequestAcceptedPayEmail } from "../common/emailTemplates/professionalRequestMails";
 import {
   broadcastNewServiceRequest,
   flagUnclaimedCatalogRequests,
@@ -273,6 +273,7 @@ export async function initializeCatalogRequestPayment(params: {
       },
       transactionType: "professional-service",
       metadata,
+      callbackUrl: `${publicPageUrl}/buyer/service-requests/${request._id}?paid=1`,
     });
   } else if (request.category === "surveyor") {
     const profile = await DB.Models.SurveyorProfile.findOne({
@@ -299,6 +300,7 @@ export async function initializeCatalogRequestPayment(params: {
       },
       transactionType: "professional-service",
       metadata,
+      callbackUrl: `${publicPageUrl}/buyer/service-requests/${request._id}?paid=1`,
     });
   } else {
     const profile = await DB.Models.ValuerProfile.findOne({
@@ -324,6 +326,7 @@ export async function initializeCatalogRequestPayment(params: {
       },
       transactionType: "professional-service",
       metadata,
+      callbackUrl: `${publicPageUrl}/buyer/service-requests/${request._id}?paid=1`,
     });
   }
 
@@ -945,13 +948,59 @@ export async function submitServiceOffer(params: {
     void sendEmail({
       to: request.contact.email,
       subject: `New offer for ${request.serviceName}`,
-      text: `${professionalName} offered this service for ₦${fee.toLocaleString()}. ${note}`,
+      text: `Dear ${request.contact?.fullName || "Client"}, ${professionalName} sent an offer on your ${request.serviceName} brief. What the service covers: ${note}. Service fee: ₦${fee.toLocaleString()}. Open the offer, choose it if you want this professional, and pay that fee. After payment their contact details appear on the page. ${(process.env.CLIENT_LINK || "https://www.khabiteq.com").replace(/\/$/, "")}/buyer/service-requests/${request._id}`,
       html: generalEmailLayout(
-        `<p>${professionalName} sent an offer on your ${request.serviceName} brief.</p><p><strong>What the service covers:</strong> ${note}</p><p><strong>Service fee:</strong> ₦${fee.toLocaleString()}</p>`
+        buyerNewOfferEmail({
+          buyerName: request.contact?.fullName || "Client",
+          professionalName,
+          serviceName: request.serviceName,
+          coverageNote: note,
+          fee,
+          requestId: String(request._id),
+        })
       ),
     });
   }
   return request;
+}
+
+const PAID_BRIEF_STATUSES = new Set(["in-progress", "delivered", "completed"]);
+
+export async function professionalContactAfterPayment(request: {
+  status?: string;
+  category?: string;
+  professionalId?: Types.ObjectId | string | null;
+}) {
+  if (!request.professionalId || !PAID_BRIEF_STATUSES.has(String(request.status || ""))) {
+    return null;
+  }
+  const user = await DB.Models.User.findById(request.professionalId)
+    .select("firstName lastName email phoneNumber")
+    .lean();
+  if (!user) return null;
+  let firmName = "";
+  if (request.category === "lawyer") {
+    const profile = await DB.Models.LawyerProfile.findOne({ userId: request.professionalId })
+      .select("firmName")
+      .lean();
+    firmName = profile?.firmName || "";
+  } else if (request.category === "surveyor") {
+    const profile = await DB.Models.SurveyorProfile.findOne({ userId: request.professionalId })
+      .select("firmName")
+      .lean();
+    firmName = profile?.firmName || "";
+  } else if (request.category === "valuer") {
+    const profile = await DB.Models.ValuerProfile.findOne({ userId: request.professionalId })
+      .select("firmName")
+      .lean();
+    firmName = profile?.firmName || "";
+  }
+  return {
+    name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Professional",
+    firmName,
+    email: user.email || "",
+    phone: user.phoneNumber || "",
+  };
 }
 
 export async function selectServiceOffer(params: {
