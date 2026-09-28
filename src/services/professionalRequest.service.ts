@@ -461,26 +461,31 @@ export async function emailProfessionalBuyerContacts(params: {
   referenceCode: string;
   amount: number;
   jobId: string;
-}): Promise<void> {
+  kindLabel?: string;
+}): Promise<boolean> {
   const user = await DB.Models.User.findById(params.professionalUserId);
-  if (!user?.email) return;
+  if (!user?.email) return false;
 
   const name =
     `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Professional";
   const kindLabel =
-    params.kind === "lawyer"
+    params.kindLabel ||
+    (params.kind === "lawyer"
       ? "document verification"
       : params.kind === "surveyor"
         ? "survey"
-        : "valuation consultation";
+        : "valuation consultation");
+  const buyerName = params.buyer.fullName || "Client";
+  const buyerEmail = params.buyer.email || "";
+  const buyerPhone = params.buyer.phoneNumber || "";
   const html = generalEmailLayout(
     professionalContactsUnlockedEmail({
       professionalName: name,
       kindLabel,
       referenceCode: params.referenceCode,
-      buyerName: params.buyer.fullName || "Buyer",
-      buyerEmail: params.buyer.email || "",
-      buyerPhone: params.buyer.phoneNumber || "",
+      buyerName,
+      buyerEmail,
+      buyerPhone,
       amount: params.amount,
     })
   );
@@ -492,21 +497,28 @@ export async function emailProfessionalBuyerContacts(params: {
         ? buildSurveyorJobMeta(params.jobId)
         : buildCatalogJobMeta({ category: "valuer", requestId: params.jobId });
 
-  await notificationService.createNotification({
-    user: String(params.professionalUserId),
-    title: "Payment received – buyer contacts unlocked",
-    message: `${params.buyer.fullName || "Buyer"} paid. Contact them to proceed.`,
-    type: params.kind === "lawyer" ? "document" : "survey",
-    meta,
-  });
+  const message = `${buyerName} paid ₦${Number(params.amount || 0).toLocaleString()} for ${kindLabel} (${params.referenceCode}). Contact the client to continue. Name: ${buyerName}. Email: ${buyerEmail}. Phone: ${buyerPhone}.`;
+
+  try {
+    await notificationService.createNotification({
+      user: String(params.professionalUserId),
+      title: "Payment received",
+      message,
+      type: "general",
+      meta,
+    });
+  } catch (err) {
+    console.error("Professional payment notification failed:", err);
+  }
 
   void sendEmail({
     to: user.email,
-    subject: `Payment received – buyer contacts for ${kindLabel}`,
+    subject: `Payment received – client contact for ${kindLabel}`,
     html,
-    text: `Payment received. Buyer: ${params.buyer.fullName}, ${params.buyer.email}, ${params.buyer.phoneNumber}`,
+    text: `Dear ${name}, payment was received for ${kindLabel} (${params.referenceCode}). Amount: ₦${Number(params.amount || 0).toLocaleString()}. Client name: ${buyerName}. Email: ${buyerEmail}. Phone: ${buyerPhone}. Contact the client to continue.`,
     skipBuyerInbox: true,
   });
+  return true;
 }
 
 export async function emailBuyerPaymentReceived(params: {

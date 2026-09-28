@@ -43,6 +43,7 @@ export interface IProfessionalServiceRequest {
   deliverableNotes?: string;
   deliveredAt?: Date;
   declineReason?: string;
+  contactsUnlockedAt?: Date;
   offers?: Array<{
     professionalId: Types.ObjectId;
     professionalName?: string;
@@ -134,6 +135,7 @@ export class ProfessionalServiceRequest {
         deliverableNotes: { type: String },
         deliveredAt: { type: Date },
         declineReason: { type: String },
+        contactsUnlockedAt: { type: Date },
         offers: {
           type: [
             {

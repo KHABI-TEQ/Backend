@@ -121,13 +121,14 @@ export function professionalContactsUnlockedEmail(params: {
       <p>Dear ${params.professionalName},</p>
       <p>Payment was received for <strong>${params.kindLabel}</strong> (${params.referenceCode}).</p>
       <p><strong>Amount:</strong> ₦${Number(params.amount).toLocaleString()}</p>
-      <p>You may now contact the buyer:</p>
+      <p>You may now contact the client:</p>
       <ul>
         <li><strong>Name:</strong> ${params.buyerName}</li>
         <li><strong>Email:</strong> ${params.buyerEmail}</li>
         <li><strong>Phone:</strong> ${params.buyerPhone}</li>
       </ul>
-      <p>Complete the job in the Khabi-Teq Practitioners app when finished.</p>
+      <p>Contact the client with these details. Share documents directly, and send the full report on your company letterhead.</p>
+      <p><a href="${(process.env.CLIENT_LINK || "https://www.khabiteq.com").replace(/\/$/, "")}/dashboard?section=briefs">Open Service briefs</a></p>
       <hr style="border: none; border-top: 1px solid #ccc; margin: 30px 0;" />
       <p style="font-size: 13px; color: #999;">This is an automated message.</p>
     </div>

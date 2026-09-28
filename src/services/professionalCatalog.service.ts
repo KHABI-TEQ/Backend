@@ -351,44 +351,63 @@ export async function initializeCatalogRequestPayment(params: {
   return payment;
 }
 
+const CONTACT_UNLOCK_STATUSES = new Set([
+  "in-progress",
+  "delivered",
+  "completed",
+  "paid-awaiting-assignment",
+]);
+
+async function notifyProfessionalOfPaidBrief(request: IProfessionalServiceRequestDoc) {
+  if (!request.professionalId || request.contactsUnlockedAt) return;
+  if (!CONTACT_UNLOCK_STATUSES.has(String(request.status || ""))) return;
+  const buyer = request.buyerId
+    ? await DB.Models.Buyer.findById(request.buyerId).select("fullName email phoneNumber").lean()
+    : null;
+  const contact = request.contact || {};
+  const sent = await emailProfessionalBuyerContacts({
+    kind: request.category === "valuer" ? "valuer" : request.category,
+    kindLabel: request.serviceName,
+    professionalUserId: request.professionalId,
+    buyer: {
+      fullName: contact.fullName || buyer?.fullName,
+      email: contact.email || buyer?.email,
+      phoneNumber: contact.phoneNumber || buyer?.phoneNumber,
+    },
+    referenceCode: request.reference,
+    amount: request.customerPrice,
+    jobId: String(request._id),
+  });
+  if (!sent) return;
+  request.contactsUnlockedAt = new Date();
+  await request.save();
+}
+
 export async function markCatalogRequestPaid(requestId: string) {
   const request = await DB.Models.ProfessionalServiceRequest.findById(requestId);
   if (!request) return null;
-  request.status = request.professionalId
-    ? "in-progress"
-    : "paid-awaiting-assignment";
-  request.amountPaid = request.customerPrice;
-  await request.save();
+  if (!CONTACT_UNLOCK_STATUSES.has(String(request.status || ""))) {
+    request.status = request.professionalId
+      ? "in-progress"
+      : "paid-awaiting-assignment";
+    request.amountPaid = request.customerPrice;
+    await request.save();
 
-  if (request.linkedDocumentVerificationId) {
-    await DB.Models.DocumentVerification.findByIdAndUpdate(
-      request.linkedDocumentVerificationId,
-      { $set: { status: "payment-approved" } }
-    );
-  }
-  if (request.linkedSurveyRequestId) {
-    await DB.Models.SurveyRequest.findByIdAndUpdate(
-      request.linkedSurveyRequestId,
-      { $set: { status: "payment-approved" } }
-    );
-  }
-
-  if (request.professionalId) {
-    const buyer = await DB.Models.Buyer.findById(request.buyerId);
-    await emailProfessionalBuyerContacts({
-      kind: request.category === "valuer" ? "valuer" : request.category,
-      professionalUserId: request.professionalId,
-      buyer: buyer || request.contact,
-      referenceCode: request.reference,
-      amount: request.customerPrice,
-      jobId: request.linkedDocumentVerificationId
-        ? String(request.linkedDocumentVerificationId)
-        : request.linkedSurveyRequestId
-          ? String(request.linkedSurveyRequestId)
-          : String(request._id),
-    });
+    if (request.linkedDocumentVerificationId) {
+      await DB.Models.DocumentVerification.findByIdAndUpdate(
+        request.linkedDocumentVerificationId,
+        { $set: { status: "payment-approved" } }
+      );
+    }
+    if (request.linkedSurveyRequestId) {
+      await DB.Models.SurveyRequest.findByIdAndUpdate(
+        request.linkedSurveyRequestId,
+        { $set: { status: "payment-approved" } }
+      );
+    }
   }
 
+  await notifyProfessionalOfPaidBrief(request);
   return request;
 }
 
@@ -584,6 +603,16 @@ export async function listCatalogJobsForProfessional(
   category: "lawyer" | "surveyor" | "valuer"
 ) {
   const userOid = new Types.ObjectId(userId);
+  const awaitingContact = await DB.Models.ProfessionalServiceRequest.find({
+    category,
+    professionalId: userOid,
+    slug: /^brief-/,
+    status: { $in: [...CONTACT_UNLOCK_STATUSES] },
+    contactsUnlockedAt: { $exists: false },
+  });
+  for (const request of awaitingContact) {
+    await notifyProfessionalOfPaidBrief(request);
+  }
   const jobs = await DB.Models.ProfessionalServiceRequest.find({
     category,
     $or: [
