@@ -174,6 +174,7 @@ export const respondValuerJob = async (
         coverageNote: String(req.body.coverageNote || ""),
         fee: Number(req.body.fee),
         commissionAccepted: req.body.commissionAccepted === true,
+        letterheadReportAccepted: req.body.letterheadReportAccepted === true,
       });
       return res.status(HttpStatusCodes.OK).json({
         success: true,

@@ -51,6 +51,7 @@ export interface IProfessionalServiceRequest {
     platformFee: number;
     customerPrice: number;
     commissionAccepted: boolean;
+    letterheadReportAccepted?: boolean;
     createdAt?: Date;
   }>;
   offeredTo?: Types.ObjectId[];
@@ -143,6 +144,7 @@ export class ProfessionalServiceRequest {
               platformFee: { type: Number, required: true, min: 0 },
               customerPrice: { type: Number, required: true, min: 0 },
               commissionAccepted: { type: Boolean, required: true },
+              letterheadReportAccepted: { type: Boolean, default: false },
               createdAt: { type: Date, default: Date.now },
             },
           ],

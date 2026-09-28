@@ -847,11 +847,18 @@ export async function submitServiceOffer(params: {
   coverageNote: string;
   fee: number;
   commissionAccepted: boolean;
+  letterheadReportAccepted: boolean;
 }) {
   if (!params.commissionAccepted) {
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
       "Agree that Khabiteq keeps 10% of the service fee before you send this offer."
+    );
+  }
+  if (!params.letterheadReportAccepted) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Agree that you will send a full report to the client on your company letterhead before you send this offer."
     );
   }
   const fee = Math.round(Number(params.fee));
@@ -906,6 +913,7 @@ export async function submitServiceOffer(params: {
     platformFee,
     customerPrice,
     commissionAccepted: true,
+    letterheadReportAccepted: true,
     createdAt: new Date(),
   });
   request.offers = offers;
