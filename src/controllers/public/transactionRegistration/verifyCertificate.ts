@@ -32,10 +32,14 @@ export const verifyTransactionCertificate = async (
       $or: [{ transactionReference: reference }, { certificateNumber: reference }],
     });
 
-    if (!registration || !registration.transactionReference) {
+    const issued =
+      Boolean(registration?.certificateUrl) &&
+      (registration?.status === "certificate_issued" || registration?.status === "completed");
+
+    if (!registration || !registration.transactionReference || !issued) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
-        message: "Certificate not found.",
+        message: "No certificate has been issued for this reference.",
         data: null,
       });
     }
@@ -68,10 +72,13 @@ export const getPublicCertificateSummary = async (
     const registration = await DB.Models.TransactionRegistration.findOne({
       transactionReference: reference,
     }).lean();
-    if (!registration) {
+    const issued =
+      Boolean(registration?.certificateUrl) &&
+      (registration?.status === "certificate_issued" || registration?.status === "completed");
+    if (!registration || !issued) {
       return res.status(HttpStatusCodes.NOT_FOUND).json({
         success: false,
-        message: "Certificate not found.",
+        message: "No certificate has been issued for this reference.",
         data: null,
       });
     }

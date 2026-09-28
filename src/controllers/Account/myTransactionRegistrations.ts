@@ -109,6 +109,16 @@ export const getMyTransactionCertificate = async (
       throw new RouteError(HttpStatusCodes.FORBIDDEN, "You are not authorized to view this certificate.");
     }
 
+    const issued =
+      Boolean(registration.certificateUrl) &&
+      (registration.status === "certificate_issued" || registration.status === "completed");
+    if (!issued) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "No certificate has been issued. The registration fee must be paid and the certificate issued before it can be viewed."
+      );
+    }
+
     await ensureTransactionCertificateIdentity(registration);
     await registration.save();
 

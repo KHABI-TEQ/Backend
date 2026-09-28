@@ -231,16 +231,22 @@ export const getMyProfessionalServiceRequests = async (
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: {
-        requests: requests.map((row) => ({
-          _id: row._id,
-          serviceName: row.serviceName,
-          status: row.status,
-          reference: row.reference,
-          serviceFee: row.customerPrice,
-          offers: (row.offers || []).map((offer) => ({
-            professionalId: offer.professionalId,
-          })),
-        })),
+        requests: requests.map((row) => {
+          const selected = (row.offers || []).find(
+            (offer) => String(offer.professionalId) === String(row.professionalId)
+          );
+          return {
+            _id: row._id,
+            serviceName: row.serviceName,
+            status: row.status,
+            reference: row.reference,
+            serviceFee: row.customerPrice,
+            professionalName: selected?.professionalName || "",
+            offers: (row.offers || []).map((offer) => ({
+              professionalId: offer.professionalId,
+            })),
+          };
+        }),
       },
     });
   } catch (err) {
@@ -445,6 +451,7 @@ export const getMyServiceBrief = async (
         status: request.status,
         reference: request.reference,
         professionalId: request.professionalId,
+        inspectionId: request.inspectionId ? String(request.inspectionId) : "",
         serviceFee: request.customerPrice,
         answers: request.answers,
         offers,
