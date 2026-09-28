@@ -35,6 +35,11 @@ export const publisherKycSchema = Joi.object({
   /** Agent-specific alias; stored as licenseOrRegistrationNumber. */
   agentLicenseNumber: Joi.string().trim().optional().allow(""),
   licenseOrRegistrationNumber: Joi.string().trim().optional().allow(""),
+  // Registration certificate fields submitted by the Agent KYC form.
+  certificateKind: Joi.string().valid("cac", "lasrera").optional(),
+  certificateNumber: Joi.string().trim().optional().allow(""),
+  cacCertificateUrls: Joi.array().items(Joi.string().uri()).optional(),
+  lasreraCertificateUrls: Joi.array().items(Joi.string().uri()).optional(),
   profileBio: Joi.string().trim().optional().allow(""),
   specializations: Joi.array().items(Joi.string().trim()).optional(),
   languagesSpoken: Joi.array().items(Joi.string().trim()).optional(),
@@ -92,6 +97,10 @@ export const publisherKycSchema = Joi.object({
   companyDetails: Joi.object({
     companyName: Joi.string().trim().optional().allow(""),
     cacNumber: Joi.string().trim().optional().allow(""),
+    certificateKind: Joi.string().valid("cac", "lasrera").optional(),
+    lasreraNumber: Joi.string().trim().optional().allow(""),
+    cacCertificateUrls: Joi.array().items(Joi.string().uri()).optional(),
+    lasreraCertificateUrls: Joi.array().items(Joi.string().uri()).optional(),
   }).optional(),
 })
   .custom((value, helpers) => {
