@@ -34,6 +34,15 @@ const INSPECTION_READY = new Set([
 
 const BRIEF_PAID = new Set(["in-progress", "delivered", "completed"]);
 const CERTIFICATE_READY = new Set(["certificate_issued", "completed", "approved"]);
+const FEE_PAID = new Set([
+  "pending_completion",
+  "khabiteq_verified",
+  "forwarded_to_lasrera",
+  "info_requested",
+  "approved",
+  "certificate_issued",
+  "completed",
+]);
 
 function applyStates(drafts: DraftStep[]): JourneyStep[] {
   let assigned = false;
@@ -79,6 +88,8 @@ function registrationDetail(status: string): string {
   if (CERTIFICATE_READY.has(status)) return "Registration is complete.";
   if (status === "rejected") return "This registration was not approved.";
   if (status === "info_requested") return "More information was requested.";
+  if (status === "submitted") return "The registration form is saved. The registration fee is still due.";
+  if (FEE_PAID.has(status)) return "Registration fee paid. Khabiteq is reviewing this registration.";
   return "Your registration has been submitted and is under review.";
 }
 
@@ -211,9 +222,9 @@ function propertySteps(params: {
       key: "registration",
       title: "Transaction registration",
       detail: registration ? registrationDetail(regStatus) : "Register this transaction after due diligence.",
-      complete: Boolean(registration),
+      complete: Boolean(registration) && FEE_PAID.has(regStatus),
       action: registration
-        ? { label: "View registration", href: "/my-transactions" }
+        ? { label: FEE_PAID.has(regStatus) ? "View registration" : "Complete the registration fee", href: "/my-transactions" }
         : { label: "Register this transaction", href: `/transaction-registration?inspectionId=${inspectionId}` },
     },
     {
@@ -223,7 +234,9 @@ function propertySteps(params: {
         ? "Your certificate is ready to download."
         : "The certificate appears here after the registration is issued.",
       complete: certificateReady,
-      action: { label: "Download certificate", href: "/transaction-registration?tab=certificate" },
+      action: certificateReady
+        ? { label: "Download certificate", href: "/transaction-registration?tab=certificate" }
+        : undefined,
     },
   ];
 
@@ -264,10 +277,16 @@ export async function buildPreferenceJourney(buyerId: string, preferenceId: stri
     ],
   })
     .sort({ createdAt: -1 })
-    .populate("propertyId", "location title propertyName")
+    .populate("propertyId", "location title propertyName propertyCode")
     .lean();
 
   const inspectionIds = inspections.map((row) => row._id);
+  const propertyIds = inspections
+    .map((row: any) => row.propertyId?._id || row.propertyId)
+    .filter((id: unknown) => id && Types.ObjectId.isValid(String(id)));
+  const propertyCodes = inspections
+    .map((row: any) => String(row.propertyId?.propertyCode || "").trim())
+    .filter(Boolean);
   const briefs = inspectionIds.length
     ? await DB.Models.ProfessionalServiceRequest.find({
         buyerId,
@@ -276,12 +295,14 @@ export async function buildPreferenceJourney(buyerId: string, preferenceId: stri
         .sort({ createdAt: -1 })
         .lean()
     : [];
-  const registrations = inspectionIds.length
-    ? await DB.Models.TransactionRegistration.find({
-        inspectionId: { $in: inspectionIds },
-      })
+  const registrationQuery: Record<string, unknown>[] = [];
+  if (inspectionIds.length) registrationQuery.push({ inspectionId: { $in: inspectionIds } });
+  if (propertyIds.length) registrationQuery.push({ propertyId: { $in: propertyIds } });
+  if (propertyCodes.length) registrationQuery.push({ propertyCode: { $in: propertyCodes } });
+  const registrations = registrationQuery.length
+    ? await DB.Models.TransactionRegistration.find({ $or: registrationQuery })
         .sort({ createdAt: -1 })
-        .select("inspectionId status certificateUrl certificateNumber")
+        .select("inspectionId propertyId propertyCode status certificateUrl certificateNumber buyer.email")
         .lean()
     : [];
 
@@ -290,11 +311,17 @@ export async function buildPreferenceJourney(buyerId: string, preferenceId: stri
     const key = String(brief.inspectionId);
     if (!briefByInspection.has(key)) briefByInspection.set(key, brief);
   }
-  const registrationByInspection = new Map<string, any>();
-  for (const row of registrations) {
-    const key = String(row.inspectionId);
-    if (!registrationByInspection.has(key)) registrationByInspection.set(key, row);
-  }
+  const registrationForInspection = (inspection: any) => {
+    const inspectionId = String(inspection._id);
+    const propertyId = String(inspection.propertyId?._id || inspection.propertyId || "");
+    const propertyCode = String(inspection.propertyId?.propertyCode || "").trim();
+    return (
+      registrations.find((row: any) => String(row.inspectionId || "") === inspectionId) ||
+      registrations.find((row: any) => propertyId && String(row.propertyId || "") === propertyId) ||
+      registrations.find((row: any) => propertyCode && String(row.propertyCode || "") === propertyCode) ||
+      null
+    );
+  };
 
   const inspectedPropertyIds = new Set(
     inspections.map((row: any) => String(row.propertyId?._id || row.propertyId || ""))
@@ -314,7 +341,7 @@ export async function buildPreferenceJourney(buyerId: string, preferenceId: stri
           preferenceId,
           matchedId: match ? String(match._id) : null,
           brief: briefByInspection.get(String(inspection._id)) || null,
-          registration: registrationByInspection.get(String(inspection._id)) || null,
+          registration: registrationForInspection(inspection),
         })
       ),
     };
