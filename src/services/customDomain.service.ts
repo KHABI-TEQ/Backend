@@ -18,6 +18,7 @@ import { SubscriptionPlanService } from "./subscriptionPlan.service";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import { computePaidSubscriptionExpiresAt, resolveAgentSubscriptionBonusDays } from "./agentSubscriptionIncentive.service";
 import { resolveCatalogAudienceForUser, assertUserCanPurchasePlanAudience } from "./subscriptionPlanAudience.service";
+import { isPractitionerKycApproved } from "./publisherKyc.service";
 
 const DEFAULT_GRACE_DAYS = 14;
 
@@ -391,6 +392,13 @@ async function initializeCustomDomainSubscriptionPayment(
   mode: "package" | "renewal",
   opts: { planCode: string; autoRenewal?: boolean }
 ) {
+  if (!(await isPractitionerKycApproved(ownerId))) {
+    throw new RouteError(
+      HttpStatusCodes.FORBIDDEN,
+      "Your KYC must be approved by an admin before you can make a subscription payment."
+    );
+  }
+
   const planCode = String(opts?.planCode || "").trim();
   if (!planCode) {
     throw new RouteError(

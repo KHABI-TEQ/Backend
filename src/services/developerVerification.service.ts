@@ -461,7 +461,8 @@ export async function submitDeveloperVerification(userId: string) {
   }
   profile.verification = v;
   profile.markModified("verification");
-  profile.kycStatus = isDeveloperFullyVerified(profile) ? "approved" : "pending";
+  // Automated document checks can assist review, but only an admin may approve KYC.
+  profile.kycStatus = "pending";
   await profile.save();
   return verificationPublicView(profile, user);
 }

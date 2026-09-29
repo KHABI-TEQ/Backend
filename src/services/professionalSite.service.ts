@@ -11,6 +11,7 @@ import {
 } from "./professionalFee.service";
 import { assertProfessionalPayoutReady } from "./professionalRequest.service";
 import { PaystackService } from "./paystack.service";
+import { getAgentAccessGate } from "./agentPublisherEligibility.service";
 import type {
   IProfessionalSiteDoc,
   ProfessionalSiteKind,
@@ -110,6 +111,8 @@ export async function provisionProfessionalSiteOnKycApprove(params: {
   logoUrl?: string;
   about?: string;
 }): Promise<IProfessionalSiteDoc> {
+  const accessGate = await getAgentAccessGate(params.ownerId);
+  const pausedByPolicy = accessGate.ok === false ? accessGate.reason : undefined;
   const existing = await DB.Models.ProfessionalSite.findOne({
     ownerId: params.ownerId,
   });
@@ -138,7 +141,8 @@ export async function provisionProfessionalSiteOnKycApprove(params: {
   if (existing && existing.status === "deleted") {
     existing.kind = params.kind;
     existing.publicSlug = slug;
-    existing.status = "running";
+    existing.status = accessGate.ok ? "running" : "paused";
+    existing.pausedByPolicy = pausedByPolicy;
     existing.title = displayName;
     existing.logoUrl = params.logoUrl || existing.logoUrl;
     existing.about = params.about || existing.about;
@@ -156,7 +160,8 @@ export async function provisionProfessionalSiteOnKycApprove(params: {
     kind: params.kind,
     ownerId: params.ownerId,
     publicSlug: slug,
-    status: "running",
+    status: accessGate.ok ? "running" : "paused",
+    ...(pausedByPolicy ? { pausedByPolicy } : {}),
     title: displayName,
     tagline:
       params.kind === "lawyer"
@@ -255,6 +260,16 @@ export async function updateProfessionalSiteForOwner(params: {
     );
   }
 
+  const accessGate = await getAgentAccessGate(params.ownerId);
+  if (accessGate.ok === false) {
+    throw new RouteError(
+      HttpStatusCodes.FORBIDDEN,
+      accessGate.reason === "kyc"
+        ? accessGate.message
+        : "An active subscription is required before setting up your professional page."
+    );
+  }
+
   // Slug: claim once; only set if empty/new or same owner updating before first claim locked.
   // Plan: one slug forever after claim — allow first claim, then lock unless admin.
   if (params.publicSlug !== undefined) {
@@ -306,6 +321,7 @@ export async function updateProfessionalSiteForOwner(params: {
         await assertSurveyorFeeInRange(Number(profile.surveyFee));
       }
       site.status = "running";
+      site.pausedByPolicy = undefined;
     } else {
       site.status = "paused";
     }

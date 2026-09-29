@@ -109,31 +109,47 @@ export async function resumeAgentPolicyPausedDealSites(userId: string): Promise<
     return 0;
   }
 
-  const updateResult = await DB.Models.DealSite.updateMany(
-    {
-      ...ownerCreatedByFilter(userId),
-      status: "paused",
-      $or: [
-        { pausedByPolicy: { $in: ["kyc", "subscription", "setup"] } },
-        { pausedByPolicy: { $exists: false } },
-        { pausedByPolicy: null },
-      ],
-    },
-    { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
-  );
+  const [dealSiteResult, professionalSiteResult] = await Promise.all([
+    DB.Models.DealSite.updateMany(
+      {
+        ...ownerCreatedByFilter(userId),
+        status: "paused",
+        $or: [
+          { pausedByPolicy: { $in: ["kyc", "subscription", "setup"] } },
+          { pausedByPolicy: { $exists: false } },
+          { pausedByPolicy: null },
+        ],
+      },
+      { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
+    ),
+    DB.Models.ProfessionalSite.updateMany(
+      {
+        ownerId: userId,
+        status: "paused",
+        pausedByPolicy: { $in: ["kyc", "subscription"] },
+      },
+      { $set: { status: "running" }, $unset: { pausedByPolicy: "" } },
+    ),
+  ]);
 
-  return updateResult.modifiedCount;
+  return dealSiteResult.modifiedCount + professionalSiteResult.modifiedCount;
 }
 
 export async function pausePractitionerPagesForPolicy(
   userId: string,
   reason: "kyc" | "subscription"
 ): Promise<number> {
-  const updateResult = await DB.Models.DealSite.updateMany(
-    { ...ownerCreatedByFilter(userId), status: "running" },
-    { $set: { status: "paused", pausedByPolicy: reason } }
-  );
-  return updateResult.modifiedCount;
+  const [dealSiteResult, professionalSiteResult] = await Promise.all([
+    DB.Models.DealSite.updateMany(
+      { ...ownerCreatedByFilter(userId), status: "running" },
+      { $set: { status: "paused", pausedByPolicy: reason } }
+    ),
+    DB.Models.ProfessionalSite.updateMany(
+      { ownerId: userId, status: "running" },
+      { $set: { status: "paused", pausedByPolicy: reason } },
+    ),
+  ]);
+  return dealSiteResult.modifiedCount + professionalSiteResult.modifiedCount;
 }
 
 /** Sync page status: pause without KYC or subscription; resume only with both. */

@@ -311,6 +311,10 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
         description: "Easily create and manage your property listings.",
       },
       {
+        title: "Developer & Landowner Property Access",
+        description: "Access properties listed by developers and landowners to market to interested buyers.",
+      },
+      {
         title: "Property Demand Matching",
         description: "Get matched with genuine buyers and tenants based on their preferences.",
       },
@@ -327,6 +331,7 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
       "List up to 25 properties (3 months) or 50 properties (annual)",
       "Verified Practitioner Page",
       "Property Listing Management",
+      "Developer & Landowner Property Access",
       "Property Demand Matching",
       "Inspection & Negotiation Tools",
       "Transaction Workflow Tools",

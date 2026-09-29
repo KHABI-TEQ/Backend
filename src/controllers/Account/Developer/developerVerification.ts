@@ -139,9 +139,9 @@ export const submitDeveloperVerificationController = async (
     }
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: data.isVerifiedDeveloper
+      message: data.kycStatus === "approved"
         ? "Developer verification completed successfully."
-        : "KYC submitted successfully. Please await admin approval.",
+        : "KYC submitted successfully. Please await admin approval within 24 hours.",
       data,
     });
   } catch (err) {

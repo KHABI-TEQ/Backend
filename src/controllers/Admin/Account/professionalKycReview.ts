@@ -8,6 +8,7 @@ import sendEmail from "../../../common/send.email";
 import { provisionProfessionalSiteOnKycApprove } from "../../../services/professionalSite.service";
 import { completeProfessionalUpgradeIfPending } from "../../../services/professionalUpgrade.service";
 import { syncPractitionerPageEligibility } from "../../../services/agentPublisherEligibility.service";
+import { getClientLoginThenUrl } from "../../../utils/clientAppUrl";
 
 type Kind = "Lawyer" | "Surveyor" | "Valuer";
 
@@ -82,14 +83,20 @@ async function reviewProfessional(
   }
 
   if (user.email) {
+    const dashboardUrl = getClientLoginThenUrl("/dashboard");
     await sendEmail({
       to: user.email,
       subject: approved
         ? `Your ${kind.toLowerCase()} account is activated`
         : `Your ${kind.toLowerCase()} KYC was rejected`,
       text: approved
-        ? `Congratulations ${user.firstName}. Your ${kind.toLowerCase()} profile is approved and now visible on the Khabi-Teq marketplace. Set up your personal public page in the Practitioners app when you are ready.`
+        ? `Congratulations ${user.firstName}. Your ${kind.toLowerCase()} KYC is approved. Open your dashboard to continue.`
         : `Hello ${user.firstName}. Your ${kind.toLowerCase()} KYC was rejected. ${note || "Please update your documents and resubmit."}`,
+      ...(approved
+        ? {
+            html: `<p>Congratulations ${user.firstName}. Your ${kind.toLowerCase()} KYC has been approved.</p><p><a href="${dashboardUrl}" style="display:inline-block;background:#09391C;color:#fff;padding:12px 20px;text-decoration:none;border-radius:6px;">Open your professional dashboard</a></p><p>If you are not signed in, you will be asked to log in first.</p>`,
+          }
+        : {}),
     });
   }
 

@@ -165,7 +165,7 @@ export const submitSurveyorKyc = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "KYC submitted successfully. Please await admin approval.",
+      message: "KYC submitted successfully. Please await admin approval within 24 hours.",
       data: profile,
     });
   } catch (err) {

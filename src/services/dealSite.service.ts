@@ -123,14 +123,15 @@ export class DealSiteService {
       );
     }
 
-    // Let users save their page setup while KYC or subscription review is pending.
-    // The page stays paused until its access gate is satisfied.
+    // A practitioner page can only be created after KYC approval and an active plan.
+    await assertDealSiteKycAllowed(userId);
     const accessGate = await getAgentAccessGate(userId);
+    const pausedByPolicy = accessGate.ok === false ? accessGate.reason : undefined;
     const dealSite = await DB.Models.DealSite.create({
       ...payload,
       createdBy: userId,
       status: accessGate.ok ? "running" : "paused",
-      ...(accessGate.ok ? {} : { pausedByPolicy: accessGate.reason }),
+      ...(pausedByPolicy ? { pausedByPolicy } : {}),
     });
 
     return dealSite;

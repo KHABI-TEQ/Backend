@@ -68,7 +68,7 @@ export const completePublisherKYC = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "KYC submitted successfully. Please await admin approval.",
+      message: "KYC submitted successfully. Please await admin approval within 24 hours.",
       data: { profile, kycStatus: profile.kycStatus },
     });
   } catch (error) {

@@ -8,6 +8,7 @@ export interface IProfessionalSite {
   ownerId: Types.ObjectId;
   publicSlug: string;
   status: ProfessionalSiteStatus;
+  pausedByPolicy?: "kyc" | "subscription";
   title: string;
   tagline?: string;
   logoUrl?: string;
@@ -60,6 +61,10 @@ export class ProfessionalSite {
           enum: ["paused", "running", "deleted"],
           default: "paused",
           index: true,
+        },
+        pausedByPolicy: {
+          type: String,
+          enum: ["kyc", "subscription"],
         },
         title: { type: String, required: true, trim: true },
         tagline: { type: String, trim: true },

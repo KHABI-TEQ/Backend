@@ -1,7 +1,13 @@
-import { getClientDashboardUrl } from "../../utils/clientAppUrl";
+import { getClientLoginThenUrl } from "../../utils/clientAppUrl";
 
 export const accountApproved = (name: string, role = "agent"): string => {
-  const dashboard = getClientDashboardUrl();
+  const canSetupPublicPage = role === "agent" || role === "developer";
+  const nextStepUrl = getClientLoginThenUrl(
+    canSetupPublicPage ? "/public-access-page/setup" : "/dashboard",
+  );
+  const nextStepLabel = canSetupPublicPage
+    ? "Complete your practitioner page setup"
+    : "Open your dashboard";
   return `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
       <p>Dear <strong>${name}</strong>,</p>
@@ -18,13 +24,13 @@ export const accountApproved = (name: string, role = "agent"): string => {
 
       <p><strong>What’s next?</strong></p>
       <ol>
-        <li><a href="${dashboard}">Log into your ${role} dashboard</a></li>
+        <li><a href="${nextStepUrl}">${nextStepLabel}</a></li>
         <li>Complete your profile and upload any pending documents</li>
         <li>Start exploring buyer preferences and property opportunities</li>
       </ol>
 
       <p style="margin:20px 0;">
-        <a href="${dashboard}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Open dashboard</a>
+        <a href="${nextStepUrl}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">${nextStepLabel}</a>
       </p>
       <p style="font-size:13px;color:#666;">If you are not logged in, you will be asked to sign in first.</p>
 
