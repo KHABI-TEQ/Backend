@@ -78,7 +78,7 @@ export async function assignLicensedAgentUserToInspection(params: {
   await notificationService.createNotification({
     user: licensedAgentUserId,
     title: "Inspection representation assigned",
-    message: `You are now representing an inspection for ${property?.propertyType ?? "a property"} at ${property?.location?.area ?? ""}, ${property?.location?.localGovernment ?? ""}, ${property?.location?.state ?? ""}.`,
+    message: "You’ve been assigned to represent an inspection. Open to view details.",
     meta: {
       propertyId: property?._id?.toString?.(),
       inspectionId: inspection._id.toString(),

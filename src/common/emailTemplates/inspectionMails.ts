@@ -1,3 +1,5 @@
+import { formatInspectionTime } from "../../utils/formatInspectionTime";
+
 export function InspectionLoiRejectionTemplate(
   buyerName: string,
   propertyData: any
@@ -34,7 +36,7 @@ export function InspectionLoiRejectionTemplate(
     <ul style="background-color: #FAFAFA; padding: 25px 20px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Attempted Inspection Schedule:</strong></p>
       <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Time:</strong> ${formatInspectionTime(propertyData.inspectionTime)}</li>
       <li><strong>Mode:</strong> ${propertyData.inspectionMode}</li>
     </ul>
 
@@ -67,7 +69,7 @@ export function FieldAgentAssignmentTemplate(
     <ul style="background-color: #E6F7FF; padding: 20px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Schedule:</strong></p>
       <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Time:</strong> ${formatInspectionTime(propertyData.inspectionTime)}</li>
       <li><strong>Mode:</strong> ${propertyData.inspectionMode}</li>
     </ul>
 
@@ -99,7 +101,7 @@ export function FieldAgentRemovalTemplate(
     <ul style="background-color: #FFF4F4; padding: 20px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Schedule:</strong></p>
       <li><strong>Date:</strong> ${propertyData.inspectionDate}</li>
-      <li><strong>Time:</strong> ${propertyData.inspectionTime}</li>
+      <li><strong>Time:</strong> ${formatInspectionTime(propertyData.inspectionTime)}</li>
       <li><strong>Mode:</strong> ${propertyData.inspectionMode}</li>
     </ul>
 
@@ -144,7 +146,7 @@ export function BuyerDetailsToSellerTemplate(
     <ul style="background-color: #FFF4F4; padding: 20px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Schedule:</strong></p>
       <li><strong>Date:</strong> ${inspection.inspectionDate}</li>
-      <li><strong>Time:</strong> ${inspection.inspectionTime}</li>
+      <li><strong>Time:</strong> ${formatInspectionTime(inspection.inspectionTime)}</li>
       <li><strong>Mode:</strong> ${inspection.inspectionMode}</li>
     </ul>
 
@@ -189,7 +191,7 @@ export function SellerDetailsToBuyerTemplate(
     <ul style="background-color: #FFF4F4; padding: 20px; border-radius: 10px; margin-top: 15px;">
       <p><strong>Inspection Schedule:</strong></p>
       <li><strong>Date:</strong> ${inspection.inspectionDate}</li>
-      <li><strong>Time:</strong> ${inspection.inspectionTime}</li>
+      <li><strong>Time:</strong> ${formatInspectionTime(inspection.inspectionTime)}</li>
       <li><strong>Mode:</strong> ${inspection.inspectionMode}</li>
     </ul>
 
@@ -200,5 +202,3 @@ export function SellerDetailsToBuyerTemplate(
     <p style="margin-top: 10px;">Warm regards,<br/>The Khabiteq Team</p>
   `;
 }
-
-

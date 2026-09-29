@@ -173,6 +173,7 @@ export const respondValuerJob = async (
         userId: String(user._id),
         coverageNote: String(req.body.coverageNote || ""),
         fee: Number(req.body.fee),
+        serviceItems: req.body.serviceItems,
         commissionAccepted: req.body.commissionAccepted === true,
         letterheadReportAccepted: req.body.letterheadReportAccepted === true,
       });

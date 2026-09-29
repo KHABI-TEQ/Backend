@@ -21,6 +21,12 @@ import { getPropertyTitleFromLocation } from "../../../utils/helper";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
 import { buildPractitionerInspectionMeta } from "../../../utils/notificationDeepLinks";
 
+function getAcceptedMarketerIds(property: any): string[] {
+  return [property?.marketedByAgentId, ...(Array.isArray(property?.marketedByAgentIds) ? property.marketedByAgentIds : [])]
+    .filter((id) => id != null)
+    .map(String);
+}
+
 class InspectionActionsController {
 
   public async processInspectionAction(
@@ -70,7 +76,7 @@ class InspectionActionsController {
     const inspection = await DB.Models.InspectionBooking.findById(inspectionId)
       .populate(
         "propertyId",
-        "title location price propertyType briefType pictures",
+        "title location price propertyType briefType pictures marketedByAgentId marketedByAgentIds",
       )
       .populate("owner", "fullName email firstName lastName phoneNumber")
       .populate("requestedBy", "fullName email firstName lastName phoneNumber whatsAppNumber");
@@ -83,7 +89,9 @@ class InspectionActionsController {
     const buyerId = (inspection.requestedBy as any)?._id.toString();
 
     // Determine user type from userId
-    const isSeller = userId === ownerId;
+    const propertyObj = inspection.propertyId as any;
+    const marketerIds = getAcceptedMarketerIds(propertyObj || {});
+    const isSeller = userId === ownerId || marketerIds.includes(userId);
     const isBuyer = userId === buyerId;
     const userType = isSeller ? "seller" : "buyer";
 
@@ -126,12 +134,17 @@ class InspectionActionsController {
       actionData.inspectionTime,
     );
 
+    const actor = isSeller && userId !== ownerId
+      ? await DB.Models.User.findById(userId).select("fullName firstName lastName email phoneNumber").lean()
+      : null;
+    const sellerData = actor
+      ? { ...(inspection.owner as any).toObject?.(), ...actor, fullName: actor.fullName || [actor.firstName, actor.lastName].filter(Boolean).join(" ") }
+      : inspection.owner as any;
     const senderName = isSeller
-      ? (inspection.owner as any).fullName
+      ? sellerData.fullName || [sellerData.firstName, sellerData.lastName].filter(Boolean).join(" ")
       : (inspection.requestedBy as any).fullName;
 
     const buyerData = inspection.requestedBy as any;
-    const sellerData = inspection.owner as any;
 
     // Process actions using handler
     const actionHandler = new InspectionActionHandler();
@@ -158,10 +171,15 @@ class InspectionActionsController {
     }
 
     // Update the inspection in database
+    const updateQuery: Record<string, unknown> = { $set: update };
+    if (update.pendingResponseFrom === undefined) {
+      updateQuery.$unset = { pendingResponseFrom: 1 };
+      delete (updateQuery.$set as Record<string, unknown>).pendingResponseFrom;
+    }
     const updatedInspection =
       await DB.Models.InspectionBooking.findByIdAndUpdate(
         inspectionId,
-        { $set: update },
+        updateQuery,
         { new: true },
       );
 
@@ -298,7 +316,7 @@ class InspectionActionsController {
       )
         .populate(
           "propertyId",
-          "title location price propertyType briefType pictures _id owner",
+          "title location price propertyType briefType pictures _id owner marketedByAgentId marketedByAgentIds",
         )
         .populate("owner", "firstName lastName _id userType")
         .populate("requestedBy", "fullName _id");
@@ -308,10 +326,11 @@ class InspectionActionsController {
       }
 
       // Authorization check based on user type
-      if (
-        userType === "seller" &&
-        (inspection.propertyId as any).owner.toString() !== userID
-      ) {
+      const propertyDoc = inspection.propertyId as any;
+      const marketerIds = getAcceptedMarketerIds(propertyDoc || {});
+      const isOwner = String(propertyDoc?.owner?._id || propertyDoc?.owner) === String(userID);
+      const isAcceptedMarketer = marketerIds.includes(String(userID));
+      if (userType === "seller" && !isOwner && !isAcceptedMarketer) {
         throw new RouteError(
           HttpStatusCodes.FORBIDDEN,
           "Seller not authorized for this inspection",
@@ -330,6 +349,12 @@ class InspectionActionsController {
 
       // Add thumbnail from property pictures
       const property = inspection.propertyId as any;
+      const representativeId = marketerIds.includes(String(userID))
+        ? String(userID)
+        : marketerIds[0];
+      const representative = representativeId
+        ? await DB.Models.User.findById(representativeId).select("firstName lastName fullName").lean()
+        : null;
       const thumbnail = property?.pictures?.length
         ? property.pictures[0]
         : null;
@@ -340,6 +365,9 @@ class InspectionActionsController {
           ...property.toObject(),
           thumbnail,
         },
+        sellerRepresentative: representative
+          ? { fullName: representative.fullName || [representative.firstName, representative.lastName].filter(Boolean).join(" ") }
+          : null,
       };
 
       return res.status(HttpStatusCodes.OK).json({
@@ -362,7 +390,7 @@ class InspectionActionsController {
       const inspection = await DB.Models.InspectionBooking.findById(
         inspectionId,
       )
-        .select("requestedBy owner")
+        .select("requestedBy owner propertyId")
         .lean();
 
       if (!inspection) {
@@ -374,7 +402,11 @@ class InspectionActionsController {
       }
 
       const isBuyer = inspection.requestedBy?.toString() === userId;
-      const isSeller = inspection.owner?.toString() === userId;
+      const isOwner = inspection.owner?.toString() === userId;
+      const property = await DB.Models.Property.findById(inspection.propertyId)
+        .select("marketedByAgentId marketedByAgentIds")
+        .lean();
+      const isSeller = isOwner || getAcceptedMarketerIds(property || {}).includes(userId);
 
       if (isBuyer || isSeller) {
         return res.status(HttpStatusCodes.OK).json({

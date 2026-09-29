@@ -68,6 +68,7 @@ export const sendPreferenceRequest = async (
     const dealSiteName = title || paymentDetails?.businessName || "Our Partner";
 
     // Ensure required fields for Buyer model
+    const authenticatedBuyer = await resolveBuyerFromAuthHeader(req);
     const normalizedBuyerPayload: {
       fullName: string;
       email: string;
@@ -76,15 +77,17 @@ export const sendPreferenceRequest = async (
       contactPerson?: string;
       cacRegistrationNumber?: string;
     } = {
-      fullName: fullName || companyName || "Unnamed Buyer",
-      email: email || "unknown@example.com", // fallback email
-      phoneNumber: phoneNumber || "00000000000", // fallback phone number
+      fullName: fullName || authenticatedBuyer?.fullName || companyName || "",
+      email: email || authenticatedBuyer?.email || "",
+      phoneNumber: phoneNumber || authenticatedBuyer?.phoneNumber || "",
       ...(companyName && { companyName }),
       ...(contactPerson && { contactPerson }),
       ...(cacRegistrationNumber && { cacRegistrationNumber }),
     };
+    if (!normalizedBuyerPayload.fullName.trim() || !normalizedBuyerPayload.email.trim() || !normalizedBuyerPayload.phoneNumber.trim()) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Name, email, and phone are required to save this preference.");
+    }
 
-    const authenticatedBuyer = await resolveBuyerFromAuthHeader(req);
     let buyer = authenticatedBuyer;
     if (!buyer) {
       buyer = await DB.Models.Buyer.findOne({

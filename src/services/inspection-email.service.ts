@@ -3,6 +3,7 @@ import { generalTemplate } from "../common/email.template";
 import sendEmail from "../common/send.email";
 import { generateNegotiationEmailTemplate } from "../utils/emailTemplates/generateNegotiationEmailTemplate";
 import { buildBuyerInspectionMeta } from "../utils/notificationDeepLinks";
+import { formatInspectionTimesIn } from "../utils/formatInspectionTime";
 
 interface EmailServiceParams {
   actionData: InspectionActionData;
@@ -16,6 +17,7 @@ interface EmailServiceParams {
 export class InspectionEmailService {
   async sendActionEmails(params: EmailServiceParams): Promise<{ buyer: boolean; seller: boolean }> {
     const { actionData, buyerData, sellerData, emailData, isBuyer, isSeller } = params;
+    const displayEmailData = formatInspectionTimesIn(emailData);
 
     try {
       // Email to buyer (determine if they are the initiator)
@@ -26,7 +28,7 @@ export class InspectionEmailService {
         buyerName: buyerData.fullName,
         sellerName: sellerData.fullName,
         recipientType: "buyer",
-        payload: emailData,
+        payload: displayEmailData,
         isLOI: actionData.inspectionType === "LOI",
         isInitiator: buyerIsInitiator,
       });
@@ -39,7 +41,7 @@ export class InspectionEmailService {
         buyerName: buyerData.fullName,
         sellerName: sellerData.fullName,
         recipientType: "seller",
-        payload: emailData,
+        payload: displayEmailData,
         isLOI: actionData.inspectionType === "LOI",
         isInitiator: sellerIsInitiator,
       });

@@ -1,6 +1,15 @@
 // bookingMails.ts
 import { kebabToTitleCase } from "../../utils/helper";
 
+function formatBookingDateTime(value: string | Date): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || "");
+  return new Intl.DateTimeFormat("en-NG", {
+    day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit",
+    hour12: true, timeZone: "Africa/Lagos",
+  }).format(date).replace(/\s(am|pm)$/i, (_, suffix) => suffix.toLowerCase());
+}
+
 export interface BookingDetails {
   bookingCode: string;
   propertyTitle: string;
@@ -34,8 +43,8 @@ export const generateSuccessfulBookingReceiptForBuyer = ({
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
       <li><strong>Property:</strong> ${propertyTitle}</li>
-      <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
-      <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
+      <li><strong>Check-in:</strong> ${formatBookingDateTime(checkInDateTime)}</li>
+      <li><strong>Check-out:</strong> ${formatBookingDateTime(checkOutDateTime)}</li>
       <li><strong>Duration:</strong> ${duration} night(s)</li>
       <li><strong>Total Amount:</strong> ₦${totalAmount?.toLocaleString()}</li>
     </ul>
@@ -66,8 +75,8 @@ export const generateSuccessfulBookingReceiptForSeller = ({
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
       <li><strong>Property:</strong> ${propertyTitle}</li>
-      <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
-      <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
+      <li><strong>Check-in:</strong> ${formatBookingDateTime(checkInDateTime)}</li>
+      <li><strong>Check-out:</strong> ${formatBookingDateTime(checkOutDateTime)}</li>
       <li><strong>Duration:</strong> ${duration} night(s)</li>
       <li><strong>Total Amount:</strong> ₦${totalAmount?.toLocaleString()}</li>
       <li><strong>Booked By:</strong> ${buyerName}</li>
@@ -96,8 +105,8 @@ export const generateBookingRequestAcknowledgementForBuyer = ({
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
       <li><strong>Property:</strong> ${propertyTitle}</li>
-      <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
-      <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
+      <li><strong>Check-in:</strong> ${formatBookingDateTime(checkInDateTime)}</li>
+      <li><strong>Check-out:</strong> ${formatBookingDateTime(checkOutDateTime)}</li>
     </ul>
     <p>You will be notified once the host reviews the property.</p>
     <hr />
@@ -125,8 +134,8 @@ export const generateBookingRequestReceivedForSeller = ({
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
       <li><strong>Property:</strong> ${propertyTitle}</li>
-      <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
-      <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
+      <li><strong>Check-in:</strong> ${formatBookingDateTime(checkInDateTime)}</li>
+      <li><strong>Check-out:</strong> ${formatBookingDateTime(checkOutDateTime)}</li>
       <li><strong>Requested By:</strong> ${buyerName}</li>
     </ul>
     <p>
@@ -168,8 +177,8 @@ export const generateBookingRequestReviewedForBuyer = ({
     <p>Your booking request has been reviewed for the property <strong>${propertyTitle}</strong>:</p>
     <ul>
       <li><strong>Booking Code:</strong> ${bookingCode}</li>
-      <li><strong>Check-in:</strong> ${new Date(checkInDateTime).toLocaleString()}</li>
-      <li><strong>Check-out:</strong> ${new Date(checkOutDateTime).toLocaleString()}</li>
+      <li><strong>Check-in:</strong> ${formatBookingDateTime(checkInDateTime)}</li>
+      <li><strong>Check-out:</strong> ${formatBookingDateTime(checkOutDateTime)}</li>
     </ul>
 
     ${paymentMessage}

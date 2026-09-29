@@ -87,11 +87,14 @@ export const getMyTransactionCertificate = async (
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Transaction reference is required.");
     }
 
-    const registration = Types.ObjectId.isValid(reference)
+    const registrationQuery = Types.ObjectId.isValid(reference)
       ? await DB.Models.TransactionRegistration.findOne({
           $or: [{ transactionReference: reference }, { _id: reference }],
         })
       : await DB.Models.TransactionRegistration.findOne({ transactionReference: reference });
+    const registration = registrationQuery
+      ? await registrationQuery.populate("propertyId", "title propertyName briefType listingType location additionalFeatures landSize pictures createdAt")
+      : null;
 
     if (!registration) {
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Transaction record not found.");
@@ -100,8 +103,9 @@ export const getMyTransactionCertificate = async (
     const propertyIds = await ownedPropertyIds(userId);
     const agent = await DB.Models.Agent.findOne({ userId }).select("_id").lean();
     const email = String(req.user?.email || "").toLowerCase();
+    const registrationPropertyId = String((registration.propertyId as any)?._id || registration.propertyId || "");
     const authorized =
-      (registration.propertyId && propertyIds.some((id) => String(id) === String(registration.propertyId))) ||
+      (registration.propertyId && propertyIds.some((id) => String(id) === registrationPropertyId)) ||
       (agent?._id && String(agent._id) === String(registration.agentId)) ||
       (email && email === String(registration.buyer?.email || "").toLowerCase());
 

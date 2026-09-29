@@ -140,7 +140,6 @@ export const registerTransactionFrontendSchema = Joi.object({
   conveyanceUrl: Joi.string().uri().trim().optional(),
 })
   .or("paymentReceiptBase64", "paymentReceiptUrl")
-  .or("buyerIdBase64", "buyerIdUrl")
   .custom((value, helpers) => {
     const propertyId =
       value.propertyId != null && String(value.propertyId).trim().length > 0

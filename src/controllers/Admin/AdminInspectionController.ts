@@ -789,7 +789,7 @@ export class AdminInspectionController {
       await notificationService.createNotification({
         user: removedAgent._id.toString(),
         title: "Inspection Deleted",
-        message: `Your assignment for ${property.propertyType} at ${property.location.area}, ${property.location.localGovernment}, ${property.location.state} was removed because the inspection was deleted.`,
+        message: "Your inspection assignment was removed because the inspection was deleted.",
         meta: {
           propertyId: property._id,
           inspectionId: inspection._id,

@@ -30,7 +30,7 @@ export const verifyTransactionCertificate = async (
 
     const registration = await DB.Models.TransactionRegistration.findOne({
       $or: [{ transactionReference: reference }, { certificateNumber: reference }],
-    });
+    }).populate("propertyId", "title propertyName briefType listingType location additionalFeatures landSize pictures createdAt");
 
     const issued =
       Boolean(registration?.certificateUrl) &&
@@ -71,7 +71,7 @@ export const getPublicCertificateSummary = async (
     const reference = normalizeTransactionReference(String(req.params.reference || ""));
     const registration = await DB.Models.TransactionRegistration.findOne({
       transactionReference: reference,
-    }).lean();
+    }).populate("propertyId", "title propertyName briefType listingType location additionalFeatures landSize pictures createdAt").lean();
     const issued =
       Boolean(registration?.certificateUrl) &&
       (registration?.status === "certificate_issued" || registration?.status === "completed");

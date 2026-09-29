@@ -48,6 +48,7 @@ export interface IProfessionalServiceRequest {
     professionalId: Types.ObjectId;
     professionalName?: string;
     coverageNote: string;
+    serviceItems?: Array<{ serviceId: string; name: string; fee: number }>;
     professionalFee: number;
     platformFee: number;
     customerPrice: number;
@@ -142,6 +143,11 @@ export class ProfessionalServiceRequest {
               professionalId: { type: Schema.Types.ObjectId, ref: "User", required: true },
               professionalName: { type: String, trim: true },
               coverageNote: { type: String, required: true, trim: true },
+              serviceItems: [{
+                serviceId: { type: String, required: true, trim: true },
+                name: { type: String, required: true, trim: true },
+                fee: { type: Number, required: true, min: 0 },
+              }],
               professionalFee: { type: Number, required: true, min: 0 },
               platformFee: { type: Number, required: true, min: 0 },
               customerPrice: { type: Number, required: true, min: 0 },

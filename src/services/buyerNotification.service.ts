@@ -39,6 +39,23 @@ function inferType(subject: string): BuyerNotificationType {
   return "email";
 }
 
+function emailNotificationSummary(type: BuyerNotificationType): string {
+  switch (type) {
+    case "preference":
+      return "There’s an update to your property search. Open to view details.";
+    case "inspection":
+      return "There’s an update to your inspection. Open to view details.";
+    case "document":
+      return "There’s an update to your documents. Open to view details.";
+    case "transaction":
+      return "There’s an update to your transaction. Open to view details.";
+    case "auth":
+      return "Open to view this account update.";
+    default:
+      return "Open to view the details.";
+  }
+}
+
 function looksLikeHtml(value: string): boolean {
   return /<[a-z!/][^>]*>/i.test(value);
 }
@@ -216,8 +233,9 @@ export async function mirrorEmailToBuyerInbox(input: {
   if (!buyer) return;
 
   const title = String(input.subject || "Khabi-Teq update").trim();
-  const message = cleanMessage(input.text, title);
   const type = inferType(title);
+  // Keep in-app and push copy scannable; the email retains the complete message.
+  const message = emailNotificationSummary(type);
 
   const inferred = extractDeepLinkMetaFromContent(
     `${input.html || ""}\n${input.text || ""}`,

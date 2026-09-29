@@ -149,7 +149,7 @@ export const getMyInspections = async (
       .sort({ createdAt: -1 })
       .populate(
         "propertyId",
-        "title propertyName location price images propertyType"
+        "title propertyName propertyCode location price images propertyType"
       )
       .lean();
 
@@ -440,6 +440,7 @@ export const getMyServiceBrief = async (
       professionalId: offer.professionalId,
       professionalName: offer.professionalName,
       coverageNote: offer.coverageNote,
+      serviceItems: offer.serviceItems || [],
       serviceFee: offer.customerPrice,
     }));
     const professional = await professionalContactAfterPayment(request);

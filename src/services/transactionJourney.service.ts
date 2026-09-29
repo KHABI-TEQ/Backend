@@ -104,8 +104,9 @@ export async function snapshotTransactionCertificateRecord(
     inspectionFeeStatus?: string;
   };
 }> {
-  const property = reg.propertyId
-    ? await DB.Models.Property.findById(reg.propertyId)
+  const propertyRef = (reg.propertyId as any)?._id || reg.propertyId;
+  const property = propertyRef
+    ? await DB.Models.Property.findById(propertyRef)
         .select("propertyCode propertyType propertyCategory typeOfBuilding location owner ownerModel")
         .lean()
     : null;

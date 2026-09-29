@@ -89,9 +89,9 @@ function registrationDetail(status: string): string {
   if (status === "rejected") return "This registration was not approved.";
   if (status === "info_requested") return "More information was requested.";
   if (status === "submitted") return "The registration form is saved. The registration fee is still due.";
-  if (status === "approved") return "LASRERA has approved this registration. The certificate is issued next.";
-  if (status === "khabiteq_verified") return "Khabiteq has verified this registration. It is waiting for LASRERA.";
-  if (status === "forwarded_to_lasrera") return "This registration is with LASRERA for review.";
+  if (status === "approved") return "Khabiteq has approved this registration. The digital record is issued next.";
+  if (status === "khabiteq_verified") return "Khabiteq has verified this registration. It is ready for the digital record.";
+  if (status === "forwarded_to_lasrera") return "Khabiteq has shared this transaction trail with LASRERA for fraud escalation support.";
   if (FEE_PAID.has(status)) return "Registration fee paid. Khabiteq is reviewing this registration.";
   return "Your registration has been submitted and is under review.";
 }
@@ -236,7 +236,7 @@ function propertySteps(params: {
       title: "Certificate",
       detail: certificateReady
         ? "Your certificate is ready to download."
-        : "The certificate appears here after LASRERA issues it.",
+        : "The Khabiteq digital transaction record appears here after registration review.",
       complete: certificateReady,
       action: certificateReady
         ? { label: "Download certificate", href: "/transaction-registration?tab=certificate" }

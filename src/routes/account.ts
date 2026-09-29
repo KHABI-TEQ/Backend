@@ -108,7 +108,7 @@ import {
 import { applyProfessionalUpgradeSchema } from "../validators/professionalUpgrade.validator";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
-import { fetchUserTransactions, getUserTransactionDetails } from "../controllers/Account/transactions";
+import { fetchUserTransactions, getUserTransactionDetails, fetchTransactionActivity } from "../controllers/Account/transactions";
 import {
   listMyTransactionRegistrations,
   getMyTransactionCertificate,
@@ -336,6 +336,7 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
+AccountRouter.get("/transactions/activity", fetchTransactionActivity);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
 AccountRouter.get("/my-transaction-registrations", listMyTransactionRegistrations);
 AccountRouter.get("/my-transaction-registrations/:reference", getMyTransactionCertificate);

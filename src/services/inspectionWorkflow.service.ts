@@ -12,6 +12,7 @@ import {
   buildBuyerInspectionMeta,
   buildPractitionerInspectionMeta,
 } from "../utils/notificationDeepLinks";
+import { formatInspectionTime } from "../utils/formatInspectionTime";
 
 /** User IDs of agents accepted to market this property (Request To Market). */
 export function collectMarketedAgentUserIds(property: {
@@ -33,7 +34,15 @@ function inspectionRequestFeeSummary(amount: number): string {
 }
 
 function inspectionRequestScheduleSummary(inspectionDate: Date, inspectionTime: string): string {
-  return `${inspectionDate} at ${inspectionTime}`;
+  return `${formatInspectionDate(inspectionDate)} at ${formatInspectionTime(inspectionTime)}`;
+}
+
+function formatInspectionDate(value: Date | string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value || "");
+  return new Intl.DateTimeFormat("en-NG", {
+    weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos",
+  }).format(date);
 }
 
 /**
@@ -100,7 +109,7 @@ export async function notifyAgentOfInspectionRequest(params: {
     <p>Hello ${(owner as any).firstName || (owner as any).lastName || "there"},</p>
     <p><strong>${buyerName}</strong> has requested an inspection for your property at <strong>${location}</strong>.</p>
     ${feeLine}
-    <p>Preferred date: ${inspectionDate} at ${inspectionTime}</p>
+    <p>Preferred date: ${formatInspectionDate(inspectionDate)} at ${formatInspectionTime(inspectionTime)}</p>
     ${acceptLine}
     <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
   `);
@@ -182,7 +191,7 @@ export async function notifyTrueOwnerCcOfInspectionRequest(params: {
     <p>Hello ${(owner as any).firstName || (owner as any).lastName || "there"},</p>
     <p>This is to inform you that <strong>${buyerName}</strong> requested an inspection for your property at <strong>${location}</strong>.</p>
     <p>The request was submitted through <strong>${marketerName}</strong>'s DealSite (accepted marketer).</p>
-    <p>Preferred date: ${inspectionDate} at ${inspectionTime}</p>
+    <p>Preferred date: ${formatInspectionDate(inspectionDate)} at ${formatInspectionTime(inspectionTime)}</p>
     <p>You are copied for visibility while the marketer handles buyer-facing communication.</p>
     <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">Open dashboard</a></p>
   `);
@@ -281,7 +290,7 @@ export async function notifyPublisherRepresentativesInspectionRequest(params: {
         <p>Hello ${repName === "there" ? "there" : repName},</p>
         <p>You are receiving this because you are listed as an inspection notification contact for a landlord/developer on KHABITEQ.</p>
         <p><strong>${params.buyerName}</strong> requested an inspection for <strong>${params.propertyLocation}</strong>.</p>
-        <p>Preferred date: ${params.inspectionDate} at ${params.inspectionTime}</p>
+        <p>Preferred date: ${formatInspectionDate(params.inspectionDate)} at ${formatInspectionTime(params.inspectionTime)}</p>
         <p>Inspection fee context: ${feeSummary}</p>
         <p><strong>Only the property owner or marketer can accept or reject</strong> in the app; this message is for your awareness.</p>
       `);
@@ -367,7 +376,7 @@ export async function notifyMarketingAgentsInspectionRequest(params: {
         <p>Hello ${(agentUser as any).firstName || (agentUser as any).lastName || "there"},</p>
         <p><strong>${params.buyerName}</strong> requested an inspection for a property you market: <strong>${location}</strong>.</p>
         ${feeLine}
-        <p>Preferred date: ${params.inspectionDate} at ${params.inspectionTime}</p>
+        <p>Preferred date: ${formatInspectionDate(params.inspectionDate)} at ${formatInspectionTime(params.inspectionTime)}</p>
         <p>Please accept or reject this request in your dashboard.</p>
         <p><a href="${link}" style="display:inline-block;background:#09391C;color:white;padding:12px 20px;text-decoration:none;border-radius:6px;">View and respond</a></p>
       `);
@@ -545,7 +554,7 @@ export async function notifyBuyerAcceptedNoPayment(params: {
 
   const scheduleLine =
     inspectionDate || inspectionTime
-      ? `<p><strong>Scheduled:</strong> ${[inspectionDate, inspectionTime].filter(Boolean).join(" at ")}</p>`
+      ? `<p><strong>Scheduled:</strong> ${[inspectionDate, formatInspectionTime(inspectionTime)].filter(Boolean).join(" at ")}</p>`
       : "";
 
   const html = generalEmailLayout(`
@@ -560,7 +569,7 @@ export async function notifyBuyerAcceptedNoPayment(params: {
   const textParts = [
     `Your inspection request for ${propertyLocation} has been accepted.`,
     propertyDetails ? `Property: ${propertyDetails.title}${propertyDetails.address ? ` — ${propertyDetails.address}` : ""}.` : "",
-    inspectionDate || inspectionTime ? `Scheduled: ${[inspectionDate, inspectionTime].filter(Boolean).join(" at ")}.` : "",
+    inspectionDate || inspectionTime ? `Scheduled: ${[inspectionDate, formatInspectionTime(inspectionTime)].filter(Boolean).join(" at ")}.` : "",
     "The agent will coordinate with you for the scheduled date and time.",
   ].filter(Boolean);
   await sendEmail({

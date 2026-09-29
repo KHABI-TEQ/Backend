@@ -49,11 +49,11 @@ interface BaseUpdateData {
   inspectionMode?: "in_person" | "virtual";
   stage: "inspection" | "completed" | "cancelled" | "negotiation";
   inspectionStatus: "accepted" | "countered";
-  pendingResponseFrom: "buyer" | "seller";
+  pendingResponseFrom?: "buyer" | "seller";
 }
 
 export interface AcceptUpdateData extends BaseUpdateData {
-  status: "negotiation_accepted";
+  status: "negotiation_accepted" | "inspection_approved";
   isNegotiating: false;
 }
 

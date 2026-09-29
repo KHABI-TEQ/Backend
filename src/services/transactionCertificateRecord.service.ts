@@ -41,6 +41,12 @@ function formatLongDate(value?: Date | string): string {
 
 export function toPublicCertificateView(reg: ITransactionRegistrationDoc) {
   const reference = String(reg.transactionReference || "").toUpperCase();
+  const propertyCandidate = reg.propertyId && typeof reg.propertyId === "object"
+    ? reg.propertyId as any
+    : null;
+  const listedProperty = propertyCandidate?.location || propertyCandidate?.propertyName || propertyCandidate?.title
+    ? propertyCandidate
+    : null;
   return {
     title: CERTIFICATE_TITLE,
     subtitle: CERTIFICATE_SUBTITLE,
@@ -48,6 +54,17 @@ export function toPublicCertificateView(reg: ITransactionRegistrationDoc) {
     propertyCode: reg.propertyCode || null,
     propertyType: reg.propertyTypeLabel || null,
     propertyLocation: reg.propertyLocationLabel || null,
+    propertyDetails: listedProperty ? {
+      title: listedProperty.title || listedProperty.propertyName || null,
+      listingType: listedProperty.briefType || listedProperty.listingType || null,
+      address: [listedProperty.location?.streetAddress, listedProperty.location?.area, listedProperty.location?.localGovernment, listedProperty.location?.state].filter(Boolean).join(", ") || null,
+      bedrooms: listedProperty.additionalFeatures?.noOfBedroom ?? null,
+      bathrooms: listedProperty.additionalFeatures?.noOfBathroom ?? null,
+      parking: listedProperty.additionalFeatures?.noOfCarPark ?? null,
+      landSize: listedProperty.landSize?.size ? `${listedProperty.landSize.size} ${listedProperty.landSize.measurementType || ""}`.trim() : null,
+      listedAt: formatDate(listedProperty.createdAt),
+      imageUrl: listedProperty.pictures?.[0] || null,
+    } : null,
     transactionType: transactionTypeLabel(reg.transactionType),
     transactionStatus: registrationStatusLabel(reg.status),
     certificateStatus: reg.certificateStatus || null,
@@ -64,6 +81,64 @@ export function toPublicCertificateView(reg: ITransactionRegistrationDoc) {
       date: formatLongDate(item.occurredAt),
       notApplicable: Boolean(item.notApplicable),
     })),
+    parties: (reg.parties || []).map((party) => ({
+      role: party.role,
+      displayName: maskDisplayName(party.displayName),
+    })),
+    participatingProfessionals: (reg.participatingProfessionals || []).map((pro) => ({
+      name: pro.name,
+      category: pro.category,
+      licenceNumber: pro.licenceNumber || null,
+      verificationStatus: pro.verificationStatus || null,
+      practitionerPageUrl: pro.practitionerPageUrl || null,
+    })),
+    dueDiligence: (reg.dueDiligence || []).map((row) => ({
+      category: row.category,
+      label: row.label,
+      professionalName: row.professionalName || null,
+      engagedAt: formatLongDate(row.engagedAt),
+      status: row.status,
+    })),
+    documentTrail: [
+      ...(reg.paymentReceiptFileName || reg.paymentReceiptUrl ? [{ type: "Deal payment receipt", status: "Available" }] : []),
+      ...(reg.deedsOfAssignmentFileName || reg.deedsOfAssignmentUrl ? [{ type: "Deed of Assignment", status: "Available" }] : []),
+      ...(reg.conveyanceFileName || reg.conveyanceUrl ? [{ type: "Conveyance", status: "Available" }] : []),
+    ],
+    paymentRecord: [
+      ...(reg.inspectionId ? [{
+        description: "Inspection fee",
+        reference: String(reg.inspectionId),
+        status: reg.seekerJourney?.inspectionFeeStatus === "paid" ? "Completed" : reg.seekerJourney?.inspectionFeeStatus === "waived" ? "Waived" : "Not recorded",
+        date: formatDate(reg.createdAt),
+      }] : []),
+      ...(reg.dueDiligence || []).filter((row) => row.status === "Completed").map((row) => ({
+        description: `${row.label} fee`,
+        reference: row.professionalName || row.category,
+        status: "Completed",
+        date: formatDate(row.engagedAt),
+      })),
+      ...(reg.paymentReceiptFileName || reg.paymentReceiptUrl ? [{
+        description: "Transaction payment",
+        reference: reference || null,
+        amount: reg.transactionValue,
+        status: "Receipt recorded",
+        date: formatDate(reg.createdAt),
+      }] : []),
+      ...(reg.processingFee > 0 ? [{
+        description: "Transaction registration processing fee",
+        reference: reference || null,
+        amount: reg.processingFee,
+        status: reg.paymentTransactionId ? "Completed" : "Pending",
+        date: formatDate(reg.createdAt),
+      }] : []),
+    ],
+    seekerJourney: reg.seekerJourney ? {
+      searchInsured: Boolean(reg.seekerJourney.searchInsured),
+      policyReference: reg.seekerJourney.policyReference || null,
+      dueDiligencePath: reg.seekerJourney.dueDiligencePath || null,
+      dueDiligenceWithKhabiteqProfessionals: Boolean(reg.seekerJourney.dueDiligenceWithKhabiteqProfessionals),
+      inspectionFeeStatus: reg.seekerJourney.inspectionFeeStatus || null,
+    } : null,
     disclaimer: CERTIFICATE_DISCLAIMER,
   };
 }

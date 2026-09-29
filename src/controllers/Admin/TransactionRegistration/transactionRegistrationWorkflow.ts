@@ -56,7 +56,7 @@ function badStatus(res: Response, message: string) {
 
 /**
  * PATCH /admin/transaction-registrations/:registrationId/verify
- * KHABITEQ validates documents and marks registration ready for LASRERA.
+ * KHABITEQ validates documents and approves the Khabiteq transaction record.
  */
 export const verifyTransactionRegistration = async (
   req: AppRequest,
@@ -94,7 +94,7 @@ export const verifyTransactionRegistration = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Registration verified by KHABITEQ",
+      message: "Registration verified by Khabiteq. The Khabiteq certificate can now be issued.",
       data: registration,
     });
   } catch (err) {
@@ -104,7 +104,7 @@ export const verifyTransactionRegistration = async (
 
 /**
  * PATCH /admin/transaction-registrations/:registrationId/forward
- * KHABITEQ forwards a verified registration to LASRERA for review.
+ * KHABITEQ shares a verified transaction trail with LASRERA for fraud escalation.
  */
 export const forwardTransactionRegistrationToLasrera = async (
   req: AppRequest,
@@ -127,7 +127,7 @@ export const forwardTransactionRegistrationToLasrera = async (
     if (!KHABITEQ_FORWARD_FROM.includes(registration.status)) {
       return badStatus(
         res,
-        `Cannot forward registration in status "${registration.status}". Registration must be khabiteq_verified first.`
+        `Cannot share trail for status "${registration.status}". Registration must be khabiteq_verified first.`
       );
     }
 
@@ -144,7 +144,7 @@ export const forwardTransactionRegistrationToLasrera = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Registration forwarded to LASRERA",
+      message: "Transaction trail shared with LASRERA for escalation",
       data: registration,
     });
   } catch (err) {
@@ -156,7 +156,7 @@ type LasreraReviewAction = "approve" | "reject" | "request_info";
 
 /**
  * PATCH /admin/transaction-registrations/:registrationId/lasrera-review
- * LASRERA approves, rejects, or requests additional information.
+ * Legacy LASRERA review endpoint. LASRERA trail access does not issue certificates.
  */
 export const lasreraReviewTransactionRegistration = async (
   req: AppRequest,
@@ -222,7 +222,7 @@ export const lasreraReviewTransactionRegistration = async (
 
 /**
  * POST /admin/transaction-registrations/:registrationId/issue-certificate
- * LASRERA generates the registration certificate for an approved registration.
+ * Khabiteq generates the digital transaction record for an approved registration.
  */
 export const issueTransactionRegistrationCertificate = async (
   req: AppRequest,
@@ -253,21 +253,22 @@ export const issueTransactionRegistrationCertificate = async (
       });
     }
 
-    if (registration.status !== "approved") {
+    if (registration.status !== "khabiteq_verified" && registration.status !== "approved") {
       return badStatus(
         res,
-        `Cannot issue certificate for status "${registration.status}". Registration must be approved first.`
+        `Cannot issue certificate for status "${registration.status}". Khabiteq must verify the registration first.`
       );
     }
 
     const result = await generateAndStoreRegistrationCertificate(
-      registration,
+      await registration.populate("propertyId", "title propertyName briefType listingType location additionalFeatures landSize pictures createdAt"),
       req.admin?._id
     );
 
     // Mark linked platform property as fully registered when applicable
     if (registration.propertyId) {
-      await DB.Models.Property.findByIdAndUpdate(registration.propertyId, {
+      const propertyId = (registration.propertyId as any)?._id || registration.propertyId;
+      await DB.Models.Property.findByIdAndUpdate(propertyId, {
         status: "sold_leased_registered",
       });
     }
@@ -367,7 +368,7 @@ export const previewLasreraCertificate = async (
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      'inline; filename="lasrera-certificate-preview.pdf"'
+        'inline; filename="khabiteq-certificate-preview.pdf"'
     );
     return res.status(HttpStatusCodes.OK).send(pdfBuffer);
   } catch (err) {

@@ -883,6 +883,7 @@ export async function submitServiceOffer(params: {
   userId: string;
   coverageNote: string;
   fee: number;
+  serviceItems: Array<{ serviceId: string; name: string; fee: number }>;
   commissionAccepted: boolean;
   letterheadReportAccepted: boolean;
 }) {
@@ -898,25 +899,62 @@ export async function submitServiceOffer(params: {
       "Agree that you will send a full report to the client on your company letterhead before you send this offer."
     );
   }
-  const fee = Math.round(Number(params.fee));
+  const serviceItems = Array.isArray(params.serviceItems)
+    ? params.serviceItems.map((item) => ({
+        serviceId: String(item.serviceId || "").trim(),
+        name: String(item.name || "").trim(),
+        fee: Math.round(Number(item.fee)),
+      })).filter((item) => item.serviceId && item.name && Number.isFinite(item.fee) && item.fee > 0)
+    : [];
+  if (!serviceItems.length) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Select at least one listed service and set its fee.");
+  }
+  const fee = serviceItems.reduce((sum, item) => sum + item.fee, 0);
   if (!Number.isFinite(fee) || fee < 1000) {
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
       "Set a service fee of at least ₦1,000."
     );
   }
-  const note = String(params.coverageNote || "").trim();
-  if (note.length < 20) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "Describe what this service covers in this offer."
-    );
-  }
+  const note = serviceItems.map((item) => item.name).join("; ");
 
   const user = await DB.Models.User.findById(params.userId);
   const category = categoryFromUserType(user?.userType);
   if (!user || !category) {
     throw new RouteError(HttpStatusCodes.FORBIDDEN, "A lawyer, surveyor, or valuer account is required.");
+  }
+  const approvedServices: Record<string, Record<string, string>> = {
+    lawyer: {
+      "title-document-review": "Review title and ownership documents",
+      "title-search": "Conduct land registry and title search",
+      "chain-of-title": "Review chain of title and prior transfers",
+      "encumbrance-litigation": "Check for encumbrances, claims and recorded disputes",
+      "planning-approvals": "Review planning consent and property approvals",
+      "contract-review": "Review sale, lease or assignment documents",
+      "seller-authority": "Verify seller or developer authority to transact",
+      "written-legal-opinion": "Prepare a written legal due diligence report",
+    },
+    surveyor: {
+      "survey-plan-check": "Verify survey plan and land registry charting",
+      "boundary-verification": "Verify site boundaries and beacon positions",
+      "coordinates-site": "Confirm site location and coordinates on the ground",
+      "encroachment-check": "Assess visible boundary overlap or encroachment",
+      "topographic-survey": "Carry out a topographic or site survey",
+      "subdivision-layout": "Review subdivision, plot layout or site dimensions",
+      "survey-report": "Prepare a written survey findings report",
+    },
+    valuer: {
+      "market-valuation": "Assess current market value",
+      "rental-valuation": "Assess market rental value",
+      "land-building-valuation": "Value land and completed improvements",
+      "investment-appraisal": "Prepare property investment or development appraisal",
+      "comparable-analysis": "Review comparable sales and rental evidence",
+      "condition-inspection": "Inspect and report on observable property condition",
+      "valuation-report": "Prepare a formal valuation report",
+    },
+  };
+  if (serviceItems.some((item) => approvedServices[category]?.[item.serviceId] !== item.name) || new Set(serviceItems.map((item) => item.serviceId)).size !== serviceItems.length) {
+    throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Choose unique services listed for your profession.");
   }
   const profile = await profileForPayout(category, user._id as Types.ObjectId);
   if (!profile) {
@@ -946,6 +984,7 @@ export async function submitServiceOffer(params: {
     professionalId: user._id as Types.ObjectId,
     professionalName,
     coverageNote: note,
+    serviceItems,
     professionalFee: professionalNet,
     platformFee,
     customerPrice,

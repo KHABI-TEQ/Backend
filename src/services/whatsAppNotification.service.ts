@@ -997,8 +997,9 @@ class WhatsAppNotificationService {
     return new Date(date).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true
-    });
+      hour12: true,
+      timeZone: 'Africa/Lagos',
+    }).replace(/\s?(AM|PM)$/i, (_, suffix) => suffix.toLowerCase());
   }
 
   private formatCurrency(amount: number): string {

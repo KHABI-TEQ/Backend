@@ -86,14 +86,21 @@ export class InspectionActionHandler {
     buyerId: string,
     ownerId: string,
   ): ActionResult {
+    const buyerAcceptedSellerSchedule =
+      actionData.userType === "buyer" &&
+      inspection.stage === "inspection" &&
+      inspection.inspectionStatus === "countered" &&
+      inspection.pendingResponseFrom === "buyer";
     const update: AcceptUpdateData = {
       inspectionType: actionData.inspectionType,
       isLOI: actionData.inspectionType === "LOI",
-      status: "negotiation_accepted",
+      status: buyerAcceptedSellerSchedule ? "inspection_approved" : "negotiation_accepted",
       inspectionStatus: dateTimeChanged ? "countered" : "accepted",
       isNegotiating: false,
       stage: "inspection",
-      pendingResponseFrom: actionData.userType === "buyer" ? "seller" : "buyer",
+      pendingResponseFrom: buyerAcceptedSellerSchedule
+        ? undefined
+        : actionData.userType === "buyer" ? "seller" : "buyer",
       inspectionMode: actionData.inspectionMode,
     };
 

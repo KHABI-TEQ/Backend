@@ -19,7 +19,9 @@ export const registerBuyer = async (
     if (existing) {
       throw new RouteError(
         HttpStatusCodes.CONFLICT,
-        "This account already exists. Please log in."
+        existing.password
+          ? "This account already exists. Please log in."
+          : "A saved preference exists for this email. Create a password to claim it and continue."
       );
     }
 

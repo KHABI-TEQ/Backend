@@ -99,7 +99,7 @@ function propertyAddress(reg: ITransactionRegistrationDoc): string {
 export function generateCertificateNumber(registrationId: Types.ObjectId | string): string {
   const year = new Date().getFullYear();
   const suffix = String(registrationId).slice(-8).toUpperCase();
-  return `LASRERA/TRC/${year}/${suffix}`;
+  return `KHT-TR-${suffix}`;
 }
 
 export function buildSampleCertificateInput(): CertificateDocumentInput {
@@ -109,7 +109,7 @@ export function buildSampleCertificateInput(): CertificateDocumentInput {
     propertyAddress: "14 Admiralty Way, Lekki Phase 1, Lagos",
     transactionValue: 4_500_000,
     issuedAt: new Date(),
-    certificateNumber: `LASRERA/TRC/${new Date().getFullYear()}/SAMPLE01`,
+    certificateNumber: `KHT-TR-SAMPLE01`,
     verifyUrl: certificateVerifyUrl("KHT-TR-000000"),
   };
 }
@@ -343,9 +343,32 @@ async function buildCertificatePdf(
 }
 
 export async function buildCertificatePreviewPdf(
-  config: ILasreraCertificateConfig
+  _config: ILasreraCertificateConfig
 ): Promise<Buffer> {
-  return buildCertificatePdf(buildSampleCertificateInput(), config);
+  const now = new Date();
+  const sample = {
+    _id: "000000000000000000000001",
+    transactionType: "rental_agreement",
+    buyer: { fullName: SAMPLE_CERTIFICATE_BUYER_NAME, email: "", phoneNumber: "" },
+    transactionValue: 4_500_000,
+    processingFee: 0,
+    status: "certificate_issued",
+    propertyIdentification: { type: "residential", exactAddress: "14 Admiralty Way, Lekki Phase 1, Lagos" },
+    transactionReference: "KHT-TR-SAMPLE01",
+    propertyCode: "KH-ABC-12345",
+    propertyTypeLabel: "Residential",
+    propertyLocationLabel: "Lekki, Eti-Osa, Lagos",
+    certificateStatus: "ACTIVE",
+    certificateVersion: 1,
+    createdAt: now,
+    certificateIssuedAt: now,
+    updatedAt: now,
+    journeyEvents: [],
+    participatingProfessionals: [],
+    parties: [],
+    dueDiligence: [],
+  } as unknown as ITransactionRegistrationDoc;
+  return buildReferenceLayoutCertificatePdf(sample);
 }
 
 export async function ensureTransactionCertificateIdentity(
@@ -510,6 +533,137 @@ async function buildKhabiteqCertificatePdf(reg: ITransactionRegistrationDoc): Pr
   });
 }
 
+async function buildReferenceLayoutCertificatePdf(reg: ITransactionRegistrationDoc): Promise<Buffer> {
+  const view = toAuthorizedCertificateView(reg);
+  const logo = await resolvePdfImage(getKhabiteqEmailLogoUrl());
+  const qr = view.verifyUrl ? await fetchQrBuffer(view.verifyUrl) : null;
+  const propertyImage = view.propertyDetails?.imageUrl ? await resolvePdfImage(view.propertyDetails.imageUrl) : null;
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 0 });
+    const chunks: Buffer[] = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    const W = doc.page.width;
+    const H = doc.page.height;
+    const x = 26;
+    const inner = W - 52;
+    const gap = 9;
+    const leftW = 235;
+    const rightX = x + leftW + gap;
+    const rightW = inner - leftW - gap;
+    const ink = "#14261C";
+    const green = "#0B5D3B";
+    const muted = "#66736B";
+    const panel = (px: number, py: number, pw: number, ph: number, heading: string, fill = "#FFFFFF") => {
+      doc.roundedRect(px, py, pw, ph, 8).fillAndStroke(fill, "#E3EBE6");
+      doc.font("Helvetica-Bold").fontSize(7.5).fillColor(ink).text(heading.toUpperCase(), px + 9, py + 8, { width: pw - 18 });
+    };
+
+    doc.lineWidth(1.5).strokeColor("#238357").roundedRect(12, 12, W - 24, H - 24, 12).stroke();
+    doc.lineWidth(0.6).strokeColor("#D4E8DC").roundedRect(17, 17, W - 34, H - 34, 9).stroke();
+    if (logo) doc.image(logo, x, 27, { width: 130, height: 38, fit: [130, 38] });
+    else doc.font("Helvetica-Bold").fontSize(17).fillColor(green).text("KHABITEQ", x, 34);
+    doc.font("Helvetica-Bold").fontSize(6).fillColor(muted).text("CERTIFICATE STATUS", W - 160, 34, { width: 90 });
+    doc.roundedRect(W - 77, 27, 62, 20, 10).fill("#D7F5E0");
+    doc.font("Helvetica-Bold").fontSize(7).fillColor(green).text(view.certificateStatus || "ACTIVE", W - 74, 34, { width: 56, align: "center" });
+
+    doc.font("Helvetica-Bold").fontSize(20).fillColor("#073B25").text(CERTIFICATE_TITLE, x, 75, { width: 360, lineGap: 1 });
+    doc.font("Helvetica").fontSize(7).fillColor(muted).text(CERTIFICATE_SUBTITLE, x, 120, { characterSpacing: 2.1 });
+    doc.roundedRect(W - 222, 76, 196, 53, 8).fill("#EAF6EF");
+    doc.font("Helvetica").fontSize(6).fillColor(muted).text("TRANSACTION REFERENCE", W - 210, 84, { characterSpacing: 1 });
+    doc.font("Helvetica-Bold").fontSize(12).fillColor(ink).text(view.transactionReference || "PENDING", W - 210, 98, { width: 172 });
+    doc.font("Helvetica").fontSize(7).fillColor(muted).text(`Property Code: ${view.propertyCode || "—"}`, W - 210, 116, { width: 172 });
+
+    const summaryY = 139;
+    doc.roundedRect(x, summaryY, inner, 37, 7).lineWidth(0.5).strokeColor("#E2EAE5").stroke();
+    const summaries: [string, string][] = [["Property Type", view.propertyType || "—"], ["Transaction Type", view.transactionType], ["Property Location", view.propertyLocation || "—"], ["Registration Date", view.registrationDate || "—"]];
+    summaries.forEach(([label, value], i) => {
+      const cw = inner / 4;
+      const cx = x + i * cw + 8;
+      if (i) doc.moveTo(x + i * cw, summaryY + 5).lineTo(x + i * cw, summaryY + 32).lineWidth(0.5).strokeColor("#E2EAE5").stroke();
+      doc.font("Helvetica").fontSize(5.6).fillColor(muted).text(label.toUpperCase(), cx, summaryY + 7, { width: cw - 14 });
+      doc.font("Helvetica-Bold").fontSize(7).fillColor(ink).text(value || "—", cx, summaryY + 20, { width: cw - 14, ellipsis: true });
+    });
+
+    const top = 186;
+    const journey = (view.journey || []).slice(0, 13);
+    panel(x, top, leftW, 33 + journey.length * 34, "Transaction Journey", "#EFF9F2");
+    journey.forEach((row, i) => {
+      const yy = top + 28 + i * 34;
+      if (i < journey.length - 1) doc.moveTo(x + 10, yy + 14).lineTo(x + 10, yy + 37).lineWidth(1).strokeColor("#80C795").stroke();
+      doc.circle(x + 10, yy + 7, 6.5).fill(green);
+      doc.font("Helvetica-Bold").fontSize(5.8).fillColor("#FFFFFF").text(String(i + 1), x + 8, yy + 4, { width: 4, align: "center" });
+      doc.font("Helvetica-Bold").fontSize(6).fillColor(ink).text(row.title.toUpperCase(), x + 23, yy, { width: 132, ellipsis: true });
+      doc.roundedRect(x + leftW - 58, yy, 49, 12, 6).fill("#D6F5DF");
+      doc.font("Helvetica-Bold").fontSize(5).fillColor(green).text(row.notApplicable ? "N/A" : "COMPLETED", x + leftW - 56, yy + 3, { width: 45, align: "center" });
+      doc.font("Helvetica").fontSize(5.4).fillColor(muted).text(row.notApplicable ? "Not applicable" : row.date || "—", x + 23, yy + 13, { width: leftW - 38, ellipsis: true });
+    });
+
+    let sy = top;
+    panel(rightX, sy, rightW, 129, "Property Details");
+    if (propertyImage) doc.image(propertyImage, rightX + 9, sy + 25, { width: 96, height: 94, fit: [96, 94] });
+    else doc.roundedRect(rightX + 9, sy + 25, 96, 94, 5).fill("#EEF4F0");
+    const pd = view.propertyDetails;
+    const propertyRows: [string, string][] = [["Property Code", view.propertyCode || "—"], ["Property Type", view.propertyType || "—"], ["Listing Type", pd?.listingType || "—"], ["Location", pd?.address || view.propertyLocation || "—"], ["Bedrooms", String(pd?.bedrooms ?? "—")], ["Bathrooms", String(pd?.bathrooms ?? "—")], ["Parking", String(pd?.parking ?? "—")], ["Land Size", pd?.landSize || "—"], ["Listed on Khabiteq", pd?.listedAt || "—"]];
+    propertyRows.forEach(([label, value], i) => {
+      const yy = sy + 27 + i * 10;
+      doc.font("Helvetica").fontSize(5.2).fillColor(muted).text(label, rightX + 113, yy, { width: 68 });
+      doc.font("Helvetica-Bold").fontSize(5.4).fillColor(ink).text(value, rightX + 181, yy, { width: rightW - 188, ellipsis: true });
+    });
+    sy += 136;
+
+    panel(rightX, sy, rightW, 56, "Transaction Parties");
+    (view.parties || []).slice(0, 2).forEach((party, i) => {
+      const px = rightX + 10 + i * (rightW / 2);
+      doc.font("Helvetica").fontSize(5.2).fillColor(muted).text(party.role.toUpperCase(), px, sy + 27, { width: rightW / 2 - 16 });
+      doc.font("Helvetica-Bold").fontSize(6.6).fillColor(ink).text(party.displayName, px, sy + 37, { width: rightW / 2 - 16, ellipsis: true });
+    });
+    sy += 63;
+
+    const pros = view.participatingProfessionals || [];
+    panel(rightX, sy, rightW, Math.max(50, 27 + pros.slice(0, 2).length * 20), "Professionals Engaged");
+    pros.slice(0, 2).forEach((pro, i) => {
+      const yy = sy + 26 + i * 20;
+      doc.font("Helvetica-Bold").fontSize(5.8).fillColor(ink).text(`${pro.category}  ${pro.name}`, rightX + 11, yy, { width: rightW - 70, ellipsis: true });
+      doc.font("Helvetica").fontSize(5.2).fillColor(muted).text(pro.licenceNumber ? `Licence No: ${pro.licenceNumber}` : pro.verificationStatus || "", rightX + 11, yy + 9, { width: rightW - 24, ellipsis: true });
+    });
+    sy += Math.max(57, 34 + pros.slice(0, 2).length * 20);
+
+    const docs = view.documentTrail || [];
+    panel(rightX, sy, rightW, 28 + Math.max(1, docs.length) * 14, "Document Trail");
+    docs.slice(0, 4).forEach((item, i) => {
+      const yy = sy + 24 + i * 14;
+      doc.font("Helvetica").fontSize(5.7).fillColor(ink).text(item.type, rightX + 9, yy, { width: rightW - 70, ellipsis: true });
+      doc.font("Helvetica").fontSize(5.2).fillColor(muted).text(view.registrationDate || "—", rightX + rightW - 59, yy, { width: 32 });
+      doc.font("Helvetica-Bold").fontSize(4.9).fillColor(green).text(item.status, rightX + rightW - 25, yy, { width: 20, ellipsis: true });
+    });
+    sy += 35 + Math.max(1, docs.length) * 14;
+
+    const payments = view.paymentRecord || [];
+    panel(rightX, sy, rightW, 28 + Math.max(1, payments.length) * 16, "Payment Record");
+    payments.slice(0, 3).forEach((item, i) => {
+      const yy = sy + 24 + i * 16;
+      doc.font("Helvetica").fontSize(5.3).fillColor(ink).text(item.description, rightX + 9, yy, { width: 95, ellipsis: true });
+      doc.font("Helvetica").fontSize(5).fillColor(muted).text(item.reference || "—", rightX + 106, yy, { width: 42, ellipsis: true });
+      doc.font("Helvetica").fontSize(5).fillColor(muted).text(item.date || "—", rightX + 150, yy, { width: 35 });
+      doc.font("Helvetica").fontSize(5).fillColor(ink).text(item.amount != null ? `NGN ${item.amount.toLocaleString("en-NG")}` : "—", rightX + 188, yy, { width: 48, ellipsis: true });
+      doc.font("Helvetica-Bold").fontSize(5).fillColor(green).text(item.status, rightX + 238, yy, { width: rightW - 247, ellipsis: true });
+    });
+
+    const foot = H - 96;
+    doc.moveTo(x, foot).lineTo(W - x, foot).lineWidth(0.5).strokeColor("#E1E9E4").stroke();
+    if (qr) doc.image(qr, x, foot + 6, { width: 58, height: 58 });
+    doc.font("Helvetica-Bold").fontSize(6.5).fillColor(ink).text("VERIFY THIS CERTIFICATE", x + 66, foot + 8);
+    doc.font("Helvetica").fontSize(5.6).fillColor(muted).text("Scan the QR code to view this live record on Khabiteq.", x + 66, foot + 19, { width: 210 });
+    doc.font("Helvetica").fontSize(5.2).fillColor("#1D4ED8").text(view.verifyUrl || "", x + 66, foot + 29, { width: 236, ellipsis: true });
+    doc.font("Helvetica").fontSize(5.4).fillColor(muted).text(`Issued ${view.issuedAt || "—"}  ·  Last updated ${view.lastUpdated || "—"}  ·  Version ${view.certificateVersion || 1}.0`, x + 66, foot + 41, { width: 250 });
+    doc.font("Helvetica").fontSize(4.8).fillColor(muted).text(CERTIFICATE_DISCLAIMER, x, H - 28, { width: inner, height: 17, align: "justify", ellipsis: true });
+    doc.end();
+  });
+}
+
 export async function generateAndStoreRegistrationCertificate(
   reg: ITransactionRegistrationDoc,
   issuedByAdminId?: Types.ObjectId | string
@@ -533,15 +687,8 @@ export async function generateAndStoreRegistrationCertificate(
   }
 
   const nextVersion = previousVersion > 0 ? previousVersion + 1 : 1;
-  const certificateNumber = reg.certificateNumber || generateCertificateNumber(String(reg._id));
-  const config = await getLasreraCertificateConfig();
-  const pdfBuffer = await buildCertificatePdf(
-    {
-      ...inputFromRegistration(reg, certificateNumber),
-      verifyUrl: reg.transactionReference ? certificateVerifyUrl(reg.transactionReference) : undefined,
-    },
-    config
-  );
+  const certificateNumber = reg.transactionReference || generateCertificateNumber(String(reg._id));
+  const pdfBuffer = await buildReferenceLayoutCertificatePdf(reg);
   const base64 = `data:application/pdf;base64,${pdfBuffer.toString("base64")}`;
   const filename = `khabiteq-certificate-${reg.transactionReference || String(reg._id).slice(-8)}`;
 
