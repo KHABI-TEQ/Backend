@@ -11,11 +11,6 @@ import {
 } from "./dealSiteKycEligibility.service";
 import { getAgentAccessGate } from "./agentPublisherEligibility.service";
 
-async function shouldStartDealSiteRunning(userId: string): Promise<boolean> {
-  const gate = await getAgentAccessGate(userId);
-  return gate.ok === true;
-}
-
 const confidentialFields = "-paymentDetails -createdBy -__v";
 
 function asPlainObject(value: unknown): Record<string, any> {
@@ -81,8 +76,6 @@ export class DealSiteService {
       );
     }
 
-    await assertDealSiteKycAllowed(userId);
-
     // Ensure publicSlug is unique across DealSite + ProfessionalSite
     const existingSlug = await DB.Models.DealSite.findOne({
       publicSlug: payload.publicSlug,
@@ -130,12 +123,14 @@ export class DealSiteService {
       );
     }
 
-    const startRunning = await shouldStartDealSiteRunning(userId);
+    // Let users save their page setup while KYC or subscription review is pending.
+    // The page stays paused until its access gate is satisfied.
+    const accessGate = await getAgentAccessGate(userId);
     const dealSite = await DB.Models.DealSite.create({
       ...payload,
       createdBy: userId,
-      status: startRunning ? "running" : "paused",
-      ...(startRunning ? {} : { pausedByPolicy: "setup" }),
+      status: accessGate.ok ? "running" : "paused",
+      ...(accessGate.ok ? {} : { pausedByPolicy: accessGate.reason }),
     });
 
     return dealSite;

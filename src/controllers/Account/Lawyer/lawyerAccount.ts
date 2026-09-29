@@ -170,7 +170,7 @@ export const submitLawyerKyc = async (
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "KYC submitted. Awaiting Khabi-Teq admin approval.",
+      message: "KYC submitted successfully. Please await admin approval.",
       data: profile,
     });
   } catch (err) {

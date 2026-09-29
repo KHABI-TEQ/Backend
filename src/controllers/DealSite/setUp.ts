@@ -27,9 +27,15 @@ export const createDealSite = async (
       req,
     });
 
+    const message = dealSite.status === "running"
+      ? "Public page setup completed successfully. Your page is live."
+      : dealSite.pausedByPolicy === "kyc"
+        ? "Public page setup saved successfully. Please await admin approval of your KYC before your page goes live."
+        : "Public page setup saved successfully. Subscribe to an active plan to make your page live.";
+
     return res.status(HttpStatusCodes.CREATED).json({
       success: true,
-      message: "Public access page created successfully",
+      message,
       data: dealSite,
     });
   } catch (err) {

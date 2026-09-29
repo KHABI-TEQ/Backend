@@ -139,7 +139,9 @@ export const submitDeveloperVerificationController = async (
     }
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Verification submitted for review where automatic checks could not complete.",
+      message: data.isVerifiedDeveloper
+        ? "Developer verification completed successfully."
+        : "KYC submitted successfully. Please await admin approval.",
       data,
     });
   } catch (err) {

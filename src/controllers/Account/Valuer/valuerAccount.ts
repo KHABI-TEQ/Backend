@@ -68,7 +68,7 @@ export const submitValuerKyc = async (req: AppRequest, res: Response, next: Next
     await profile.save();
     return res.status(HttpStatusCodes.OK).json({
       success: true,
-      message: "Valuer KYC submitted for review.",
+      message: "KYC submitted successfully. Please await admin approval.",
       data: profile,
     });
   } catch (err) {
