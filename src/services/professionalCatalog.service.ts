@@ -35,6 +35,11 @@ import {
   inspectionLinkFields,
   resolveBuyerInspectionLink,
 } from "../utils/seekerTransactionGate";
+import {
+  approvedServiceNameMap,
+  resolveRequestedServices,
+  type DueDiligenceCategory,
+} from "../common/constants/dueDiligenceServiceItems";
 
 function newReference(): string {
   return `KHT-PS-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 9000 + 1000)}`;
@@ -221,6 +226,12 @@ export async function initializeCatalogRequestPayment(params: {
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
       "This request is not ready for payment."
+    );
+  }
+  if (request.quotationRevisionPending) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Accept the updated quotation before payment."
     );
   }
 
@@ -471,6 +482,11 @@ function redactCatalogJob(
     professionalFee: request.professionalFee,
     answers: request.answers || {},
     documentUrls: request.documentUrls || [],
+    quotationRevisionPending: Boolean(request.quotationRevisionPending),
+    acceptedQuotation: request.acceptedQuotation || null,
+    deliverableUrl: request.deliverableUrl || "",
+    deliverableNotes: request.deliverableNotes || "",
+    deliveredAt: request.deliveredAt || null,
     linkedDocumentVerificationId: request.linkedDocumentVerificationId,
     linkedSurveyRequestId: request.linkedSurveyRequestId,
     createdAt: request.createdAt,
@@ -497,6 +513,9 @@ function myOfferForProfessional(offers: unknown, userId: string) {
   return {
     coverageNote: mine.coverageNote || "",
     serviceFee: Number(mine.customerPrice || 0),
+    serviceItems: Array.isArray((mine as { serviceItems?: unknown }).serviceItems)
+      ? (mine as { serviceItems: Array<{ serviceId: string; name: string; fee: number }> }).serviceItems
+      : [],
   };
 }
 
@@ -623,6 +642,7 @@ export async function listCatalogJobsForProfessional(
         ...unassignedFilter(),
       },
       { professionalId: userOid },
+      { "offers.professionalId": userOid },
     ],
   })
     .sort({ createdAt: -1 })
@@ -647,6 +667,7 @@ export async function getCatalogJobForProfessional(params: {
         ...unassignedFilter(),
       },
       { professionalId: userOid },
+      { "offers.professionalId": userOid },
     ],
   }).lean();
   if (!request) {
@@ -794,6 +815,7 @@ export async function createServiceBrief(body: {
     deliverable?: string;
     additional?: string;
   };
+  requestedServices?: unknown;
 }) {
   if (!["lawyer", "surveyor", "valuer"].includes(body.category)) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Choose a professional service.");
@@ -858,6 +880,7 @@ export async function createServiceBrief(body: {
       timeline: body.brief.timeline || "",
       deliverable: body.brief.deliverable || "",
       additional: body.brief.additional || "",
+      requestedServices: resolveRequestedServices(body.category, body.requestedServices),
       documentsHandledOutsidePlatform: true,
     },
     documentUrls: [],
@@ -923,37 +946,8 @@ export async function submitServiceOffer(params: {
   if (!user || !category) {
     throw new RouteError(HttpStatusCodes.FORBIDDEN, "A lawyer, surveyor, or valuer account is required.");
   }
-  const approvedServices: Record<string, Record<string, string>> = {
-    lawyer: {
-      "title-document-review": "Review title and ownership documents",
-      "title-search": "Conduct land registry and title search",
-      "chain-of-title": "Review chain of title and prior transfers",
-      "encumbrance-litigation": "Check for encumbrances, claims and recorded disputes",
-      "planning-approvals": "Review planning consent and property approvals",
-      "contract-review": "Review sale, lease or assignment documents",
-      "seller-authority": "Verify seller or developer authority to transact",
-      "written-legal-opinion": "Prepare a written legal due diligence report",
-    },
-    surveyor: {
-      "survey-plan-check": "Verify survey plan and land registry charting",
-      "boundary-verification": "Verify site boundaries and beacon positions",
-      "coordinates-site": "Confirm site location and coordinates on the ground",
-      "encroachment-check": "Assess visible boundary overlap or encroachment",
-      "topographic-survey": "Carry out a topographic or site survey",
-      "subdivision-layout": "Review subdivision, plot layout or site dimensions",
-      "survey-report": "Prepare a written survey findings report",
-    },
-    valuer: {
-      "market-valuation": "Assess current market value",
-      "rental-valuation": "Assess market rental value",
-      "land-building-valuation": "Value land and completed improvements",
-      "investment-appraisal": "Prepare property investment or development appraisal",
-      "comparable-analysis": "Review comparable sales and rental evidence",
-      "condition-inspection": "Inspect and report on observable property condition",
-      "valuation-report": "Prepare a formal valuation report",
-    },
-  };
-  if (serviceItems.some((item) => approvedServices[category]?.[item.serviceId] !== item.name) || new Set(serviceItems.map((item) => item.serviceId)).size !== serviceItems.length) {
+  const approvedServices = approvedServiceNameMap(category as DueDiligenceCategory);
+  if (serviceItems.some((item) => approvedServices[item.serviceId] !== item.name) || new Set(serviceItems.map((item) => item.serviceId)).size !== serviceItems.length) {
     throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Choose unique services listed for your profession.");
   }
   const profile = await profileForPayout(category, user._id as Types.ObjectId);
@@ -965,11 +959,20 @@ export async function submitServiceOffer(params: {
   const request = await DB.Models.ProfessionalServiceRequest.findOne({
     _id: params.requestId,
     category,
-    status: "awaiting-offers",
     offeredTo: user._id,
+    $or: [
+      { status: "awaiting-offers" },
+      { status: "awaiting-payment", professionalId: user._id },
+    ],
   });
   if (!request) {
-    throw new RouteError(HttpStatusCodes.NOT_FOUND, "This brief is no longer open for offers.");
+    throw new RouteError(HttpStatusCodes.NOT_FOUND, "This brief is no longer open for quotations.");
+  }
+  if (Number(request.amountPaid || 0) > 0) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Create a new quotation for additional work after this paid service is complete."
+    );
   }
 
   const platformFee = Math.round(fee * 0.1);
@@ -993,6 +996,17 @@ export async function submitServiceOffer(params: {
     createdAt: new Date(),
   });
   request.offers = offers;
+  const revisingAccepted = String(request.status) === "awaiting-payment";
+  if (revisingAccepted) {
+    request.quotationRevisionPending = true;
+    request.professionalId = undefined as unknown as undefined;
+    request.set("professionalId", undefined);
+    request.status = "awaiting-offers";
+    request.set("acceptedQuotation", undefined);
+    request.customerPrice = 0;
+    request.platformFee = 0;
+    request.professionalFee = 0;
+  }
   await request.save();
   void notifyAllActiveAdmins({
     type: "general",
@@ -1100,6 +1114,15 @@ export async function selectServiceOffer(params: {
   request.platformFee = offer.platformFee;
   request.customerPrice = offer.customerPrice;
   request.status = "awaiting-payment";
+  request.quotationRevisionPending = false;
+  request.acceptedQuotation = {
+    professionalId: offer.professionalId,
+    serviceItems: offer.serviceItems || [],
+    customerPrice: offer.customerPrice,
+    platformFee: offer.platformFee,
+    professionalFee: offer.professionalFee,
+    acceptedAt: new Date(),
+  };
   await request.save();
   void notifyAllActiveAdmins({
     type: "general",
@@ -1107,5 +1130,94 @@ export async function selectServiceOffer(params: {
     message: `A client selected an offer on ${request.reference} and can now pay ₦${Number(request.customerPrice).toLocaleString()}.`,
     meta: { requestId: String(request._id), reference: request.reference },
   });
+  return request;
+}
+
+export async function deliverCatalogServiceRequest(params: {
+  requestId: string;
+  userId: string;
+  notes: string;
+  url?: string;
+}) {
+  const notes = String(params.notes || "").trim();
+  if (!notes) {
+    throw new RouteError(
+      HttpStatusCodes.BAD_REQUEST,
+      "Add notes for the client before you mark this brief as delivered."
+    );
+  }
+  const request = await DB.Models.ProfessionalServiceRequest.findOne({
+    _id: params.requestId,
+    professionalId: params.userId,
+    status: "in-progress",
+  });
+  if (!request) {
+    throw new RouteError(
+      HttpStatusCodes.NOT_FOUND,
+      "This brief is not in progress on your account."
+    );
+  }
+  request.deliverableNotes = notes;
+  request.deliverableUrl = String(params.url || "").trim();
+  request.deliveredAt = new Date();
+  request.status = "delivered";
+  await request.save();
+
+  const buyerId = request.buyerId ? String(request.buyerId) : "";
+  if (buyerId) {
+    await createBuyerInboxNotification({
+      buyerId,
+      title: `Delivery for ${request.serviceName}`,
+      message: `${request.serviceName} has been delivered. Open the brief on the website to review and confirm.`,
+      type: "document",
+      meta: {
+        source: "system",
+        audience: "buyer",
+        screen: "professional_service",
+        actionPath: `/buyer/service-requests/${request._id}`,
+        catalogRequestId: String(request._id),
+      },
+    });
+  }
+  if (request.contact?.email) {
+    const site = (process.env.CLIENT_LINK || "https://www.khabiteq.com").replace(
+      /\/$/,
+      ""
+    );
+    void sendEmail({
+      to: request.contact.email,
+      subject: `Your ${request.serviceName} work has been delivered`,
+      text: `Dear ${request.contact.fullName || "Client"}, the professional has delivered ${request.serviceName}. Review it here: ${site}/buyer/service-requests/${request._id}`,
+      html: generalEmailLayout(
+        `<p>Dear ${request.contact.fullName || "Client"},</p><p>The professional has delivered <strong>${request.serviceName}</strong>. Open the brief on the website to review the report and confirm receipt.</p><p><a href="${site}/buyer/service-requests/${request._id}">Review delivery</a></p>`
+      ),
+    });
+  }
+  void notifyAllActiveAdmins({
+    type: "general",
+    title: "Due diligence brief delivered",
+    message: `${request.reference} was marked delivered.`,
+    meta: { requestId: String(request._id), reference: request.reference },
+  });
+  return request;
+}
+
+export async function confirmCatalogDelivery(params: {
+  requestId: string;
+  buyerId: string;
+}) {
+  const request = await DB.Models.ProfessionalServiceRequest.findOne({
+    _id: params.requestId,
+    buyerId: params.buyerId,
+    status: "delivered",
+  });
+  if (!request) {
+    throw new RouteError(
+      HttpStatusCodes.NOT_FOUND,
+      "There is no delivered brief to confirm."
+    );
+  }
+  request.status = "completed";
+  await request.save();
   return request;
 }

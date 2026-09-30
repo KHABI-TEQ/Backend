@@ -5,6 +5,7 @@ import { RouteError } from "../../common/classes";
 import {
   acceptCatalogServiceRequest,
   categoryForAccountUser,
+  deliverCatalogServiceRequest,
   getCatalogJobForProfessional,
   listCatalogJobsForProfessional,
   submitServiceOffer,
@@ -106,6 +107,29 @@ export const respondProfessionalServiceJob = async (
       message: accept
         ? "Request accepted. The client has been asked to pay."
         : "You declined this request. It remains open for other professionals.",
+      data: job,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deliverProfessionalServiceJob = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { user } = requireProfessional(req);
+    const job = await deliverCatalogServiceRequest({
+      requestId: req.params.id,
+      userId: String(user._id),
+      notes: String(req.body?.notes || ""),
+      url: String(req.body?.url || ""),
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Delivery sent to the client on the website.",
       data: job,
     });
   } catch (err) {

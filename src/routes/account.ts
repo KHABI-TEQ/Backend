@@ -104,6 +104,7 @@ import {
   listProfessionalServiceJobs,
   getProfessionalServiceJob,
   respondProfessionalServiceJob,
+  deliverProfessionalServiceJob,
 } from "../controllers/Account/professionalCatalogJobs";
 import { applyProfessionalUpgradeSchema } from "../validators/professionalUpgrade.validator";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
@@ -470,6 +471,10 @@ AccountRouter.get("/professional-services/jobs/:id", getProfessionalServiceJob);
 AccountRouter.post(
   "/professional-services/:id/respond",
   respondProfessionalServiceJob
+);
+AccountRouter.post(
+  "/professional-services/:id/deliver",
+  deliverProfessionalServiceJob
 );
 
 AccountRouter.get("/valuer/me", getValuerMe);

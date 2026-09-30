@@ -44,6 +44,15 @@ export interface IProfessionalServiceRequest {
   deliveredAt?: Date;
   declineReason?: string;
   contactsUnlockedAt?: Date;
+  acceptedQuotation?: {
+    professionalId: Types.ObjectId;
+    serviceItems: Array<{ serviceId: string; name: string; fee: number }>;
+    customerPrice: number;
+    platformFee: number;
+    professionalFee: number;
+    acceptedAt?: Date;
+  };
+  quotationRevisionPending?: boolean;
   offers?: Array<{
     professionalId: Types.ObjectId;
     professionalName?: string;
@@ -137,6 +146,19 @@ export class ProfessionalServiceRequest {
         deliveredAt: { type: Date },
         declineReason: { type: String },
         contactsUnlockedAt: { type: Date },
+        quotationRevisionPending: { type: Boolean, default: false },
+        acceptedQuotation: {
+          professionalId: { type: Schema.Types.ObjectId, ref: "User" },
+          serviceItems: [{
+            serviceId: { type: String, required: true, trim: true },
+            name: { type: String, required: true, trim: true },
+            fee: { type: Number, required: true, min: 0 },
+          }],
+          customerPrice: { type: Number, min: 0 },
+          platformFee: { type: Number, min: 0 },
+          professionalFee: { type: Number, min: 0 },
+          acceptedAt: { type: Date },
+        },
         offers: {
           type: [
             {
