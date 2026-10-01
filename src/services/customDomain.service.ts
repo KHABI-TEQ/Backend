@@ -18,7 +18,6 @@ import { SubscriptionPlanService } from "./subscriptionPlan.service";
 import { UserSubscriptionSnapshotService } from "./userSubscriptionSnapshot.service";
 import { computePaidSubscriptionExpiresAt, resolveAgentSubscriptionBonusDays } from "./agentSubscriptionIncentive.service";
 import { resolveCatalogAudienceForUser, assertUserCanPurchasePlanAudience } from "./subscriptionPlanAudience.service";
-import { isPractitionerKycApproved } from "./publisherKyc.service";
 
 const DEFAULT_GRACE_DAYS = 14;
 
@@ -249,37 +248,6 @@ export async function getOrCreateCustomDomainRequest(ownerId: string, body?: {
   }
 
   const { siteKind, site, publicSlug } = ownerSite;
-  if (siteKind === "professional-site") {
-    const profile =
-      site.kind === "lawyer"
-        ? await DB.Models.LawyerProfile.findOne({ userId: ownerId })
-        : await DB.Models.SurveyorProfile.findOne({ userId: ownerId });
-    if (profile?.kycStatus !== "approved") {
-      if (mutating) {
-        throw new RouteError(
-          HttpStatusCodes.BAD_REQUEST,
-          "KYC must be approved before requesting a custom domain."
-        );
-      }
-      return {
-        request: null,
-        site: {
-          id: String(site._id),
-          siteKind,
-          publicSlug,
-          publicUrl: dealSiteOriginFromPublicSlug(publicSlug),
-          customDomain: site.customDomain || null,
-          customDomainStatus: site.customDomainStatus || "none",
-          customDomainExpiresAt: site.customDomainExpiresAt || null,
-          customDomainGraceEndsAt: site.customDomainGraceEndsAt || null,
-          status: site.status,
-        },
-        needsPublicPage: false,
-        needsKyc: true,
-        ...catalog,
-      };
-    }
-  }
 
   let request = await DB.Models.CustomDomainRequest.findOne({
     ownerId,
@@ -392,13 +360,6 @@ async function initializeCustomDomainSubscriptionPayment(
   mode: "package" | "renewal",
   opts: { planCode: string; autoRenewal?: boolean }
 ) {
-  if (!(await isPractitionerKycApproved(ownerId))) {
-    throw new RouteError(
-      HttpStatusCodes.FORBIDDEN,
-      "Your KYC must be approved by an admin before you can make a subscription payment."
-    );
-  }
-
   const planCode = String(opts?.planCode || "").trim();
   if (!planCode) {
     throw new RouteError(
@@ -435,12 +396,6 @@ async function initializeCustomDomainSubscriptionPayment(
     throw new RouteError(
       HttpStatusCodes.BAD_REQUEST,
       "Set up your public page before requesting a custom domain."
-    );
-  }
-  if (payload.needsKyc) {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "KYC must be approved before requesting a custom domain."
     );
   }
   const { request, site } = payload;

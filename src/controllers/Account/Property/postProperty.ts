@@ -55,7 +55,6 @@ export const postProperty = async (
     const payload = validation.data;
     const createdByRole = "user";
     const ownerModel = "User";
-    const standaloneScout = userType === "PropertyScout";
 
     const listingType = String((payload as { propertyType?: string }).propertyType || "")
       .toLowerCase()
@@ -65,16 +64,6 @@ export const postProperty = async (
         HttpStatusCodes.FORBIDDEN,
         "Off-plan developments are submitted as projects. Use List Off-Plan Project instead of the standard property listing form.",
       );
-    }
-
-    if (standaloneScout) {
-      const { isPublisherKycApproved } = await import("../../../services/publisherKyc.service");
-      if (!(await isPublisherKycApproved(String(userId)))) {
-        throw new RouteError(
-          HttpStatusCodes.FORBIDDEN,
-          "Complete your KYC verification to start submitting property opportunities.",
-        );
-      }
     }
 
     // Normalize isTenanted: API accepts "Yes"/"No", Mongoose enum expects "yes"/"no"/"i-live-in-it"

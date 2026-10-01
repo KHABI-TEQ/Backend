@@ -30,7 +30,6 @@ import {
   assertUserCanPurchasePlanAudience,
 } from "../../../services/subscriptionPlanAudience.service";
 import { catalogDefinitionByCode } from "../../../common/constants/subscriptionCatalog";
-import { isPractitionerKycApproved } from "../../../services/publisherKyc.service";
 
 
 /**
@@ -59,13 +58,6 @@ export const createSubscription = async (
       throw new RouteError(
         HttpStatusCodes.FORBIDDEN,
         "Only registered professionals can create subscriptions."
-      );
-    }
-
-    if (!(await isPractitionerKycApproved(String(userId)))) {
-      throw new RouteError(
-        HttpStatusCodes.FORBIDDEN,
-        "Your KYC must be approved by an admin before you can subscribe or make a plan payment."
       );
     }
 
@@ -592,6 +584,7 @@ export const getAllActiveSubscriptionPlans = async (
               : audience === SUBSCRIPTION_PLAN_AUDIENCES.VALUER
                 ? "Valuer"
               : "Licensed Agent",
+        title: "Choose a plan",
         groups: SubscriptionPlanService.catalogGroupsMeta(),
       },
     });

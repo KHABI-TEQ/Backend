@@ -108,12 +108,14 @@ router.post(
       const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
       const filename = Date.now() + "-" + fileFor;
+      const resourceType = req.file.mimetype?.startsWith("image/") ? "image" : "auto";
 
       // Upload to Cloudinary
       const uploadImg = await cloudinary.uploadFile(
         fileBase64,
         filename,
         filFolder,
+        resourceType,
       );
 
       // console.log(uploadImg);

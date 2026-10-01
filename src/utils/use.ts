@@ -13,6 +13,7 @@ export function use(handler: (req: Request, res: Response, next: NextFunction) =
         return res.status(error.status).json({
           error: error.message,
           ...(error.message2 && { details: error.message2 }),
+          ...(error.data ? { data: error.data } : {}),
         });
       }
 

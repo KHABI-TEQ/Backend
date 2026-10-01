@@ -3,7 +3,12 @@ import AdminInspRouter from "./admin.inspections";
 import multer from "multer";
 import { adminAuth } from "../middlewares/adminAuth";
 import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
-import { changeAdminPassword, getAdminProfile, updateAdminProfile } from "../controllers/Admin/profileSettings";
+import {
+  changeAdminEmail,
+  changeAdminPassword,
+  getAdminProfile,
+  updateAdminProfile,
+} from "../controllers/Admin/profileSettings";
 import { changeAdminStatus, createAdmin, deleteAdmin, getAdmins, getSingleAdmin, updateAdmin } from "../controllers/Admin/Account/admins";
 import { deleteAgentAccount, flagOrUnflagAgentAccount, getAgentDashboardStatistics, getAgents, getAgentsByType, getAllAgentProperties, getAllAgents, getAllAgentUpgradeRequests, getSingleAgentProfile, toggleAgentStatus } from "../controllers/Admin/Account/agents";
 import { reviewPublisherKyc } from "../controllers/Admin/Account/publisherKycReview";
@@ -239,8 +244,9 @@ AdminRouter.get("/stats/export", dashboardController.exportData);
  * ADMIN PROFILE ROUTES
  */
 AdminRouter.get("/profile", getAdminProfile);
-AdminRouter.get("/profile/update", updateAdminProfile);
+AdminRouter.put("/profile/update", updateAdminProfile);
 AdminRouter.post("/change-password", changeAdminPassword);
+AdminRouter.put("/change-email", changeAdminEmail);
 
 /**
  * ADMIN IN-APP NOTIFICATIONS (per logged-in admin)

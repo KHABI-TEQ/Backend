@@ -67,7 +67,8 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
       success: false,
       error: err.message,
       message: err.message,
-      details: err.message2 || null, // Include `message2` if available
+      details: err.message2 || null,
+      ...(err.data ? { data: err.data } : {}),
     });
   }
 

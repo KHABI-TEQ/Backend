@@ -4,6 +4,13 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import { getLawyerPlatformChargePercent, getSurveyorPlatformChargePercent } from "../../services/professionalFee.service";
+import {
+  AGENT_FEE_CATEGORIES,
+  AGENT_FEE_TABLE_COLUMNS,
+  agentFeeTabLabel,
+  listAgentFeeRows,
+  type AgentFeeCategory,
+} from "../../services/agentFeeLedger.service";
 
 export const fetchUserTransactions = async (
   req: AppRequest,
@@ -50,6 +57,64 @@ export const fetchUserTransactions = async (
 };
 
 
+
+/**
+ * My Transactions tabs: inspection fee, commission fee, and property sales price.
+ * GET /account/transactions/fees?category=inspection_fee|commission_fee|property_sales_price_fee
+ */
+export const fetchAgentFeeLedger = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
+
+    const requested = String(req.query.category || "inspection_fee");
+    const category = (AGENT_FEE_CATEGORIES as readonly string[]).includes(requested)
+      ? (requested as AgentFeeCategory)
+      : null;
+    if (!category) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "category must be inspection_fee, commission_fee, or property_sales_price_fee"
+      );
+    }
+
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const rows = await listAgentFeeRows(String(userId), category);
+    const start = (page - 1) * limit;
+    const tableTitle = agentFeeTabLabel(category);
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      data: {
+        title: "My Transactions",
+        subtitle: "Manage your briefs and track your real estate performance",
+        category,
+        tableTitle,
+        selectable: true,
+        tabs: AGENT_FEE_CATEGORIES.map((key) => ({
+          key,
+          label: agentFeeTabLabel(key),
+          active: key === category,
+        })),
+        columns: AGENT_FEE_TABLE_COLUMNS,
+        rows: rows.slice(start, start + limit),
+      },
+      pagination: {
+        total: rows.length,
+        page,
+        limit,
+        totalPages: Math.ceil(rows.length / limit) || 1,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 
 /**
  * Fetch details of a single transaction for the authenticated user

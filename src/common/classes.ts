@@ -27,11 +27,18 @@ interface TokenPayload {
 export class RouteError extends Error {
   public status: HttpStatusCodes;
   public message2?: string;
+  public data?: Record<string, unknown>;
 
-  public constructor(status: HttpStatusCodes, message: string, message2?: string) {
+  public constructor(
+    status: HttpStatusCodes,
+    message: string,
+    message2?: string,
+    data?: Record<string, unknown>
+  ) {
     super(message);
     this.status = status;
     this.message2 = message2;
+    this.data = data;
 
     // Maintain proper stack trace (only for V8 engines like Node.js)
     if (Error.captureStackTrace) {

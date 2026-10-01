@@ -40,6 +40,7 @@ import {
   changeEmail,
   changePassword,
   deleteAccountImmediately,
+  dismissKycNotice,
   getDashboardData,
   getProfile,
   requestAccountDeletion,
@@ -109,7 +110,7 @@ import {
 import { applyProfessionalUpgradeSchema } from "../validators/professionalUpgrade.validator";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
-import { fetchUserTransactions, getUserTransactionDetails, fetchTransactionActivity } from "../controllers/Account/transactions";
+import { fetchUserTransactions, getUserTransactionDetails, fetchTransactionActivity, fetchAgentFeeLedger } from "../controllers/Account/transactions";
 import {
   listMyTransactionRegistrations,
   getMyTransactionCertificate,
@@ -187,6 +188,7 @@ AccountRouter.use(accountAuth);
 AccountRouter.get("/profile", getProfile);
 AccountRouter.put("/brm", validateJoi(assignBrmSchema), updateAccountBrm);
 AccountRouter.get("/dashboard", getDashboardData);
+AccountRouter.patch("/kyc-notice/dismiss", dismissKycNotice);
 AccountRouter.patch("/updateAccount", updateProfile)
 AccountRouter.patch("/updateProfilePicture", updateProfilePicture);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
@@ -338,6 +340,7 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/activity", fetchTransactionActivity);
+AccountRouter.get("/transactions/fees", fetchAgentFeeLedger);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
 AccountRouter.get("/my-transaction-registrations", listMyTransactionRegistrations);
 AccountRouter.get("/my-transaction-registrations/:reference", getMyTransactionCertificate);

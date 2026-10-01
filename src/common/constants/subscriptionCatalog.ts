@@ -70,6 +70,11 @@ export type CatalogBillingOption = {
   billingInterval: SubscriptionBillingInterval;
   label: string;
   listingLimit?: number;
+  compareAtPrice?: number;
+  cardTagline?: string;
+  mostPopular?: boolean;
+  accent?: "gold" | "green";
+  cardFeatures?: string[];
 };
 
 export type CatalogPlanDefinition = {
@@ -89,6 +94,11 @@ export type CatalogPlanDefinition = {
   discountedPlans?: CatalogBillingOption[];
   displayWithCode?: string;
   listingLimit?: number;
+  compareAtPrice?: number;
+  cardTagline?: string;
+  mostPopular?: boolean;
+  accent?: "gold" | "green";
+  cardFeatures?: string[];
 };
 
 export type CatalogGroupDefinition = {
@@ -283,6 +293,17 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
     durationInDays: 90,
     billingInterval: SUBSCRIPTION_BILLING_INTERVALS.QUARTERLY,
     listingLimit: 25,
+    compareAtPrice: 150_000,
+    cardTagline: "Perfect to get started and experience the platform.",
+    mostPopular: true,
+    accent: "green",
+    cardFeatures: [
+      "All core features",
+      "Verified practitioner page",
+      "Access to buyer & tenant demands",
+      "Inspection & negotiation tools",
+      "Transaction workflow tools",
+    ],
     designedFor:
       "For licensed real estate agents who want a verified professional page, listings and demand matching.",
     headline: "Grow Your Real Estate Business with Khabiteq",
@@ -291,10 +312,21 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
         code: CATALOG_PLAN_CODES.LICENSED_AGENT_YEARLY,
         name: "Licensed Agent Plan — Yearly",
         price: 140_000,
+        compareAtPrice: 350_000,
         durationInDays: 365,
         billingInterval: SUBSCRIPTION_BILLING_INTERVALS.YEARLY,
         label: "per year",
         listingLimit: 50,
+        cardTagline: "Best value for serious agents who want to scale.",
+        accent: "gold",
+        cardFeatures: [
+          "All core features",
+          "Verified practitioner page",
+          "Access to buyer & tenant demands",
+          "Inspection & negotiation tools",
+          "Transaction workflow tools",
+          "Maximum value for long-term growth",
+        ],
       },
     ],
     featureDetails: [
@@ -497,6 +529,105 @@ export function catalogDefinitionByCode(
       plan.code === code ||
       plan.discountedPlans?.some((dp) => dp.code === code)
   );
+}
+
+export type SubscriptionPlanCard = {
+  planCode: string;
+  title: string;
+  tagline: string;
+  price: number;
+  priceLabel: string;
+  compareAtPrice: number | null;
+  compareAtLabel: string | null;
+  discountPercent: number | null;
+  discountLabel: string | null;
+  durationLabel: string;
+  mostPopular: boolean;
+  popularLabel: string | null;
+  accent: "gold" | "green";
+  highlight: string | null;
+  features: string[];
+  ctaLabel: string;
+};
+
+function formatPlanNaira(amount: number): string {
+  return `₦${Math.round(amount).toLocaleString("en-NG")}`;
+}
+
+function planDurationTitle(durationInDays: number, fallbackName: string): string {
+  if (durationInDays >= 360) return "1 Year Plan";
+  if (durationInDays >= 170 && durationInDays <= 200) return "6 Months Plan";
+  if (durationInDays >= 80 && durationInDays <= 100) return "3 Months Plan";
+  return fallbackName;
+}
+
+function planDurationLabel(durationInDays: number): string {
+  if (durationInDays >= 360) return "for 1 year";
+  if (durationInDays >= 170 && durationInDays <= 200) return "for 6 months";
+  if (durationInDays >= 80 && durationInDays <= 100) return "for 3 months";
+  const months = Math.max(1, Math.round(durationInDays / 30));
+  return `for ${months} month${months === 1 ? "" : "s"}`;
+}
+
+/** Shared Choose-a-plan card used by every subscription plan. */
+export function buildSubscriptionPlanCard(input: {
+  code: string;
+  name: string;
+  price: number;
+  durationInDays: number;
+  compareAtPrice?: number | null;
+  discountPercentage?: number | null;
+  listingLimit?: number;
+  maxProfessionals?: number;
+  benefits?: string[];
+  cardFeatures?: string[];
+  tagline?: string;
+  mostPopular?: boolean;
+  accent?: "gold" | "green";
+}): SubscriptionPlanCard {
+  const price = Number(input.price || 0);
+  let compareAt = Number(input.compareAtPrice || 0);
+  let discountPercent = Number(input.discountPercentage || 0);
+  if (compareAt > price) {
+    discountPercent = Math.round(((compareAt - price) / compareAt) * 100);
+  } else if (discountPercent > 0 && discountPercent < 100) {
+    compareAt = Math.round(price / (1 - discountPercent / 100));
+  } else {
+    compareAt = 0;
+    discountPercent = 0;
+  }
+
+  const title = planDurationTitle(input.durationInDays, input.name);
+  const listingLimit = Number(input.listingLimit || 0);
+  const maxProfessionals = Number(input.maxProfessionals || 0);
+  const highlight =
+    listingLimit > 0
+      ? `List up to ${listingLimit} properties`
+      : maxProfessionals > 0
+        ? `Up to ${maxProfessionals} professionals`
+        : null;
+  const features = (input.cardFeatures?.length ? input.cardFeatures : input.benefits || [])
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+
+  return {
+    planCode: input.code,
+    title,
+    tagline: String(input.tagline || "").trim(),
+    price,
+    priceLabel: formatPlanNaira(price),
+    compareAtPrice: compareAt > price ? compareAt : null,
+    compareAtLabel: compareAt > price ? formatPlanNaira(compareAt) : null,
+    discountPercent: discountPercent > 0 ? discountPercent : null,
+    discountLabel: discountPercent > 0 ? `${discountPercent}% OFF` : null,
+    durationLabel: planDurationLabel(input.durationInDays),
+    mostPopular: Boolean(input.mostPopular),
+    popularLabel: input.mostPopular ? "Most Popular" : null,
+    accent: input.accent || (input.durationInDays >= 360 ? "gold" : "green"),
+    highlight,
+    features,
+    ctaLabel: `Get ${title}`,
+  };
 }
 
 export function catalogGroupForAudience(

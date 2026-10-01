@@ -34,6 +34,93 @@ export function normalizeDealSiteSectionName(sectionName: string): string {
   return sectionName;
 }
 
+export const SOCIAL_LINK_FIELDS = [
+  {
+    key: "website",
+    label: "Website (optional)",
+    placeholder: "https://yourwebsite.com",
+  },
+  {
+    key: "twitter",
+    label: "Twitter (optional)",
+    placeholder: "https://twitter.com/yourhandle",
+  },
+  {
+    key: "instagram",
+    label: "Instagram (optional)",
+    placeholder: "https://instagram.com/yourhandle",
+  },
+  {
+    key: "facebook",
+    label: "Facebook (optional)",
+    placeholder: "https://facebook.com/yourpage",
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn (optional)",
+    placeholder: "https://linkedin.com/company/yourcompany",
+  },
+] as const;
+
+export type SocialLinkKey = (typeof SOCIAL_LINK_FIELDS)[number]["key"];
+
+export function emptySocialLinks(): Record<SocialLinkKey, string> {
+  return {
+    website: "",
+    twitter: "",
+    instagram: "",
+    facebook: "",
+    linkedin: "",
+  };
+}
+
+/** Top of the Social Links settings page. Existing link values stay on `socialLinks`. */
+export function buildSocialLinksSettings(socialLinks?: Record<string, unknown> | null) {
+  const links = { ...emptySocialLinks(), ...(socialLinks || {}) };
+  return {
+    title: "Social Links",
+    description:
+      "Connect your social media profiles to your practitioner page. All fields are optional. Skip to continue, or Save changes after you enter a value.",
+    fields: SOCIAL_LINK_FIELDS.map((field) => ({
+      ...field,
+      optional: true,
+      value: String(links[field.key] || "").trim(),
+    })),
+  };
+}
+
+export function sanitizeSocialLinksUpdate(updates: Record<string, unknown>) {
+  const fromFields = Array.isArray(updates.fields)
+    ? Object.fromEntries(
+        (updates.fields as Array<{ key?: string; value?: unknown }>).map((field) => [
+          String(field?.key || ""),
+          field?.value,
+        ])
+      )
+    : {};
+  const source = { ...fromFields, ...updates };
+  const next: Record<string, string> = {};
+  for (const field of SOCIAL_LINK_FIELDS) {
+    if (!(field.key in source)) continue;
+    const value = String(source[field.key] ?? "").trim();
+    if (!value) {
+      next[field.key] = "";
+      continue;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      throw new Error(`${field.label.replace(" (optional)", "")} must be a valid URL, for example ${field.placeholder}`);
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error(`${field.label.replace(" (optional)", "")} must start with http:// or https://`);
+    }
+    next[field.key] = value;
+  }
+  return next;
+}
+
 export function normalizeDealSiteSectionPayload(sectionName: string, updates: Record<string, unknown>) {
   if (sectionName === "contactUs" && updates && typeof updates === "object") {
     const hero = (updates as { hero?: { title?: string; description?: string } }).hero;
@@ -73,5 +160,10 @@ export function toPublicDealSiteView(dealSite: Record<string, any>): Record<stri
     },
     faqs: dealSite.faqs || { title: "Frequently asked questions", items: [] },
     customPages: Array.isArray(dealSite.customPages) ? dealSite.customPages : [],
+    socialLinks: {
+      ...emptySocialLinks(),
+      ...(dealSite.socialLinks || {}),
+    },
+    socialLinksSettings: buildSocialLinksSettings(dealSite.socialLinks),
   };
 }

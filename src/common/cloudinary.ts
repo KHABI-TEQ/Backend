@@ -10,12 +10,17 @@ class CloudinaryAPIFileUpload {
   }
  
 
-  public async uploadFile(fileBinaryData: string, public_id: string, folder: string) {
+  public async uploadFile(
+    fileBinaryData: string,
+    public_id: string,
+    folder: string,
+    resourceType: "raw" | "image" | "auto" = "raw",
+  ) {
     try {
       const result = await cloudinary.uploader.upload(fileBinaryData, {
         public_id,
         folder,
-        resource_type: "raw", 
+        resource_type: resourceType,
         type: "upload",
       });
       return result.secure_url; // Return the secure URL of the uploaded file

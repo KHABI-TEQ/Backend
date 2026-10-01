@@ -497,6 +497,24 @@ export const getDealSiteSection = async (
       });
     }
 
+    if (sectionName === "socialLinks") {
+      const { buildSocialLinksSettings, emptySocialLinks } = await import(
+        "../../common/constants/dealSitePublicNav"
+      );
+      const links = {
+        ...emptySocialLinks(),
+        ...((dealSite as any).socialLinks || {}),
+      };
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Public access page section 'socialLinks' fetched successfully",
+        data: {
+          ...links,
+          socialLinksSettings: buildSocialLinksSettings(links),
+        },
+      });
+    }
+
     // Type-safe access
     const sectionData = (dealSite as any)[sectionName];
 

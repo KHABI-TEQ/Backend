@@ -28,6 +28,7 @@ export interface IAgent {
     specializations?: string[];
     languagesSpoken?: string[];
     servicesOffered?: string[];
+    utilityBillUrl?: string;
     achievements?: {
       title: string;
       description?: string;
@@ -77,6 +78,7 @@ export class Agent {
           specializations: { type: [String], default: [] },
           languagesSpoken: { type: [String], default: [] },
           servicesOffered: { type: [String], default: [] },
+          utilityBillUrl: { type: String, trim: true },
           achievements: {
             type: [
               {

@@ -21,6 +21,7 @@ import {
 } from "../../services/licensedAgentInspectionPayout.service";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 import { scheduleDevBuyerConfirmationSequenceAfterSellerAccept } from "../../services/buyerConfirmationDevScheduler.service";
+import { assertInspectionRequestMutationAllowed } from "../../services/inspectionKyc.service";
 
 const INSPECTION_FEE_MIN = 1000;
 const INSPECTION_FEE_MAX = 50000;
@@ -50,6 +51,7 @@ export const respondToInspectionRequest = async (
     if (!userId) {
       throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Not authenticated");
     }
+    await assertInspectionRequestMutationAllowed(String(userId));
     if (!["accept", "reject"].includes(action)) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "action must be 'accept' or 'reject'");
     }

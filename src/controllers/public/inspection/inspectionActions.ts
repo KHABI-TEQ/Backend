@@ -20,6 +20,7 @@ import { parseInspectionScheduledAt } from "../../../utils/inspectionSchedule";
 import { getPropertyTitleFromLocation } from "../../../utils/helper";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../../services/whatsappClient.service";
 import { buildPractitionerInspectionMeta } from "../../../utils/notificationDeepLinks";
+import { assertInspectionRequestMutationAllowed } from "../../../services/inspectionKyc.service";
 
 function getAcceptedMarketerIds(property: any): string[] {
   return [property?.marketedByAgentId, ...(Array.isArray(property?.marketedByAgentIds) ? property.marketedByAgentIds : [])]
@@ -101,6 +102,15 @@ class InspectionActionsController {
         HttpStatusCodes.FORBIDDEN,
         "Unauthorized access to this inspection",
       );
+    }
+
+    if (
+      isSeller &&
+      (actionData.action === "accept" ||
+        actionData.action === "reject" ||
+        actionData.action === "counter")
+    ) {
+      await assertInspectionRequestMutationAllowed(userId);
     }
 
     // Check if inspection is already in "inspection" stage and prevent cancellation

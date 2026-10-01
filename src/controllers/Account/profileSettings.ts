@@ -11,7 +11,10 @@ import sendEmail from "../../common/send.email";
 import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { generateAccountDeletedEmail, generateAccountDeletionRequestEmail, generateAccountUpdatedEmail } from "../../common/emailTemplates/profileSettingsMails";
 import { getClientDashboardUrl } from "../../utils/clientAppUrl";
-import { getPublisherKycStatus } from "../../services/publisherKyc.service";
+import {
+  getPractitionerKycStatus,
+  getPublisherKycStatus,
+} from "../../services/publisherKyc.service";
 import { syncPractitionerPageEligibility } from "../../services/agentPublisherEligibility.service";
 import {
   dashboardListingCountFilters,
@@ -22,6 +25,9 @@ import {
   countListingViewsForUser,
   sumAgentCommissionForUser,
 } from "../../services/propertyView.service";
+import { buildKycNotice } from "../../services/kycNotice.service";
+import { getPropertyTitleFromLocation } from "../../utils/helper";
+import { Types } from "mongoose";
 
 /** Subscription snapshot, DealSite, and Agent collection row — same shape for Agent and Developer (see loginUser). Landowners get the same keys; agentData is usually null. */
 async function buildPublisherProfileExtensions(user: { _id: unknown; accountApproved?: boolean }) {
@@ -124,6 +130,14 @@ export const getProfile = async (
         activeSubscription: snap || null,
         activeSnapshot: snap || null,
       };
+    }
+
+    if (responseData.kycStatus) {
+      responseData.kycNotice = buildKycNotice({
+        kycStatus: responseData.kycStatus,
+        dismissedStatus: user.kycNoticeDismissedStatus,
+      });
+      responseData.kycOverlay = responseData.kycNotice;
     }
 
     if (user.brmId) {
@@ -644,6 +658,29 @@ export const getDashboardData = async (
         "_id briefType status createdAt pictures price location.area location.localGovernment location.state"
       );
 
+    const recentBriefsRaw = await DB.Models.Property.find(basePropertyQuery)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select(
+        "_id briefType propertyType status createdAt pictures price location.area location.localGovernment location.state location.streetAddress"
+      )
+      .lean();
+
+    const recentBriefs = recentBriefsRaw.map((brief) => ({
+      _id: brief._id,
+      briefType: brief.briefType || brief.propertyType || "Listing",
+      propertyType: brief.propertyType,
+      status: brief.status,
+      statusLabel: ["approved", "available", "back_on_market"].includes(String(brief.status))
+        ? "Approved"
+        : String(brief.status || "").replace(/_/g, " "),
+      createdAt: brief.createdAt,
+      price: brief.price,
+      picture: Array.isArray(brief.pictures) ? brief.pictures[0] || null : null,
+      location: getPropertyTitleFromLocation(brief.location),
+      locationDetails: brief.location || null,
+    }));
+
     const totalViews = await countListingViewsForUser(String(userId));
     const totalInspectionRequests = await DB.Models.InspectionBooking.countDocuments({
       owner: userId,
@@ -686,7 +723,20 @@ export const getDashboardData = async (
       },
     };
 
+    const roleLabel = user.userType === "Agent" ? "Agent" : "";
+    const welcomeName = [roleLabel, user.firstName].filter(Boolean).join(" ");
+    const kycStatus = await getPractitionerKycStatus(String(userId));
+    const [ratingSummary] = await DB.Models.AgentRating.aggregate([
+      { $match: { agentId: new Types.ObjectId(String(userId)) } },
+      { $group: { _id: null, averageRating: { $avg: "$rating" }, totalRatings: { $sum: 1 } } },
+    ]);
+    const averageRating = ratingSummary
+      ? Math.round((ratingSummary.averageRating as number) * 100) / 100
+      : 0;
+
     const dashboardData: Record<string, any> = {
+      welcomeTitle: `Welcome back, ${welcomeName}!`,
+      welcomeSubtitle: "Manage your briefs and track your real estate performance",
       totalBriefs,
       totalActiveBriefs,
       totalPendingBriefs,
@@ -695,11 +745,24 @@ export const getDashboardData = async (
       totalInactiveBriefs,
       listingOverview,
       newPendingBriefs,
+      recentBriefs,
       totalViews,
       totalInspectionRequests,
       totalCompletedInspectionRequests,
-      referralData
+      averageRating,
+      totalRatings: ratingSummary?.totalRatings || 0,
+      successRate:
+        totalInspectionRequests > 0
+          ? Math.round((totalCompletedInspectionRequests / totalInspectionRequests) * 100)
+          : 0,
+      referralCode: user.referralCode || null,
+      referralData,
+      kycNotice: buildKycNotice({
+        kycStatus,
+        dismissedStatus: user.kycNoticeDismissedStatus,
+      }),
     };
+    dashboardData.kycOverlay = dashboardData.kycNotice;
 
     if (user.userType === "Landowners") {
       dashboardData.propertySold = totalSoldBriefs;
@@ -714,7 +777,9 @@ export const getDashboardData = async (
         }),
         sumAgentCommissionForUser(String(userId)),
       ]);
-      Object.assign(dashboardData, { completedDeals, totalCommission });
+      const successRate =
+        totalBriefs > 0 ? Math.round((completedDeals / totalBriefs) * 100) : 0;
+      Object.assign(dashboardData, { completedDeals, totalCommission, successRate });
     }
 
     if (user.userType === "Agent" || user.userType === "Developer" || user.userType === "PropertyScout") {
@@ -740,6 +805,42 @@ export const getDashboardData = async (
       success: true,
       message: "Dashboard data fetched successfully",
       data: dashboardData,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/** PATCH /account/kyc-notice/dismiss — hide the pending-KYC banner until the KYC status changes. */
+export const dismissKycNotice = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) {
+      throw new RouteError(HttpStatusCodes.UNAUTHORIZED, "Unauthorized");
+    }
+
+    const kycStatus = await getPractitionerKycStatus(String(userId));
+    const updated = await DB.Models.User.findByIdAndUpdate(
+      userId,
+      { kycNoticeDismissedStatus: kycStatus },
+      { new: true },
+    )
+      .select("kycNoticeDismissedStatus")
+      .lean();
+
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "KYC notice dismissed",
+      data: {
+        kycNotice: buildKycNotice({
+          kycStatus,
+          dismissedStatus: updated?.kycNoticeDismissedStatus || kycStatus,
+        }),
+      },
     });
   } catch (err) {
     next(err);

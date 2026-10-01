@@ -7,6 +7,7 @@ export type PublisherKycSubmitPayload = {
   meansOfId: { name: string; docImg: string[] }[];
   address: { street: string; homeNo: string; state: string; localGovtArea: string };
   regionOfOperation: string[];
+  utilityBillUrl?: string;
   practitionerType: "Individual" | "Company";
   agentLicenseNumber?: string;
   licenseOrRegistrationNumber?: string;
@@ -97,6 +98,7 @@ export function normalizePublisherKycPayload(body: Record<string, unknown>): Pub
     meansOfId: body.meansOfId as PublisherKycSubmitPayload["meansOfId"],
     address: address,
     regionOfOperation,
+    utilityBillUrl: body.utilityBillUrl ? String(body.utilityBillUrl).trim() : undefined,
     practitionerType,
     licenseOrRegistrationNumber: license,
     agentLicenseNumber: license,
@@ -175,6 +177,7 @@ export async function submitPublisherKyc(params: {
     userId,
     userType,
     regionOfOperation: payload.regionOfOperation,
+    utilityBillUrl: payload.utilityBillUrl || undefined,
     practitionerType: payload.practitionerType,
     companyDetails:
       payload.practitionerType === "Company" ||
@@ -273,6 +276,7 @@ export async function submitPublisherKyc(params: {
       if (payload.specializations) agent.kycData = { ...(agent.kycData || {}), specializations: payload.specializations };
       if (payload.languagesSpoken) agent.kycData = { ...(agent.kycData || {}), languagesSpoken: payload.languagesSpoken };
       if (payload.servicesOffered) agent.kycData = { ...(agent.kycData || {}), servicesOffered: payload.servicesOffered };
+      if (payload.utilityBillUrl) agent.kycData = { ...(agent.kycData || {}), utilityBillUrl: payload.utilityBillUrl };
       if (payload.achievements?.length) {
         agent.kycData = {
           ...(agent.kycData || {}),
@@ -296,24 +300,31 @@ export async function isPublisherKycApproved(userId: Types.ObjectId | string): P
   return (await getPublisherKycStatus(userId)) === "approved";
 }
 
+/** KYC status for any practitioner who can own a public page. */
+export async function getPractitionerKycStatus(
+  userId: Types.ObjectId | string
+): Promise<string> {
+  const user = await DB.Models.User.findById(userId).select("userType").lean();
+  if (!user) return "none";
+  const kind = String(user.userType || "");
+  if (kind === "Lawyer") {
+    const profile = await DB.Models.LawyerProfile.findOne({ userId }).select("kycStatus").lean();
+    return profile?.kycStatus || "none";
+  }
+  if (kind === "Surveyor") {
+    const profile = await DB.Models.SurveyorProfile.findOne({ userId }).select("kycStatus").lean();
+    return profile?.kycStatus || "none";
+  }
+  if (kind === "Valuer") {
+    const profile = await DB.Models.ValuerProfile.findOne({ userId }).select("kycStatus").lean();
+    return profile?.kycStatus || "none";
+  }
+  return (await getPublisherKycStatus(userId)) || "none";
+}
+
 /** KYC approval for any practitioner who can own a public page. */
 export async function isPractitionerKycApproved(
   userId: Types.ObjectId | string
 ): Promise<boolean> {
-  const user = await DB.Models.User.findById(userId).select("userType").lean();
-  if (!user) return false;
-  const kind = String(user.userType || "");
-  if (kind === "Lawyer") {
-    const profile = await DB.Models.LawyerProfile.findOne({ userId }).select("kycStatus").lean();
-    return profile?.kycStatus === "approved";
-  }
-  if (kind === "Surveyor") {
-    const profile = await DB.Models.SurveyorProfile.findOne({ userId }).select("kycStatus").lean();
-    return profile?.kycStatus === "approved";
-  }
-  if (kind === "Valuer") {
-    const profile = await DB.Models.ValuerProfile.findOne({ userId }).select("kycStatus").lean();
-    return profile?.kycStatus === "approved";
-  }
-  return isPublisherKycApproved(userId);
+  return (await getPractitionerKycStatus(userId)) === "approved";
 }

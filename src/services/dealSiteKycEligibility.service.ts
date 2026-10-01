@@ -32,7 +32,7 @@ function isPractitionerPageOwner(userType: string | undefined): boolean {
   return PRACTITIONER_PAGE_TYPES.has(String(userType || ""));
 }
 
-/** Blocks DealSite setup/enable when KYC or subscription rules fail. */
+/** Blocks DealSite setup/enable when the subscription rule fails. Pending KYC does not block setup. */
 export async function assertDealSiteKycAllowed(userId: string): Promise<void> {
   const user = await DB.Models.User.findById(userId).select("userType").lean();
   if (!user || !isPractitionerPageOwner(user.userType)) {

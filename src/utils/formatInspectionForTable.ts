@@ -21,6 +21,7 @@ export const formatInspectionForTable = (inspection: IInspectionBookingDoc) => {
           image: property?.pictures?.[0] || "https://placehold.co/600x400?text=No+Image",
           status: property?.status,
           briefType: property?.briefType,
+          propertyType: property?.propertyType,
           isAvailable: property?.isAvailable,
         }
       : null,

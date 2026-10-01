@@ -253,13 +253,6 @@ export async function updateProfessionalSiteForOwner(params: {
     params.ownerId
   );
 
-  if (profile.kycStatus !== "approved") {
-    throw new RouteError(
-      HttpStatusCodes.BAD_REQUEST,
-      "KYC must be approved before setting up your public page."
-    );
-  }
-
   const accessGate = await getAgentAccessGate(params.ownerId);
   if (accessGate.ok === false) {
     throw new RouteError(
@@ -343,13 +336,30 @@ export async function getRunningProfessionalSiteBySlug(publicSlug: string) {
     publicSlug: slug,
     status: "running",
   });
-  if (!site) {
-    throw new RouteError(
-      HttpStatusCodes.NOT_FOUND,
-      "Professional page not found."
-    );
+  if (site) return site;
+
+  const pausedForKyc = await DB.Models.ProfessionalSite.findOne({
+    publicSlug: slug,
+    status: "paused",
+    pausedByPolicy: "kyc",
+  });
+  if (pausedForKyc) {
+    const accessGate = await getAgentAccessGate(String(pausedForKyc.ownerId));
+    if (accessGate.ok) {
+      await DB.Models.ProfessionalSite.updateOne(
+        { _id: pausedForKyc._id },
+        { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
+      );
+      pausedForKyc.status = "running";
+      pausedForKyc.pausedByPolicy = undefined;
+      return pausedForKyc;
+    }
   }
-  return site;
+
+  throw new RouteError(
+    HttpStatusCodes.NOT_FOUND,
+    "Professional page not found."
+  );
 }
 
 export async function buildPublicProfessionalCard(site: IProfessionalSiteDoc) {
@@ -376,7 +386,6 @@ export async function buildPublicProfessionalCard(site: IProfessionalSiteDoc) {
   if (site.kind === "lawyer") {
     const profile = await DB.Models.LawyerProfile.findOne({
       userId: site.ownerId,
-      kycStatus: "approved",
     });
     if (!profile) {
       throw new RouteError(
@@ -406,7 +415,6 @@ export async function buildPublicProfessionalCard(site: IProfessionalSiteDoc) {
 
   const profile = await DB.Models.SurveyorProfile.findOne({
     userId: site.ownerId,
-    kycStatus: "approved",
   });
   if (!profile) {
     throw new RouteError(
@@ -483,7 +491,6 @@ export async function submitPublicPageDocumentVerification(params: {
 
   const profile = await DB.Models.LawyerProfile.findOne({
     userId: site.ownerId,
-    kycStatus: "approved",
   });
   if (!profile) {
     throw new RouteError(
@@ -602,7 +609,6 @@ export async function submitPublicPageSurveyRequest(params: {
 
   const profile = await DB.Models.SurveyorProfile.findOne({
     userId: site.ownerId,
-    kycStatus: "approved",
   });
   if (!profile) {
     throw new RouteError(

@@ -9,6 +9,7 @@ import {
 } from "../../../utils/preferenceFormatter";
 import { attachReviewsToPreferences } from "../../../services/preferenceReview.service";
 import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
+import { isPreferenceInsuredSearch } from "../../../utils/seekerJourney";
 
 const MARKETPLACE_TYPE_ALIASES: Record<string, string> = {
   sale: "buy",
@@ -112,6 +113,7 @@ export const fetchGeneralMarketplacePreferences = async (
       stripPreferenceClientIdentity({
         ...formatPreferenceForFrontend(pref as unknown as PreferencePayload),
         receiverMode: pref.receiverMode,
+        insured: isPreferenceInsuredSearch(pref),
       })
     );
     const data = await attachReviewsToPreferences(

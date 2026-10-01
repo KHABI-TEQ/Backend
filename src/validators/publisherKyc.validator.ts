@@ -89,6 +89,7 @@ export const publisherKycSchema = Joi.object({
   regionOfOperation: Joi.array().items(Joi.string().trim()).optional().messages({
     "array.min": "At least one region of operation is required.",
   }),
+  utilityBillUrl: Joi.string().trim().uri().optional().allow(""),
 
   /** Individual or company practitioner. Accept legacy field name agentType. */
   practitionerType: Joi.string().valid("Individual", "Company").optional(),
