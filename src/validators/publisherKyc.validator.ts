@@ -1,6 +1,24 @@
 import Joi from "joi";
 import { DB } from "../controllers";
+import { canonicalizeLagosLga } from "../common/constants/lagosLgas";
 import { joiPilotState } from "../common/constants/pilotLocation";
+
+const LAGOS_LGA_MESSAGE =
+  "Choose a Lagos local government area. Areas such as Isale Eko or Marina are not LGAs.";
+
+function joiLagosLga() {
+  return Joi.string()
+    .trim()
+    .custom((value, helpers) => {
+      const canonical = canonicalizeLagosLga(value);
+      if (!canonical) return helpers.error("any.custom");
+      return canonical;
+    })
+    .messages({
+      "any.custom": LAGOS_LGA_MESSAGE,
+      "string.empty": "Local government area is required.",
+    });
+}
 
 /** KYC payload for Agent, Developer, and Landowner accounts. */
 export const publisherKycSchema = Joi.object({
@@ -83,12 +101,17 @@ export const publisherKycSchema = Joi.object({
     street: Joi.string().trim().required().messages({ "string.empty": "Street is required." }),
     homeNo: Joi.string().trim().required().messages({ "string.empty": "Home number is required." }),
     state: joiPilotState(),
-    localGovtArea: Joi.string().trim().required().messages({ "string.empty": "Local government area is required." }),
+    localGovtArea: joiLagosLga().required(),
   }).optional(),
 
-  regionOfOperation: Joi.array().items(Joi.string().trim()).optional().messages({
-    "array.min": "At least one region of operation is required.",
-  }),
+  regionOfOperation: Joi.array()
+    .items(joiLagosLga())
+    .unique()
+    .optional()
+    .messages({
+      "array.min": "Select the Lagos LGAs you primarily operate in.",
+      "array.unique": "Each region of operation can only be selected once.",
+    }),
   utilityBillUrl: Joi.string().trim().uri().optional().allow(""),
 
   /** Individual or company practitioner. Accept legacy field name agentType. */
@@ -124,6 +147,11 @@ export const publisherKycSchema = Joi.object({
       if (!value.address?.street || !value.address?.state || !value.address?.localGovtArea) {
         return helpers.error("any.custom", {
           message: "Address is required.",
+        });
+      }
+      if (!value.regionOfOperation?.length) {
+        return helpers.error("any.custom", {
+          message: "Select the Lagos LGAs you primarily operate in.",
         });
       }
     }

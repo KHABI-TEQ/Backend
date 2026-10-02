@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { DB } from "../controllers";
 import type { PublisherKycStatus, PublisherKycUserType } from "../common/kycTypes";
 import { isPublisherKycUserType } from "../common/kycTypes";
+import { canonicalizeLagosLga, canonicalizeLagosLgas } from "../common/constants/lagosLgas";
 
 export type PublisherKycSubmitPayload = {
   meansOfId: { name: string; docImg: string[] }[];
@@ -87,12 +88,15 @@ export function normalizePublisherKycPayload(body: Record<string, unknown>): Pub
   const practitionerType = ((body.practitionerType || body.agentType || "Individual") as "Individual" | "Company");
   const license =
     String(body.licenseOrRegistrationNumber || body.agentLicenseNumber || "").trim() || undefined;
-  const address = body.address as PublisherKycSubmitPayload["address"];
-  const regionOfOperation = (body.regionOfOperation as string[] | undefined)?.length
-    ? (body.regionOfOperation as string[])
-    : address?.state
-      ? [address.state]
-      : [];
+  const rawAddress = body.address as PublisherKycSubmitPayload["address"];
+  const localGovtArea = rawAddress?.localGovtArea
+    ? canonicalizeLagosLga(rawAddress.localGovtArea) || rawAddress.localGovtArea
+    : rawAddress?.localGovtArea;
+  const address = rawAddress ? { ...rawAddress, localGovtArea } : rawAddress;
+  const submittedRegions = body.regionOfOperation as string[] | undefined;
+  const regionOfOperation = submittedRegions?.length
+    ? canonicalizeLagosLgas(submittedRegions)
+    : [];
 
   return {
     meansOfId: body.meansOfId as PublisherKycSubmitPayload["meansOfId"],

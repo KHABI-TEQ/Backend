@@ -42,6 +42,7 @@ import {
 import { getBrmPicture, listActiveBrms } from "../controllers/public/listBrms";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
+import { getPractitionerKycForm } from "../controllers/Account/publisherKyc";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
 import ProfessionalSiteRouter from "./professionalSite";
@@ -182,6 +183,8 @@ router.post(
 );
  
 router.get("/getSystemSettings", fetchSystemSettings)
+
+router.get("/kyc/practitioner-form", getPractitionerKycForm)
 
 // Promotions Routes
 router.use("/promotions", PromotionRouter);

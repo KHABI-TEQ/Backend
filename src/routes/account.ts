@@ -88,7 +88,7 @@ import {
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { fetchDealsitePreferences, fetchDealsitePreferenceById } from "../controllers/Account/Preference/fetchDealsitePreferences";
-import { completePublisherKYC } from "../controllers/Account/publisherKyc";
+import { completePublisherKYC, getPractitionerKycForm } from "../controllers/Account/publisherKyc";
 import {
   applyMyProfessionalUpgrade,
   getMyProfessionalUpgrade,
@@ -211,6 +211,7 @@ AccountRouter.delete(
 AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
 // AGENT UNIQUE ROUTES
+AccountRouter.get("/kyc/form", getPractitionerKycForm);
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completePublisherKYC);
 AccountRouter.post(
   "/professional-upgrade",
