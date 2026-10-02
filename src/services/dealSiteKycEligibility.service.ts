@@ -57,10 +57,10 @@ export async function getPublicDealSiteKycGate(
   }
 
   const gate = await getAgentAccessGate(ownerUserId);
-  if (gate.ok === false) {
+  if (gate.ok === false && gate.reason !== "kyc") {
     return {
       ok: false,
-      errorCode: gate.reason === "kyc" ? "KYC_REQUIRED" : "SUBSCRIPTION_REQUIRED",
+      errorCode: "SUBSCRIPTION_REQUIRED",
       message: gate.message,
     } as const;
   }

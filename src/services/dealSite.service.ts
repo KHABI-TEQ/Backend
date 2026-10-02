@@ -656,17 +656,13 @@ export class DealSiteService {
     }
 
     if (dealSite.status !== "running") {
-      const pausedOwnerId = resolveLeanRefToObjectId(dealSite.createdBy);
-      const subscriptionGate = pausedOwnerId
-        ? await DealSiteService.getPublicDealSiteSubscriptionGate(pausedOwnerId.toString())
-        : { ok: false as const };
-      const resumed =
-        subscriptionGate.ok === true
-          ? await DB.Models.DealSite.updateOne(
-              { _id: dealSite._id, status: "paused", pausedByPolicy: "kyc" },
-              { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
-            )
-          : null;
+      const resumed = await DB.Models.DealSite.updateOne(
+        { _id: dealSite._id, status: "paused", pausedByPolicy: "kyc" },
+        { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
+      );
+      if (resumed.modifiedCount > 0) {
+        dealSite.status = "running";
+      }
       if (!resumed || resumed.modifiedCount === 0) {
         return {
           ok: false,

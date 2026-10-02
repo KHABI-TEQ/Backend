@@ -7,7 +7,7 @@ import { RouteError } from "../../common/classes";
 import { resolveLeanRefToObjectId } from "../../utils/mongooseId";
 import { syncPractitionerPageEligibility } from "../../services/agentPublisherEligibility.service";
 
-/** After DealSite exists and is running: require owner KYC (after grace) and subscription when applicable. */
+/** After DealSite exists: pending owner KYC does not close the page. An active subscription is still required. */
 async function applyPublicDealSiteAccessGates(
   res: Response,
   dealSite: { _id?: unknown; status?: string; createdBy?: unknown },
@@ -209,16 +209,6 @@ export const getDealSiteBySlug = async (
 
     const preview = DealSiteService.isPreviewQuery(req.query);
 
-    // Visitors only see running pages. Owners can open ?preview=1 after branding.
-    if (dealSite.status !== "running" && !preview) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This Public access page is not currently active.",
-        data: null,
-      });
-    }
-
     const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
@@ -328,15 +318,6 @@ export const getDealSiteOwnerContact = async (
     }
 
     const preview = DealSiteService.isPreviewQuery(req.query);
-    if (dealSite.status !== "running" && !preview) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This Public access page is not currently active.",
-        data: null,
-      });
-    }
-
     const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
@@ -441,15 +422,6 @@ export const getDealSiteSection = async (
     }
 
     const preview = DealSiteService.isPreviewQuery(req.query);
-    if (dealSite.status !== "running" && !preview) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This Public access page is not currently active.",
-        data: null,
-      });
-    }
-
     const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
@@ -560,15 +532,6 @@ export const getFeaturedProperties = async (
     }
 
     const preview = DealSiteService.isPreviewQuery(req.query);
-    if (dealSite.status !== "running" && !preview) {
-      return res.status(HttpStatusCodes.FORBIDDEN).json({
-        success: false,
-        errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This Public access page is not currently active.",
-        data: null,
-      });
-    }
-
     const accessOk = await applyPublicDealSiteAccessGates(res, dealSite, { preview });
     if (!accessOk) {
       return;
