@@ -294,7 +294,7 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
     billingInterval: SUBSCRIPTION_BILLING_INTERVALS.QUARTERLY,
     listingLimit: 25,
     compareAtPrice: 150_000,
-    cardTagline: "Perfect to get started and experience the platform.",
+    cardTagline: "Perfect to get started and prove the platform",
     mostPopular: true,
     accent: "green",
     cardFeatures: [
@@ -317,7 +317,7 @@ export const CATALOG_PLANS: CatalogPlanDefinition[] = [
         billingInterval: SUBSCRIPTION_BILLING_INTERVALS.YEARLY,
         label: "per year",
         listingLimit: 50,
-        cardTagline: "Best value for serious agents who want to scale.",
+        cardTagline: "Best value for serious agents who want to grow",
         accent: "gold",
         cardFeatures: [
           "All core features",
