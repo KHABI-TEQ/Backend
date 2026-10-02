@@ -6,6 +6,212 @@ import { DB } from "../..";
 import { RouteError } from "../../../common/classes";
 import { JoiValidator } from "../../../validators/JoiValidator";
 import {
+
+/**
+ * @swagger
+ * /transaction-registration/certificate/download:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/check:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /transaction-registration/check
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/egis-validate:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /transaction-registration/egis-validate
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/guidelines:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /transaction-registration/guidelines
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/intent:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/register:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/search:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /transaction-registration/search
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/types:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /transaction-registration/types
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /transaction-registration/{registrationId}/certificate:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /transaction-registration/{registrationId}/certificate
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   buyerIntentSchema,
   registerTransactionSchema,
   registerTransactionFrontendSchema,

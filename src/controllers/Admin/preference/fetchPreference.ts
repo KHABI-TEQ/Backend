@@ -7,6 +7,46 @@ import mongoose from "mongoose";
 import { formatPreferenceForFrontend, PreferencePayload } from "../../../utils/preferenceFormatter";
 
 // either by "developer" or "buyer" or "tenant" or "shortlet"
+/**
+ * @swagger
+ * /admin/preferences/{preferenceMode}:
+ *   get:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Get preferences by mode
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceMode
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - developers
+ *             - tenants
+ *             - shortlets
+ *             - buyers
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Preferences fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getPreferencesByMode = async (
   req: AppRequest,
   res: Response,
@@ -183,6 +223,31 @@ export const getPreferencesByMode = async (
 };
 
 
+/**
+ * @swagger
+ * /admin/preferences/{preferenceId}/withAllBuyerPreferences:
+ *   get:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Get single preference with buyer preferences
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preference fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Preference not found
+ */
 export const getSinglePreference = async (
   req: AppRequest,
   res: Response,
@@ -258,6 +323,29 @@ export const getSinglePreference = async (
 };
 
 
+/**
+ * @swagger
+ * /admin/preferences/{preferenceMode}/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Get preference mode statistics
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceMode
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getPreferenceModeStats = async (
   req: AppRequest,
   res: Response,

@@ -41,6 +41,38 @@ export const createSetting = async (
 /**
  * Bulk create or update system settings
  */
+/**
+ * @swagger
+ * /admin/settings/bulk:
+ *   post:
+ *     tags:
+ *       - Admin > Settings
+ *     summary: Bulk upsert settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - settings
+ *             properties:
+ *               settings:
+ *                 type: array
+ *                 items: {'type': 'object'}
+ *                 description: Array of settings objects
+ *     responses:
+ *       200:
+ *         description: Settings bulk upserted successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const bulkUpsertSettings = async (
   req: AppRequest,
   res: Response,
@@ -125,6 +157,31 @@ export const updateSetting = async (
 /**
  * Get a single system setting
  */
+/**
+ * @swagger
+ * /admin/settings/{key}:
+ *   get:
+ *     tags:
+ *       - Admin > Settings
+ *     summary: Get single setting by key
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Setting fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Setting not found
+ */
 export const getSetting = async (
   req: AppRequest,
   res: Response,
@@ -156,6 +213,23 @@ export const getSetting = async (
 /**
  * Get all system settings
  */
+/**
+ * @swagger
+ * /admin/settings:
+ *   get:
+ *     tags:
+ *       - Admin > Settings
+ *     summary: Get all settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Settings fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllSettings = async (
   req: AppRequest,
   res: Response,
@@ -180,6 +254,31 @@ export const getAllSettings = async (
 
 /**
  * Delete a system setting
+ */
+/**
+ * @swagger
+ * /admin/settings/{key}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Settings
+ *     summary: Delete setting
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: key
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Setting deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Setting not found
  */
 export const deleteSetting = async (
   req: AppRequest,

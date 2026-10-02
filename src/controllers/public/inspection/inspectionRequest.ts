@@ -8,6 +8,30 @@ import { JoiValidator } from "../../../validators/JoiValidator";
 import { submitInspectionSchema } from "../../../validators/inspectionRequest.validator";
 import { optionalInspectionFeeNaira } from "../../../services/propertyValidation.service";
 import {
+
+/**
+ * @swagger
+ * /inspections/request-inspection:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   notifyAgentOfInspectionRequest,
   notifyMarketingAgentsInspectionRequest,
   notifyPublisherRepresentativesInspectionRequest,

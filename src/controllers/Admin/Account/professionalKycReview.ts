@@ -162,6 +162,23 @@ export const reviewSurveyorKyc = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/lawyers/pending-kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Lawyers
+ *     summary: Get pending lawyer KYC requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending lawyers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listPendingLawyers = async (
   _req: AppRequest,
   res: Response,
@@ -180,6 +197,23 @@ export const listPendingLawyers = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/surveyors/pending-kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Surveyors
+ *     summary: Get pending surveyor KYC requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending surveyors fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listPendingSurveyors = async (
   _req: AppRequest,
   res: Response,
@@ -198,6 +232,23 @@ export const listPendingSurveyors = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/valuers/pending-kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Valuers
+ *     summary: Get pending valuer KYC requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending valuers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listPendingValuers = async (
   _req: AppRequest,
   res: Response,
@@ -253,6 +304,31 @@ async function getProfessionalKycPayload(kind: Kind, userId: string) {
   };
 }
 
+/**
+ * @swagger
+ * /admin/lawyers/{userId}/kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Lawyers
+ *     summary: Get lawyer KYC details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lawyer KYC fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Lawyer not found
+ */
 export const getLawyerKyc = async (
   req: AppRequest,
   res: Response,
@@ -266,6 +342,31 @@ export const getLawyerKyc = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/surveyors/{userId}/kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Surveyors
+ *     summary: Get surveyor KYC details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Surveyor KYC fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Surveyor not found
+ */
 export const getSurveyorKyc = async (
   req: AppRequest,
   res: Response,
@@ -279,6 +380,31 @@ export const getSurveyorKyc = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/valuers/{userId}/kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Valuers
+ *     summary: Get valuer KYC details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Valuer KYC fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Valuer not found
+ */
 export const getValuerKyc = async (
   req: AppRequest,
   res: Response,
@@ -533,6 +659,23 @@ async function deleteProfessionalAccount(kind: Kind, req: AppRequest, res: Respo
   });
 }
 
+/**
+ * @swagger
+ * /admin/lawyers:
+ *   get:
+ *     tags:
+ *       - Admin > Lawyers
+ *     summary: Get all lawyers
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lawyers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listAllLawyers = async (
   req: AppRequest,
   res: Response,
@@ -545,6 +688,23 @@ export const listAllLawyers = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/surveyors:
+ *   get:
+ *     tags:
+ *       - Admin > Surveyors
+ *     summary: Get all surveyors
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Surveyors fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listAllSurveyors = async (
   req: AppRequest,
   res: Response,
@@ -557,6 +717,23 @@ export const listAllSurveyors = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/valuers:
+ *   get:
+ *     tags:
+ *       - Admin > Valuers
+ *     summary: Get all valuers
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Valuers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listAllValuers = async (
   req: AppRequest,
   res: Response,
@@ -569,6 +746,31 @@ export const listAllValuers = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/lawyers/{userId}:
+ *   delete:
+ *     tags:
+ *       - Admin > Lawyers
+ *     summary: Delete lawyer account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Lawyer account deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Lawyer not found
+ */
 export const deleteLawyerAccount = async (
   req: AppRequest,
   res: Response,
@@ -581,6 +783,31 @@ export const deleteLawyerAccount = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/surveyors/{userId}:
+ *   delete:
+ *     tags:
+ *       - Admin > Surveyors
+ *     summary: Delete surveyor account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Surveyor account deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Surveyor not found
+ */
 export const deleteSurveyorAccount = async (
   req: AppRequest,
   res: Response,
@@ -593,6 +820,31 @@ export const deleteSurveyorAccount = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/valuers/{userId}:
+ *   delete:
+ *     tags:
+ *       - Admin > Valuers
+ *     summary: Delete valuer account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Valuer account deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Valuer not found
+ */
 export const deleteValuerAccount = async (
   req: AppRequest,
   res: Response,

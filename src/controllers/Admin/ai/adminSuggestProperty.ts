@@ -10,6 +10,45 @@ import { suggestFormFields } from "../../../services/aiFormFill.service";
  * POST /admin/users/:userId/ai/suggest-property
  * Body: { userInput: string } — same AI output shape as POST /account/ai/suggest-property.
  */
+/**
+ * @swagger
+ * /admin/users/{userId}/ai/suggest-property:
+ *   post:
+ *     tags:
+ *       - Admin > AI
+ *     summary: AI suggest property for user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - prompt
+ *             properties:
+ *               prompt:
+ *                 type: string
+ *                 description: Natural language prompt for property suggestions
+ *     responses:
+ *       200:
+ *         description: Property suggestions generated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
 export const adminSuggestPropertyForUser = async (
   req: AppRequest,
   res: Response,

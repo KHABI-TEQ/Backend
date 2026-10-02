@@ -8,6 +8,40 @@ import {
 } from "../../services/searchInsurance.service";
 import type { SearchInsuranceClaimStatus } from "../../common/constants/searchInsuranceCatalog";
 
+/**
+ * @swagger
+ * /admin/search-insurance/policies:
+ *   get:
+ *     tags:
+ *       - Admin > Search Insurance
+ *     summary: Get all insurance policies
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Insurance policies fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const adminListSearchInsurancePolicies = async (
   req: Request,
   res: Response,
@@ -29,6 +63,44 @@ export const adminListSearchInsurancePolicies = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/search-insurance/claims:
+ *   get:
+ *     tags:
+ *       - Admin > Search Insurance
+ *     summary: Get all insurance claims
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Insurance claims fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const adminListSearchInsuranceClaims = async (
   req: Request,
   res: Response,
@@ -50,6 +122,31 @@ export const adminListSearchInsuranceClaims = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/search-insurance/claims/{id}:
+ *   get:
+ *     tags:
+ *       - Admin > Search Insurance
+ *     summary: Get insurance claim details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Insurance claim fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Claim not found
+ */
 export const adminGetSearchInsuranceClaim = async (
   req: Request,
   res: Response,

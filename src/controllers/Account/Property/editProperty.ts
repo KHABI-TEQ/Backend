@@ -32,6 +32,66 @@ import {
   isOffPlanListingType,
 } from "../../../services/developerPlanEntitlement.service";
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/edit:
+ *   patch:
+ *     tags:
+ *       - Account > Property
+ *     summary: Edit property listing
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               propertyType:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               location:
+ *                 type: object
+ *               pictures:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *     responses:
+ *       200:
+ *         description: Property updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Validation failed
+ *       403:
+ *         description: You do not have permission to edit this property
+ *       404:
+ *         description: Property not found
+ */
 export const editProperty = async (
   req: AppRequest,
   res: Response,
@@ -187,6 +247,58 @@ export const editProperty = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/updateStatus:
+ *   patch:
+ *     tags:
+ *       - Account > Property
+ *     summary: Update property status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 description: New property status
+ *               reason:
+ *                 type: string
+ *                 description: Reason for status change
+ *     responses:
+ *       200:
+ *         description: Property status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Status is required or cannot change status of this property
+ *       403:
+ *         description: You do not have permission to change this property's status
+ *       404:
+ *         description: Property not found
+ */
 export const updatePropertyStatus = async (
   req: AppRequest,
   res: Response,

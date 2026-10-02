@@ -10,6 +10,43 @@ import { getPropertyScoutSnapshot, isScoutEligibleUserType } from "../../../serv
  * GET /account/publisher/listing-eligibility
  * Listing cap snapshot for Landlord, Agent, and Developer accounts.
  */
+/**
+ * @swagger
+ * /account/publisher/listing-eligibility:
+ *   get:
+ *     tags:
+ *       - Account > Publisher
+ *     summary: Get publisher listing eligibility snapshot
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Publisher listing eligibility fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     eligible:
+ *                       type: boolean
+ *                     reason:
+ *                       type: string
+ *                     kycStatus:
+ *                       type: string
+ *                     accountStatus:
+ *                       type: string
+ *                     isLicensed:
+ *                       type: boolean
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Listing eligibility applies to landlord, agent, and developer accounts only
+ */
 export const getPublisherListingEligibility = async (
   req: AppRequest,
   res: Response,
@@ -58,6 +95,37 @@ export const getPublisherListingEligibility = async (
 /**
  * GET /account/publisher/unlimited-listing-plan
  * Portfolio Unlimited is retired. Kept so older clients fail closed instead of offering a dead plan.
+ */
+/**
+ * @swagger
+ * /account/publisher/unlimited-listing-plan:
+ *   get:
+ *     tags:
+ *       - Account > Publisher
+ *     summary: Get unlimited listing plan offer (retired)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unlimited listing plan offer fetched
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     retired:
+ *                       type: boolean
+ *                     message:
+ *                       type: string
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This offer applies to landlord, agent, and developer accounts only
  */
 export const getUnlimitedListingPlanOffer = async (
   req: AppRequest,

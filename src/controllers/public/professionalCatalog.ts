@@ -3,6 +3,121 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { AppRequest } from "../../types/express";
 import { RouteError } from "../../common/classes";
 import {
+
+/**
+ * @swagger
+ * /professional-service-requests/{id}/pay:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /professional-services:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /professional-services
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /professional-services/my-requests:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /professional-services/my-requests
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /professional-services/{slug}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /professional-services/{slug}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /professional-services/{slug}/requests:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   createProfessionalServiceRequest,
   getProfessionalServiceBySlug,
   initializeCatalogRequestPayment,

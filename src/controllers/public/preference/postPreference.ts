@@ -5,6 +5,30 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { preferenceValidationSchema } from "../../../validators/preference.validator";
 
+/**
+ * @swagger
+ * /preferences/submit:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 import sendEmail from "../../../common/send.email";
 import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { preferenceMail } from "../../../common/emailTemplates/preference";

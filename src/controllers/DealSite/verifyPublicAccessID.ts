@@ -54,6 +54,26 @@ type DealSiteSection = (typeof allowedSections)[number];
 /**
  * Fetch a single DealSite by its public slug
  */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site details by slug
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site details fetched successfully
+ *       404:
+ *         description: Deal site not found
+ */
 export const getDealSiteDetailsBySlug = async (
   req: AppRequest,
   res: Response,
@@ -83,6 +103,29 @@ export const getDealSiteDetailsBySlug = async (
 };
 
 
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/logs:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site activity logs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Activity logs fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site not found
+ */
 export const getDealSiteLogsBySlug = async (
   req: AppRequest,
   res: Response,
@@ -143,6 +186,23 @@ export const getDealSiteLogsBySlug = async (
 };
 
 
+/**
+ * @swagger
+ * /account/dealSite/details:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site details by user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deal site details fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site not found
+ */
 export const getDealSiteDetailsByUser = async (
   req: AppRequest,
   res: Response,
@@ -181,6 +241,26 @@ export const getDealSiteDetailsByUser = async (
  * Get DealSite by publicSlug (public visitor).
  * - Ensures DealSite exists and is running
  * - If the owner has 2+ non-deleted owned listings, requires an active subscription snapshot on the owner
+ */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/getData:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site by slug
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site fetched successfully
+ *       404:
+ *         description: Deal site not found
  */
 export const getDealSiteBySlug = async (
   req: AppRequest,
@@ -306,6 +386,26 @@ export const getDealSiteBySlug = async (
  * - Applies the same public subscription gate used by other DealSite public APIs
  * - Respects contactVisibility flags for email/phone
  */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/owner-contact:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site owner contact
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Owner contact fetched successfully
+ *       404:
+ *         description: Deal site not found
+ */
 export const getDealSiteOwnerContact = async (
   req: AppRequest,
   res: Response,
@@ -415,6 +515,31 @@ export const getDealSiteOwnerContact = async (
  * Fetch specific DealSite settings by section
  * Example: GET /public-access-page/:publicSlug/settings/:section
  */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/getSettings/:sectionName:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site section settings
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: sectionName
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Section settings fetched successfully
+ *       404:
+ *         description: Section not found
+ */
 export const getDealSiteSection = async (
   req: AppRequest,
   res: Response,
@@ -521,6 +646,26 @@ export const getDealSiteSection = async (
 /**
  * GET /public-access-page/:publicSlug/featured
  * Fetch all featured properties for a DealSite
+ */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/featuredProperties:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get featured properties for deal site
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Featured properties fetched successfully
+ *       404:
+ *         description: Deal site not found
  */
 export const getFeaturedProperties = async (
   req: AppRequest,

@@ -56,6 +56,44 @@ function buildRegistrationSourceFilter(source: string): Record<string, unknown> 
  * Returns all registered transactions with details (property, inspection when present).
  * Query: page, limit, status, transactionType, registrationSource.
  */
+/**
+ * @swagger
+ * /admin/transaction-registrations:
+ *   get:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: List all transaction registrations
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transaction registrations fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllTransactionRegistrations = async (
   req: AppRequest,
   res: Response,
@@ -160,6 +198,23 @@ export const getAllTransactionRegistrations = async (
  * GET /admin/transaction-registrations/stats
  * Returns counts by status and optionally by transaction type.
  */
+/**
+ * @swagger
+ * /admin/transaction-registrations/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Get transaction registration statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getTransactionRegistrationStats = async (
   _req: AppRequest,
   res: Response,
@@ -228,6 +283,31 @@ export const getTransactionRegistrationStats = async (
 /**
  * GET /admin/transaction-registrations/:registrationId
  * Returns a single registration with full property and inspection details.
+ */
+/**
+ * @swagger
+ * /admin/transaction-registrations/{registrationId}:
+ *   get:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Get transaction registration details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: registrationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transaction registration fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Transaction registration not found
  */
 export const getTransactionRegistrationById = async (
   req: AppRequest,

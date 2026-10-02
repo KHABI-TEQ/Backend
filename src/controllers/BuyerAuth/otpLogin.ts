@@ -53,6 +53,34 @@ async function issueOtp(email: string) {
   return { sent: true as const };
 }
 
+/**
+ * @swagger
+ * /buyer-auth/otp/request:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Request buyer login OTP
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: User not found
+ */
 export const requestBuyerLoginOtp = async (
   req: Request,
   res: Response,
@@ -75,6 +103,34 @@ export const requestBuyerLoginOtp = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/otp/resend:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Resend buyer login OTP
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: OTP resent successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: User not found
+ */
 export const resendBuyerLoginOtp = async (
   req: Request,
   res: Response,
@@ -97,6 +153,38 @@ export const resendBuyerLoginOtp = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/otp/verify:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Verify buyer login OTP
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               code:
+ *                 type: string
+ *                 description: OTP code
+ *     responses:
+ *       200:
+ *         description: OTP verified successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Invalid OTP
+ */
 export const verifyBuyerLoginOtp = async (
   req: Request,
   res: Response,

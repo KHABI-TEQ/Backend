@@ -17,6 +17,21 @@ export const buyerPublic = (buyer: any) => ({
   brmId: buyer.brmId || null,
 });
 
+/**
+ * @swagger
+ * /buyer-auth/me:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Buyer profile fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getBuyerProfile = async (
   req: AppRequest,
   res: Response,
@@ -39,6 +54,38 @@ export const getBuyerProfile = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/profile:
+ *   put:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Update buyer profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ */
 export const updateBuyerProfile = async (
   req: AppRequest,
   res: Response,

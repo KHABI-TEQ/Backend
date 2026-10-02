@@ -10,6 +10,30 @@ import {
   markBuyerNotificationRead,
 } from "../../services/buyerNotification.service";
 
+/**
+ * @swagger
+ * /buyer-auth/me/notifications:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Notifications fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const listMyNotifications = async (
   req: AppRequest,
   res: Response,
@@ -40,6 +64,21 @@ export const listMyNotifications = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/notifications/unread-count:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get unread notification count
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread count fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyUnreadNotificationCount = async (
   req: AppRequest,
   res: Response,
@@ -63,6 +102,29 @@ export const getMyUnreadNotificationCount = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/notifications/{notificationId}/read:
+ *   put:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Mark notification as read
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: notificationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Notification not found
+ */
 export const markMyNotificationRead = async (
   req: AppRequest,
   res: Response,
@@ -105,6 +167,21 @@ export const markMyNotificationRead = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/notifications/mark-all-read:
+ *   put:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Mark all notifications as read
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *       401:
+ *         description: Not authenticated
+ */
 export const markAllMyNotificationsRead = async (
   req: AppRequest,
   res: Response,

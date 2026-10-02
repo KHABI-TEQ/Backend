@@ -10,6 +10,55 @@ import { broadcastToSubscribers } from "../../../services/agentSubscriber.servic
  * (POST /deal-site/:publicSlug/newsletter/subscribe).
  * Body: { subject, body } — body can be HTML.
  */
+/**
+ * @swagger
+ * /account/agent/broadcast:
+ *   post:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Broadcast email to DealSite subscribers
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - subject
+ *               - body
+ *             properties:
+ *               subject:
+ *                 type: string
+ *                 description: Email subject
+ *               body:
+ *                 type: string
+ *                 description: Email body content
+ *     responses:
+ *       200:
+ *         description: Broadcast sent to subscribers
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sentCount:
+ *                       type: number
+ *       400:
+ *         description: subject and body are required
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Agents and Developers with a DealSite can send a broadcast
+ */
 export const broadcastToMySubscribers = async (
   req: AppRequest,
   res: Response,

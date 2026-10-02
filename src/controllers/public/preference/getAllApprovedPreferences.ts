@@ -3,6 +3,35 @@ import { AppRequest } from "../../../types/express";
 import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import {
+
+/**
+ * @swagger
+ * /preferences/getApprovedForAgent:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /preferences/getApprovedForAgent
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   formatPreferenceForFrontend,
   stripPreferenceClientIdentity,
   PreferencePayload,

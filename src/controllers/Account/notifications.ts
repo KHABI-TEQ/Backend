@@ -6,7 +6,50 @@ import { RouteError } from "../../common/classes";
 import notificationService from "../../services/notification.service";
 
 /**
- * Get All Notifications for User
+ * @swagger
+ * /account/notifications:
+ *   get:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Get all notifications for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Notifications fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     page:
+ *                       type: number
+ *                     limit:
+ *                       type: number
+ *                     totalPages:
+ *                       type: number
  */
 export const getAllNotifications = async (
   req: AppRequest,
@@ -27,7 +70,37 @@ export const getAllNotifications = async (
 };
 
 /**
- * Get Notification by ID
+ * @swagger
+ * /account/notifications/{notificationId}:
+ *   get:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Get notification by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid notification ID
+ *       404:
+ *         description: Notification not found
  */
 export const getNotificationById = async (
   req: AppRequest,
@@ -88,13 +161,37 @@ export const markNotificationAsRead = async (
 };
 
 /**
- * 
- * @param req 
- * @param res 
- * @param next 
- * @returns 
- * 
- * Mark notificaton as un Read
+ * @swagger
+ * /account/notifications/{notificationId}/markRead:
+ *   put:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Mark single notification as read
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid notification ID
+ *       404:
+ *         description: Notification not found
  */
 export const markNotificationAsUnRead = async (
   req: AppRequest,
@@ -126,7 +223,26 @@ export const markNotificationAsUnRead = async (
 
 
 /**
- * Mark All Notifications as Read for User
+ * @swagger
+ * /account/notifications/markAllRead:
+ *   put:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Mark all notifications as read
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 export const markAllNotificationsAsRead = async (
   req: AppRequest,
@@ -145,7 +261,37 @@ export const markAllNotificationsAsRead = async (
 };
 
 /**
- * Delete Single Notification by ID
+ * @swagger
+ * /account/notifications/{notificationId}/delete:
+ *   delete:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Delete single notification by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: notificationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid notification ID
+ *       404:
+ *         description: Notification not found or already deleted
  */
 export const deleteNotificationById = async (
   req: AppRequest,
@@ -179,7 +325,26 @@ export const deleteNotificationById = async (
 };
 
 /**
- * Delete All Notifications for User
+ * @swagger
+ * /account/notifications/deleteAll:
+ *   delete:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Delete all notifications for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 export const deleteAllNotifications = async (
   req: AppRequest,
@@ -199,7 +364,42 @@ export const deleteAllNotifications = async (
 
 
 /**
- * Bulk Delete Notifications by IDs
+ * @swagger
+ * /account/notifications/bulkDelete:
+ *   delete:
+ *     tags:
+ *       - Account > Notifications
+ *     summary: Bulk delete notifications by IDs
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - notificationIds
+ *             properties:
+ *               notificationIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of notification IDs to delete
+ *     responses:
+ *       200:
+ *         description: Notification(s) deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid notification ID(s)
  */
 export const bulkDeleteNotifications = async (
   req: AppRequest,

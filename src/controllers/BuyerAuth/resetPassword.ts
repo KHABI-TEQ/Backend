@@ -4,6 +4,42 @@ import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 
+/**
+ * @swagger
+ * /buyer-auth/reset-password:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Reset buyer password
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               code:
+ *                 type: string
+ *                 description: Password reset code
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Invalid code or user not found
+ */
 export const resetBuyerPassword = async (
   req: Request,
   res: Response,

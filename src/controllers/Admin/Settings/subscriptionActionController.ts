@@ -46,6 +46,31 @@ export const fetchUserSubscriptions = async (
 /**
  * Fetch single subscription
  */
+/**
+ * @swagger
+ * /admin/subscriptions/{subscriptionId}:
+ *   get:
+ *     tags:
+ *       - Admin > Subscriptions
+ *     summary: Get subscription details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: subscriptionId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Subscription details fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Subscription not found
+ */
 export const getSubscriptionDetails = async (
   req: AppRequest,
   res: Response,
@@ -110,6 +135,33 @@ export const updateSubscription = async (
 
 /**
  * Cancel/Delete subscription (soft delete → mark as cancelled)
+ */
+/**
+ * @swagger
+ * /admin/subscriptions/{subscriptionId}/cancel:
+ *   post:
+ *     tags:
+ *       - Admin > Subscriptions
+ *     summary: Cancel subscription
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: subscriptionId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Subscription cancelled successfully
+ *       400:
+ *         description: Cannot cancel subscription
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Subscription not found
  */
 export const cancelSubscription = async (
   req: AppRequest,

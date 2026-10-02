@@ -4,6 +4,31 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 
+/**
+ * @swagger
+ * /admin/preferences/{preferenceId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Delete preference
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preference deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Preference not found
+ */
 export const deletePreference = async (
   req: Request,
   res: Response,

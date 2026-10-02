@@ -4,6 +4,59 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { DB } from "..";
 import { RouteError } from "../../common/classes";
 
+/**
+ * @swagger
+ * /features/getAll:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /features/getAll
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /subscriptions/plans:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /subscriptions/plans
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 
 /**
  * Fetch all subscription plans

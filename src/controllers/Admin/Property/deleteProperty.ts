@@ -4,6 +4,31 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { AppRequest } from "../../../types/express";
 import { RouteError } from "../../../common/classes";
 
+/**
+ * @swagger
+ * /admin/properties/{propertyId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Delete property by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: propertyId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Property deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property not found
+ */
 export const deletePropertyById = async (
   req: AppRequest,
   res: Response,

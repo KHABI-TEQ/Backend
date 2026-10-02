@@ -7,6 +7,40 @@ import { RouteError } from "../../../common/classes";
 /**
  * Fetch all referrals (paginated + filters)
  */
+/**
+ * @swagger
+ * /admin/referrals/getAll:
+ *   get:
+ *     tags:
+ *       - Admin > Referrals
+ *     summary: Get all referrals
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Referrals fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const fetchAllReferrals = async (
   req: AppRequest,
   res: Response,
@@ -46,6 +80,31 @@ export const fetchAllReferrals = async (
 /**
  * Get single referral details
  */
+/**
+ * @swagger
+ * /admin/referrals/{referralId}:
+ *   get:
+ *     tags:
+ *       - Admin > Referrals
+ *     summary: Get referral details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: referralId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Referral details fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Referral not found
+ */
 export const getReferralDetails = async (
   req: AppRequest,
   res: Response,
@@ -73,6 +132,23 @@ export const getReferralDetails = async (
 
 /**
  * Referral statistics (summary)
+ */
+/**
+ * @swagger
+ * /admin/referrals/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Referrals
+ *     summary: Get referral statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Referral statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getReferralStats = async (
   req: AppRequest,
@@ -176,6 +252,31 @@ export const updateReferral = async (
 
 /**
  * Delete referral (hard delete)
+ */
+/**
+ * @swagger
+ * /admin/referrals/{referralId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Referrals
+ *     summary: Delete referral
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: referralId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Referral deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Referral not found
  */
 export const deleteReferral = async (
   req: AppRequest,

@@ -33,6 +33,68 @@ const INSPECTION_FEE_MAX = 50000;
  * If there is a fee, create a payment link and email the buyer; otherwise notify acceptance only.
  * Reject: set agent_rejected, email buyer.
  */
+/**
+ * @swagger
+ * /account/my-inspections/{inspectionId}/respond:
+ *   post:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Accept or reject a pending inspection request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inspectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Inspection ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [accept, reject]
+ *               note:
+ *                 type: string
+ *                 description: Optional note for the buyer
+ *               inspectionFee:
+ *                 type: number
+ *                 description: Optional inspection fee in Naira (1,000-50,000)
+ *     responses:
+ *       200:
+ *         description: Inspection request accepted or rejected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *                     paymentUrl:
+ *                       type: string
+ *                     inspectionFee:
+ *                       type: number
+ *       400:
+ *         description: Invalid action or inspection not awaiting response
+ *       403:
+ *         description: Only property owner, marketing agent, or assigned licensed agent can respond
+ *       404:
+ *         description: Inspection not found
+ */
 export const respondToInspectionRequest = async (
   req: AppRequest,
   res: Response,

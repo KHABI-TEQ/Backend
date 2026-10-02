@@ -3,6 +3,53 @@
 import { Request, Response } from "express";
 import { handleInboundWhatsAppMessage } from "../../services/whatsapp/whatsappBot.service";
 
+/**
+ * @swagger
+ * /whatsapp/webhook:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /whatsapp/webhook
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;

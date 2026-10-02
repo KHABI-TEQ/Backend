@@ -25,6 +25,67 @@ async function sellerInspectionAccessFilter(user: {
   return parts.length === 1 ? parts[0] : { $or: parts };
 }
 
+/**
+ * @swagger
+ * /account/my-inspections/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Fetch user's inspections with pagination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by inspection status
+ *       - in: query
+ *         name: inspectionType
+ *         schema:
+ *           type: string
+ *         description: Filter by inspection type
+ *       - in: query
+ *         name: propertyId
+ *         schema:
+ *           type: string
+ *         description: Filter by property ID
+ *     responses:
+ *       200:
+ *         description: Inspections fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     page:
+ *                       type: number
+ *                     limit:
+ *                       type: number
+ *                     totalPages:
+ *                       type: number
+ */
 export const fetchUserInspections = async (
   req: AppRequest,
   res: Response,
@@ -84,6 +145,37 @@ export const fetchUserInspections = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/my-inspections/{inspectionId}:
+ *   get:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Get single inspection details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inspectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Inspection ID
+ *     responses:
+ *       200:
+ *         description: Inspection fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Inspection not found
+ */
 export const getOneUserInspection = async (
   req: AppRequest,
   res: Response,
@@ -114,6 +206,39 @@ export const getOneUserInspection = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/my-inspections/stats:
+ *   get:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Get inspection statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Inspection stats fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalInspections:
+ *                       type: number
+ *                     pendingInspections:
+ *                       type: number
+ *                     completedInspections:
+ *                       type: number
+ *                     cancelledInspections:
+ *                       type: number
+ *                     averageResponseTimeInHours:
+ *                       type: number
+ */
 export const getInspectionStats = async (
   req: AppRequest,
   res: Response,

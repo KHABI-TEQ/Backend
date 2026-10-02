@@ -36,6 +36,58 @@ function normalizeMarketplacePreferenceType(raw: unknown): string | null {
  * Authenticated agents: list general (main-site) preferences for the marketplace dashboard.
  * Buyer identity is stripped; lifestyle flags and review summaries remain.
  */
+/**
+ * @swagger
+ * /account/marketplace/general-preferences:
+ *   get:
+ *     tags:
+ *       - Account > Preferences
+ *     summary: Fetch general marketplace preferences for agent dashboard
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: keyword
+ *         schema:
+ *           type: string
+ *         description: Search keyword
+ *       - in: query
+ *         name: preferenceMode
+ *         schema:
+ *           type: string
+ *         description: Filter by preference mode
+ *       - in: query
+ *         name: preferenceType
+ *         schema:
+ *           type: string
+ *         description: Filter by preference type
+ *     responses:
+ *       200:
+ *         description: General marketplace preferences fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ */
 export const fetchGeneralMarketplacePreferences = async (
   req: AppRequest,
   res: Response,

@@ -11,6 +11,55 @@ import {
   listingPriceFieldsChanged,
 } from "../../../services/propertyPriceLock.service";
 
+/**
+ * @swagger
+ * /admin/properties/{propertyId}/update:
+ *   patch:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Update property as admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: propertyId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               propertyType:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               location:
+ *                 type: object
+ *               pictures:
+ *                 type: array
+ *                 items: {'type': 'string'}
+ *     responses:
+ *       200:
+ *         description: Property updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property not found
+ */
 export const editPropertyAsAdmin = async (
   req: AppRequest,
   res: Response,

@@ -58,6 +58,46 @@ async function loadPropertyForRepManagement(req: AppRequest, propertyId: string)
   return property;
 }
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/inspection-representatives:
+ *   get:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: List property inspection representatives
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     responses:
+ *       200:
+ *         description: Property inspection representatives fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     representatives:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Landlords and Developers can manage inspection representatives
+ *       404:
+ *         description: Approved property not found or no permission
+ */
 export async function listPropertyInspectionRepresentatives(req: AppRequest, res: Response, next: NextFunction) {
   try {
     const { propertyId } = req.params;
@@ -69,6 +109,65 @@ export async function listPropertyInspectionRepresentatives(req: AppRequest, res
   }
 }
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/inspection-representatives:
+ *   post:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Add property inspection representative
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               label:
+ *                 type: string
+ *                 description: Representative label/name
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Representative email address
+ *               whatsappNumber:
+ *                 type: string
+ *                 description: Representative WhatsApp number
+ *     responses:
+ *       201:
+ *         description: Representative added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     representative:
+ *                       type: object
+ *       400:
+ *         description: Invalid request body or maximum representatives reached
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Landlords and Developers can manage inspection representatives
+ *       404:
+ *         description: Approved property not found or no permission
+ */
 export async function addPropertyInspectionRepresentative(req: AppRequest, res: Response, next: NextFunction) {
   try {
     const { propertyId } = req.params;
@@ -121,6 +220,69 @@ export async function addPropertyInspectionRepresentative(req: AppRequest, res: 
   }
 }
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/inspection-representatives/{representativeId}:
+ *   patch:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Update property inspection representative
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *       - in: path
+ *         name: representativeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Representative ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *                 description: Representative label/name
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Representative email address
+ *               whatsappNumber:
+ *                 type: string
+ *                 description: Representative WhatsApp number
+ *     responses:
+ *       200:
+ *         description: Representative updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     representative:
+ *                       type: object
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Landlords and Developers can manage inspection representatives
+ *       404:
+ *         description: Representative not found
+ */
 export async function updatePropertyInspectionRepresentative(req: AppRequest, res: Response, next: NextFunction) {
   try {
     const { propertyId, representativeId } = req.params;
@@ -195,6 +357,49 @@ export async function updatePropertyInspectionRepresentative(req: AppRequest, re
   }
 }
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/inspection-representatives/{representativeId}:
+ *   delete:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Delete property inspection representative
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *       - in: path
+ *         name: representativeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Representative ID
+ *     responses:
+ *       200:
+ *         description: Representative removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid representative id
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Landlords and Developers can manage inspection representatives
+ *       404:
+ *         description: Representative not found
+ */
 export async function deletePropertyInspectionRepresentative(req: AppRequest, res: Response, next: NextFunction) {
   try {
     const { propertyId, representativeId } = req.params;

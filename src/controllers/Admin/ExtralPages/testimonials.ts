@@ -6,6 +6,46 @@ import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
 
 // Create testimonial
+/**
+ * @swagger
+ * /admin/testimonials/create:
+ *   post:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Create testimonial
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 description: Testimonial content
+ *               authorName:
+ *                 type: string
+ *                 description: Author name
+ *               authorTitle:
+ *                 type: string
+ *                 description: Author title
+ *               rating:
+ *                 type: number
+ *                 description: Rating
+ *     responses:
+ *       201:
+ *         description: Testimonial created successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const createTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const testimonial = await DB.Models.Testimonial.create(req.body);
@@ -20,6 +60,50 @@ export const createTestimonial = async (req: AppRequest, res: Response, next: Ne
 };
 
 // Update testimonial
+/**
+ * @swagger
+ * /admin/testimonials/{testimonialId}/update:
+ *   put:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Update testimonial
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: testimonialId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: string
+ *               authorName:
+ *                 type: string
+ *               authorTitle:
+ *                 type: string
+ *               rating:
+ *                 type: number
+ *               isApproved:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Testimonial updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Testimonial not found
+ */
 export const updateTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;
@@ -48,6 +132,31 @@ export const updateTestimonial = async (req: AppRequest, res: Response, next: Ne
 };
 
 // Get a single testimonial
+/**
+ * @swagger
+ * /admin/testimonials/{testimonialId}:
+ *   get:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Get single testimonial
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: testimonialId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Testimonial fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Testimonial not found
+ */
 export const getTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;
@@ -73,6 +182,23 @@ export const getTestimonial = async (req: AppRequest, res: Response, next: NextF
 };
 
 // Get all testimonials
+/**
+ * @swagger
+ * /admin/testimonials:
+ *   get:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Get all testimonials
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Testimonials fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllTestimonials = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const {
@@ -114,6 +240,18 @@ export const getAllTestimonials = async (req: AppRequest, res: Response, next: N
 };
 
 // Get latest approved testimonials (limit 10)
+/**
+ * @swagger
+ * /admin/testimonials/latestApproved:
+ *   get:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Get latest approved testimonials
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Approved testimonials fetched successfully
+ */
 export const getLatestApprovedTestimonials = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const testimonials = await DB.Models.Testimonial.find({ status: "approved" })
@@ -132,6 +270,31 @@ export const getLatestApprovedTestimonials = async (req: AppRequest, res: Respon
 };
 
 // Delete testimonial
+/**
+ * @swagger
+ * /admin/testimonials/{testimonialId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Delete testimonial
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: testimonialId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Testimonial deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Testimonial not found
+ */
 export const deleteTestimonial = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;
@@ -156,6 +319,45 @@ export const deleteTestimonial = async (req: AppRequest, res: Response, next: Ne
 };
 
 // Update testimonial status
+/**
+ * @swagger
+ * /admin/testimonials/{testimonialId}/updateStatus:
+ *   put:
+ *     tags:
+ *       - Admin > Testimonials
+ *     summary: Update testimonial status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: testimonialId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isApproved
+ *             properties:
+ *               isApproved:
+ *                 type: boolean
+ *                 description: Approval status
+ *     responses:
+ *       200:
+ *         description: Testimonial status updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Testimonial not found
+ */
 export const updateTestimonialStatus = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { testimonialId } = req.params;

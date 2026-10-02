@@ -6,6 +6,54 @@ import { DB } from "../../..";
 import { saveInboundSyndicationWebhook } from "../../../../services/propertySyndication.service";
 import { dealSiteOriginFromPublicSlug } from "../../../../config/dealSitePublicHost";
 
+/**
+ * @swagger
+ * /third-party/syndication/inspection-redirect/{propertyId}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /third-party/syndication/inspection-redirect/{propertyId}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /third-party/syndication/webhooks/{platformKey}:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 function safeHeaders(req: AppRequest): Record<string, unknown> {
   return {
     "user-agent": req.headers["user-agent"],

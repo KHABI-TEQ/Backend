@@ -150,6 +150,56 @@ export const submitInspectionReportPublic = async (
  * GET (public, no auth) /agent/:agentId/rating-summary
  * Aggregate rating for an agent for landing page / prospective buyers.
  */
+/**
+ * @swagger
+ * /agent/{agentId}/rating-summary:
+ *   get:
+ *     tags:
+ *       - Account > Ratings
+ *     summary: Get public agent rating summary
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: agentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Agent ID
+ *     responses:
+ *       200:
+ *         description: Agent rating summary fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     agentId:
+ *                       type: string
+ *                     averageRating:
+ *                       type: number
+ *                     totalRatings:
+ *                       type: number
+ *                     distribution:
+ *                       type: object
+ *                       properties:
+ *                         5:
+ *                           type: number
+ *                         4:
+ *                           type: number
+ *                         3:
+ *                           type: number
+ *                         2:
+ *                           type: number
+ *                         1:
+ *                           type: number
+ *       400:
+ *         description: Invalid agent ID
+ */
 export const getAgentRatingSummaryPublic = async (
   req: Request,
   res: Response,
@@ -209,6 +259,66 @@ export const getAgentRatingSummaryPublic = async (
 /**
  * GET (public, no auth) /agent/:agentId/ratings
  * Recent ratings for an agent (for landing page). Returns only rating, comment, createdAt (no buyer PII).
+ */
+/**
+ * @swagger
+ * /agent/{agentId}/ratings:
+ *   get:
+ *     tags:
+ *       - Account > Ratings
+ *     summary: Get public agent ratings
+ *     security: []
+ *     parameters:
+ *       - in: path
+ *         name: agentId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Agent ID
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Agent ratings fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       rating:
+ *                         type: number
+ *                       comment:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     page:
+ *                       type: number
+ *                     limit:
+ *                       type: number
+ *                     totalPages:
+ *                       type: number
+ *       400:
+ *         description: Invalid agent ID
  */
 export const getAgentRatingsPublic = async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -7,7 +7,53 @@ import { SystemSettingService } from "../../services/systemSetting.service";
 import mongoose from "mongoose";
 
 /**
- * Fetch referral records, grouped by referredUserId
+ * @swagger
+ * /account/referrals/records:
+ *   get:
+ *     tags:
+ *       - Account > Referrals
+ *     summary: Fetch referral records with pagination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: userType
+ *         schema:
+ *           type: string
+ *         description: Filter by referred user type
+ *       - in: query
+ *         name: accountStatus
+ *         schema:
+ *           type: string
+ *         description: Filter by account status
+ *     responses:
+ *       200:
+ *         description: Referral records fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *       400:
+ *         description: Referral system is turned off
  */
 export const fetchReferralRecords = async (
   req: AppRequest,
@@ -107,7 +153,35 @@ export const fetchReferralRecords = async (
 };
 
 /**
- * Fetch referral statistics for current user
+ * @swagger
+ * /account/referrals/stats:
+ *   get:
+ *     tags:
+ *       - Account > Referrals
+ *     summary: Fetch referral statistics for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Referral stats fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalReferred:
+ *                       type: number
+ *                     totalEarnings:
+ *                       type: number
+ *                     referralCode:
+ *                       type: string
+ *       400:
+ *         description: Referral system is turned off
  */
 export const fetchReferralStats = async (
   req: AppRequest,

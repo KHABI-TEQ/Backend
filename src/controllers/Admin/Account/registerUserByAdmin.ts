@@ -256,6 +256,55 @@ async function bulkCreateUsersForType(
  * POST /admin/users/register
  * Creates Agent, Developer, or Landowner with a temporary password; user must change password after first login.
  */
+/**
+ * @swagger
+ * /admin/users/register:
+ *   post:
+ *     tags:
+ *       - Admin > Users
+ *     summary: Register user by admin
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - firstName
+ *               - lastName
+ *               - phoneNumber
+ *               - userType
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               userType:
+ *                 type: string
+ *                 enum: ['agent', 'developer', 'landlord', 'lawyer', 'surveyor', 'valuer', 'buyer']
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Invalid request or user already exists
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const registerUserByAdmin = async (
   req: AppRequest,
   res: Response,

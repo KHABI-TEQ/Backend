@@ -9,6 +9,70 @@ import mongoose from "mongoose";
  * Fetch all preferences submitted to the agent's dealsite
  * Only returns preferences where receiverMode.type === "dealSite" and dealSiteID matches the agent's dealsite
  */
+/**
+ * @swagger
+ * /account/dealsite-preferences/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Preferences
+ *     summary: Fetch all preferences submitted to agent's dealsite
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by preference status
+ *       - in: query
+ *         name: minBudget
+ *         schema:
+ *           type: number
+ *         description: Minimum budget filter
+ *       - in: query
+ *         name: maxBudget
+ *         schema:
+ *           type: number
+ *         description: Maximum budget filter
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter by state
+ *       - in: query
+ *         name: propertyType
+ *         schema:
+ *           type: string
+ *         description: Filter by property type
+ *     responses:
+ *       200:
+ *         description: Dealsite preferences fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized access
+ */
 export const fetchDealsitePreferences = async (
   req: AppRequest,
   res: Response,
@@ -132,6 +196,41 @@ export const fetchDealsitePreferences = async (
 /**
  * Fetch single preference details by ID
  * Ensures the preference belongs to the agent's dealsite
+ */
+/**
+ * @swagger
+ * /account/dealsite-preferences/{preferenceId}:
+ *   get:
+ *     tags:
+ *       - Account > Preferences
+ *     summary: Fetch single preference details for agent's dealsite
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: preferenceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Preference ID
+ *     responses:
+ *       200:
+ *         description: Preference fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid preference ID
+ *       401:
+ *         description: Unauthorized access
+ *       404:
+ *         description: Preference not found or does not belong to your dealsite
  */
 export const fetchDealsitePreferenceById = async (
   req: AppRequest,

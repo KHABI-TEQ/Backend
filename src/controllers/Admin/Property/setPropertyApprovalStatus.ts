@@ -12,6 +12,47 @@ import {
 } from "../../../services/autoPreferencePairing.service";
 import { enqueuePropertySyndicationJobs } from "../../../services/propertySyndication.service";
 
+/**
+ * @swagger
+ * /admin/properties/{propertyId}/approval:
+ *   put:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Set property approval status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: propertyId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - approvalStatus
+ *             properties:
+ *               approvalStatus:
+ *                 type: string
+ *                 enum: ['pending', 'approved', 'rejected']
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Property approval status updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property not found
+ */
 export const setPropertyApprovalStatus = async (
   req: AppRequest,
   res: Response,

@@ -6,6 +6,23 @@ import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
 import { getBrmBookCounts } from "../../../services/brmPractitionerJourney.service";
 
+/**
+ * @swagger
+ * /admin/brms:
+ *   get:
+ *     tags:
+ *       - Admin > BRM
+ *     summary: Get all BRMs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: BRMs fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listBrmsAdmin = async (
   req: AppRequest,
   res: Response,
@@ -62,6 +79,31 @@ export const listBrmsAdmin = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/brms/{id}:
+ *   get:
+ *     tags:
+ *       - Admin > BRM
+ *     summary: Get single BRM by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: BRM fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: BRM not found
+ */
 export const getBrmAdmin = async (
   req: AppRequest,
   res: Response,

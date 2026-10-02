@@ -29,6 +29,35 @@ function requireProfessional(req: AppRequest) {
   return { user: req.user, category };
 }
 
+/**
+ * @swagger
+ * /account/professional-services/jobs:
+ *   get:
+ *     tags:
+ *       - Account > Professional
+ *     summary: List professional service jobs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Professional service jobs fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   description: List of professional service jobs
+ *       401:
+ *         description: Account required
+ *       403:
+ *         description: A lawyer, surveyor, or valuer account is required
+ */
 export const listProfessionalServiceJobs = async (
   req: AppRequest,
   res: Response,
@@ -49,6 +78,40 @@ export const listProfessionalServiceJobs = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/professional-services/jobs/{id}:
+ *   get:
+ *     tags:
+ *       - Account > Professional
+ *     summary: Get single professional service job
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     responses:
+ *       200:
+ *         description: Professional service job fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   description: Professional service job details
+ *       401:
+ *         description: Account required
+ *       403:
+ *         description: A lawyer, surveyor, or valuer account is required
+ */
 export const getProfessionalServiceJob = async (
   req: AppRequest,
   res: Response,
@@ -70,6 +133,67 @@ export const getProfessionalServiceJob = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/professional-services/{id}/respond:
+ *   post:
+ *     tags:
+ *       - Account > Professional
+ *     summary: Respond to professional service job (accept/decline or submit offer)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accept:
+ *                 type: boolean
+ *                 description: Accept or decline
+ *               reason:
+ *                 type: string
+ *                 description: Reason for declining
+ *               coverageNote:
+ *                 type: string
+ *               fee:
+ *                 type: number
+ *                 description: Proposed fee
+ *               serviceItems:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               commissionAccepted:
+ *                 type: boolean
+ *               letterheadReportAccepted:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Request accepted, declined, or offer sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Account required
+ *       403:
+ *         description: A lawyer, surveyor, or valuer account is required
+ */
 export const respondProfessionalServiceJob = async (
   req: AppRequest,
   res: Response,

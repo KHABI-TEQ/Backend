@@ -15,6 +15,38 @@ import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whats
  * Bulk update a DealSite (handles multiple sections in one request)
  * Used by frontend forms that update multiple sections at once
  */
+/**
+ * @swagger
+ * /account/dealSite/update:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Bulk update deal site
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - updates
+ *             properties:
+ *               updates:
+ *                 type: array
+ *                 items: {'type': 'object'}
+ *                 description: Array of update objects
+ *     responses:
+ *       200:
+ *         description: Deal site updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site not found
+ */
 export const bulkUpdateDealSite = async (
   req: AppRequest,
   res: Response,
@@ -73,6 +105,49 @@ export const bulkUpdateDealSite = async (
 /**
  * Update a DealSite
  */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/:sectionName/update:
+ *   put:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Update deal site section
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: sectionName
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               content:
+ *                 type: object
+ *                 description: Section content
+ *               settings:
+ *                 type: object
+ *                 description: Section settings
+ *     responses:
+ *       200:
+ *         description: Deal site section updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site or section not found
+ */
 export const updateDealSite = async (
   req: AppRequest,
   res: Response,
@@ -114,6 +189,29 @@ export const updateDealSite = async (
 /**
  * Disable (pause) a DealSite
  */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/pause:
+ *   put:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Pause deal site
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site paused successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site not found
+ */
 export const disableDealSite = async (
   req: AppRequest,
   res: Response,
@@ -150,6 +248,29 @@ export const disableDealSite = async (
 
 /**
  * Enable (resume) a DealSite
+ */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/resume:
+ *   put:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Resume deal site
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site resumed successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site not found
  */
 export const enableDealSite = async (
   req: AppRequest,
@@ -188,6 +309,29 @@ export const enableDealSite = async (
 /**
  * Delete a DealSite
  */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/delete:
+ *   delete:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Delete deal site
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Deal site not found
+ */
 export const deleteDealSite = async (
   req: AppRequest,
   res: Response,
@@ -211,6 +355,48 @@ export const deleteDealSite = async (
 
 /**
  * Create Contact Us message for DealSite
+ */
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/contactUs:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Create contact us message
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - message
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               phone:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Contact message sent successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Deal site not found
  */
 export const createDealSiteContactUs = async (
   req: AppRequest,
@@ -356,6 +542,21 @@ export const createDealSiteContactUs = async (
 /**
  * Get all contact messages for a DealSite (for agent dashboard)
  */
+/**
+ * @swagger
+ * /account/dealSite/contact-messages:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site contact messages
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Contact messages fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getDealSiteContactMessages = async (
   req: AppRequest,
   res: Response,
@@ -437,6 +638,29 @@ export const getDealSiteContactMessages = async (
 /**
  * Delete a contact message
  */
+/**
+ * @swagger
+ * /account/dealSite/contact-messages/:messageId:
+ *   delete:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Delete contact message
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: messageId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Message deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Message not found
+ */
 export const deleteDealSiteContactMessage = async (
   req: AppRequest,
   res: Response,
@@ -477,6 +701,21 @@ export const deleteDealSiteContactMessage = async (
 
 /**
  * Get all email subscribers for a DealSite
+ */
+/**
+ * @swagger
+ * /account/dealSite/email-subscribers:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site email subscribers
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Email subscribers fetched successfully
+ *       401:
+ *         description: Not authenticated
  */
 export const getDealSiteEmailSubscribers = async (
   req: AppRequest,
@@ -552,6 +791,29 @@ export const getDealSiteEmailSubscribers = async (
 /**
  * Delete an email subscriber
  */
+/**
+ * @swagger
+ * /account/dealSite/email-subscribers/:subscriberId:
+ *   delete:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Delete email subscriber
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: subscriberId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Subscriber deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Subscriber not found
+ */
 export const deleteDealSiteEmailSubscriber = async (
   req: AppRequest,
   res: Response,
@@ -592,6 +854,21 @@ export const deleteDealSiteEmailSubscriber = async (
 
 /**
  * Export email subscribers as CSV
+ */
+/**
+ * @swagger
+ * /account/dealSite/email-subscribers/export/csv:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Export email subscribers to CSV
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: CSV exported successfully
+ *       401:
+ *         description: Not authenticated
  */
 export const exportDealSiteEmailSubscribers = async (
   req: AppRequest,

@@ -14,6 +14,35 @@ import { autoPairPreferenceById } from "../../../services/autoPreferencePairing.
 import { dealSiteBaseUrlFromPublicSlug } from "../../../utils/matchedPropertiesDealSiteUrl";
 
 /**
+ * @swagger
+ * /preferences/update/{buyerId}/{preferenceId}:
+ *   put:
+ *     tags:
+ *       - Public
+ *     summary: PUT /preferences/update/{buyerId}/{preferenceId}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
+/**
  * Edit an existing preference by submitting it as a new preference (original is left unchanged).
  * Triggers the same approval, email, and auto-matching flow as a fresh submit.
  */

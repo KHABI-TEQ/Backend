@@ -30,6 +30,47 @@ function propertyAllowedOnDealSite(property: any, dealSiteCreatedBy: unknown): b
   return false;
 }
 
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/inspections/makeRequest:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Submit inspection request
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - propertyId
+ *               - preferredDate
+ *             properties:
+ *               propertyId:
+ *                 type: string
+ *               preferredDate:
+ *                 type: string
+ *                 format: date
+ *               preferredTime:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Inspection request submitted successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Deal site or property not found
+ */
 export const submitInspectionRequest = async (
   req: AppRequest,
   res: Response,

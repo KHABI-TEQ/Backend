@@ -133,36 +133,306 @@ async function checkSlug(
   }
 }
 
+/**
+ * @swagger
+ * /account/lawyer/public-page:
+ *   get:
+ *     tags:
+ *       - Account > Professional Public Page
+ *     summary: Get lawyer public page
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lawyer public page fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     publicSlug:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     tagline:
+ *                       type: string
+ *                     logoUrl:
+ *                       type: string
+ *                     primaryColor:
+ *                       type: string
+ *                     about:
+ *                       type: string
+ *                     ctaLabel:
+ *                       type: string
+ *                     isMarketplaceVisible:
+ *                       type: boolean
+ *       403:
+ *         description: Lawyer account required
+ */
 export const getLawyerPublicPage = (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => getPublicPage("lawyer", req, res, next);
 
+/**
+ * @swagger
+ * /account/lawyer/public-page:
+ *   put:
+ *     tags:
+ *       - Account > Professional Public Page
+ *     summary: Update lawyer public page
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               publicSlug:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               tagline:
+ *                 type: string
+ *               logoUrl:
+ *                 type: string
+ *               primaryColor:
+ *                 type: string
+ *               about:
+ *                 type: string
+ *               ctaLabel:
+ *                 type: string
+ *               isMarketplaceVisible:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Public page updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Lawyer account required
+ */
 export const putLawyerPublicPage = (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => putPublicPage("lawyer", req, res, next);
 
+/**
+ * @swagger
+ * /account/lawyer/public-page/slug-availability:
+ *   post:
+ *     tags:
+ *       - Account > Professional Public Page
+ *     summary: Check lawyer public page slug availability
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - publicSlug
+ *             properties:
+ *               publicSlug:
+ *                 type: string
+ *                 description: Slug to check availability for
+ *     responses:
+ *       200:
+ *         description: Slug availability checked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     available:
+ *                       type: boolean
+ *                     publicSlug:
+ *                       type: string
+ *       403:
+ *         description: Lawyer account required
+ */
 export const checkLawyerPublicPageSlug = (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => checkSlug("lawyer", req, res, next);
 
+/**
+ * @swagger
+ * /account/surveyor/public-page:
+ *   get:
+ *     tags:
+ *       - Account > Professional Public Page
+ *     summary: Get surveyor public page
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Surveyor public page fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     publicSlug:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     tagline:
+ *                       type: string
+ *                     logoUrl:
+ *                       type: string
+ *                     primaryColor:
+ *                       type: string
+ *                     about:
+ *                       type: string
+ *                     ctaLabel:
+ *                       type: string
+ *                     isMarketplaceVisible:
+ *                       type: boolean
+ *       403:
+ *         description: Surveyor account required
+ */
 export const getSurveyorPublicPage = (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => getPublicPage("surveyor", req, res, next);
 
+/**
+ * @swagger
+ * /account/surveyor/public-page:
+ *   put:
+ *     tags:
+ *       - Account > Professional Public Page
+ *     summary: Update surveyor public page
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               publicSlug:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               title:
+ *                 type: string
+ *               tagline:
+ *                 type: string
+ *               logoUrl:
+ *                 type: string
+ *               primaryColor:
+ *                 type: string
+ *               about:
+ *                 type: string
+ *               ctaLabel:
+ *                 type: string
+ *               isMarketplaceVisible:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Public page updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Surveyor account required
+ */
 export const putSurveyorPublicPage = (
   req: AppRequest,
   res: Response,
   next: NextFunction
 ) => putPublicPage("surveyor", req, res, next);
 
+/**
+ * @swagger
+ * /account/surveyor/public-page/slug-availability:
+ *   post:
+ *     tags:
+ *       - Account > Professional Public Page
+ *     summary: Check surveyor public page slug availability
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - publicSlug
+ *             properties:
+ *               publicSlug:
+ *                 type: string
+ *                 description: Slug to check availability for
+ *     responses:
+ *       200:
+ *         description: Slug availability checked
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     available:
+ *                       type: boolean
+ *                     publicSlug:
+ *                       type: string
+ *       403:
+ *         description: Surveyor account required
+ */
 export const checkSurveyorPublicPageSlug = (
   req: AppRequest,
   res: Response,

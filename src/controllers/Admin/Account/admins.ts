@@ -10,6 +10,59 @@ import { generalEmailLayout } from "../../../common/emailTemplates/emailLayout";
 import { adminAccountCreated } from "../../../common/emailTemplates/adminMails";
 
 // Get Admins with Filters & Pagination
+/**
+ * @swagger
+ * /admin/admins/fetchAll:
+ *   get:
+ *     tags:
+ *       - Admin > Admins
+ *     summary: Fetch all admins with filters and pagination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: role
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: sortBy
+ *         in: query
+ *         schema:
+ *           type: string
+ *           default: createdAt
+ *       - name: sortOrder
+ *         in: query
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - asc
+ *             - desc
+ *           default: desc
+ *     responses:
+ *       200:
+ *         description: Admins fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Pagination'
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAdmins = async (
   req: AppRequest,
   res: Response,
@@ -73,6 +126,33 @@ export const getAdmins = async (
 };
 
 // Get Single Admin by ID
+/**
+ * @swagger
+ * /admin/admins/{adminId}/getOne:
+ *   get:
+ *     tags:
+ *       - Admin > Admins
+ *     summary: Get a single admin by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: adminId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Admin fetched successfully
+ *       400:
+ *         description: Admin ID is required
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Admin not found
+ */
 export const getSingleAdmin = async (
   req: AppRequest,
   res: Response,
@@ -112,6 +192,54 @@ export const getSingleAdmin = async (
 };
 
 // Create Admin
+/**
+ * @swagger
+ * /admin/admins/create:
+ *   post:
+ *     tags:
+ *       - Admin > Admins
+ *     summary: Create a new admin account
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - firstName
+ *               - lastName
+ *               - phoneNumber
+ *               - address
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       201:
+ *         description: Admin created successfully
+ *       400:
+ *         description: Missing required fields or admin already exists
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       500:
+ *         description: Server configuration error
+ */
 export const createAdmin = async (
   req: AppRequest,
   res: Response,
@@ -196,6 +324,56 @@ export const createAdmin = async (
 };
 
 // Update Admin
+/**
+ * @swagger
+ * /admin/admins/{adminId}/update:
+ *   put:
+ *     tags:
+ *       - Admin > Admins
+ *     summary: Update an existing admin
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: adminId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *               permissions:
+ *                 type: array
+ *                 items: {'type': 'string'}
+ *     responses:
+ *       200:
+ *         description: Admin updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Admin not found
+ */
 export const updateAdmin = async (
   req: AppRequest,
   res: Response,
@@ -233,6 +411,33 @@ export const updateAdmin = async (
 };
 
 // Delete Admin
+/**
+ * @swagger
+ * /admin/admins/{adminId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Admins
+ *     summary: Delete an admin account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: adminId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Admin deleted successfully
+ *       400:
+ *         description: Cannot delete self or invalid admin
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Admin not found
+ */
 export const deleteAdmin = async (
   req: AppRequest,
   res: Response,
@@ -298,6 +503,46 @@ export const changeAdminPassword = async (
 };
 
 // Change Admin Status
+/**
+ * @swagger
+ * /admin/admins/{adminId}/status:
+ *   patch:
+ *     tags:
+ *       - Admin > Admins
+ *     summary: Change admin account status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: adminId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isAccountVerified
+ *             properties:
+ *               isAccountVerified:
+ *                 type: boolean
+ *               isAccountInRecovery:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Admin status updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Admin not found
+ */
 export const changeAdminStatus = async (
   req: AppRequest,
   res: Response,

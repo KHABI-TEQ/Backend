@@ -27,6 +27,64 @@ import {
   syncPropertyImageEmbeddings,
 } from "../../../services/propertyImageEmbedding.service";
 
+/**
+ * @swagger
+ * /account/properties/create:
+ *   post:
+ *     tags:
+ *       - Account > Property
+ *     summary: Create a new property listing
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Property title
+ *               description:
+ *                 type: string
+ *                 description: Property description
+ *               price:
+ *                 type: number
+ *                 description: Property price in Naira
+ *               propertyType:
+ *                 type: string
+ *                 description: Type of property
+ *               status:
+ *                 type: string
+ *                 description: Property status
+ *               location:
+ *                 type: object
+ *                 description: Property location
+ *               pictures:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of image URLs
+ *     responses:
+ *       201:
+ *         description: Property created successfully or pending approval
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: User not authenticated
+ *       403:
+ *         description: Complete your KYC verification or off-plan must use project form
+ */
 export const postProperty = async (
   req: AppRequest,
   res: Response,

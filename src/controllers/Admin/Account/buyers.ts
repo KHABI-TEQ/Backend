@@ -6,6 +6,48 @@ import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
 
 // Create buyer
+/**
+ * @swagger
+ * /admin/buyers/create:
+ *   post:
+ *     tags:
+ *       - Admin > Buyers
+ *     summary: Create a new buyer
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - firstName
+ *               - lastName
+ *               - phoneNumber
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Buyer created successfully
+ *       400:
+ *         description: Missing required fields or buyer already exists
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const createBuyer = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { fullName, email, phoneNumber } = req.body;
@@ -30,6 +72,51 @@ export const createBuyer = async (req: AppRequest, res: Response, next: NextFunc
 };
 
 // Update buyer
+/**
+ * @swagger
+ * /admin/buyers/{buyerId}/update:
+ *   put:
+ *     tags:
+ *       - Admin > Buyers
+ *     summary: Update buyer
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: buyerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Buyer updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Buyer not found
+ */
 export const updateBuyer = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { buyerId } = req.params;
@@ -59,6 +146,31 @@ export const updateBuyer = async (req: AppRequest, res: Response, next: NextFunc
 };
 
 // Delete buyer
+/**
+ * @swagger
+ * /admin/buyers/{buyerId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Buyers
+ *     summary: Delete buyer
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: buyerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Buyer deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Buyer not found
+ */
 export const deleteBuyer = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { buyerId } = req.params;
@@ -83,6 +195,31 @@ export const deleteBuyer = async (req: AppRequest, res: Response, next: NextFunc
 };
 
 // Get single buyer
+/**
+ * @swagger
+ * /admin/buyers/{buyerId}:
+ *   get:
+ *     tags:
+ *       - Admin > Buyers
+ *     summary: Get single buyer by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: buyerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Buyer fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Buyer not found
+ */
 export const getSingleBuyer = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { buyerId } = req.params;
@@ -108,6 +245,23 @@ export const getSingleBuyer = async (req: AppRequest, res: Response, next: NextF
 };
 
 // Get all buyers
+/**
+ * @swagger
+ * /admin/buyers:
+ *   get:
+ *     tags:
+ *       - Admin > Buyers
+ *     summary: Get all buyers
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Buyers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllBuyers = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const {
@@ -145,6 +299,31 @@ export const getAllBuyers = async (req: AppRequest, res: Response, next: NextFun
 };
 
 // Get buyer preferences
+/**
+ * @swagger
+ * /admin/buyers/{buyerId}/allPreferences:
+ *   get:
+ *     tags:
+ *       - Admin > Buyers
+ *     summary: Get all preferences for a buyer
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: buyerId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Buyer preferences fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Buyer not found
+ */
 export const getBuyerPreferences = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { buyerId } = req.params;

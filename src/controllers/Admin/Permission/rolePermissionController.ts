@@ -24,6 +24,23 @@ type PopulatedRole = {
 /**
  * Get all permissions with optional filtering
  */
+/**
+ * @swagger
+ * /admin/permissions:
+ *   get:
+ *     tags:
+ *       - Admin > Permissions
+ *     summary: Get all permissions
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Permissions fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllPermissions = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { category, isActive, search } = req.query;
@@ -138,6 +155,48 @@ export const createPermission = async (req: AppRequest, res: Response, next: Nex
 
 /**
  * Update a permission
+ */
+/**
+ * @swagger
+ * /admin/permissions/{permissionId}:
+ *   put:
+ *     tags:
+ *       - Admin > Permissions
+ *     summary: Update permission
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: permissionId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               resource:
+ *                 type: string
+ *               action:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Permission updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Permission not found
  */
 export const updatePermission = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {

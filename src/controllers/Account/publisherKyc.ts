@@ -10,6 +10,60 @@ import {
   submitPublisherKyc,
 } from "../../services/publisherKyc.service";
 
+/**
+ * @swagger
+ * /account/submitKyc:
+ *   put:
+ *     tags:
+ *       - Account > KYC
+ *     summary: Submit publisher KYC
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               kycTier:
+ *                 type: string
+ *               practitionerType:
+ *                 type: string
+ *               regionOfOperation:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               address:
+ *                 type: object
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *     responses:
+ *       200:
+ *         description: KYC submitted successfully or developer profile saved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     profile:
+ *                       type: object
+ *                     kycStatus:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized or invalid user type for KYC submission
+ *       404:
+ *         description: Agent profile not found for this account
+ */
 export const completePublisherKYC = async (
   req: AppRequest,
   res: Response,

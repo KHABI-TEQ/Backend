@@ -28,6 +28,63 @@ import { notifyAllActiveAdmins } from "../../services/adminNotification.service"
  * POST /account/request-to-market
  * Agent requests to market a LASRERA Market Place property. Agent ID is required (authenticated Agent).
  */
+/**
+ * @swagger
+ * /account/request-to-market:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Agent requests to market a LASRERA Market Place property
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - propertyId
+ *             properties:
+ *               propertyId:
+ *                 type: string
+ *                 description: ID of the property to market
+ *     responses:
+ *       201:
+ *         description: Request to market submitted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     requestId:
+ *                       type: string
+ *                     propertyId:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     agentCommissionAmount:
+ *                       type: number
+ *                     agentCommissionPercent:
+ *                       type: number
+ *       400:
+ *         description: propertyId is required or property not available
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Agents can request to market or agent access gate failed
+ *       404:
+ *         description: Property not found or publisher not found
+ *       409:
+ *         description: You already have a pending request for this property
+ */
 export const createRequestToMarket = async (
   req: AppRequest,
   res: Response,
@@ -190,6 +247,67 @@ export const createRequestToMarket = async (
 /**
  * GET /account/request-to-market (Agent: my requests; Publisher: requests for my properties)
  */
+/**
+ * @swagger
+ * /account/request-to-market:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: "List request to market (Agent: my requests; Publisher: requests for my properties)"
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [agent, publisher]
+ *         description: Filter by role
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by status
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: Request to market list fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: number
+ *                     page:
+ *                       type: number
+ *                     limit:
+ *                       type: number
+ *                     totalPages:
+ *                       type: number
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Provide role=agent or role=publisher
+ */
 export const listRequestToMarket = async (
   req: AppRequest,
   res: Response,
@@ -282,6 +400,64 @@ export const listRequestToMarket = async (
  * POST /account/request-to-market/:requestId/respond
  * Publisher (Landlord/Developer) accepts or rejects the request.
  * Body: { action: "accept" | "reject", rejectedReason?: string }
+ */
+/**
+ * @swagger
+ * /account/request-to-market/{requestId}/respond:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Publisher responds to request to market (accept/reject)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Request ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [accept, reject]
+ *                 description: Accept or reject the request
+ *               rejectedReason:
+ *                 type: string
+ *                 description: Reason for rejection
+ *     responses:
+ *       200:
+ *         description: Request accepted or rejected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     status:
+ *                       type: string
+ *       400:
+ *         description: action must be accept or reject or request already responded
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only the property publisher can respond
+ *       404:
+ *         description: Request not found
  */
 export const respondToRequestToMarket = async (
   req: AppRequest,
@@ -477,6 +653,72 @@ export const respondToRequestToMarket = async (
  * Body: { actualSalePriceNaira: number, commissionReceiptUrl?: string }
  * - commissionPercent is the rate set on the listing (not a fixed 5%).
  * - commissionReceiptUrl: optional; use URL from upload-single-file (or similar) to confirm payment to Agent.
+ */
+/**
+ * @swagger
+ * /account/request-to-market/{requestId}/register-sale:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Publisher registers actual sale price for accepted request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: requestId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Request ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - actualSalePriceNaira
+ *             properties:
+ *               actualSalePriceNaira:
+ *                 type: number
+ *                 description: Actual sale price in Naira
+ *               commissionReceiptUrl:
+ *                 type: string
+ *                 format: url
+ *                 description: URL of commission receipt
+ *     responses:
+ *       200:
+ *         description: Sale registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     agentCommissionAmount:
+ *                       type: number
+ *                     commissionPercent:
+ *                       type: number
+ *                     actualSalePriceNaira:
+ *                       type: number
+ *                     commissionReceiptUrl:
+ *                       type: string
+ *                     agent:
+ *                       type: object
+ *       400:
+ *         description: actualSalePriceNaira is required or request not accepted
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only the property publisher can register the sale
+ *       404:
+ *         description: Request not found
  */
 export const registerSaleForRequestToMarket = async (
   req: AppRequest,

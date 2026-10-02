@@ -6,6 +6,49 @@ import { EmailSubscriptionService } from "../../services/emailSubscription.servi
 import { DealSiteService } from "../../services/dealSite.service";
 
 /**
+ * @swagger
+ * /emailSubscription/subscribe:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /emailSubscription/unsubscribe:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
+/**
  * Subscribe to email list
  */
 export const subscribeEmail = async (

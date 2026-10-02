@@ -9,6 +9,23 @@ import {
   rejectCustomDomainRequest,
 } from "../../../services/customDomain.service";
 
+/**
+ * @swagger
+ * /admin/custom-domain-requests:
+ *   get:
+ *     tags:
+ *       - Admin > Custom Domain
+ *     summary: List custom domain requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Custom domain requests fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listCustomDomainRequests = async (
   req: AppRequest,
   res: Response,
@@ -65,6 +82,33 @@ export const listCustomDomainRequests = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/custom-domain-requests/{id}/forward:
+ *   post:
+ *     tags:
+ *       - Admin > Custom Domain
+ *     summary: Forward custom domain request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Custom domain request forwarded successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Request not found
+ */
 export const forwardCustomDomainRequestAdmin = async (
   req: AppRequest,
   res: Response,
@@ -85,6 +129,33 @@ export const forwardCustomDomainRequestAdmin = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/custom-domain-requests/{id}/mark-live:
+ *   post:
+ *     tags:
+ *       - Admin > Custom Domain
+ *     summary: Mark custom domain as live
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Custom domain marked as live successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Request not found
+ */
 export const markCustomDomainLiveAdmin = async (
   req: AppRequest,
   res: Response,
@@ -114,6 +185,33 @@ export const markCustomDomainLiveAdmin = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/custom-domain-requests/{id}/reject:
+ *   post:
+ *     tags:
+ *       - Admin > Custom Domain
+ *     summary: Reject custom domain request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Custom domain request rejected successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Request not found
+ */
 export const rejectCustomDomainRequestAdmin = async (
   req: AppRequest,
   res: Response,

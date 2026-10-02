@@ -21,6 +21,23 @@ import {
   accountDisapproved,
 } from "../../../common/emailTemplates/agentMails";
 
+/**
+ * @swagger
+ * /admin/developers/pending-kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Developers
+ *     summary: Get pending developer KYC requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending developers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listPendingDeveloperVerification = async (
   _req: AppRequest,
   res: Response,
@@ -50,6 +67,31 @@ export const listPendingDeveloperVerification = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/developers/{userId}/kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Developers
+ *     summary: Get developer verification details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Developer verification fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Developer not found
+ */
 export const getDeveloperVerificationAdmin = async (
   req: AppRequest,
   res: Response,

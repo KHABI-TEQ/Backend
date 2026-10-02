@@ -37,6 +37,23 @@ async function brmCard(brmId: unknown) {
   };
 }
 
+/**
+ * @swagger
+ * /admin/property-scouts:
+ *   get:
+ *     tags:
+ *       - Admin > Property Scouts
+ *     summary: Get all property scouts
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Property scouts fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listAllPropertyScouts = async (
   req: AppRequest,
   res: Response,
@@ -113,6 +130,23 @@ export const listAllPropertyScouts = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/property-scouts/pending-kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Property Scouts
+ *     summary: Get pending property scout KYC requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending property scouts fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listPendingPropertyScoutKyc = async (
   _req: AppRequest,
   res: Response,
@@ -133,6 +167,31 @@ export const listPendingPropertyScoutKyc = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/property-scouts/{userId}/kyc:
+ *   get:
+ *     tags:
+ *       - Admin > Property Scouts
+ *     summary: Get property scout KYC details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Property scout KYC fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property scout not found
+ */
 export const getPropertyScoutKyc = async (
   req: AppRequest,
   res: Response,
@@ -212,6 +271,31 @@ export const getPropertyScoutProperties = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/property-scouts/{userId}:
+ *   delete:
+ *     tags:
+ *       - Admin > Property Scouts
+ *     summary: Delete property scout account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Property scout account deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property scout not found
+ */
 export const deletePropertyScoutAccount = async (
   req: AppRequest,
   res: Response,

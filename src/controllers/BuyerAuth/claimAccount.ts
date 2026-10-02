@@ -6,6 +6,38 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { AppRequest } from "../../types/express";
 import { buyerPublic } from "./profile";
 
+/**
+ * @swagger
+ * /buyer-auth/claim-account:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Claim buyer account
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - code
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               code:
+ *                 type: string
+ *                 description: Account claim code
+ *     responses:
+ *       200:
+ *         description: Account claimed successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Invalid code or user not found
+ */
 export const claimBuyerAccount = async (
   req: AppRequest,
   res: Response,

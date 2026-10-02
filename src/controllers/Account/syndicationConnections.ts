@@ -71,6 +71,42 @@ function validateConnectionCredentialsForAuthType(
   }
 }
 
+/**
+ * @swagger
+ * /account/syndication/platforms:
+ *   get:
+ *     tags:
+ *       - Account > Syndication
+ *     summary: List approved syndication platforms
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Approved syndication platforms fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   description: Approved platforms for connection
+ *                 propertyTypeCatalog:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       value:
+ *                         type: string
+ *                       label:
+ *                         type: string
+ */
 export const listApprovedSyndicationPlatforms = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const platforms = await DB.Models.SyndicationPlatform.find({
@@ -97,6 +133,51 @@ export const listApprovedSyndicationPlatforms = async (req: AppRequest, res: Res
   }
 };
 
+/**
+ * @swagger
+ * /account/syndication/connections:
+ *   post:
+ *     tags:
+ *       - Account > Syndication
+ *     summary: Create syndication connection
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - platformId
+ *             properties:
+ *               platformId:
+ *                 type: string
+ *                 description: ID of the syndication platform
+ *               credentials:
+ *                 type: object
+ *                 description: Platform credentials (varies by auth type)
+ *     responses:
+ *       201:
+ *         description: Platform connection created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Valid platformId is required or platform is not approved
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only agents and developers can connect using partner platform login
+ */
 export const createSyndicationConnection = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?._id;
@@ -240,6 +321,58 @@ export const createSyndicationConnection = async (req: AppRequest, res: Response
   }
 };
 
+/**
+ * @swagger
+ * /account/syndication/connections/verification/{correlationId}:
+ *   get:
+ *     tags:
+ *       - Account > Syndication
+ *     summary: Get syndication connection verification status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: correlationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Correlation ID from verification initiation
+ *     responses:
+ *       200:
+ *         description: Verification status fetched
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     correlationId:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                     platformKey:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     connectionId:
+ *                       type: string
+ *                     partnerMessage:
+ *                       type: string
+ *                     expiresAt:
+ *                       type: string
+ *       400:
+ *         description: correlationId is required
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Verification not found
+ */
 export const getSyndicationVerificationStatus = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?._id;
@@ -277,6 +410,55 @@ export const getSyndicationVerificationStatus = async (req: AppRequest, res: Res
   }
 };
 
+/**
+ * @swagger
+ * /account/syndication/connections/{id}/toggle:
+ *   patch:
+ *     tags:
+ *       - Account > Syndication
+ *     summary: Toggle syndication connection enabled/disabled
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Connection ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - enabled
+ *             properties:
+ *               enabled:
+ *                 type: boolean
+ *                 description: Enable or disable the connection
+ *     responses:
+ *       200:
+ *         description: Platform connection toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid connection id or enabled boolean is required
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Connection not found
+ */
 export const toggleSyndicationConnection = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?._id;
@@ -305,6 +487,35 @@ export const toggleSyndicationConnection = async (req: AppRequest, res: Response
   }
 };
 
+/**
+ * @swagger
+ * /account/syndication/connections:
+ *   get:
+ *     tags:
+ *       - Account > Syndication
+ *     summary: List my syndication connections
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Syndication connections fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   description: User's syndication connections
+ *       401:
+ *         description: Not authenticated
+ */
 export const listMySyndicationConnections = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user?._id;

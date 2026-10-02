@@ -5,6 +5,35 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { ensureFirebaseAdmin } from "../../services/firebaseAdmin.service";
 
+/**
+ * @swagger
+ * /buyer-auth/device-token:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Add or update buyer device token
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceToken
+ *             properties:
+ *               deviceToken:
+ *                 type: string
+ *                 description: Device token for push notifications
+ *     responses:
+ *       200:
+ *         description: Device token saved successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ */
 export const upsertBuyerDeviceToken = async (
   req: AppRequest,
   res: Response,

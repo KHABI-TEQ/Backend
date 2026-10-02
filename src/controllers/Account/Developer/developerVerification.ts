@@ -24,6 +24,47 @@ function requireDeveloper(req: AppRequest) {
   return String(req.user._id);
 }
 
+/**
+ * @swagger
+ * /account/developer/verification:
+ *   get:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Get developer verification details
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Developer verification fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     kycStatus:
+ *                       type: string
+ *                     kycSubmittedAt:
+ *                       type: string
+ *                     verificationStatus:
+ *                       type: string
+ *                     documents:
+ *                       type: array
+ *                     company:
+ *                       type: object
+ *                     representative:
+ *                       type: object
+ *                     address:
+ *                       type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const getDeveloperVerification = async (
   req: AppRequest,
   res: Response,
@@ -41,6 +82,53 @@ export const getDeveloperVerification = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/developer/profile:
+ *   put:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Update developer profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               companyName:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               website:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Developer profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const putDeveloperProfile = async (
   req: AppRequest,
   res: Response,
@@ -55,6 +143,55 @@ export const putDeveloperProfile = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/developer/verification/company/lookup:
+ *   post:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Lookup developer company by CAC number
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cacNumber
+ *             properties:
+ *               cacNumber:
+ *                 type: string
+ *                 description: CAC registration number
+ *     responses:
+ *       200:
+ *         description: Company lookup successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     companyName:
+ *                       type: string
+ *                     registrationNumber:
+ *                       type: string
+ *                     rcNumber:
+ *                       type: string
+ *                     address:
+ *                       type: string
+ *       400:
+ *         description: Enter the CAC registration number
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const lookupDeveloperCompany = async (
   req: AppRequest,
   res: Response,
@@ -73,6 +210,55 @@ export const lookupDeveloperCompany = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/developer/verification/company:
+ *   put:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Save developer company verification
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               companyName:
+ *                 type: string
+ *               rcNumber:
+ *                 type: string
+ *               cacNumber:
+ *                 type: string
+ *               companyAddress:
+ *                 type: string
+ *               companyEmail:
+ *                 type: string
+ *               companyPhone:
+ *                 type: string
+ *               incorporationDate:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Company verification saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const putDeveloperCompany = async (
   req: AppRequest,
   res: Response,
@@ -87,6 +273,57 @@ export const putDeveloperCompany = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/developer/verification/representative:
+ *   put:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Save developer representative verification
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               designation:
+ *                 type: string
+ *               idType:
+ *                 type: string
+ *               idNumber:
+ *                 type: string
+ *               idDocumentUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Representative verification saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const putDeveloperRepresentative = async (
   req: AppRequest,
   res: Response,
@@ -104,6 +341,51 @@ export const putDeveloperRepresentative = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/developer/verification/address:
+ *   put:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Save developer address verification
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               address:
+ *                 type: string
+ *               state:
+ *                 type: string
+ *               localGovernment:
+ *                 type: string
+ *               country:
+ *                 type: string
+ *               proofOfAddressUrl:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Address verification saved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const putDeveloperAddress = async (
   req: AppRequest,
   res: Response,
@@ -118,6 +400,37 @@ export const putDeveloperAddress = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/developer/verification/submit:
+ *   post:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Submit developer verification for admin approval
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: KYC submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     kycStatus:
+ *                       type: string
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This action is for Developer accounts only
+ */
 export const submitDeveloperVerificationController = async (
   req: AppRequest,
   res: Response,

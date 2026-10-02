@@ -5,6 +5,30 @@ import { AppRequest } from "../../../../types/express";
 import { DB } from "../../..";
 import { finalizeSyndicationConnectionFromPartnerAuthCallback } from "../../../../services/syndicationPartnerCredentialVerification.service";
 
+/**
+ * @swagger
+ * /syndication/user/authentication/webhook:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 function verifyAuthCallbackSignature(payload: Record<string, unknown>, signatureHeader?: string): boolean {
   const secret =
     String(process.env.SYNDICATION_AUTH_CALLBACK_SECRET || process.env.SYNDICATION_WEBHOOK_SECRET || "").trim();

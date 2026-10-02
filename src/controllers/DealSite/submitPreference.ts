@@ -18,6 +18,41 @@ import {
 } from "../../services/searchInsurance.service";
  
 // ✅ Controller: Submit Preference from a DealSite
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/submit-preference:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Submit preference to deal site
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - preferences
+ *             properties:
+ *               preferences:
+ *                 type: array
+ *                 items: {'type': 'object'}
+ *                 description: Preference objects
+ *     responses:
+ *       201:
+ *         description: Preference submitted successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Deal site not found
+ */
 export const sendPreferenceRequest = async (
   req: AppRequest,
   res: Response,

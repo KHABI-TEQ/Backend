@@ -191,6 +191,36 @@ export const getAgents = async (
 };
  
 
+/**
+ * @swagger
+ * /admin/agents/fetchAll/{type}:
+ *   get:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Get agents filtered by type
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: type
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum:
+ *             - all
+ *             - pending
+ *             - approved
+ *             - subscribed
+ *             - expired
+ *             - kycRequest
+ *     responses:
+ *       200:
+ *         description: Agents fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAgentsByType = async (
   req: AppRequest,
   res: Response,
@@ -428,6 +458,44 @@ export const getAgentsByType = async (
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
+/**
+ * @swagger
+ * /admin/agents/{userId}/status:
+ *   post:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Toggle agent status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isActive
+ *             properties:
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Agent status updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Agent not found
+ */
 export const toggleAgentStatus = async (
   req: AppRequest,
   res: Response,
@@ -509,6 +577,31 @@ export const toggleAgentStatus = async (
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
+/**
+ * @swagger
+ * /admin/agents/{userId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Delete agent account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Agent account deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Agent not found
+ */
 export const deleteAgentAccount = async (
   req: AppRequest,
   res: Response,
@@ -558,6 +651,23 @@ export const deleteAgentAccount = async (
  * @param req - The Express request object, containing page and limit in query.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/agents/upgrade-requests:
+ *   get:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Get all agent upgrade requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upgrade requests fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getAllAgentUpgradeRequests = async (
   req: AppRequest,
@@ -628,6 +738,46 @@ export { reviewPublisherKyc as approveAgentKYCData } from "./publisherKycReview"
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
+/**
+ * @swagger
+ * /admin/agents/{userId}/flag-account:
+ *   put:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Flag or unflag agent account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isFlagged
+ *             properties:
+ *               isFlagged:
+ *                 type: boolean
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Agent account flagged/unflagged successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Agent not found
+ */
 export const flagOrUnflagAgentAccount = async (
   req: AppRequest,
   res: Response,
@@ -689,6 +839,31 @@ export const flagOrUnflagAgentAccount = async (
  * @param req - The Express request object, containing userId in params.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/agents/{userId}:
+ *   get:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Get single agent profile
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Agent profile fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Agent not found
  */
 export const getSingleAgentProfile = async (
   req: AppRequest,
@@ -787,6 +962,23 @@ export const getSingleAgentProfile = async (
  * @param req - The Express request object, expecting userType query param.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/agents/dashboard:
+ *   get:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Get agent dashboard statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getAgentDashboardStatistics = async (
   req: AppRequest,
@@ -906,6 +1098,23 @@ export const approveAgentUpgradeRequestStatus = async (
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */ 
+/**
+ * @swagger
+ * /admin/agents:
+ *   get:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Get all agents
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Agents fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllAgents = async (
   req: AppRequest,
   res: Response,
@@ -1041,6 +1250,31 @@ export const getAllAgents = async (
  * @param req - The Express request object, containing userId in params.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/agents/{userId}/allProperties:
+ *   get:
+ *     tags:
+ *       - Admin > Agents
+ *     summary: Get all properties for an agent
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Agent properties fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Agent not found
  */
 export const getAllAgentProperties = async (
   req: AppRequest,

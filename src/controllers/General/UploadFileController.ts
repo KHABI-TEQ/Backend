@@ -5,6 +5,101 @@ import cloudinary from "../../common/newCloudinary";
 import { AppRequest } from "../../types/express";
 
 /**
+ * @swagger
+ * /upload-single-file:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Upload single file
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               for:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: File uploaded
+ *       400:
+ *         description: Bad request
+ * /delete-single-file:
+ *   delete:
+ *     tags:
+ *       - Public
+ *     summary: Delete single file
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               url:
+ *                 type: string
+ *               resource_type:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: File deleted
+ *       400:
+ *         description: Bad request
+ * /upload-image:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Upload image
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               for:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Image uploaded
+ *       400:
+ *         description: Bad request
+ * /upload-file:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Upload file
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *               for:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: File uploaded
+ *       400:
+ *         description: Bad request
+ */
+
+/**
  * File Config Map — allowed extensions, max size (MB), resource type, upload folder
  */
 const fileTypeConfig: Record<

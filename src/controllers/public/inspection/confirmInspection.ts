@@ -4,6 +4,35 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { DB } from "../..";
 import { BUYER_CONFIRM_FLOW_INSPECTION_STATUSES } from "../../../constants/buyerInspectionConfirmationFlow";
 import {
+
+/**
+ * @swagger
+ * /inspections/confirm-inspection:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/confirm-inspection
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   CONFIRM_TOKEN_PURPOSE_INSPECTION,
   verifyBuyerConfirmationToken,
 } from "../../../services/buyerConfirmationToken.service";

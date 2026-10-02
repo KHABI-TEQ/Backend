@@ -6,6 +6,42 @@ import { RouteError } from "../../../common/classes";
 import { Types } from "mongoose";
 import { persistMatchedPreferenceProperties } from "../../../services/matchedPreferencePersistence.service";
 
+/**
+ * @swagger
+ * /admin/preferences/submitMatched:
+ *   post:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Submit matched properties for preference
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - preferenceId
+ *               - propertyIds
+ *             properties:
+ *               preferenceId:
+ *                 type: string
+ *                 description: Preference ID
+ *               propertyIds:
+ *                 type: array
+ *                 items: {'type': 'string'}
+ *                 description: Array of property IDs
+ *     responses:
+ *       200:
+ *         description: Matched properties submitted successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const selectMatchedPreferenceProperties = async (
   req: AppRequest,
   res: Response,

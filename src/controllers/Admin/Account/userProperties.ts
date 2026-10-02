@@ -11,6 +11,31 @@ import { RouteError } from "../../../common/classes";
  * - Developer
  * - Landowners
  */
+/**
+ * @swagger
+ * /admin/users/{userId}/properties:
+ *   get:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Get properties for a user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User properties fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
 export const getAdminUserProperties = async (
   req: AppRequest,
   res: Response,

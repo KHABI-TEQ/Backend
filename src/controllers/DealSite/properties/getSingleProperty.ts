@@ -8,6 +8,31 @@ import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
 import { recordListingViewFromRequest } from "../../../services/propertyView.service";
 import { isPilotState } from "../../../common/constants/pilotLocation";
 
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/properties/:propertyId:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get single deal site property
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: propertyId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Property fetched successfully
+ *       404:
+ *         description: Property not found
+ */
 export const getSingleDealSiteProperty = async (
   req: AppRequest,
   res: Response,

@@ -34,7 +34,56 @@ import { isPractitionerKycApproved } from "../../../services/publisherKyc.servic
 
 
 /**
- * Create a new subscription (initiated before payment success)
+ * @swagger
+ * /account/subscriptions/makeSub:
+ *   post:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Create a new subscription
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - planCode
+ *             properties:
+ *               planCode:
+ *                 type: string
+ *                 description: Subscription plan code
+ *               autoRenewal:
+ *                 type: boolean
+ *                 description: Enable auto-renewal
+ *     responses:
+ *       201:
+ *         description: Subscription initiated, redirecting to payment page
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     authorizationUrl:
+ *                       type: string
+ *                     accessCode:
+ *                       type: string
+ *                     reference:
+ *                       type: string
+ *       400:
+ *         description: Plan code is required or invalid plan
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only registered professionals can create subscriptions or KYC not approved
  */
 export const createSubscription = async (
   req: AppRequest,
@@ -212,7 +261,46 @@ export const createSubscription = async (
 
 
 /**
- * Fetch paginated subscription snapshots for the authenticated user
+ * @swagger
+ * /account/subscriptions/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Fetch user's subscriptions with pagination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by subscription status
+ *     responses:
+ *       200:
+ *         description: Subscriptions fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
  */
 export const fetchUserSubscriptions = async (
   req: AppRequest,
@@ -310,7 +398,35 @@ export const fetchUserSubscriptions = async (
 
 
 /**
- * Fetch details of a single subscription snapshot for the authenticated user
+ * @swagger
+ * /account/subscriptions/{subscriptionId}:
+ *   get:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Get single subscription details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: subscriptionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Subscription ID
+ *     responses:
+ *       200:
+ *         description: Subscription fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Subscription not found or not accessible
  */
 export const getUserSubscriptionDetails = async (
   req: AppRequest,
@@ -358,7 +474,37 @@ export const getUserSubscriptionDetails = async (
 
 
 /**
- * Cancel/Delete subscription snapshot (soft delete → mark as cancelled)
+ * @swagger
+ * /account/subscriptions/{subscriptionId}/cancel:
+ *   post:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Cancel subscription snapshot
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: subscriptionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Subscription ID
+ *     responses:
+ *       200:
+ *         description: Subscription cancelled successfully and email sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Cannot cancel a subscription with this status
+ *       404:
+ *         description: Subscription not found
  */
 export const cancelSubscriptionSnapshot = async (
   req: AppRequest,
@@ -429,7 +575,51 @@ export const cancelSubscriptionSnapshot = async (
 };
 
 /**
- * Toggle auto-renewal for a subscription snapshot
+ * @swagger
+ * /account/subscriptions/{subscriptionId}/cancelAutoRenewal:
+ *   post:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Toggle auto-renewal for subscription
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: subscriptionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Subscription ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - enable
+ *             properties:
+ *               enable:
+ *                 type: boolean
+ *                 description: Enable or disable auto-renewal
+ *     responses:
+ *       200:
+ *         description: Auto-renewal toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Auto-renewal is already disabled
+ *       404:
+ *         description: Subscription not found
  */
 export const toggleSubscriptionSnapshotAutoRenewal = async (
   req: AppRequest,
@@ -499,7 +689,60 @@ export const toggleSubscriptionSnapshotAutoRenewal = async (
 
 
 /**
- * Fetch ALl Active subscription plans
+ * @swagger
+ * /account/subscriptions/fetchAllPlans:
+ *   get:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Fetch all active subscription plans
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by plan category
+ *       - in: query
+ *         name: audience
+ *         schema:
+ *           type: string
+ *         description: Filter by plan audience
+ *     responses:
+ *       200:
+ *         description: Active subscription plans fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       category:
+ *                         type: string
+ *                       audience:
+ *                         type: string
+ *                       price:
+ *                         type: number
+ *                       currency:
+ *                         type: string
+ *                       interval:
+ *                         type: string
+ *                       features:
+ *                         type: array
+ *                         items:
+ *                           type: string
  */
 export const getAllActiveSubscriptionPlans = async (
   req: AppRequest,
@@ -602,7 +845,39 @@ export const getAllActiveSubscriptionPlans = async (
 
 
 /**
- * Fetch ALl Active features
+ * @swagger
+ * /account/features/getAll:
+ *   get:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Fetch all active features
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Active features fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       code:
+ *                         type: string
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *                       category:
+ *                         type: string
  */
 export const getAllActiveFeatures = async (
   req: AppRequest,

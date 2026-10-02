@@ -19,6 +19,40 @@ const ALLOWED_TYPES: AdminNotificationType[] = [
 /**
  * GET /api/admin/notifications
  */
+/**
+ * @swagger
+ * /admin/notifications:
+ *   get:
+ *     tags:
+ *       - Admin > Notifications
+ *     summary: Get all admin notifications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: isRead
+ *         in: query
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: Notifications fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAdminNotifications = async (
   req: AppRequest,
   res: Response,
@@ -66,6 +100,23 @@ export const getAdminNotifications = async (
 /**
  * GET /api/admin/notifications/unread-count
  */
+/**
+ * @swagger
+ * /admin/notifications/unread-count:
+ *   get:
+ *     tags:
+ *       - Admin > Notifications
+ *     summary: Get unread notification count
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread count fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAdminUnreadNotificationCount = async (
   req: AppRequest,
   res: Response,
@@ -91,6 +142,29 @@ export const getAdminUnreadNotificationCount = async (
 
 /**
  * PUT /api/admin/notifications/:notificationId/read
+ */
+/**
+ * @swagger
+ * /admin/notifications/{notificationId}/read:
+ *   put:
+ *     tags:
+ *       - Admin > Notifications
+ *     summary: Mark admin notification as read
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: notificationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Notification not found
  */
 export const markAdminNotificationRead = async (
   req: AppRequest,
@@ -122,6 +196,21 @@ export const markAdminNotificationRead = async (
 /**
  * PUT /api/admin/notifications/read-all
  */
+/**
+ * @swagger
+ * /admin/notifications/read-all:
+ *   put:
+ *     tags:
+ *       - Admin > Notifications
+ *     summary: Mark all admin notifications as read
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *       401:
+ *         description: Not authenticated
+ */
 export const markAllAdminNotificationsRead = async (
   req: AppRequest,
   res: Response,
@@ -147,6 +236,29 @@ export const markAllAdminNotificationsRead = async (
 
 /**
  * DELETE /api/admin/notifications/:notificationId
+ */
+/**
+ * @swagger
+ * /admin/notifications/{notificationId}:
+ *   delete:
+ *     tags:
+ *       - Admin > Notifications
+ *     summary: Delete admin notification
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: notificationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Notification not found
  */
 export const deleteAdminNotification = async (
   req: AppRequest,

@@ -33,6 +33,55 @@ export const createSubscriptionPlan = async (
 /**
  * Update a subscription plan (except code)
  */
+/**
+ * @swagger
+ * /admin/subsription-plans/{planId}/update:
+ *   put:
+ *     tags:
+ *       - Admin > Subscription Plans
+ *     summary: Update subscription plan
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: planId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               interval:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               audience:
+ *                 type: string
+ *               features:
+ *                 type: array
+ *                 items: {'type': 'string'}
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Subscription plan updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Plan not found
+ */
 export const updateSubscriptionPlan = async (
   req: AppRequest,
   res: Response,
@@ -55,6 +104,31 @@ export const updateSubscriptionPlan = async (
 
 /**
  * Delete a subscription plan
+ */
+/**
+ * @swagger
+ * /admin/subsription-plans/{planId}/deleteOne:
+ *   delete:
+ *     tags:
+ *       - Admin > Subscription Plans
+ *     summary: Delete subscription plan
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: planId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Subscription plan deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Plan not found
  */
 export const deleteSubscriptionPlan = async (
   req: AppRequest,
@@ -82,6 +156,23 @@ export const deleteSubscriptionPlan = async (
 /**
  * Fetch all subscription plans
  */
+/**
+ * @swagger
+ * /admin/subsription-plans:
+ *   get:
+ *     tags:
+ *       - Admin > Subscription Plans
+ *     summary: Get all subscription plans
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Subscription plans fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllSubscriptionPlans = async (
   req: AppRequest,
   res: Response,
@@ -101,6 +192,31 @@ export const getAllSubscriptionPlans = async (
 
 /**
  * Get one subscription plan
+ */
+/**
+ * @swagger
+ * /admin/subsription-plans/{planId}/getOne:
+ *   get:
+ *     tags:
+ *       - Admin > Subscription Plans
+ *     summary: Get subscription plan by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: planId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Subscription plan fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Plan not found
  */
 export const getSubscriptionPlan = async (
   req: AppRequest,

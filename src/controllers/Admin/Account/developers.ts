@@ -27,6 +27,23 @@ const ALLOWED_SORT_FIELDS = new Set([
  * GET /admin/developers
  * Paginated developers (userType Developer) with search, filters, and sorting.
  */
+/**
+ * @swagger
+ * /admin/developers:
+ *   get:
+ *     tags:
+ *       - Admin > Developers
+ *     summary: Get all developers
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Developers fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllDevelopers = async (
   req: AppRequest,
   res: Response,
@@ -155,6 +172,31 @@ export const getAllDevelopers = async (
 /**
  * GET /admin/developers/:userId
  */
+/**
+ * @swagger
+ * /admin/developers/{userId}:
+ *   get:
+ *     tags:
+ *       - Admin > Developers
+ *     summary: Get single developer by user ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Developer fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Developer not found
+ */
 export const getSingleDeveloper = async (
   req: AppRequest,
   res: Response,
@@ -221,6 +263,31 @@ export const getSingleDeveloper = async (
 
 /**
  * GET /admin/developers/:userId/allProperties
+ */
+/**
+ * @swagger
+ * /admin/developers/{userId}/allProperties:
+ *   get:
+ *     tags:
+ *       - Admin > Developers
+ *     summary: Get all properties for a developer
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Developer properties fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Developer not found
  */
 export const getAllDeveloperProperties = async (
   req: AppRequest,

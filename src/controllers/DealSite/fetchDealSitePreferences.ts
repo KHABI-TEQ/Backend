@@ -5,6 +5,21 @@ import { RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 
 // ✅ Fetch preferences for the DealSite of the logged-in agent
+/**
+ * @swagger
+ * /account/dealSite/get-preferences:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Fetch deal site preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferences fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const fetchMyDealSitePreference = async (
   req: AppRequest,
   res: Response,

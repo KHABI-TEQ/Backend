@@ -124,6 +124,44 @@ async function searchUserIds(term: string) {
  * GET /admin/request-to-market-sales
  * Registered sales from Developers/Landowners after accepting an Agent request.
  */
+/**
+ * @swagger
+ * /admin/request-to-market-sales:
+ *   get:
+ *     tags:
+ *       - Admin > Request To Market
+ *     summary: List request-to-market sales
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Sales fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listRequestToMarketSales = async (
   req: AppRequest,
   res: Response,
@@ -217,6 +255,23 @@ export const listRequestToMarketSales = async (
 /**
  * GET /admin/request-to-market-sales/stats
  */
+/**
+ * @swagger
+ * /admin/request-to-market-sales/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Request To Market
+ *     summary: Get request-to-market sale statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getRequestToMarketSaleStats = async (
   _req: AppRequest,
   res: Response,
@@ -300,6 +355,47 @@ export const getRequestToMarketSaleById = async (
 /**
  * PATCH /admin/request-to-market-sales/:requestId/verify
  * Body: { action: "verify" | "reject", note?: string }
+ */
+/**
+ * @swagger
+ * /admin/request-to-market-sales/{requestId}/verify:
+ *   patch:
+ *     tags:
+ *       - Admin > Request To Market
+ *     summary: Verify request-to-market sale receipt
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: requestId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: ['verified', 'rejected']
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Receipt verified successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Request not found
  */
 export const verifyRequestToMarketSaleReceipt = async (
   req: AppRequest,

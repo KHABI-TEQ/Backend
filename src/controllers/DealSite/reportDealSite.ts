@@ -5,6 +5,40 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { notifyAllActiveAdmins } from "../../services/adminNotification.service";
  
 // ✅ Controller: Report a DealSite
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/reportDealPage:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Report deal site
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for reporting
+ *     responses:
+ *       201:
+ *         description: Deal site reported successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Deal site not found
+ */
 export const reportDealSite = async (
   req: AppRequest,
   res: Response,

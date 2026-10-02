@@ -21,6 +21,56 @@ import { normalizeIsTenantedForDb } from "../../../utils/normalizeIsTenanted";
 import { listingCommissionFields } from "../../../common/constants/listingCommission";
 import { assertCanListOffPlanIfRequested } from "../../../services/developerPlanEntitlement.service";
 
+/**
+ * @swagger
+ * /admin/properties/create:
+ *   post:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Create property as admin
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - price
+ *               - propertyType
+ *               - status
+ *               - location
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               propertyType:
+ *                 type: string
+ *               status:
+ *                 type: string
+ *               location:
+ *                 type: object
+ *               pictures:
+ *                 type: array
+ *                 items: {'type': 'string'}
+ *               userId:
+ *                 type: string
+ *                 description: Owner user ID
+ *     responses:
+ *       201:
+ *         description: Property created successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const postPropertyAsAdmin = async (
   req: AppRequest,
   res: Response,

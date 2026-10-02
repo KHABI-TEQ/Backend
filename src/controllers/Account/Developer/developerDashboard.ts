@@ -12,6 +12,47 @@ import {
 import { getDeveloperPlanSnapshot } from "../../../services/developerPlanEntitlement.service";
 import { listDeveloperProjects, projectCounts } from "../../../services/offPlanProject.service";
 
+/**
+ * @swagger
+ * /account/developer/dashboard-summary:
+ *   get:
+ *     tags:
+ *       - Account > Developer
+ *     summary: Get developer dashboard summary
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Developer dashboard summary fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalProjects:
+ *                       type: number
+ *                     activeProjects:
+ *                       type: number
+ *                     pendingProjects:
+ *                       type: number
+ *                     completedProjects:
+ *                       type: number
+ *                     totalUnits:
+ *                       type: number
+ *                     soldUnits:
+ *                       type: number
+ *                     availableUnits:
+ *                       type: number
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: This snapshot is for Developer accounts only
+ */
 export const getDeveloperDashboardSummary = async (
   req: AppRequest,
   res: Response,

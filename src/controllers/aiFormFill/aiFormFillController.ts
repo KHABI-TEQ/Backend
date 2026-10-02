@@ -8,6 +8,60 @@ import { suggestFormFields } from "../../services/aiFormFill.service";
  * POST /account/ai/suggest-property
  * Authenticated Agent, Landlord, or Developer: get AI-suggested property form fields from natural language.
  */
+/**
+ * @swagger
+ * /account/ai/suggest-property:
+ *   post:
+ *     tags:
+ *       - Account
+ *       - Account > AI
+ *     summary: Get AI-suggested property form fields from natural language
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userInput
+ *             properties:
+ *               userInput:
+ *                 type: string
+ *                 description: Natural language description of the property
+ *     responses:
+ *       200:
+ *         description: Suggested property form fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                     description:
+ *                       type: string
+ *                     price:
+ *                       type: number
+ *                     propertyType:
+ *                       type: string
+ *                     location:
+ *                       type: object
+ *       400:
+ *         description: userInput is required
+ *       403:
+ *         description: Only Agents, Landlords, and Developers can use AI
+ *       503:
+ *         description: AI service unavailable
+ */
 export const suggestPropertyForm = async (
   req: AppRequest,
   res: Response,
@@ -53,6 +107,57 @@ export const suggestPropertyForm = async (
 /**
  * POST /ai/suggest-preference
  * Public: get AI-suggested preference form fields from natural language (for buyers submitting a preference).
+ */
+/**
+ * @swagger
+ * /ai/suggest-preference:
+ *   post:
+ *     tags:
+ *       - Account
+ *       - Account > AI
+ *     summary: Get AI-suggested preference form fields from natural language (public)
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userInput
+ *             properties:
+ *               userInput:
+ *                 type: string
+ *                 description: Natural language description of buyer preferences
+ *     responses:
+ *       200:
+ *         description: Suggested preference form fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     budget:
+ *                       type: number
+ *                     propertyType:
+ *                       type: string
+ *                     location:
+ *                       type: object
+ *                     bedrooms:
+ *                       type: number
+ *                     bathrooms:
+ *                       type: number
+ *       400:
+ *         description: userInput is required
+ *       503:
+ *         description: AI service unavailable
  */
 export const suggestPreferenceForm = async (
   req: AppRequest,

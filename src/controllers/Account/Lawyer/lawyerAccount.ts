@@ -36,6 +36,53 @@ async function getOrCreateProfile(userId: string) {
   return profile;
 }
 
+/**
+ * @swagger
+ * /account/lawyer/me:
+ *   get:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Get lawyer profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lawyer profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     fullName:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     phoneNumber:
+ *                       type: string
+ *                     firmName:
+ *                       type: string
+ *                     bio:
+ *                       type: string
+ *                     practiceAreas:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     licenseNumber:
+ *                       type: string
+ *                     kycStatus:
+ *                       type: string
+ *                     verificationFee:
+ *                       type: number
+ *       403:
+ *         description: Lawyer account required
+ */
 export const getLawyerMe = async (
   req: AppRequest,
   res: Response,
@@ -71,6 +118,53 @@ export const getLawyerMe = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/lawyer/profile:
+ *   put:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Update lawyer profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firmName:
+ *                 type: string
+ *               profilePhoto:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               practiceAreas:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               verificationFee:
+ *                 type: number
+ *               licenseNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Lawyer profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Lawyer account required
+ */
 export const updateLawyerProfile = async (
   req: AppRequest,
   res: Response,
@@ -116,6 +210,63 @@ export const updateLawyerProfile = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/lawyer/kyc:
+ *   put:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Submit lawyer KYC
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - kycDocuments
+ *             properties:
+ *               kycDocuments:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                 description: Array of KYC documents
+ *               licenseNumber:
+ *                 type: string
+ *               verificationFee:
+ *                 type: number
+ *               bio:
+ *                 type: string
+ *               profilePhoto:
+ *                 type: string
+ *               certificateKind:
+ *                 type: string
+ *               certificateNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: KYC submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     kycStatus:
+ *                       type: string
+ *       400:
+ *         description: Upload at least one professional document for KYC
+ *       403:
+ *         description: Lawyer account required
+ */
 export const submitLawyerKyc = async (
   req: AppRequest,
   res: Response,
@@ -178,6 +329,59 @@ export const submitLawyerKyc = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/lawyer/bank:
+ *   post:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Setup lawyer bank account
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - businessName
+ *               - bankCode
+ *               - accountNumber
+ *             properties:
+ *               businessName:
+ *                 type: string
+ *                 description: Business name for the account
+ *               bankCode:
+ *                 type: string
+ *                 description: Bank code
+ *               accountNumber:
+ *                 type: string
+ *                 description: Bank account number
+ *     responses:
+ *       200:
+ *         description: Settlement account connected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     paystackSubaccountCode:
+ *                       type: string
+ *                     bankDetails:
+ *                       type: object
+ *       400:
+ *         description: businessName, bankCode and accountNumber are required
+ *       403:
+ *         description: Lawyer account required
+ */
 export const setupLawyerBank = async (
   req: AppRequest,
   res: Response,
@@ -246,6 +450,38 @@ function redactBuyerUntilPaid(job: any) {
   return job;
 }
 
+/**
+ * @swagger
+ * /account/lawyer/verification-jobs:
+ *   get:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: List lawyer verification jobs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by job status
+ *     responses:
+ *       200:
+ *         description: Verification jobs fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       403:
+ *         description: Only licensed Agents can view representation requests
+ */
 export const listLawyerVerificationJobs = async (
   req: AppRequest,
   res: Response,
@@ -281,6 +517,37 @@ export const listLawyerVerificationJobs = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/lawyer/verification-jobs/{id}:
+ *   get:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Get single lawyer verification job
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     responses:
+ *       200:
+ *         description: Verification job fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Only licensed Agents can view representation requests
+ */
 export const getLawyerVerificationJob = async (
   req: AppRequest,
   res: Response,
@@ -317,6 +584,54 @@ export const getLawyerVerificationJob = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/lawyer/verification-jobs/{id}/respond:
+ *   post:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Respond to lawyer verification job (accept/decline)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accept
+ *             properties:
+ *               accept:
+ *                 type: boolean
+ *                 description: Accept or decline the request
+ *               reason:
+ *                 type: string
+ *                 description: Reason for declining
+ *     responses:
+ *       200:
+ *         description: Request accepted or declined
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Only licensed Agents can respond to representation requests
+ */
 export const respondLawyerVerificationJob = async (
   req: AppRequest,
   res: Response,
@@ -369,6 +684,62 @@ export const respondLawyerVerificationJob = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/lawyer/verification-jobs/{id}/report:
+ *   post:
+ *     tags:
+ *       - Account > Lawyer
+ *     summary: Submit lawyer verification report
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [registered, unregistered]
+ *                 description: Verification status
+ *               description:
+ *                 type: string
+ *                 description: Report description
+ *               newDocumentUrl:
+ *                 type: string
+ *                 description: URL of new document if any
+ *     responses:
+ *       200:
+ *         description: Verification report submitted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: status must be registered or unregistered
+ *       403:
+ *         description: Only licensed Agents can respond to representation requests
+ *       404:
+ *         description: Job not found
+ */
 export const submitLawyerVerificationReport = async (
   req: AppRequest,
   res: Response,

@@ -21,6 +21,41 @@ import { getPropertyScoutSnapshot } from "../../../services/propertyScout.servic
  * GET /account/agent/eligibility
  * Agent dashboard policy snapshot: KYC + paid subscription required to list.
  */
+/**
+ * @swagger
+ * /account/agent/eligibility:
+ *   get:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Get agent eligibility snapshot
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Agent eligibility fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     eligible:
+ *                       type: boolean
+ *                     reason:
+ *                       type: string
+ *                     kycStatus:
+ *                       type: string
+ *                     accountStatus:
+ *                       type: string
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Eligibility applies to Agent accounts only
+ */
 export const getAgentEligibility = async (
   req: AppRequest,
   res: Response,

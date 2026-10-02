@@ -19,6 +19,53 @@ import { isBrmBookUserType } from "../../common/constants/brmBook";
 /**
  * Traditional Registration
  */
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     tags:
+ *       - Auth
+ *     summary: Register user
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - firstName
+ *               - lastName
+ *               - phoneNumber
+ *               - userType
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               userType:
+ *                 type: string
+ *                 enum: ['agent', 'landlord', 'developer', 'lawyer', 'surveyor', 'valuer', 'buyer']
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Bad request
+ *       409:
+ *         description: User already exists
+ */
 export const registerUser = async (
   req: Request,
   res: Response,

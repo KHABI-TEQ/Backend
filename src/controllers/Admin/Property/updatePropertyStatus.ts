@@ -16,6 +16,46 @@ import {
   isRemovedPropertyStatus,
 } from "../../../utils/liveListingFilter";
 
+/**
+ * @swagger
+ * /admin/properties/{propertyId}/changeStatus:
+ *   post:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Update property status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: propertyId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Property status updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property not found
+ */
 export const updatePropertyStatusAsAdmin = async (
   req: AppRequest,
   res: Response,

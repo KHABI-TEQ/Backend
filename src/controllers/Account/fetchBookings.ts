@@ -13,6 +13,48 @@ import { generalEmailLayout } from "../../common/emailTemplates/emailLayout";
 import { isLikelyE164CapableLocalPhone, runWhatsapp } from "../../services/whatsappClient.service";
 import { dealSiteOriginFromPublicSlug } from "../../config/dealSitePublicHost";
 
+/**
+ * @swagger
+ * /account/my-bookings/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Bookings
+ *     summary: Fetch user's bookings with pagination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by booking status
+ *     responses:
+ *       200:
+ *         description: Bookings fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ */
 export const fetchUserBookings = async (
   req: AppRequest,
   res: Response,
@@ -57,6 +99,37 @@ export const fetchUserBookings = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/my-bookings/{bookingId}:
+ *   get:
+ *     tags:
+ *       - Account > Bookings
+ *     summary: Get single booking details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     responses:
+ *       200:
+ *         description: Booking fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Booking not found
+ */
 export const getOneUserBooking = async (
   req: AppRequest,
   res: Response,
@@ -85,6 +158,39 @@ export const getOneUserBooking = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/my-bookings/stats:
+ *   get:
+ *     tags:
+ *       - Account > Bookings
+ *     summary: Get booking statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Booking stats fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalBookings:
+ *                       type: number
+ *                     requestedBookings:
+ *                       type: number
+ *                     confirmedBookings:
+ *                       type: number
+ *                     cancelledBookings:
+ *                       type: number
+ *                     completedBookings:
+ *                       type: number
+ */
 export const getBookingStats = async (
   req: AppRequest,
   res: Response,
@@ -141,8 +247,54 @@ export const getBookingStats = async (
 };
 
 /**
- * Owner responds to a booking request.
- * Marks it as accepted or declined, optionally adding a note.
+ * @swagger
+ * /account/my-bookings/{bookingId}/respondToRequest:
+ *   post:
+ *     tags:
+ *       - Account > Bookings
+ *     summary: Respond to booking request (available/unavailable)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Booking ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - response
+ *             properties:
+ *               response:
+ *                 type: string
+ *                 enum: [available, unavailable]
+ *               note:
+ *                 type: string
+ *                 description: Optional note for the buyer
+ *     responses:
+ *       200:
+ *         description: Booking request responded
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Response must be available or unavailable
+ *       404:
+ *         description: Booking not found or not in requested status
  */
 export const respondToBookingRequest = async (
   req: AppRequest,

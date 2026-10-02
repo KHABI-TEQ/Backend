@@ -7,6 +7,107 @@ import { recordListingViewFromRequest } from "../../../services/propertyView.ser
 import { ignoreWords } from "../../../utils/ignoreWords";
 import { mongoPilotStateClause, isPilotState } from "../../../common/constants/pilotLocation";
 
+/**
+ * @swagger
+ * /properties/all:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /properties/all
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /properties/code/{code}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /properties/code/{code}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /properties/featuredProps:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /properties/featuredProps
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /properties/{propertyId}/getOne:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /properties/{propertyId}/getOne
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 // Fetch All Properties with Filters & Pagination (Public)
 export const getAllProperties = async (
   req: AppRequest,

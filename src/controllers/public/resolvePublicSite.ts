@@ -4,6 +4,35 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { resolvePublicSiteByHost } from "../../services/customDomain.service";
 
+/**
+ * @swagger
+ * /public-site/resolve:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /public-site/resolve
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 export const resolvePublicSite = async (
   req: AppRequest,
   res: Response,

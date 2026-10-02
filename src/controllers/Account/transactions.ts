@@ -5,6 +5,48 @@ import { DB } from "..";
 import { RouteError } from "../../common/classes";
 import { getLawyerPlatformChargePercent, getSurveyorPlatformChargePercent } from "../../services/professionalFee.service";
 
+/**
+ * @swagger
+ * /account/transactions/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Transactions
+ *     summary: Fetch user's transactions with pagination
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: transactionType
+ *         schema:
+ *           type: string
+ *         description: Filter by transaction type
+ *     responses:
+ *       200:
+ *         description: Transactions fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ */
 export const fetchUserTransactions = async (
   req: AppRequest,
   res: Response,
@@ -52,7 +94,35 @@ export const fetchUserTransactions = async (
 
 
 /**
- * Fetch details of a single transaction for the authenticated user
+ * @swagger
+ * /account/transactions/{transactionId}:
+ *   get:
+ *     tags:
+ *       - Account > Transactions
+ *     summary: Get single transaction details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Transaction ID
+ *     responses:
+ *       200:
+ *         description: Transaction fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       404:
+ *         description: Transaction not found or not accessible
  */
 export const getUserTransactionDetails = async (
   req: AppRequest,
@@ -89,7 +159,39 @@ export const getUserTransactionDetails = async (
   }
 };
 
-/** Role-aware activity and money summary for practitioners and publishers. */
+/**
+ * @swagger
+ * /account/transactions/activity:
+ *   get:
+ *     tags:
+ *       - Account > Transactions
+ *     summary: Get transaction activity and summary
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transaction activity fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                     summary:
+ *                       type: object
+ *                     activity:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         description: Not authenticated
+ */
 export const fetchTransactionActivity = async (
   req: AppRequest,
   res: Response,
@@ -106,7 +208,7 @@ export const fetchTransactionActivity = async (
 
     const payments = await DB.Models.NewTransaction.find({
       "fromWho.kind": "User", "fromWho.item": id, status: { $in: ["pending", "success", "failed", "cancelled"] },
-    }).sort({ createdAt: -1 }).limit(100).lean();
+    }).sort({ createdAt: -1 }).limit(100).lean() as any[];
     for (const tx of payments) add({
       id: `payment:${tx._id}`, kind: "payment", title: tx.transactionType || "Account payment",
       reference: tx.reference, status: tx.status, occurredAt: tx.createdAt,

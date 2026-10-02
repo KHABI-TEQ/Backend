@@ -5,6 +5,38 @@ import { generateToken, RouteError } from "../../common/classes";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { buyerPublic } from "./profile";
 
+/**
+ * @swagger
+ * /buyer-auth/login:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Login buyer
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Invalid credentials
+ */
 export const loginBuyer = async (
   req: Request,
   res: Response,

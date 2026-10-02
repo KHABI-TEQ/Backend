@@ -9,6 +9,39 @@ import {
   userCanEditListedProperty,
 } from "../../../services/propertyPriceLock.service";
 
+/**
+ * @swagger
+ * /account/properties/{propertyId}/getOne:
+ *   get:
+ *     tags:
+ *       - Account > Property
+ *     summary: Get single property details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     responses:
+ *       200:
+ *         description: Property fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: You do not have permission to access this property
+ *       404:
+ *         description: Property not found
+ */
 export const fetchSingleProperty = async (
   req: AppRequest,
   res: Response,
@@ -55,6 +88,75 @@ export const fetchSingleProperty = async (
  * (Publisher = property.owner). When no status or isApproved filter is sent, returns ALL
  * of the user's properties with no default "approved only". isDeleted excludes only
  * explicitly deleted properties (same inclusive behaviour as request-to-market list).
+ */
+/**
+ * @swagger
+ * /account/properties/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Property
+ *     summary: Fetch all properties for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Items per page
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Filter by property status
+ *       - in: query
+ *         name: propertyType
+ *         schema:
+ *           type: string
+ *         description: Filter by property type
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter by state
+ *       - in: query
+ *         name: localGovernment
+ *         schema:
+ *           type: string
+ *         description: Filter by local government
+ *       - in: query
+ *         name: priceMin
+ *         schema:
+ *           type: number
+ *         description: Minimum price filter
+ *       - in: query
+ *         name: priceMax
+ *         schema:
+ *           type: number
+ *         description: Maximum price filter
+ *     responses:
+ *       200:
+ *         description: Properties fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
  */
 export const fetchAllProperties = async (
   req: AppRequest,

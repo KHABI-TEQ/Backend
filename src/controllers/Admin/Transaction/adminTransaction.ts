@@ -6,6 +6,44 @@ import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
 
 // Get all transactions
+/**
+ * @swagger
+ * /admin/transactions:
+ *   get:
+ *     tags:
+ *       - Admin > Transactions
+ *     summary: Get all transactions
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transactions fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllTransactions = async (
   req: AppRequest,
   res: Response,
@@ -96,6 +134,23 @@ export const getAllTransactions = async (
 
 
 // Get transaction stats
+/**
+ * @swagger
+ * /admin/transactions/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Transactions
+ *     summary: Get transaction statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transaction stats fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getTransactionStats = async (
   req: AppRequest,
   res: Response,
@@ -146,6 +201,31 @@ export const getTransactionStats = async (
 
 
 // Get single transaction by ID
+/**
+ * @swagger
+ * /admin/transactions/{transactionId}:
+ *   get:
+ *     tags:
+ *       - Admin > Transactions
+ *     summary: Get transaction by ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: transactionId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Transaction fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Transaction not found
+ */
 export const getTransactionById = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { transactionId } = req.params;

@@ -35,6 +35,47 @@ async function getOrCreateProfile(userId: string) {
   return profile;
 }
 
+/**
+ * @swagger
+ * /account/valuer/me:
+ *   get:
+ *     tags:
+ *       - Account > Valuer
+ *     summary: Get valuer profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Valuer profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     fullName:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     phoneNumber:
+ *                       type: string
+ *                     firmName:
+ *                       type: string
+ *                     bio:
+ *                       type: string
+ *                     licenseNumber:
+ *                       type: string
+ *                     kycStatus:
+ *                       type: string
+ *       403:
+ *         description: Valuer account required
+ */
 export const getValuerMe = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const user = requireValuerOrUpgrade(req);
@@ -48,6 +89,61 @@ export const getValuerMe = async (req: AppRequest, res: Response, next: NextFunc
   }
 };
 
+/**
+ * @swagger
+ * /account/valuer/kyc:
+ *   put:
+ *     tags:
+ *       - Account > Valuer
+ *     summary: Submit valuer KYC
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - kycDocuments
+ *             properties:
+ *               kycDocuments:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                 description: Array of KYC documents
+ *               licenseNumber:
+ *                 type: string
+ *               certificateKind:
+ *                 type: string
+ *               certificateNumber:
+ *                 type: string
+ *               firmName:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: KYC submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     kycStatus:
+ *                       type: string
+ *       400:
+ *         description: At least one KYC document is required
+ *       403:
+ *         description: Valuer account required
+ */
 export const submitValuerKyc = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const user = requireValuerOrUpgrade(req);
@@ -76,6 +172,32 @@ export const submitValuerKyc = async (req: AppRequest, res: Response, next: Next
   }
 };
 
+/**
+ * @swagger
+ * /account/valuer/jobs:
+ *   get:
+ *     tags:
+ *       - Account > Valuer
+ *     summary: List valuer jobs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Valuer jobs fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       403:
+ *         description: Valuer account required
+ */
 export const listValuerJobs = async (
   req: AppRequest,
   res: Response,
@@ -93,6 +215,37 @@ export const listValuerJobs = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/valuer/jobs/{id}:
+ *   get:
+ *     tags:
+ *       - Account > Valuer
+ *     summary: Get single valuer job
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     responses:
+ *       200:
+ *         description: Valuer job fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Valuer account required
+ */
 export const getValuerJob = async (
   req: AppRequest,
   res: Response,
@@ -114,6 +267,59 @@ export const getValuerJob = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/valuer/bank:
+ *   post:
+ *     tags:
+ *       - Account > Valuer
+ *     summary: Setup valuer bank account
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - businessName
+ *               - bankCode
+ *               - accountNumber
+ *             properties:
+ *               businessName:
+ *                 type: string
+ *                 description: Business name for the account
+ *               bankCode:
+ *                 type: string
+ *                 description: Bank code
+ *               accountNumber:
+ *                 type: string
+ *                 description: Bank account number
+ *     responses:
+ *       200:
+ *         description: Settlement account connected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     paystackSubaccountCode:
+ *                       type: string
+ *                     bankDetails:
+ *                       type: object
+ *       400:
+ *         description: businessName, bankCode and accountNumber are required
+ *       403:
+ *         description: Valuer account required
+ */
 export const setupValuerBank = async (
   req: AppRequest,
   res: Response,
@@ -160,6 +366,65 @@ export const setupValuerBank = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/valuer/jobs/{id}/respond:
+ *   post:
+ *     tags:
+ *       - Account > Valuer
+ *     summary: Respond to valuer job (accept/decline or submit offer)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accept:
+ *                 type: boolean
+ *                 description: Accept or decline
+ *               reason:
+ *                 type: string
+ *                 description: Reason for declining
+ *               coverageNote:
+ *                 type: string
+ *               fee:
+ *                 type: number
+ *                 description: Proposed fee
+ *               serviceItems:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               commissionAccepted:
+ *                 type: boolean
+ *               letterheadReportAccepted:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Request accepted, declined, or offer sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Valuer account required
+ */
 export const respondValuerJob = async (
   req: AppRequest,
   res: Response,

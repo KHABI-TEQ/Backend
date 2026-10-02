@@ -3,6 +3,59 @@ import mongoose from "mongoose";
 import { DB } from "..";
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 
+/**
+ * @swagger
+ * /brms:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /brms
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /brms/{id}/picture:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /brms/{id}/picture
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 /** RN Image often fails on Cloudinary f_auto (webp/avif). Force JPEG. */
 function jpegCloudinaryUrl(url: string): string {
   if (url.includes("/image/upload/") && !/\/f_jpe?g/i.test(url)) {

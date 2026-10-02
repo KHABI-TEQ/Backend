@@ -6,6 +6,49 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { buyerPublic } from "./profile";
 import { resolveActiveBrmId } from "../Account/assignBrm";
 
+/**
+ * @swagger
+ * /buyer-auth/register:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Register buyer
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - firstName
+ *               - lastName
+ *               - phoneNumber
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Buyer registered successfully
+ *       400:
+ *         description: Bad request
+ *       409:
+ *         description: Buyer already exists
+ */
 export const registerBuyer = async (
   req: Request,
   res: Response,

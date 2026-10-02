@@ -5,6 +5,40 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { generateToken, RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
 
+/**
+ * @swagger
+ * /admin/login:
+ *   post:
+ *     tags:
+ *       - Admin > Auth
+ *     summary: Admin login with email and password
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Invalid credentials
+ *       403:
+ *         description: Admin account not active
+ */
 export const loginAdmin = async (
   req: AppRequest,
   res: Response,

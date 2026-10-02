@@ -51,6 +51,50 @@ export const createSyndicationPlatform = async (req: AppRequest, res: Response, 
   }
 };
 
+/**
+ * @swagger
+ * /admin/syndication/platforms/{id}:
+ *   patch:
+ *     tags:
+ *       - Admin > Syndication
+ *     summary: Update syndication platform
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               apiEndpoint:
+ *                 type: string
+ *               apiKey:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Syndication platform updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Platform not found
+ */
 export const editSyndicationPlatform = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -106,6 +150,44 @@ export const editSyndicationPlatform = async (req: AppRequest, res: Response, ne
   }
 };
 
+/**
+ * @swagger
+ * /admin/syndication/platforms/{id}/status:
+ *   patch:
+ *     tags:
+ *       - Admin > Syndication
+ *     summary: Update syndication platform status
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isActive
+ *             properties:
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Platform status updated successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Platform not found
+ */
 export const updateSyndicationPlatformStatus = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
@@ -132,6 +214,23 @@ export const updateSyndicationPlatformStatus = async (req: AppRequest, res: Resp
   }
 };
 
+/**
+ * @swagger
+ * /admin/syndication/platforms:
+ *   get:
+ *     tags:
+ *       - Admin > Syndication
+ *     summary: Get all syndication platforms
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Syndication platforms fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listSyndicationPlatformsForAdmin = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const { status } = req.query;

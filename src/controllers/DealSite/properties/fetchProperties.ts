@@ -7,6 +7,34 @@ import { ignoreWords } from "../../../utils/ignoreWords";
 import { resolveLeanRefToObjectId } from "../../../utils/mongooseId";
 import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
  
+/**
+ * @swagger
+ * /account/dealSite/:publicSlug/properties:
+ *   get:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Get deal site properties
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Properties fetched successfully
+ *       404:
+ *         description: Deal site not found
+ */
 export const getDealSiteProperties = async (
   req: AppRequest,
   res: Response,

@@ -25,6 +25,40 @@ function escapeHtml(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * @swagger
+ * /admin/syndication/platform-applications:
+ *   get:
+ *     tags:
+ *       - Admin > Syndication
+ *     summary: Get all syndication applications
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Applications fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const listSyndicationPlatformApplications = async (
   req: AppRequest,
   res: Response,
@@ -54,6 +88,47 @@ export const listSyndicationPlatformApplications = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/syndication/platform-applications/{id}/review:
+ *   patch:
+ *     tags:
+ *       - Admin > Syndication
+ *     summary: Review syndication application
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: ['approved', 'rejected']
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Application reviewed successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Application not found
+ */
 export const reviewSyndicationPlatformApplication = async (
   req: AppRequest,
   res: Response,
@@ -116,6 +191,33 @@ export const reviewSyndicationPlatformApplication = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/syndication/platform-applications/{id}/approve:
+ *   post:
+ *     tags:
+ *       - Admin > Syndication
+ *     summary: Approve syndication application
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Application approved successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Application not found
+ */
 export const approveSyndicationPlatformApplication = async (
   req: AppRequest,
   res: Response,

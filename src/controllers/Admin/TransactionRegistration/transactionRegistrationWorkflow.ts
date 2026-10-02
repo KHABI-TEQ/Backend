@@ -58,6 +58,46 @@ function badStatus(res: Response, message: string) {
  * PATCH /admin/transaction-registrations/:registrationId/verify
  * KHABITEQ validates documents and approves the Khabiteq transaction record.
  */
+/**
+ * @swagger
+ * /admin/transaction-registrations/{registrationId}/verify:
+ *   post:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Verify transaction registration
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: registrationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - verified
+ *             properties:
+ *               verified:
+ *                 type: boolean
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Transaction registration verified successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Registration not found
+ */
 export const verifyTransactionRegistration = async (
   req: AppRequest,
   res: Response,
@@ -224,6 +264,54 @@ export const lasreraReviewTransactionRegistration = async (
  * POST /admin/transaction-registrations/:registrationId/issue-certificate
  * Khabiteq generates the digital transaction record for an approved registration.
  */
+/**
+ * @swagger
+ * /admin/transaction-registrations/{registrationId}/certificate:
+ *   post:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Issue transaction registration certificate
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: registrationId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - certificateNumber
+ *             properties:
+ *               certificateNumber:
+ *                 type: string
+ *                 description: Certificate number
+ *               issuedDate:
+ *                 type: string
+ *                 format: date
+ *               expiryDate:
+ *                 type: string
+ *                 format: date
+ *               documentUrl:
+ *                 type: string
+ *                 description: URL of certificate document
+ *     responses:
+ *       200:
+ *         description: Certificate issued successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Registration not found
+ */
 export const issueTransactionRegistrationCertificate = async (
   req: AppRequest,
   res: Response,
@@ -311,6 +399,23 @@ export const issueTransactionRegistrationCertificate = async (
 /**
  * GET /admin/lasrera/settings
  */
+/**
+ * @swagger
+ * /admin/transaction-registrations/lasrera/settings:
+ *   get:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Get Lasrera settings
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lasrera settings fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getLasreraSettings = async (_req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const config = await getLasreraCertificateConfig();
@@ -379,6 +484,36 @@ export const previewLasreraCertificate = async (
 /**
  * GET /admin/transaction-registrations/lasrera-queue
  * Registrations visible to LASRERA reviewers.
+ */
+/**
+ * @swagger
+ * /admin/transaction-registrations/queue/lasrera:
+ *   get:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Get Lasrera registration queue
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Lasrera queue fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getLasreraRegistrationQueue = async (
   req: AppRequest,
@@ -454,6 +589,36 @@ export const getLasreraRegistrationQueue = async (
 /**
  * GET /admin/transaction-registrations/khabiteq-queue
  * Registrations pending KHABITEQ verification or forwarding.
+ */
+/**
+ * @swagger
+ * /admin/transaction-registrations/queue/khabiteq:
+ *   get:
+ *     tags:
+ *       - Admin > Transaction Registration
+ *     summary: Get Khabiteq registration queue
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Registration queue fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getKhabiteqRegistrationQueue = async (
   req: AppRequest,

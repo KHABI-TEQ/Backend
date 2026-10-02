@@ -12,6 +12,23 @@ import { dealSiteOriginFromPublicSlug } from "../../../config/dealSitePublicHost
 /**
  * Admin - Get all DealSites (with pagination and optional status filter)
  */
+/**
+ * @swagger
+ * /admin/deal-sites/getAll:
+ *   get:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Get all deal sites
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deal sites fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const adminGetAllDealSites = async (
   req: AppRequest,
   res: Response,
@@ -82,6 +99,23 @@ export const adminGetAllDealSites = async (
 /**
  * Admin - Get DealSite stats (group by status)
  */
+/**
+ * @swagger
+ * /admin/deal-sites/stats:
+ *   get:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Get deal site statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Deal site stats fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const adminGetDealSiteStats = async (
   req: AppRequest,
   res: Response,
@@ -108,6 +142,31 @@ export const adminGetDealSiteStats = async (
 
 /**
  * Admin - Get single DealSite by publicSlug
+ */
+/**
+ * @swagger
+ * /admin/deal-sites/{publicSlug}:
+ *   get:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Get deal site by slug
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Deal site not found
  */
 export const adminGetDealSiteBySlug = async (
   req: AppRequest,
@@ -188,6 +247,31 @@ export const adminPauseDealSite = async (
 /**
  * Admin - Pause DealSite
  */
+/**
+ * @swagger
+ * /admin/deal-sites/{publicSlug}/putOnHold:
+ *   put:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Put deal site on hold
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site put on hold successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Deal site not found
+ */
 export const adminPutOnHoldDealSite = async (
   req: AppRequest,
   res: Response,
@@ -228,6 +312,31 @@ export const adminPutOnHoldDealSite = async (
 
 /**
  * Admin - Resume/Activate DealSite
+ */
+/**
+ * @swagger
+ * /admin/deal-sites/{publicSlug}/resume:
+ *   put:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Resume deal site
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Deal site resumed successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Deal site not found
  */
 export const adminActivateDealSite = async (
   req: AppRequest,
@@ -271,6 +380,31 @@ export const adminActivateDealSite = async (
 
 /**
  * Admin - Get all reports for a DealSite (by publicSlug)
+ */
+/**
+ * @swagger
+ * /admin/deal-sites/{publicSlug}/reports:
+ *   get:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Get deal site reports
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Reports fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Deal site not found
  */
 export const adminGetDealSiteReports = async (
   req: AppRequest,
@@ -333,6 +467,31 @@ export const adminGetDealSiteReports = async (
 /**
  * Admin - Get all activities for a DealSite (by publicSlug)
  */
+/**
+ * @swagger
+ * /admin/deal-sites/{publicSlug}/logs:
+ *   get:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Get deal site activity logs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Activity logs fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Deal site not found
+ */
 export const adminGetDealSiteActivities = async (
   req: AppRequest,
   res: Response,
@@ -394,6 +553,23 @@ export const adminGetDealSiteActivities = async (
 /**
  * GET /admin/deal-sites/bank-list
  * Paystack settlement bank list for DealSite subaccount setup (admin JWT; same payload as GET /account/dealSite/bankList).
+ */
+/**
+ * @swagger
+ * /admin/deal-sites/bank-list:
+ *   get:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Get deal site bank list
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Bank list fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const adminGetDealSiteBankList = async (
   _req: AppRequest,

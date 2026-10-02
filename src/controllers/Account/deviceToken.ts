@@ -5,6 +5,58 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { ensureFirebaseAdmin } from "../../services/firebaseAdmin.service";
 
+/**
+ * @swagger
+ * /account/device-token:
+ *   post:
+ *     tags:
+ *       - Account > Device
+ *     summary: Upsert device token for push notifications
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - token
+ *               - deviceId
+ *             properties:
+ *               token:
+ *                 type: string
+ *                 description: FCM token for push notifications
+ *               deviceId:
+ *                 type: string
+ *                 description: Unique device identifier
+ *               platform:
+ *                 type: string
+ *                 description: Device platform (ios/android)
+ *     responses:
+ *       200:
+ *         description: Device token saved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deviceId:
+ *                       type: string
+ *                     platform:
+ *                       type: string
+ *       401:
+ *         description: User not authenticated
+ *       404:
+ *         description: User not found
+ */
 export const upsertAccountDeviceToken = async (
   req: AppRequest,
   res: Response,
@@ -58,6 +110,46 @@ export const upsertAccountDeviceToken = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/device-token:
+ *   delete:
+ *     tags:
+ *       - Account > Device
+ *     summary: Remove device token
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *                 description: Device identifier to remove
+ *     responses:
+ *       200:
+ *         description: Device token removed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Device ID is required
+ *       401:
+ *         description: User not authenticated
+ *       404:
+ *         description: User not found
+ */
 export const removeAccountDeviceToken = async (
   req: AppRequest,
   res: Response,

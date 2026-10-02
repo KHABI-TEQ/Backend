@@ -31,7 +31,49 @@ import {
     /**
      * Submit Booking Request
     */
-    export const submitBookingRequest = async (
+    /**
+ * @swagger
+ * /account/dealSite/:publicSlug/bookings/makeRequest:
+ *   post:
+ *     tags:
+ *       - Account > DealSite
+ *     summary: Submit booking request
+ *     security: []
+ *     parameters:
+ *       - name: publicSlug
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - propertyId
+ *               - date
+ *               - time
+ *             properties:
+ *               propertyId:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date
+ *               time:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Booking request submitted successfully
+ *       400:
+ *         description: Invalid request
+ *       404:
+ *         description: Deal site or property not found
+ */
+export const submitBookingRequest = async (
         req: AppRequest,
         res: Response,
         next: NextFunction

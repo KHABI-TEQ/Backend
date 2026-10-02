@@ -4,6 +4,30 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import { checkoutSearchInsurance } from "../../../services/searchInsurance.service";
 
+/**
+ * @swagger
+ * /preferences/{preferenceId}/search-insurance/checkout:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 export const checkoutPreferenceSearchInsurance = async (
   req: AppRequest,
   res: Response,

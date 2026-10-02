@@ -8,6 +8,48 @@ import mongoose from "mongoose";
  * GET /admin/ratings
  * List all agent ratings for investigation. Query: agentId, inspectionId, page, limit.
  */
+/**
+ * @swagger
+ * /admin/ratings:
+ *   get:
+ *     tags:
+ *       - Admin > Ratings
+ *     summary: Get all ratings
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: agentId
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: minRating
+ *         in: query
+ *         schema:
+ *           type: number
+ *       - name: maxRating
+ *         in: query
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Ratings fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const adminListRatings = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { agentId, inspectionId, page = 1, limit = 20 } = req.query;
@@ -94,6 +136,31 @@ export const adminListReports = async (req: Request, res: Response, next: NextFu
 /**
  * GET /admin/reports/:id
  * Single report for investigation.
+ */
+/**
+ * @swagger
+ * /admin/ratings/{ratingId}:
+ *   get:
+ *     tags:
+ *       - Admin > Ratings
+ *     summary: Get rating details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: ratingId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Rating fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Rating not found
  */
 export const adminGetReportById = async (req: Request, res: Response, next: NextFunction) => {
   try {

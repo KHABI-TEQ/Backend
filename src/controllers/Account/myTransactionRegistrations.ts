@@ -40,6 +40,35 @@ function listItem(reg: any) {
   };
 }
 
+/**
+ * @swagger
+ * /account/my-transaction-registrations:
+ *   get:
+ *     tags:
+ *       - Account > Transactions
+ *     summary: List user's transaction registrations
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transaction registrations fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     transactions:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       401:
+ *         description: Not authenticated
+ */
 export const listMyTransactionRegistrations = async (
   req: AppRequest,
   res: Response,
@@ -75,6 +104,50 @@ export const listMyTransactionRegistrations = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/my-transaction-registrations/{reference}:
+ *   get:
+ *     tags:
+ *       - Account > Transactions
+ *     summary: Get transaction certificate by reference
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: reference
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Transaction reference
+ *     responses:
+ *       200:
+ *         description: Transaction certificate fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     transactionReference:
+ *                       type: string
+ *                     certificateUrl:
+ *                       type: string
+ *                     issuedAt:
+ *                       type: string
+ *       400:
+ *         description: Transaction reference is required or no certificate issued
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not authorized to view this certificate
+ *       404:
+ *         description: Transaction record not found
+ */
 export const getMyTransactionCertificate = async (
   req: AppRequest,
   res: Response,

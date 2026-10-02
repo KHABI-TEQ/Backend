@@ -7,6 +7,35 @@ import { liveListingMongoFilter } from "../../../utils/liveListingFilter";
 import { mongoPilotStateClause } from "../../../common/constants/pilotLocation";
 
 /**
+ * @swagger
+ * /lasrera-marketplace/properties:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /lasrera-marketplace/properties
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
+/**
  * GET /lasrera-marketplace/properties
  * Public list of LASRERA Market Place properties. No landlord/developer contact is returned.
  * Each property includes requestToMarketCount and currentUserHasRequested (when an Agent is logged in).

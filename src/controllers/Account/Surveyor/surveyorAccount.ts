@@ -36,6 +36,53 @@ async function getOrCreateProfile(userId: string) {
   return profile;
 }
 
+/**
+ * @swagger
+ * /account/surveyor/me:
+ *   get:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Get surveyor profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Surveyor profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     fullName:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     phoneNumber:
+ *                       type: string
+ *                     firmName:
+ *                       type: string
+ *                     bio:
+ *                       type: string
+ *                     serviceTypes:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                     licenseNumber:
+ *                       type: string
+ *                     surveyFee:
+ *                       type: number
+ *                     kycStatus:
+ *                       type: string
+ *       403:
+ *         description: Surveyor account required
+ */
 export const getSurveyorMe = async (
   req: AppRequest,
   res: Response,
@@ -71,6 +118,53 @@ export const getSurveyorMe = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/surveyor/profile:
+ *   put:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Update surveyor profile
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firmName:
+ *                 type: string
+ *               profilePhoto:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               serviceTypes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               surveyFee:
+ *                 type: number
+ *               licenseNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Surveyor profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Surveyor account required
+ */
 export const updateSurveyorProfile = async (
   req: AppRequest,
   res: Response,
@@ -113,6 +207,63 @@ export const updateSurveyorProfile = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/surveyor/kyc:
+ *   put:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Submit surveyor KYC
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - kycDocuments
+ *             properties:
+ *               kycDocuments:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                 description: Array of KYC documents
+ *               licenseNumber:
+ *                 type: string
+ *               surveyFee:
+ *                 type: number
+ *               bio:
+ *                 type: string
+ *               profilePhoto:
+ *                 type: string
+ *               certificateKind:
+ *                 type: string
+ *               certificateNumber:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: KYC submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     kycStatus:
+ *                       type: string
+ *       400:
+ *         description: Upload at least one professional document for KYC
+ *       403:
+ *         description: Surveyor account required
+ */
 export const submitSurveyorKyc = async (
   req: AppRequest,
   res: Response,
@@ -173,6 +324,59 @@ export const submitSurveyorKyc = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/surveyor/bank:
+ *   post:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Setup surveyor bank account
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - businessName
+ *               - bankCode
+ *               - accountNumber
+ *             properties:
+ *               businessName:
+ *                 type: string
+ *                 description: Business name for the account
+ *               bankCode:
+ *                 type: string
+ *                 description: Bank code
+ *               accountNumber:
+ *                 type: string
+ *                 description: Bank account number
+ *     responses:
+ *       200:
+ *         description: Settlement account connected
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     paystackSubaccountCode:
+ *                       type: string
+ *                     bankDetails:
+ *                       type: object
+ *       400:
+ *         description: businessName, bankCode and accountNumber are required
+ *       403:
+ *         description: Surveyor account required
+ */
 export const setupSurveyorBank = async (
   req: AppRequest,
   res: Response,
@@ -240,6 +444,32 @@ function redactBuyerUntilPaid(job: any) {
   return job;
 }
 
+/**
+ * @swagger
+ * /account/surveyor/jobs:
+ *   get:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: List surveyor jobs
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Surveyor jobs fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       403:
+ *         description: Surveyor account required
+ */
 export const listSurveyorJobs = async (
   req: AppRequest,
   res: Response,
@@ -267,6 +497,37 @@ export const listSurveyorJobs = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/surveyor/jobs/{id}:
+ *   get:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Get single surveyor job
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     responses:
+ *       200:
+ *         description: Surveyor job fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Surveyor account required
+ */
 export const getSurveyorJob = async (
   req: AppRequest,
   res: Response,
@@ -303,6 +564,65 @@ export const getSurveyorJob = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/surveyor/jobs/{id}/respond:
+ *   post:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Respond to surveyor job (accept/decline or submit offer)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               accept:
+ *                 type: boolean
+ *                 description: Accept or decline
+ *               reason:
+ *                 type: string
+ *                 description: Reason for declining
+ *               coverageNote:
+ *                 type: string
+ *               fee:
+ *                 type: number
+ *                 description: Proposed fee
+ *               serviceItems:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *               commissionAccepted:
+ *                 type: boolean
+ *               letterheadReportAccepted:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Request accepted, declined, or offer sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       403:
+ *         description: Surveyor account required
+ */
 export const respondSurveyorJob = async (
   req: AppRequest,
   res: Response,
@@ -355,6 +675,56 @@ export const respondSurveyorJob = async (
   }
 };
 
+/**
+ * @swagger
+ * /account/surveyor/jobs/{id}/report:
+ *   post:
+ *     tags:
+ *       - Account > Surveyor
+ *     summary: Submit surveyor job report
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Job ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               description:
+ *                 type: string
+ *                 description: Report description
+ *               documentUrl:
+ *                 type: string
+ *                 description: URL of report document
+ *     responses:
+ *       200:
+ *         description: Survey report submitted
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Job is not ready for a report
+ *       403:
+ *         description: Surveyor account required
+ *       404:
+ *         description: Job not found
+ */
 export const submitSurveyorJobReport = async (
   req: AppRequest,
   res: Response,

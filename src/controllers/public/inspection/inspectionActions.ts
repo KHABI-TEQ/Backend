@@ -6,6 +6,150 @@ import { InspectionLogService } from "../../../services/inspectionLog.service";
 import notificationService from "../../../services/notification.service";
 import { hasDateTimeChanged } from "../../../utils/detectDateTimeChange";
 import {
+
+/**
+ * @swagger
+ * /inspections/inspection-details/{userID}/{inspectionID}/{userType}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/inspection-details/{userID}/{inspectionID}/{userType}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /inspections/users/{userId}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/users/{userId}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /inspections/validate-access/{userId}/{inspectionId}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/validate-access/{userId}/{inspectionId}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /inspections/{inspectionId}/actions/{userId}:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /inspections/{inspectionId}/history:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/{inspectionId}/history
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /inspections/{inspectionId}/reOpen:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/{inspectionId}/reOpen
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   InspectionActionData,
   InspectionLinks,
 } from "../../../types/inspection.types";

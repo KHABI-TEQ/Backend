@@ -11,6 +11,47 @@ import { generateThirdPartyVerificationEmail } from "../../../common/emailTempla
 import { SystemSettingService } from "../../../services/systemSetting.service";
 
 // === Send to Verification Provider ===
+/**
+ * @swagger
+ * /admin/verification-docs/{documentId}/send-to-provider:
+ *   post:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Send document to verification provider
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: documentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - provider
+ *             properties:
+ *               provider:
+ *                 type: string
+ *                 enum: ['paystack', 'mambu', 'internal']
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Document sent to provider successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Document not found
+ */
 export const sendToVerificationProvider = async (
   req: AppRequest,
   res: Response,
@@ -80,6 +121,49 @@ export const sendToVerificationProvider = async (
 };
 
 // === Admin Document Verification (Registered / Unregistered + Report) ===
+/**
+ * @swagger
+ * /admin/verification-docs/{documentId}/verify:
+ *   post:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Verify document
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: documentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: ['approved', 'rejected']
+ *               reason:
+ *                 type: string
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Document verified successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Document not found
+ */
 export const adminDocumentVerification = async (
   req: AppRequest,
   res: Response,

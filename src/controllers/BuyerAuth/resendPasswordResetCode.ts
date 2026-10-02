@@ -8,6 +8,34 @@ import {
   ForgotPasswordTokenTemplate,
 } from "../../common/email.template";
 
+/**
+ * @swagger
+ * /buyer-auth/resend-reset-code:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Resend buyer password reset code
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Password reset code resent
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: User not found
+ */
 export const resendBuyerPasswordResetCode = async (
   req: Request,
   res: Response,

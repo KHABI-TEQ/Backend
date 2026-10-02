@@ -4,6 +4,33 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 
+/**
+ * @swagger
+ * /admin/preferences/{preferenceId}/approve:
+ *   patch:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Approve preference
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preference approved successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Preference not found
+ */
 export const approvePreference = async (
   req: Request,
   res: Response,

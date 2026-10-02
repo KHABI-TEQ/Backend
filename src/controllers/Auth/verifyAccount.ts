@@ -62,6 +62,28 @@ const sendLoginSuccessResponse = async (user: any, res: Response) => {
     });
 };
 
+/**
+ * @swagger
+ * /auth/verifyAccount:
+ *   get:
+ *     tags:
+ *       - Auth
+ *     summary: Verify user account
+ *     security: []
+ *     parameters:
+ *       - name: token
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Account verified successfully
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: Invalid or expired token
+ */
 export const verifyAccount = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { token } = req.query;

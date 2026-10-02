@@ -62,6 +62,39 @@ async function publisherCanManageInspection(
   return ownerMatch || marketedIds.includes(String(userId));
 }
 
+/**
+ * @swagger
+ * /account/licensed-agents/representation-terms:
+ *   get:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: Get licensed agent representation terms
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Representation terms fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     commissionDisclosure:
+ *                       type: string
+ *                     paymentRequired:
+ *                       type: boolean
+ *                     bankRequired:
+ *                       type: boolean
+ *                     bankConnected:
+ *                       type: boolean
+ *                     platformShareNaira:
+ *                       type: number
+ */
 export async function getLicensedAgentRepresentationTerms(
   req: AppRequest,
   res: Response
@@ -86,7 +119,60 @@ export async function getLicensedAgentRepresentationTerms(
   });
 }
 
-/** Auth: Property Scouts (and publishers) browse licensed Agents — no contact fields. */
+/**
+ * @swagger
+ * /account/licensed-agents/available:
+ *   get:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: List available licensed agents
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter by state
+ *       - in: query
+ *         name: localGovernment
+ *         schema:
+ *           type: string
+ *         description: Filter by local government
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by name
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Licensed agents fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Property Scouts, Agents, and Developers can browse licensed Agents
+ */
 export async function listAvailableLicensedAgents(
   req: AppRequest,
   res: Response,
@@ -179,8 +265,63 @@ export async function listPublicLicensedAgentsDirectory(
 }
 
 /**
- * Property Scout requests a licensed Agent to handle an inspection.
- * Reuses fieldAgentRequest* inspection fields (representation target = licensed Agent user).
+ * @swagger
+ * /account/my-inspections/{inspectionId}/request-licensed-agent:
+ *   post:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: Request a licensed agent for inspection representation
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inspectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Inspection ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - licensedAgentUserId
+ *             properties:
+ *               licensedAgentUserId:
+ *                 type: string
+ *                 description: ID of the licensed agent to request
+ *               note:
+ *                 type: string
+ *                 description: Optional note for the agent
+ *               acknowledgedCommissionTerms:
+ *                 type: boolean
+ *                 description: Acknowledgment of commission terms
+ *     responses:
+ *       200:
+ *         description: Licensed agent representation request sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only Property Scout accounts can request a licensed Agent
+ *       404:
+ *         description: Inspection not found or Licensed Agent not found
+ *       409:
+ *         description: Inspection already has a representing agent assigned or request already pending
  */
 export async function requestLicensedAgentForInspection(
   req: AppRequest,
@@ -333,6 +474,55 @@ export async function requestLicensedAgentForInspection(
   }
 }
 
+/**
+ * @swagger
+ * /account/licensed-agents/{inspectionId}/representation/respond:
+ *   post:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: Respond to licensed agent representation request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inspectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Inspection ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - action
+ *             properties:
+ *               action:
+ *                 type: string
+ *                 enum: [accept, reject]
+ *     responses:
+ *       200:
+ *         description: Representation request accepted or declined
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid action or no pending request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only licensed Agents can respond to representation requests
+ *       404:
+ *         description: Inspection not found
+ */
 export async function respondLicensedAgentRepresentation(
   req: AppRequest,
   res: Response,
@@ -437,6 +627,39 @@ export async function respondLicensedAgentRepresentation(
   }
 }
 
+/**
+ * @swagger
+ * /account/property-scout/status:
+ *   get:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: Get property scout status for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Property scout status fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isPropertyScout:
+ *                       type: boolean
+ *                     isLicensedPublisher:
+ *                       type: boolean
+ *                     displayRoleLabel:
+ *                       type: string
+ *                     hasLicense:
+ *                       type: boolean
+ *       401:
+ *         description: Not authenticated
+ */
 export async function getMyPropertyScoutStatus(
   req: AppRequest,
   res: Response,
@@ -457,7 +680,49 @@ export async function getMyPropertyScoutStatus(
   }
 }
 
-/** Licensed Agents: pending Property Scout representation requests. */
+/**
+ * @swagger
+ * /account/licensed-agents/representation-requests:
+ *   get:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: List licensed agent representation requests
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Representation requests fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only licensed Agents can view representation requests
+ */
 export async function listLicensedAgentRepresentationRequests(
   req: AppRequest,
   res: Response,
@@ -530,6 +795,43 @@ export async function listLicensedAgentRepresentationRequests(
   }
 }
 
+/**
+ * @swagger
+ * /account/my-inspections/{inspectionId}/request-licensed-agent:
+ *   delete:
+ *     tags:
+ *       - Account > Licensed Agents
+ *     summary: Cancel pending licensed agent representation request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inspectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Inspection ID
+ *     responses:
+ *       200:
+ *         description: Licensed agent request cancelled
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Only pending licensed agent requests can be cancelled
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Not allowed to cancel this request
+ *       404:
+ *         description: Inspection not found
+ */
 export async function cancelLicensedAgentForInspection(
   req: AppRequest,
   res: Response,

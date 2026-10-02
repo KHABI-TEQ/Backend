@@ -12,6 +12,7 @@ import cors from 'cors';
 import './common/cron.job';
 import KeepAlive from './services/cron-job';
 import path from 'path';
+import swaggerRouter from './routes/swagger';
 
 
 // Init express
@@ -47,6 +48,9 @@ if (process.env.NODE_ENV === 'production') {
 app.use(express.static('public'));
 
 KeepAlive();
+
+// Swagger docs
+app.use('/api-docs', swaggerRouter);
 
 // Add APIs
 

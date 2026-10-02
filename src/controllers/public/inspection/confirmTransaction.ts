@@ -5,6 +5,35 @@ import { DB } from "../..";
 import { sendTransactionRegistrationFollowUpEmail } from "../../../services/transactionConfirmationCron.service";
 import { BUYER_CONFIRM_FLOW_INSPECTION_STATUSES } from "../../../constants/buyerInspectionConfirmationFlow";
 import {
+
+/**
+ * @swagger
+ * /inspections/confirm-transaction:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /inspections/confirm-transaction
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   CONFIRM_TOKEN_PURPOSE_TRANSACTION,
   verifyBuyerConfirmationToken,
 } from "../../../services/buyerConfirmationToken.service";

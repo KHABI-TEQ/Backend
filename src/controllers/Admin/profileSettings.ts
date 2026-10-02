@@ -6,6 +6,21 @@ import { RouteError } from "../../common/classes";
 import bcrypt from "bcryptjs";
 
 // Fetch Admin Profile
+/**
+ * @swagger
+ * /admin/profile:
+ *   get:
+ *     tags:
+ *       - Admin > Profile
+ *     summary: Get admin profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getAdminProfile = async (
   req: AppRequest,
   res: Response,
@@ -110,6 +125,39 @@ export const updateAdminProfile = async (
 };
 
 // Change Admin Email
+/**
+ * @swagger
+ * /admin/profile/change-email:
+ *   put:
+ *     tags:
+ *       - Admin > Profile
+ *     summary: Change admin email
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newEmail
+ *               - password
+ *             properties:
+ *               newEmail:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Email changed successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ */
 export const changeAdminEmail = async (
   req: AppRequest,
   res: Response,
@@ -149,6 +197,39 @@ export const changeAdminEmail = async (
 };
 
 // Change Admin Password
+/**
+ * @swagger
+ * /admin/profile/change-password:
+ *   put:
+ *     tags:
+ *       - Admin > Profile
+ *     summary: Change admin password
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ */
 export const changeAdminPassword = async (
   req: AppRequest,
   res: Response,
@@ -185,6 +266,39 @@ export const changeAdminPassword = async (
 };
 
 // Request Admin Account Deletion
+/**
+ * @swagger
+ * /admin/profile/delete-account:
+ *   post:
+ *     tags:
+ *       - Admin > Profile
+ *     summary: Request admin account deletion
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *               - reason
+ *             properties:
+ *               password:
+ *                 type: string
+ *                 format: password
+ *               reason:
+ *                 type: string
+ *                 description: Reason for account deletion
+ *     responses:
+ *       200:
+ *         description: Account deletion requested successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ */
 export const requestAdminAccountDeletion = async (
   req: AppRequest,
   res: Response,

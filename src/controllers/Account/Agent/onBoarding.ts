@@ -4,6 +4,63 @@ import { DB } from '../..';
 import HttpStatusCodes from '../../../common/HttpStatusCodes';
 
 // to be removed
+/**
+ * @swagger
+ * /account/complete-onboarding:
+ *   put:
+ *     tags:
+ *       - Account > Agent
+ *     summary: Complete agent onboarding
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - agentType
+ *             properties:
+ *               address:
+ *                 type: string
+ *                 description: Agent address
+ *               regionOfOperation:
+ *                 type: string
+ *                 description: Region of operation
+ *               agentType:
+ *                 type: string
+ *                 enum: [Individual, Company]
+ *               companyAgent:
+ *                 type: object
+ *                 description: Company agent details (for company type)
+ *               govtId:
+ *                 type: string
+ *                 description: Government issued ID
+ *               meansOfId:
+ *                 type: string
+ *                 description: Means of identification
+ *     responses:
+ *       200:
+ *         description: Onboarding completed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid agentType
+ *       401:
+ *         description: Unauthorized or invalid user type
+ *       404:
+ *         description: Account not found or Agent profile not found
+ */
 export const completeOnboardingAgent = async (
   req: AppRequest,
   res: Response,

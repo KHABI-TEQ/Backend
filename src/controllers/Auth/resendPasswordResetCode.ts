@@ -5,6 +5,34 @@ import { RouteError } from '../../common/classes';
 import sendEmail from '../../common/send.email';
 import { generalTemplate, ForgotPasswordTokenTemplate } from '../../common/email.template';
 
+/**
+ * @swagger
+ * /auth/resendPasswordCode:
+ *   post:
+ *     tags:
+ *       - Auth
+ *     summary: Resend password reset code
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Password reset code resent
+ *       400:
+ *         description: Bad request
+ *       404:
+ *         description: User not found
+ */
 export const resendPasswordResetCode = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email } = req.body;

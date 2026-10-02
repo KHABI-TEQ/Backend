@@ -6,6 +6,35 @@ import { DB } from "..";
 import { generateToken } from "../../common/classes";
 import { buyerPublic } from "../BuyerAuth/profile";
 
+/**
+ * @swagger
+ * /verify-payment:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /verify-payment
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
 const BUYER_SESSION_TRANSACTION_TYPES = new Set([
   "inspection",
   "search-insurance",

@@ -33,6 +33,47 @@ const APPROVAL_ROLE_PHRASE: Record<string, string> = {
  * Approve or reject KYC for Agent, Developer, or Landowner accounts.
  * POST /admin/users/:userId/reviewKycRequest
  */
+/**
+ * @swagger
+ * /admin/publishers/{userId}/reviewKycRequest:
+ *   post:
+ *     tags:
+ *       - Admin > Publishers
+ *     summary: Review publisher KYC request
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - status
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: ['approved', 'rejected']
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: KYC review submitted successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Publisher not found
+ */
 export const reviewPublisherKyc = async (
   req: AppRequest,
   res: Response,

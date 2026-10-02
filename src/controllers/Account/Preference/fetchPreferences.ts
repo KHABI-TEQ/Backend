@@ -4,6 +4,31 @@ import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { AppRequest } from "../../../types/express";
 import mongoose from "mongoose";
 
+/**
+ * @swagger
+ * /account/my-preferences/fetchAll:
+ *   get:
+ *     tags:
+ *       - Account > Preferences
+ *     summary: Get matched preferences for owner's properties
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Matched preferences fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                   description: Array of matched preferences for the owner's properties
+ */
 export const getMatchedPreferencesForOwner = async (
   req: AppRequest,
   res: Response,
@@ -42,6 +67,39 @@ export const getMatchedPreferencesForOwner = async (
 };
 
 
+/**
+ * @swagger
+ * /account/my-preferences/{matchId}:
+ *   get:
+ *     tags:
+ *       - Account > Preferences
+ *     summary: Get single matched preference for owner
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Matched preference ID
+ *     responses:
+ *       200:
+ *         description: Matched preference fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Invalid matched ID
+ *       404:
+ *         description: Match not found or you don't have access to it
+ */
 export const getOneMatchedPreferenceForOwner = async (
   req: AppRequest,
   res: Response,

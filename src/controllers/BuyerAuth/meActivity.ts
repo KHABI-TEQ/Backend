@@ -22,6 +22,21 @@ function requireBuyerId(req: AppRequest) {
   return id;
 }
 
+/**
+ * @swagger
+ * /buyer-auth/me/preferences:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Preferences fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyPreferences = async (
   req: AppRequest,
   res: Response,
@@ -122,6 +137,29 @@ export const getMyPreferences = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/preferences/{id}/journey:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get preference journey
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Preference journey fetched successfully
+ *       400:
+ *         description: Invalid preference id
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyPreferenceJourney = async (
   req: AppRequest,
   res: Response,
@@ -136,6 +174,21 @@ export const getMyPreferenceJourney = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/inspections:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer inspections
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Inspections fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyInspections = async (
   req: AppRequest,
   res: Response,
@@ -162,6 +215,21 @@ export const getMyInspections = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/document-verifications:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer document verifications
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Document verifications fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyDocumentVerifications = async (
   req: AppRequest,
   res: Response,
@@ -184,6 +252,21 @@ export const getMyDocumentVerifications = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/survey-requests:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer survey requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Survey requests fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMySurveyRequests = async (
   req: AppRequest,
   res: Response,
@@ -204,6 +287,21 @@ export const getMySurveyRequests = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/professional-service-requests:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer professional service requests
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Professional service requests fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyProfessionalServiceRequests = async (
   req: AppRequest,
   res: Response,
@@ -254,6 +352,21 @@ export const getMyProfessionalServiceRequests = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/transaction-registrations:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer transaction registrations
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transaction registrations fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyTransactionRegistrations = async (
   req: AppRequest,
   res: Response,
@@ -288,6 +401,21 @@ export const getMyTransactionRegistrations = async (
 };
 
 /** Aggregated status hub for the mobile home / track screen. */
+/**
+ * @swagger
+ * /buyer-auth/me/summary:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get buyer activity summary
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Activity summary fetched successfully
+ *       401:
+ *         description: Not authenticated
+ */
 export const getMyActivitySummary = async (
   req: AppRequest,
   res: Response,
@@ -392,6 +520,45 @@ export const getMyActivitySummary = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/professional-service-requests/briefs:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Create service brief
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - serviceType
+ *               - description
+ *             properties:
+ *               serviceType:
+ *                 type: string
+ *                 description: Type of service needed
+ *               description:
+ *                 type: string
+ *                 description: Service description
+ *               budget:
+ *                 type: number
+ *                 description: Service budget
+ *               location:
+ *                 type: object
+ *                 description: Service location
+ *     responses:
+ *       201:
+ *         description: Service brief created successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ */
 export const createMyServiceBrief = async (
   req: AppRequest,
   res: Response,
@@ -422,6 +589,29 @@ export const createMyServiceBrief = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/professional-service-requests/{id}:
+ *   get:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Get service brief details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Service brief fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Service brief not found
+ */
 export const getMyServiceBrief = async (
   req: AppRequest,
   res: Response,
@@ -464,6 +654,43 @@ export const getMyServiceBrief = async (
   }
 };
 
+/**
+ * @swagger
+ * /buyer-auth/me/professional-service-requests/{id}/select-offer:
+ *   post:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Select service offer
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - offerId
+ *             properties:
+ *               offerId:
+ *                 type: string
+ *                 description: Selected offer ID
+ *     responses:
+ *       200:
+ *         description: Offer selected successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       404:
+ *         description: Service brief or offer not found
+ */
 export const selectMyServiceOffer = async (
   req: AppRequest,
   res: Response,

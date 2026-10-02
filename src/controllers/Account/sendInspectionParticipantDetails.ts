@@ -10,6 +10,52 @@ import {
 } from "../../common/emailTemplates/inspectionMails";
 import sendEmail from "../../common/send.email";
 
+/**
+ * @swagger
+ * /account/inspections/{inspectionId}/send-participant-details:
+ *   post:
+ *     tags:
+ *       - Account > Inspections
+ *     summary: Send buyer/seller participant details via email
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: inspectionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Inspection ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - send
+ *             properties:
+ *               send:
+ *                 type: string
+ *                 enum: [buyer-to-seller, seller-to-buyer, send-both]
+ *                 description: Direction of participant details
+ *     responses:
+ *       200:
+ *         description: Participant details sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid send direction
+ *       404:
+ *         description: Inspection not found or missing buyer/seller info
+ */
 export const sendInspectionParticipantDetails = async (
   req: AppRequest,
   res: Response,

@@ -27,6 +27,53 @@ export async function resolveActiveBrmId(
   return brm._id as mongoose.Types.ObjectId;
 }
 
+/**
+ * @swagger
+ * /account/brm:
+ *   put:
+ *     tags:
+ *       - Account > BRM
+ *     summary: Assign or clear BRM for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               brmId:
+ *                 type: string
+ *                 description: Pass null or omit to clear BRM
+ *     responses:
+ *       200:
+ *         description: BRM assigned or cleared
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     brmId:
+ *                       type: string
+ *                     brm:
+ *                       type: object
+ *       400:
+ *         description: Invalid BRM id or selected BRM is not available
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only agents, developers, lawyers, valuers, and surveyors can assign a BRM
+ *       404:
+ *         description: User not found
+ */
 export const updateAccountBrm = async (
   req: AppRequest,
   res: Response,

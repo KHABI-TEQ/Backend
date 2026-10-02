@@ -10,6 +10,45 @@ import {
   buildPreferenceLandSizeEmailLine,
 } from "../../../common/emailTemplates/preference";
 
+/**
+ * @swagger
+ * /admin/preferences/{preferenceId}/reject:
+ *   post:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Reject preference
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for rejection
+ *     responses:
+ *       200:
+ *         description: Preference rejected successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Preference not found
+ */
 export const rejectPreference = async (
   req: Request,
   res: Response,

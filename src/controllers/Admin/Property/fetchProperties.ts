@@ -6,6 +6,48 @@ import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../../config/inspectionL
 import { formatPropertyDataForTable } from "../../../utils/propertyFormatters";
 import type { PipelineStage } from "mongoose";
 
+/**
+ * @swagger
+ * /admin/properties/:
+ *   get:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Get all properties with filters
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: propertyType
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: search
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Properties fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllProperties = async (
   req: AppRequest,
   res: Response,
@@ -143,6 +185,23 @@ export const getAllProperties = async (
 };
 
 
+/**
+ * @swagger
+ * /admin/properties/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Get property statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Property stats fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getPropertyStats = async (
   req: AppRequest,
   res: Response,
@@ -187,6 +246,31 @@ export const getPropertyStats = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/properties/{propertyId}/getOne:
+ *   get:
+ *     tags:
+ *       - Admin > Properties
+ *     summary: Get single property details
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: propertyId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Property fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property not found
+ */
 export const getSinglePropertyDetails = async (
   req: AppRequest,
   res: Response,

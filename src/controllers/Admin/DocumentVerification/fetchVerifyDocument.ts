@@ -6,6 +6,44 @@ import { RouteError } from "../../../common/classes";
 import { AppRequest } from "../../../types/express";
  
 // GET: /verification-docs
+/**
+ * @swagger
+ * /admin/verification-docs:
+ *   get:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Get all verification documents
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: page
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: limit
+ *         in: query
+ *         schema:
+ *           type: integer
+ *       - name: status
+ *         in: query
+ *         schema:
+ *           type: string
+ *       - name: documentType
+ *         in: query
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Verification documents fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               {'$ref': '#/components/schemas/Pagination'}
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const fetchAllVerifyDocs = async (
   req: AppRequest,
   res: Response,
@@ -76,6 +114,23 @@ export const fetchAllVerifyDocs = async (
 
 
 // GET: /verification-docs/stats
+/**
+ * @swagger
+ * /admin/verification-docs/stats:
+ *   get:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Get verification document statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const fetchVerifyDocStats = async (
   req: AppRequest,
   res: Response,
@@ -155,6 +210,31 @@ export const fetchVerifyDocStats = async (
 
 
 // GET: /verification-doc/:documentId
+/**
+ * @swagger
+ * /admin/verification-docs/{documentId}:
+ *   get:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Get single verification document
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: documentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Verification document fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Document not found
+ */
 export const fetchSingleVerifyDoc = async (
   req: AppRequest,
   res: Response,

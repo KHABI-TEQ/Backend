@@ -187,6 +187,34 @@ const sendVerificationMail = async (newUser: any) => {
 }
 
 // ✅ UPDATED GOOGLE AUTH HANDLER
+/**
+ * @swagger
+ * /auth/googleAuth:
+ *   post:
+ *     tags:
+ *       - Auth
+ *     summary: Google authentication
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - idToken
+ *             properties:
+ *               idToken:
+ *                 type: string
+ *                 description: Google ID token
+ *     responses:
+ *       200:
+ *         description: Google authentication successful
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Invalid token
+ */
 export const googleAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   const { idToken, userType, referreredCode } = req.body;
 
@@ -392,6 +420,34 @@ export const googleAuth = async (req: AppRequest, res: Response, next: NextFunct
 
  
 // ✅ FACEBOOK AUTH HANDLER
+/**
+ * @swagger
+ * /auth/facebookAuth:
+ *   post:
+ *     tags:
+ *       - Auth
+ *     summary: Facebook authentication
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - accessToken
+ *             properties:
+ *               accessToken:
+ *                 type: string
+ *                 description: Facebook access token
+ *     responses:
+ *       200:
+ *         description: Facebook authentication successful
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Invalid token
+ */
 export const facebookAuth = async (req: AppRequest, res: Response, next: NextFunction) => {
   const { idToken, userType, referreredCode } = req.body;
 

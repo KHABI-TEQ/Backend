@@ -57,6 +57,31 @@ const PREFERENCE_TO_BRIEF_TYPE: Record<string, string> = {
   "off-plan": "off-plan",
 };
 
+/**
+ * @swagger
+ * /admin/preferences/{preferenceId}/findMatchesProperties:
+ *   get:
+ *     tags:
+ *       - Admin > Preferences
+ *     summary: Find matched properties for preference
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: preferenceId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Matched properties fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Preference not found
+ */
 export const findMatchedProperties = async (
   req: AppRequest,
   res: Response,

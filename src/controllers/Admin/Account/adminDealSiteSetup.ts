@@ -12,6 +12,46 @@ import { notifyUserDealSiteCreatedByAdmin } from "../../../services/userProvisio
  * POST /admin/users/:userId/deal-site/setup
  * Same payload as user POST /account/dealSite/setUp (DealSite setup does not require a subscription).
  */
+/**
+ * @swagger
+ * /admin/users/{userId}/deal-site/setup:
+ *   post:
+ *     tags:
+ *       - Admin > DealSite
+ *     summary: Setup deal site for user
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               subdomain:
+ *                 type: string
+ *               template:
+ *                 type: string
+ *               customDomain:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Deal site setup successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: User not found
+ */
 export const adminSetupDealSiteForUser = async (
   req: AppRequest,
   res: Response,

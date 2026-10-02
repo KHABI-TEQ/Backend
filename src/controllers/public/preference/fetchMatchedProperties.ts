@@ -6,6 +6,77 @@ import { RouteError } from "../../../common/classes";
 import mongoose from "mongoose";
 import { formatPropertyDataForTable } from "../../../utils/propertyFormatters";
 import {
+
+/**
+ * @swagger
+ * /preferences/getMatchedProps/{buyerId}/{preferenceId}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /preferences/getMatchedProps/{buyerId}/{preferenceId}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /preferences/matches/{matchedId}/{preferenceId}/next-batch:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /preferences/matches/{matchedId}/{preferenceId}/next-batch
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   attachPublicSlugToFormattedProperties,
   effectiveRevealedCount,
   matchBatchSummary,

@@ -7,6 +7,45 @@ import { AppRequest } from "../../../types/express";
 import { verificationGeneralTemplate } from "../../../common/email.template";
 import sendEmail from "../../../common/send.email";
 
+/**
+ * @swagger
+ * /admin/verification-docs/{documentId}/payment/confirm:
+ *   post:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Confirm verification payment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: documentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - paymentReference
+ *             properties:
+ *               paymentReference:
+ *                 type: string
+ *                 description: Payment reference number
+ *     responses:
+ *       200:
+ *         description: Payment confirmed successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Document not found
+ */
 export const confirmVerificationPayment = async (
   req: AppRequest,
   res: Response,
@@ -44,6 +83,45 @@ export const confirmVerificationPayment = async (
   }
 };
 
+/**
+ * @swagger
+ * /admin/verification-docs/{documentId}/payment/reject:
+ *   post:
+ *     tags:
+ *       - Admin > Document Verification
+ *     summary: Reject verification payment
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: documentId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for payment rejection
+ *     responses:
+ *       200:
+ *         description: Payment rejected successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Document not found
+ */
 export const rejectVerificationPayment = async (
   req: AppRequest,
   res: Response,

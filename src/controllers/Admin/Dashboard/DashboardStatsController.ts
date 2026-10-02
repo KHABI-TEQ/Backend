@@ -16,6 +16,90 @@ export class DashboardStatsController {
    * @query {string} startDate - Start date for range filter (ISO format)
    * @query {string} endDate - End date for range filter (ISO format)
    */
+  /**
+   * @swagger
+   * /admin/stats:
+   *   get:
+   *     tags:
+   *       - Admin
+   *       - Admin > Dashboard
+   *     summary: Get dashboard statistics
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - name: filter
+   *         in: query
+   *         schema:
+   *           type: string
+   *           enum:
+   *             - 7days
+   *             - 30days
+   *             - 90days
+   *             - 365days
+   *             - range
+   *           default: 365days
+   *       - name: startDate
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *       - name: endDate
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *     responses:
+   *       200:
+   *         description: Dashboard statistics fetched successfully
+   *       400:
+   *         description: Invalid filter or missing date range
+   *       401:
+   *         description: Not authenticated
+   *       403:
+   *         description: Forbidden
+   */
+  /**
+   * @swagger
+   * /admin/stats:
+   *   get:
+   *     tags:
+   *       - Admin
+   *       - Admin > Dashboard
+   *     summary: Get dashboard statistics
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - name: filter
+   *         in: query
+   *         schema:
+   *           type: string
+   *           enum:
+   *             - 7days
+   *             - 30days
+   *             - 90days
+   *             - 365days
+   *             - range
+   *           default: 365days
+   *       - name: startDate
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *       - name: endDate
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *     responses:
+   *       200:
+   *         description: Dashboard statistics fetched successfully
+   *       400:
+   *         description: Invalid filter or missing date range
+   *       401:
+   *         description: Not authenticated
+   *       403:
+   *         description: Forbidden
+   */
   getStats = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       const { filter = "365days", startDate, endDate } = req.query;
@@ -93,6 +177,37 @@ export class DashboardStatsController {
      * @query {string} startDate - Start date for range filter (ISO format)
      * @query {string} endDate - End date for range filter (ISO format)
      */
+  /**
+   * @swagger
+   * /admin/getStatsBy/{statsType}:
+   *   get:
+   *     tags:
+   *       - Admin
+   *       - Admin > Dashboard
+   *     summary: Get statistics by type
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - name: statsType
+   *         in: path
+   *         required: true
+   *         schema:
+   *           type: string
+   *           enum:
+   *             - users
+   *             - properties
+   *             - transactions
+   *             - subscriptions
+   *     responses:
+   *       200:
+   *         description: Statistics fetched successfully
+   *       400:
+   *         description: Invalid stats type
+   *       401:
+   *         description: Not authenticated
+   *       403:
+   *         description: Forbidden
+   */
     getStatsByType = async (req: AppRequest, res: Response): Promise<void> => {
     try {
         const { statsType } = req.params;
@@ -223,6 +338,45 @@ export class DashboardStatsController {
    * @query {string} startDate - Start date for range filter
    * @query {string} endDate - End date for range filter
    */
+  /**
+   * @swagger
+   * /admin/stats/export:
+   *   get:
+   *     tags:
+   *       - Admin
+   *       - Admin > Dashboard
+   *     summary: Export dashboard statistics
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - name: type
+   *         in: query
+   *         schema:
+   *           type: string
+   *           enum:
+   *             - csv
+   *             - pdf
+   *             - excel
+   *       - name: startDate
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *       - name: endDate
+   *         in: query
+   *         schema:
+   *           type: string
+   *           format: date
+   *     responses:
+   *       200:
+   *         description: Statistics exported successfully
+   *       400:
+   *         description: Invalid request
+   *       401:
+   *         description: Not authenticated
+   *       403:
+   *         description: Forbidden
+   */
   exportData = async (req: AppRequest, res: Response): Promise<void> => {
     try {
       const { filter = "30days", format = "json", startDate, endDate } = req.query;
@@ -294,6 +448,24 @@ export class DashboardStatsController {
    * @query {string} filter - Time filter: 7days, 30days, 365days, range
    * @query {string} startDate - Start date for range filter
    * @query {string} endDate - End date for range filter
+   */
+  /**
+   * @swagger
+   * /admin/stats/overview:
+   *   get:
+   *     tags:
+   *       - Admin
+   *       - Admin > Dashboard
+   *     summary: Get dashboard statistics overview
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Dashboard overview fetched successfully
+   *       401:
+   *         description: Not authenticated
+   *       403:
+   *         description: Forbidden
    */
   getOverview = async (req: AppRequest, res: Response): Promise<void> => {
     try {

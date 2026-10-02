@@ -54,6 +54,56 @@ async function buildPublisherProfileExtensions(user: { _id: unknown; accountAppr
 }
 
 // Fetch Profile
+/**
+ * @swagger
+ * /account/profile:
+ *   get:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Fetch authenticated user's profile
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         phoneNumber:
+ *                           type: string
+ *                         userType:
+ *                           type: string
+ *                         isAccountVerified:
+ *                           type: boolean
+ *                         accountApproved:
+ *                           type: boolean
+ *                         profile_picture:
+ *                           type: string
+ *                         address:
+ *                           type: object
+ *       404:
+ *         description: User not found
+ */
 export const getProfile = async (
   req: AppRequest,
   res: Response,
@@ -156,7 +206,50 @@ export const getProfile = async (
 };
 
 
-// Update Profile (firstName, lastName, phoneNumber, address.street)
+/**
+ * @swagger
+ * /account/profile:
+ *   put:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Update user profile fields
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *               lastName:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *                 description: Street address
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: No valid fields provided
+ *       404:
+ *         description: User not found
+ */
 export const updateProfile = async (
   req: AppRequest,
   res: Response,
@@ -229,7 +322,47 @@ export const updateProfile = async (
 };
 
 
-// Update Profile Picture
+/**
+ * @swagger
+ * /account/updateProfilePicture:
+ *   patch:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Update profile picture URL
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - profile_picture
+ *             properties:
+ *               profile_picture:
+ *                 type: string
+ *                 format: url
+ *                 description: URL of the uploaded profile picture
+ *     responses:
+ *       200:
+ *         description: Profile picture updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: No profile picture provided
+ *       404:
+ *         description: User not found
+ */
 export const updateProfilePicture = async (
   req: AppRequest,
   res: Response,
@@ -281,7 +414,47 @@ export const updateProfilePicture = async (
 };
 
 
-// Change Email (check if email exists before update and notify user)
+/**
+ * @swagger
+ * /account/changeEmail:
+ *   put:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Change account email address
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - newEmail
+ *             properties:
+ *               newEmail:
+ *                 type: string
+ *                 format: email
+ *                 description: New email address for the account
+ *     responses:
+ *       200:
+ *         description: Email changed successfully and confirmation sent
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: New email is required or already in use
+ *       404:
+ *         description: User not found
+ */
 export const changeEmail = async (
   req: AppRequest,
   res: Response,
@@ -342,7 +515,48 @@ export const changeEmail = async (
 };
 
 
-// Change Password (must check old password)
+/**
+ * @swagger
+ * /account/changePassword:
+ *   put:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Change account password
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - oldPassword
+ *               - newPassword
+ *             properties:
+ *               oldPassword:
+ *                 type: string
+ *                 description: Current password for verification
+ *               newPassword:
+ *                 type: string
+ *                 description: New password to set
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Old or new password missing or invalid old password
+ *       404:
+ *         description: User not found
+ */
 export const changePassword = async (
   req: AppRequest,
   res: Response,
@@ -403,7 +617,30 @@ export const changePassword = async (
 };
 
 
-// Request Account Deletion (Schedule deletion, not immediate)
+/**
+ * @swagger
+ * /account/requestAccountDeletion:
+ *   delete:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Request account deletion with 7-day grace period
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deletion requested
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: User not found
+ */
 export const requestAccountDeletion = async (
   req: AppRequest,
   res: Response,
@@ -474,7 +711,30 @@ export const requestAccountDeletion = async (
 };
 
 
-// Cancel Account Deletion
+/**
+ * @swagger
+ * /account/cancelAccountDeletion:
+ *   post:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Cancel pending account deletion
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deletion request canceled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: User not found
+ */
 export const cancelAccountDeletion = async (
   req: AppRequest,
   res: Response,
@@ -506,7 +766,30 @@ export const cancelAccountDeletion = async (
 };
 
 
-// Permanently Delete Account (immediate)
+/**
+ * @swagger
+ * /account/deleteAccountImmediately:
+ *   delete:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Permanently delete account immediately
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Account deleted permanently
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       404:
+ *         description: User not found
+ */
 export const deleteAccountImmediately = async (
   req: AppRequest,
   res: Response,
@@ -558,7 +841,46 @@ export const deleteAccountImmediately = async (
   }
 };
 
-// Notification Settings (toggle on/off)
+/**
+ * @swagger
+ * /account/notificationStatus:
+ *   put:
+ *     tags:
+ *       - Account > Profile
+ *     summary: Update notification settings
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - enableNotifications
+ *             properties:
+ *               enableNotifications:
+ *                 type: boolean
+ *                 description: Enable or disable notifications
+ *     responses:
+ *       200:
+ *         description: Notification settings updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *       400:
+ *         description: Notification status is required
+ *       404:
+ *         description: User not found
+ */
 export const updateNotificationSettings = async (
   req: AppRequest,
   res: Response,
@@ -596,7 +918,51 @@ export const updateNotificationSettings = async (
 }; 
 
 
-// Dashboard Request
+/**
+ * @swagger
+ * /account/dashboard:
+ *   get:
+ *     tags:
+ *       - Account > Dashboard
+ *     summary: Get dashboard data for authenticated user
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard data fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalBriefs:
+ *                       type: number
+ *                     totalActiveBriefs:
+ *                       type: number
+ *                     totalPendingBriefs:
+ *                       type: number
+ *                     totalSoldBriefs:
+ *                       type: number
+ *                     listingOverview:
+ *                       type: object
+ *                     newPendingBriefs:
+ *                       type: array
+ *                     totalViews:
+ *                       type: number
+ *                     totalInspectionRequests:
+ *                       type: number
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
 export const getDashboardData = async (
   req: AppRequest,
   res: Response,

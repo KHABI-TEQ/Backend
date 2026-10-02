@@ -7,6 +7,30 @@ import { notifyAllActiveAdmins } from "../../../../services/adminNotification.se
 import sendEmail from "../../../../common/send.email";
 import { generalEmailLayout } from "../../../../common/emailTemplates/emailLayout";
 import {
+
+/**
+ * @swagger
+ * /third-party/syndication/platform-applications:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
   normalizeSyndicationPropertyTypesInput,
   SYNDICATION_PROPERTY_TYPE_VALUES,
 } from "../../../../common/syndicationPropertyTypes";

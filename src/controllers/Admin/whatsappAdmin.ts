@@ -30,6 +30,37 @@ function httpStatusForUpstreamWhatsapp(result: GraphishResult): number {
  * Body: { phone: string } — sends Meta sample `hello_world` by default (see WHATSAPP_TEST_TEMPLATE_* env).
  * HTTP: 200 on success; 401 if Graph reports auth failure; 502 for other Graph errors.
  */
+/**
+ * @swagger
+ * /admin/whatsapp/test:
+ *   post:
+ *     tags:
+ *       - Admin > WhatsApp
+ *     summary: Test WhatsApp connection
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phoneNumber
+ *             properties:
+ *               phoneNumber:
+ *                 type: string
+ *                 description: Test recipient phone number
+ *     responses:
+ *       200:
+ *         description: Test message sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const postWhatsappTest = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
     const phone = String(req.body?.phone || "").trim();
@@ -57,6 +88,42 @@ export const postWhatsappTest = async (req: AppRequest, res: Response, next: Nex
 /**
  * POST /api/admin/whatsapp/broadcast
  * Body: { users: { id, name, phone }[], templateKey, variables?, delayBetweenMessages? }
+ */
+/**
+ * @swagger
+ * /admin/whatsapp/broadcast:
+ *   post:
+ *     tags:
+ *       - Admin > WhatsApp
+ *     summary: Send WhatsApp broadcast
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *               - recipients
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: Broadcast message content
+ *               recipients:
+ *                 type: array
+ *                 items: {'type': 'string'}
+ *                 description: Array of recipient phone numbers
+ *     responses:
+ *       200:
+ *         description: Broadcast sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const postWhatsappBroadcast = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
@@ -105,6 +172,44 @@ export const postWhatsappBroadcast = async (req: AppRequest, res: Response, next
  * POST /api/admin/whatsapp/send-template
  * Body: { phone, templateKey, variables?: Record<string, string> }
  * Sends an arbitrary approved template (covers marketing / system keys with no app event).
+ */
+/**
+ * @swagger
+ * /admin/whatsapp/send-template:
+ *   post:
+ *     tags:
+ *       - Admin > WhatsApp
+ *     summary: Send WhatsApp template
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - templateName
+ *               - recipient
+ *             properties:
+ *               templateName:
+ *                 type: string
+ *                 description: Template name
+ *               recipient:
+ *                 type: string
+ *                 description: Recipient phone number
+ *               components:
+ *                 type: array
+ *                 description: Template components
+ *     responses:
+ *       200:
+ *         description: Template sent successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const postWhatsappSendTemplate = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {
@@ -165,6 +270,23 @@ export const postWhatsappMedia = async (req: AppRequest, res: Response, next: Ne
 
 /**
  * GET /api/admin/whatsapp/analytics
+ */
+/**
+ * @swagger
+ * /admin/whatsapp/analytics:
+ *   get:
+ *     tags:
+ *       - Admin > WhatsApp
+ *     summary: Get WhatsApp analytics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: WhatsApp analytics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getWhatsappAnalytics = async (req: AppRequest, res: Response, next: NextFunction) => {
   try {

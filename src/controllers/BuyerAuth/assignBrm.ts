@@ -6,6 +6,37 @@ import { AppRequest } from "../../types/express";
 import { resolveActiveBrmId } from "../Account/assignBrm";
 import { buyerPublic } from "./profile";
 
+/**
+ * @swagger
+ * /buyer-auth/me/brm:
+ *   put:
+ *     tags:
+ *       - Buyer Auth
+ *     summary: Assign or clear BRM for buyer
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               brmId:
+ *                 type: string
+ *                 description: Pass null or omit to clear BRM
+ *     responses:
+ *       200:
+ *         description: BRM assigned or cleared successfully
+ *       400:
+ *         description: Invalid BRM id or selected BRM is not available
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Only buyers can assign a BRM
+ *       404:
+ *         description: User not found
+ */
 export const updateBuyerBrm = async (
   req: AppRequest,
   res: Response,

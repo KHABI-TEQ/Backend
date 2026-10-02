@@ -8,6 +8,97 @@ import { generalEmailLayout } from "../../../../common/emailTemplates/emailLayou
 import { generateAdminVerificationReportEmail, generateBuyerVerificationReportForBuyer } from "../../../../common/emailTemplates/documentVerificationMails";
 
 /**
+ * @swagger
+ * /third-party/getDocumentDetails/{documentId}:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /third-party/getDocumentDetails/{documentId}
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /third-party/getDocumentDetails/{documentId}/status:
+ *   get:
+ *     tags:
+ *       - Public
+ *     summary: GET /third-party/getDocumentDetails/{documentId}/status
+ *     security: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         required: false
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         required: false
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /third-party/submit-report/{documentId}:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ * /third-party/verifyAccessCode:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Submit
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *     responses:
+ *       200:
+ *         description: OK
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Server error
+ */
+
+
+/**
  * Verify a document verification access code
  */
 export const verifyAccessCode = async (

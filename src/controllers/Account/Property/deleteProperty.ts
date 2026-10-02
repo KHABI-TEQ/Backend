@@ -4,6 +4,39 @@ import { DB } from "../..";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
  
+/**
+ * @swagger
+ * /account/properties/{propertyId}/delete:
+ *   delete:
+ *     tags:
+ *       - Account > Property
+ *     summary: Soft delete property listing
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Property ID
+ *     responses:
+ *       200:
+ *         description: Property marked as deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: You do not have permission to delete this property
+ *       404:
+ *         description: Property not found
+ */
 export const deleteProperty = async (
   req: AppRequest,
   res: Response,

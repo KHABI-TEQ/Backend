@@ -14,6 +14,23 @@ import { deleteLandlordMail } from "../../../common/emailTemplates/landlordMails
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
+/**
+ * @swagger
+ * /admin/landowners:
+ *   get:
+ *     tags:
+ *       - Admin > Landlords
+ *     summary: Get all landlords
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Landlords fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ */
 export const getAllLandlords = async (
   req: AppRequest,
   res: Response,
@@ -109,6 +126,31 @@ export const getAllLandlords = async (
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
+/**
+ * @swagger
+ * /admin/landowners/{userId}:
+ *   get:
+ *     tags:
+ *       - Admin > Landlords
+ *     summary: Get single landlord by user ID
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Landlord fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Landlord not found
+ */
 export const getSingleLandlord = async (
   req: AppRequest,
   res: Response,
@@ -138,6 +180,31 @@ export const getSingleLandlord = async (
  * @param req - The Express request object, containing userId in params.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/landowners/{userId}/allProperties:
+ *   get:
+ *     tags:
+ *       - Admin > Landlords
+ *     summary: Get all properties for a landlord
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Landlord properties fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Landlord not found
  */
 export const getAllLandlordProperties = async (
   req: AppRequest,
@@ -187,6 +254,31 @@ export const getAllLandlordProperties = async (
  * @param req - The Express request object, containing userId in params and reason in body.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/landowners/{userId}/delete:
+ *   delete:
+ *     tags:
+ *       - Admin > Landlords
+ *     summary: Delete landlord account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Landlord account deleted successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Landlord not found
  */
 export const deleteLandlordAction = async (
   req: AppRequest,
@@ -303,6 +395,46 @@ export const toggleLandlordAccountStatus = async (
  * @param res - The Express response object.
  * @param next - The next middleware function.
  */
+/**
+ * @swagger
+ * /admin/landowners/{userId}/flag-account:
+ *   put:
+ *     tags:
+ *       - Admin > Landlords
+ *     summary: Flag or unflag landlord account
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: userId
+ *         in: path
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - isFlagged
+ *             properties:
+ *               isFlagged:
+ *                 type: boolean
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Landlord account flagged/unflagged successfully
+ *       400:
+ *         description: Invalid request
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Landlord not found
+ */
 export const flagOrUnflagLandownerAccount = async (
   req: AppRequest,
   res: Response,
@@ -349,6 +481,23 @@ export const flagOrUnflagLandownerAccount = async (
  * @param req - The Express request object.
  * @param res - The Express response object.
  * @param next - The next middleware function.
+ */
+/**
+ * @swagger
+ * /admin/landowners/dashboard:
+ *   get:
+ *     tags:
+ *       - Admin > Landlords
+ *     summary: Get landlord dashboard statistics
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard statistics fetched successfully
+ *       401:
+ *         description: Not authenticated
+ *       403:
+ *         description: Forbidden
  */
 export const getLandlordDashboardStatistics = async (
   req: AppRequest,
