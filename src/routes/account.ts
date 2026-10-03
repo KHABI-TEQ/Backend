@@ -40,6 +40,7 @@ import {
   changeEmail,
   changePassword,
   deleteAccountImmediately,
+  dismissKycNotice,
   getDashboardData,
   getProfile,
   requestAccountDeletion,
@@ -87,7 +88,7 @@ import {
 import { accountAuth } from "../middlewares/accountAuth";
 import { getMatchedPreferencesForOwner, getOneMatchedPreferenceForOwner } from "../controllers/Account/Preference/fetchPreferences";
 import { fetchDealsitePreferences, fetchDealsitePreferenceById } from "../controllers/Account/Preference/fetchDealsitePreferences";
-import { completePublisherKYC } from "../controllers/Account/publisherKyc";
+import { completePublisherKYC, getPractitionerKycForm } from "../controllers/Account/publisherKyc";
 import {
   applyMyProfessionalUpgrade,
   getMyProfessionalUpgrade,
@@ -104,11 +105,12 @@ import {
   listProfessionalServiceJobs,
   getProfessionalServiceJob,
   respondProfessionalServiceJob,
+  deliverProfessionalServiceJob,
 } from "../controllers/Account/professionalCatalogJobs";
 import { applyProfessionalUpgradeSchema } from "../validators/professionalUpgrade.validator";
 import { completeOnboardingAgent } from "../controllers/Account/Agent/onBoarding";
 import { broadcastToMySubscribers } from "../controllers/Account/Agent/agentSubscribers";
-import { fetchUserTransactions, getUserTransactionDetails, fetchTransactionActivity } from "../controllers/Account/transactions";
+import { fetchUserTransactions, getUserTransactionDetails, fetchTransactionActivity, fetchAgentFeeLedger } from "../controllers/Account/transactions";
 import {
   listMyTransactionRegistrations,
   getMyTransactionCertificate,
@@ -186,6 +188,7 @@ AccountRouter.use(accountAuth);
 AccountRouter.get("/profile", getProfile);
 AccountRouter.put("/brm", validateJoi(assignBrmSchema), updateAccountBrm);
 AccountRouter.get("/dashboard", getDashboardData);
+AccountRouter.patch("/kyc-notice/dismiss", dismissKycNotice);
 AccountRouter.patch("/updateAccount", updateProfile)
 AccountRouter.patch("/updateProfilePicture", updateProfilePicture);
 AccountRouter.delete("/requestAccountDeletion", requestAccountDeletion);
@@ -208,6 +211,7 @@ AccountRouter.delete(
 AccountRouter.put("/complete-onboarding", completeOnboardingAgent);
 
 // AGENT UNIQUE ROUTES
+AccountRouter.get("/kyc/form", getPractitionerKycForm);
 AccountRouter.put("/submitKyc", validateJoi(agentKycSchema), completePublisherKYC);
 AccountRouter.post(
   "/professional-upgrade",
@@ -337,6 +341,7 @@ AccountRouter.post("/subscriptions/:subscriptionId/cancelAutoRenewal", toggleSub
 // TRANSACTIONS ROUTES
 AccountRouter.get("/transactions/fetchAll", fetchUserTransactions);
 AccountRouter.get("/transactions/activity", fetchTransactionActivity);
+AccountRouter.get("/transactions/fees", fetchAgentFeeLedger);
 AccountRouter.get("/transactions/:transactionId", getUserTransactionDetails);
 AccountRouter.get("/my-transaction-registrations", listMyTransactionRegistrations);
 AccountRouter.get("/my-transaction-registrations/:reference", getMyTransactionCertificate);
@@ -470,6 +475,10 @@ AccountRouter.get("/professional-services/jobs/:id", getProfessionalServiceJob);
 AccountRouter.post(
   "/professional-services/:id/respond",
   respondProfessionalServiceJob
+);
+AccountRouter.post(
+  "/professional-services/:id/deliver",
+  deliverProfessionalServiceJob
 );
 
 AccountRouter.get("/valuer/me", getValuerMe);

@@ -5,6 +5,7 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { effectiveRevealedCount } from "../../services/matchBatch.service";
 import {
+  confirmCatalogDelivery,
   createServiceBrief,
   professionalContactAfterPayment,
   selectServiceOffer,
@@ -578,6 +579,7 @@ export const createMyServiceBrief = async (
         phoneNumber: buyer.phoneNumber,
       },
       brief: req.body?.brief || {},
+      requestedServices: req.body?.requestedServices,
     });
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -644,6 +646,11 @@ export const getMyServiceBrief = async (
         professionalId: request.professionalId,
         inspectionId: request.inspectionId ? String(request.inspectionId) : "",
         serviceFee: request.customerPrice,
+        quotationRevisionPending: Boolean(request.quotationRevisionPending),
+        acceptedQuotation: request.acceptedQuotation || null,
+        deliverableUrl: request.deliverableUrl || "",
+        deliverableNotes: request.deliverableNotes || "",
+        deliveredAt: request.deliveredAt || null,
         answers: request.answers,
         offers,
         professional,
@@ -707,6 +714,27 @@ export const selectMyServiceOffer = async (
       success: true,
       message: "Offer selected. Continue to payment.",
       data: request,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const confirmMyServiceDelivery = async (
+  req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const buyerId = requireBuyerId(req);
+    const request = await confirmCatalogDelivery({
+      requestId: req.params.id,
+      buyerId: String(buyerId),
+    });
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Delivery confirmed.",
+      data: { status: request.status },
     });
   } catch (err) {
     next(err);

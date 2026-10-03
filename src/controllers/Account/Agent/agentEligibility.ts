@@ -1,14 +1,15 @@
 import { Response, NextFunction } from "express";
+import { DB } from "../..";
 import { AppRequest } from "../../../types/express";
 import HttpStatusCodes from "../../../common/HttpStatusCodes";
 import { RouteError } from "../../../common/classes";
 import {
   countAgentOwnedProperties,
   getAgentAccessGate,
-  isAgentKycRequirementSatisfied,
   SUBSCRIPTION_REQUIRED_TO_LIST_MESSAGE,
 } from "../../../services/agentPublisherEligibility.service";
 import { getPublisherKycStatus } from "../../../services/publisherKyc.service";
+import { buildKycNotice } from "../../../services/kycNotice.service";
 import {
   AGENT_SUBSCRIPTION_BONUS_DAYS,
   getActivePaidAgentSubscriptionSnapshot,
@@ -19,7 +20,8 @@ import { getPropertyScoutSnapshot } from "../../../services/propertyScout.servic
 
 /**
  * GET /account/agent/eligibility
- * Agent dashboard policy snapshot: KYC + paid subscription required to list.
+ * Agent dashboard policy snapshot. Paid subscription is required to list and to run a practitioner page.
+ * Pending KYC only blocks accepting, rejecting, or updating a client inspection request.
  */
 /**
  * @swagger
@@ -79,7 +81,7 @@ export const getAgentEligibility = async (
       paidSubscription,
       publisherListing,
       propertyScout,
-      kycRequirementSatisfied,
+      account,
     ] = await Promise.all([
       getPublisherKycStatus(String(userId)),
       countAgentOwnedProperties(String(userId)),
@@ -87,19 +89,20 @@ export const getAgentEligibility = async (
       getActivePaidAgentSubscriptionSnapshot(String(userId)),
       getPublisherListingSnapshot(String(userId), "Agent"),
       getPropertyScoutSnapshot(String(userId)),
-      isAgentKycRequirementSatisfied(String(userId)),
+      DB.Models.User.findById(userId).select("kycNoticeDismissedStatus").lean(),
     ]);
 
     const kycApproved = kycStatus === "approved";
     const hasPaidSubscription = !!paidSubscription;
     const subscriptionRequired = !hasPaidSubscription;
 
-    const policyPhase = (() => {
-      if (!kycRequirementSatisfied) return "kyc_blocked";
-      if (subscriptionRequired) return "subscription_required";
-      if (hasPaidSubscription) return "subscribed";
-      return "active";
-    })();
+    const policyPhase = subscriptionRequired ? "subscription_required" : "subscribed";
+    const canRespondToInspectionRequests =
+      kycApproved && !propertyScout.isPropertyScout;
+    const kycOverlay = buildKycNotice({
+      kycStatus,
+      dismissedStatus: account?.kycNoticeDismissedStatus,
+    });
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
@@ -107,6 +110,8 @@ export const getAgentEligibility = async (
       data: {
         kycStatus,
         kycApproved,
+        kycNotice: kycOverlay,
+        kycOverlay,
         kycGraceActive: false,
         kycGraceDaysRemaining: null,
         kycGraceDeadline: null,
@@ -125,13 +130,17 @@ export const getAgentEligibility = async (
         specialPlanName: publisherListing?.specialPlanName ?? null,
         canListProperties: gate.ok && (publisherListing?.canListProperties ?? false),
         canUseDealSite: gate.ok,
+        canSetupPractitionerPage: gate.ok,
+        canOpenPractitionerPage: gate.ok,
         canRequestToMarket: gate.ok,
         canSubscribe: true,
+        kycBlocksInspectionRequestsOnly: true,
+        canRespondToInspectionRequests,
         isPropertyScout: propertyScout.isPropertyScout,
         isLicensedPublisher: propertyScout.isLicensedPublisher,
         displayRoleLabel: propertyScout.displayRoleLabel,
         hasLicense: propertyScout.hasLicense,
-        canAcceptInspectionRequests: !propertyScout.isPropertyScout,
+        canAcceptInspectionRequests: canRespondToInspectionRequests,
         gate:
           gate.ok === false
             ? { ok: false as const, reason: gate.reason, message: gate.message }

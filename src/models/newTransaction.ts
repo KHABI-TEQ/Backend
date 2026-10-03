@@ -44,7 +44,10 @@ export interface INewTransaction {
   transactionFlow?: 'internal' | 'external';
 } 
 
-export interface INewTransactionDoc extends INewTransaction, Document {}
+export interface INewTransactionDoc extends INewTransaction, Document {
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export type INewTransactionModel = Model<INewTransactionDoc>;
 

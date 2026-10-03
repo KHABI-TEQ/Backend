@@ -165,31 +165,51 @@ export const changeAdminEmail = async (
 ) => {
   try {
     const adminId = req.admin?._id;
-    const { newEmail } = req.body;
+    const { newEmail, currentPassword } = req.body;
+    const email = String(newEmail || "").toLowerCase().trim();
 
-    if (!newEmail) {
+    if (!email) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "New email is required");
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Enter a valid email address");
+    }
+    if (!currentPassword) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "Current password is required to change email"
+      );
+    }
 
-    const exists = await DB.Models.Admin.findOne({ email: newEmail });
+    const admin = await DB.Models.Admin.findById(adminId);
+    if (!admin || !admin.password) {
+      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Admin not found");
+    }
+
+    const isMatch = await bcrypt.compare(String(currentPassword), admin.password);
+    if (!isMatch) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Current password is incorrect");
+    }
+
+    if (admin.email === email) {
+      throw new RouteError(HttpStatusCodes.BAD_REQUEST, "That is already your login email");
+    }
+
+    const exists = await DB.Models.Admin.findOne({
+      email,
+      _id: { $ne: adminId },
+    });
     if (exists) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Email already in use");
     }
 
-    const updated = await DB.Models.Admin.findByIdAndUpdate(
-      adminId,
-      { email: newEmail.toLowerCase(), isAccountVerified: false },
-      { new: true },
-    ).lean();
-
-    if (!updated) {
-      throw new RouteError(HttpStatusCodes.NOT_FOUND, "Admin not found");
-    }
+    admin.email = email;
+    await admin.save();
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       message: "Email changed successfully",
-      data: updated,
+      data: { email: admin.email },
     });
   } catch (err) {
     next(err);
@@ -241,6 +261,12 @@ export const changeAdminPassword = async (
 
     if (!oldPassword || !newPassword) {
       throw new RouteError(HttpStatusCodes.BAD_REQUEST, "Old and new password are required");
+    }
+    if (String(newPassword).trim().length < 8) {
+      throw new RouteError(
+        HttpStatusCodes.BAD_REQUEST,
+        "New password must be at least 8 characters"
+      );
     }
 
     const admin = await DB.Models.Admin.findById(adminId);

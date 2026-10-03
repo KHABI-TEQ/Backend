@@ -43,6 +43,7 @@ import {
 import { getBrmPicture, listActiveBrms } from "../controllers/public/listBrms";
 import { paymentVerification } from "../controllers/public/paymentVerification";
 import { fetchSystemSettings } from "../controllers/public/systemSettings";
+import { getPractitionerKycForm } from "../controllers/Account/publisherKyc";
 import { getAllActiveFeatures, getAllActiveSubscriptionPlans } from "../controllers/Account/Agent/subscriptions";
 import DealSiteRouter from "./dealSite";
 import ProfessionalSiteRouter from "./professionalSite";
@@ -109,12 +110,14 @@ router.post(
       const fileBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
 
       const filename = Date.now() + "-" + fileFor;
+      const resourceType = req.file.mimetype?.startsWith("image/") ? "image" : "auto";
 
       // Upload to Cloudinary
       const uploadImg = await cloudinary.uploadFile(
         fileBase64,
         filename,
         filFolder,
+        resourceType,
       );
 
       // console.log(uploadImg);
@@ -181,6 +184,8 @@ router.post(
 );
  
 router.get("/getSystemSettings", fetchSystemSettings)
+
+router.get("/kyc/practitioner-form", getPractitionerKycForm)
 
 // Promotions Routes
 router.use("/promotions", PromotionRouter);

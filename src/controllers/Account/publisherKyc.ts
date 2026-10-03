@@ -5,10 +5,28 @@ import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { isPublisherKycUserType } from "../../common/kycTypes";
 import { notifyKycSubmitted } from "../../services/kycNotification.service";
+import { buildPractitionerKycForm } from "../../common/constants/practitionerKycForm";
 import {
   normalizePublisherKycPayload,
   submitPublisherKyc,
 } from "../../services/publisherKyc.service";
+
+/** Form contract for the Practitioner KYC wizard on the website. */
+export const getPractitionerKycForm = async (
+  _req: AppRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    return res.status(HttpStatusCodes.OK).json({
+      success: true,
+      message: "Practitioner KYC form fetched.",
+      data: buildPractitionerKycForm(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * @swagger
@@ -93,10 +111,6 @@ export const completePublisherKYC = async (
 
     if (authUser.userType === "PropertyScout") {
       if (!payload.practitionerType) payload.practitionerType = "Individual";
-      if (!payload.regionOfOperation?.length) {
-        const state = payload.address?.state;
-        payload.regionOfOperation = state ? [state] : ["Lagos"];
-      }
     }
 
     const profile = await submitPublisherKyc({

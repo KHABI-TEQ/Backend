@@ -136,7 +136,7 @@ export async function getPropertyScoutSnapshot(userId: string): Promise<{
     hasLicense,
     kycStatus,
     kycDisplayLabel: kycDisplayLabel(kycStatus),
-    canSubmitOpportunity: standalone ? kycStatus === "approved" : true,
+    canSubmitOpportunity: true,
     listingsRequireReview: scoutListingsRequireReview(userType),
     isStandalonePropertyScout: standalone,
     pendingProfessionalType: user?.pendingProfessionalType || null,

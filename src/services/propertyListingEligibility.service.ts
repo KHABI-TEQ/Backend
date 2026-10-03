@@ -20,7 +20,7 @@ export type ActiveSnapshot = IUserSubscriptionSnapshotDoc | null;
 
 /**
  * Publishers (Agent, Developer, Landowner, Property Scout) must have a paid
- * subscription to list. Agents also need approved KYC. Listing volume is then
+ * subscription to list. Pending KYC does not block listing. Listing volume is then
  * capped by the active plan (10 for property scouts, 25 for agents, developers, and
  * landlords, 50 on the Licensed Agent annual plan).
  */

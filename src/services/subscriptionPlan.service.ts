@@ -22,6 +22,7 @@ import {
 import {
   CATALOG_GROUPS,
   CATALOG_VISIBLE_PLAN_CODES,
+  buildSubscriptionPlanCard,
   catalogDefinitionByCode,
   catalogGroupForAudience,
   registerHrefForAudience,
@@ -495,6 +496,32 @@ export class SubscriptionPlanService {
       : listPlanBenefits(plan);
     const discountedPlans = (plan.discountedPlans || []).map((dp: any) => {
       const interval = resolveInterval(dp.billingInterval, dp.durationInDays);
+      const option = definition?.discountedPlans?.find((item) => item.code === dp.code);
+      const listingLimit =
+        dp.listingLimit ||
+        option?.listingLimit ||
+        definition?.listingLimit ||
+        plan.listingLimit ||
+        0;
+      const optionBenefits = listPlanBenefits({
+        benefits: dp.benefits?.length ? dp.benefits : benefits,
+        features: plan.features,
+      });
+      const card = buildSubscriptionPlanCard({
+        code: dp.code,
+        name: option?.name || dp.name,
+        price: dp.price,
+        durationInDays: dp.durationInDays,
+        compareAtPrice: option?.compareAtPrice,
+        discountPercentage: dp.discountPercentage,
+        listingLimit,
+        maxProfessionals: definition?.maxProfessionals,
+        benefits: optionBenefits,
+        cardFeatures: option?.cardFeatures,
+        tagline: option?.cardTagline || definition?.designedFor,
+        mostPopular: option?.mostPopular,
+        accent: option?.accent,
+      });
       return {
         ...dp,
         category,
@@ -507,18 +534,34 @@ export class SubscriptionPlanService {
           : null,
         grantsListingEligibility,
         grantsCustomDomain: false,
-        listingLimit:
-          dp.listingLimit ||
-          definition?.discountedPlans?.find((item) => item.code === dp.code)?.listingLimit ||
-          definition?.listingLimit ||
-          plan.listingLimit ||
-          0,
-        benefits: listPlanBenefits({
-          benefits: dp.benefits?.length ? dp.benefits : benefits,
-          features: plan.features,
-        }),
+        listingLimit,
+        benefits: optionBenefits,
+        card,
       };
     });
+
+    const listingLimit = definition?.listingLimit || plan.listingLimit || 0;
+    const card = buildSubscriptionPlanCard({
+      code: plan.code,
+      name: definition?.name || plan.name,
+      price: plan.price,
+      durationInDays: plan.durationInDays,
+      compareAtPrice: definition?.compareAtPrice,
+      listingLimit,
+      maxProfessionals: definition?.maxProfessionals || plan.maxProfessionals,
+      benefits,
+      cardFeatures: definition?.cardFeatures,
+      tagline: definition?.cardTagline || definition?.designedFor || groupMeta.tagline,
+      mostPopular: definition?.mostPopular,
+      accent: definition?.accent,
+    });
+    const cards = [card, ...discountedPlans.map((item: { card: typeof card }) => item.card)].sort(
+      (left, right) => {
+        const leftDays = left.title.startsWith("1 Year") ? 365 : left.title.startsWith("6 Months") ? 180 : 90;
+        const rightDays = right.title.startsWith("1 Year") ? 365 : right.title.startsWith("6 Months") ? 180 : 90;
+        return rightDays - leftDays;
+      }
+    );
 
     return {
       ...plan,
@@ -541,8 +584,10 @@ export class SubscriptionPlanService {
         : null,
       grantsListingEligibility,
       grantsCustomDomain: false,
-      listingLimit: definition?.listingLimit || plan.listingLimit || 0,
+      listingLimit,
       benefits,
+      card,
+      cards,
       discountedPlans,
     };
   }

@@ -55,6 +55,8 @@ export interface IUser {
   /** Optional Business Relation Manager (Agent, Developer, Lawyer, Surveyor, Valuer). */
   brmId?: Types.ObjectId;
   brmAssignedAt?: Date;
+  /** KYC banner the practitioner dismissed. Matches the status they hid, so a later status shows the banner again. */
+  kycNoticeDismissedStatus?: string;
 }
  
 export interface IUserDoc extends IUser, Document {
@@ -135,6 +137,7 @@ export class User {
           index: true,
         },
         brmAssignedAt: { type: Date },
+        kycNoticeDismissedStatus: { type: String },
         inspectionNotificationRepresentatives: {
           type: [
             {

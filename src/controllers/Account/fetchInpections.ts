@@ -6,6 +6,36 @@ import { INSPECTION_LISTING_ALLOWED_STATUSES } from "../../config/inspectionList
 import HttpStatusCodes from "../../common/HttpStatusCodes";
 import { RouteError } from "../../common/classes";
 import { formatInspectionForTable } from "../../utils/formatInspectionForTable";
+import { buildKycNotice } from "../../services/kycNotice.service";
+import { getPractitionerKycStatus } from "../../services/publisherKyc.service";
+
+const EMPTY_INSPECTION_MESSAGE = "No matched inspection requests found";
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+const STATUS_SEARCH: Record<string, string[]> = {
+  pending: ["pending_approval", "pending_transaction"],
+  completed: ["completed"],
+  complete: ["completed"],
+  cancelled: ["agent_rejected", "cancelled"],
+  canceled: ["agent_rejected", "cancelled"],
+  rejected: ["agent_rejected"],
+  approved: ["inspection_approved"],
+  rescheduled: ["inspection_rescheduled"],
+};
+
+async function inspectionKycOverlay(userId: unknown) {
+  const [kycStatus, user] = await Promise.all([
+    getPractitionerKycStatus(String(userId)),
+    DB.Models.User.findById(userId).select("kycNoticeDismissedStatus").lean(),
+  ]);
+  return buildKycNotice({
+    kycStatus,
+    dismissedStatus: user?.kycNoticeDismissedStatus,
+  });
+}
 
 /** Owner of inspection row, or agent who markets the property (main marketplace). */
 async function sellerInspectionAccessFilter(user: {
@@ -101,21 +131,52 @@ export const fetchUserInspections = async (
       inspectionStatus,
       stage,
       propertyId,
+      keyword,
+      search,
     } = req.query;
 
     const access = await sellerInspectionAccessFilter(req.user as any);
-    const filter: any = {
-      ...access,
-      status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] },
-    };
+    const andParts: Record<string, unknown>[] = [
+      access,
+      { status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] } },
+    ];
 
-    if (status && INSPECTION_LISTING_ALLOWED_STATUSES.includes(status as any))
-      filter.status = status;
-    if (inspectionType) filter.inspectionType = inspectionType;
-    if (inspectionMode) filter.inspectionMode = inspectionMode;
-    if (inspectionStatus) filter.inspectionStatus = inspectionStatus;
-    if (stage) filter.stage = stage;
-    if (propertyId) filter.propertyId = propertyId;
+    if (status && INSPECTION_LISTING_ALLOWED_STATUSES.includes(status as any)) {
+      andParts[1] = { status };
+    }
+    if (inspectionType) andParts.push({ inspectionType });
+    if (inspectionMode) andParts.push({ inspectionMode });
+    if (inspectionStatus) andParts.push({ inspectionStatus });
+    if (stage) andParts.push({ stage });
+    if (propertyId) andParts.push({ propertyId });
+
+    const searchText = String(keyword || search || "").trim();
+    if (searchText) {
+      const regex = new RegExp(escapeRegex(searchText), "i");
+      const propertyIds = await DB.Models.Property.find({
+        $or: [
+          { propertyType: regex },
+          { briefType: regex },
+          { "location.area": regex },
+          { "location.state": regex },
+          { "location.localGovernment": regex },
+          { "location.streetAddress": regex },
+        ],
+      }).distinct("_id");
+      const statusKey = searchText.toLowerCase();
+      const statusMatches = STATUS_SEARCH[statusKey] ||
+        INSPECTION_LISTING_ALLOWED_STATUSES.filter((item) => item.includes(statusKey));
+      andParts.push({
+        $or: [
+          { propertyId: { $in: propertyIds } },
+          { status: regex },
+          { inspectionType: regex },
+          ...(statusMatches.length ? [{ status: { $in: statusMatches } }] : []),
+        ],
+      });
+    }
+
+    const filter = { $and: andParts };
  
     const inspections = await DB.Models.InspectionBooking.find(filter)
       .populate("propertyId")
@@ -130,14 +191,30 @@ export const fetchUserInspections = async (
       formatInspectionForTable(inspection),
     );
 
+    const pageNumber = Number(page);
+    const pageLimit = Number(limit);
+    const totalPages = Math.ceil(total / pageLimit) || 1;
+    const rangeStart = total === 0 ? 0 : (pageNumber - 1) * pageLimit + 1;
+    const rangeEnd = Math.min(pageNumber * pageLimit, total);
+    const kycOverlay = await inspectionKycOverlay(req.user?._id);
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
+      message: "Monitor and manage all your property inspection and booking requests in one place",
       data: formattedInspections,
+      emptyMessage: total === 0 ? EMPTY_INSPECTION_MESSAGE : null,
+      rangeLabel:
+        total === 0
+          ? "0 of 0 inspections"
+          : `${rangeStart}-${rangeEnd} of ${total} inspections`,
+      kycOverlay,
+      kycNotice: kycOverlay,
       pagination: {
         total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit)),
+        page: pageNumber,
+        limit: pageLimit,
+        totalPages,
+        pageLabel: `Page ${pageNumber} of ${totalPages}`,
       },
     });
   } catch (err) {
@@ -197,9 +274,14 @@ export const getOneUserInspection = async (
       throw new RouteError(HttpStatusCodes.NOT_FOUND, "Inspection not found");
     }
 
+    const kycOverlay = await inspectionKycOverlay(req.user?._id);
+
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: inspection,
+      kycOverlay,
+      kycNotice: kycOverlay,
+      canRespond: kycOverlay.completed === true,
     });
   } catch (err) {
     next(err);
@@ -247,10 +329,8 @@ export const getInspectionStats = async (
   try {
     const access = await sellerInspectionAccessFilter(req.user as any);
 
-    // 🚫 Exclude unwanted statuses globally
-    const excludedStatuses = ["pending_transaction", "transaction_failed"];
     const baseFilter = {
-      $and: [access, { status: { $nin: excludedStatuses } }],
+      $and: [access, { status: { $in: [...INSPECTION_LISTING_ALLOWED_STATUSES] } }],
     };
 
     const [
@@ -268,13 +348,10 @@ export const getInspectionStats = async (
           {
             status: {
               $in: [
+                "pending_approval",
+                "pending_transaction",
                 "inspection_rescheduled",
                 "inspection_approved",
-                "active_negotiation",
-                "negotiation_countered",
-                "negotiation_accepted",
-                "negotiation_rejected",
-                "negotiation_cancelled",
               ],
             },
           },
@@ -286,7 +363,7 @@ export const getInspectionStats = async (
       }),
 
       DB.Models.InspectionBooking.countDocuments({
-        $and: [...baseFilter.$and, { status: "cancelled" }],
+        $and: [...baseFilter.$and, { status: { $in: ["cancelled", "agent_rejected"] } }],
       }),
 
       DB.Models.InspectionBooking.aggregate([
@@ -312,16 +389,37 @@ export const getInspectionStats = async (
       ]),
     ]);
 
-    const averageResponseTimeInHours = avgResponse[0]?.avgResponseTimeInHours || 0;
+    const averageResponseTimeInHours = Number(
+      (avgResponse[0]?.avgResponseTimeInHours || 0).toFixed(1)
+    );
+    const avgResponseLabel = `${averageResponseTimeInHours.toFixed(1)}h`;
+    const kycOverlay = await inspectionKycOverlay(req.user?._id);
 
     return res.status(HttpStatusCodes.OK).json({
       success: true,
       data: {
+        title: "My Inspection",
+        subtitle:
+          "Monitor and manage all your property inspection and booking requests in one place",
+        total: totalInspections,
+        pending: pendingInspections,
+        completed: completedInspections,
+        cancelled: cancelledInspections,
+        avgResponse: avgResponseLabel,
         totalInspections,
         pendingInspections,
         completedInspections,
         cancelledInspections,
-        averageResponseTimeInHours: Number(averageResponseTimeInHours.toFixed(2)),
+        averageResponseTimeInHours,
+        cards: [
+          { key: "total", label: "Total", value: totalInspections },
+          { key: "pending", label: "Pending", value: pendingInspections },
+          { key: "completed", label: "Completed", value: completedInspections },
+          { key: "cancelled", label: "Cancelled", value: cancelledInspections },
+          { key: "avgResponse", label: "Avg Response", value: avgResponseLabel },
+        ],
+        kycOverlay,
+        kycNotice: kycOverlay,
       },
     });
   } catch (err) {

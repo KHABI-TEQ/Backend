@@ -50,6 +50,7 @@ import {
   createMyServiceBrief,
   getMyServiceBrief,
   selectMyServiceOffer,
+  confirmMyServiceDelivery,
   getMyTransactionRegistrations,
   getMyActivitySummary,
 } from "../controllers/BuyerAuth/meActivity";
@@ -168,6 +169,11 @@ BuyerAuthRouter.post(
   "/me/professional-service-requests/:id/select-offer",
   buyerAuth,
   selectMyServiceOffer
+);
+BuyerAuthRouter.post(
+  "/me/professional-service-requests/:id/confirm-delivery",
+  buyerAuth,
+  confirmMyServiceDelivery
 );
 
 BuyerAuthRouter.get(

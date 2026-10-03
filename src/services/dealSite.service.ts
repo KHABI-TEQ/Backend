@@ -123,7 +123,7 @@ export class DealSiteService {
       );
     }
 
-    // A practitioner page can only be created after KYC approval and an active plan.
+    // A practitioner page can be created while KYC is pending. An active plan is still required.
     await assertDealSiteKycAllowed(userId);
     const accessGate = await getAgentAccessGate(userId);
     const pausedByPolicy = accessGate.ok === false ? accessGate.reason : undefined;
@@ -304,11 +304,20 @@ export class DealSiteService {
     }
 
     // ✅ Supported sections list
-    const { normalizeDealSiteSectionName, normalizeDealSiteSectionPayload } = await import(
-      "../common/constants/dealSitePublicNav"
-    );
+    const {
+      normalizeDealSiteSectionName,
+      normalizeDealSiteSectionPayload,
+      sanitizeSocialLinksUpdate,
+    } = await import("../common/constants/dealSitePublicNav");
     sectionName = normalizeDealSiteSectionName(sectionName);
     updates = normalizeDealSiteSectionPayload(sectionName, updates) as Record<string, any>;
+    if (sectionName === "socialLinks") {
+      try {
+        updates = sanitizeSocialLinksUpdate(updates);
+      } catch (err: any) {
+        throw new RouteError(HttpStatusCodes.BAD_REQUEST, err?.message || "Invalid social link");
+      }
+    }
 
     const allowedSections = [
       "brandingSeo",
@@ -605,7 +614,7 @@ export class DealSiteService {
     return { ok: true } as const;
   }
 
-  /** Public visitor gate: practitioner-page owners must satisfy KYC and subscription rules. */
+  /** Public visitor gate: practitioner pages stay open while KYC is pending. Subscription is still required. */
   static async getPublicDealSiteKycGate(ownerUserId: string) {
     return getPublicDealSiteKycGate(ownerUserId);
   }
@@ -616,9 +625,9 @@ export class DealSiteService {
   }
 
   /**
-   * Validates whether a DealSite may be served to public visitors (running + KYC + subscription rules).
+   * Validates whether a DealSite may be served to public visitors.
+   * Pending KYC does not close the page. A page paused only for KYC is resumed when the subscription is active.
    * Owner preview (`?preview=1`) can load paused pages so View Live Page works after branding.
-   * Pauses the page when KYC grace has expired without approval.
    */
   static async validatePublicDealSiteVisitorAccess(dealSite: {
     _id?: unknown;
@@ -647,12 +656,21 @@ export class DealSiteService {
     }
 
     if (dealSite.status !== "running") {
-      return {
-        ok: false,
-        httpStatus: HttpStatusCodes.FORBIDDEN,
-        errorCode: "DEALSITE_NOT_ACTIVE",
-        message: "This Public access page is not currently active.",
-      } as const;
+      const resumed = await DB.Models.DealSite.updateOne(
+        { _id: dealSite._id, status: "paused", pausedByPolicy: "kyc" },
+        { $set: { status: "running" }, $unset: { pausedByPolicy: "" } }
+      );
+      if (resumed.modifiedCount > 0) {
+        dealSite.status = "running";
+      }
+      if (!resumed || resumed.modifiedCount === 0) {
+        return {
+          ok: false,
+          httpStatus: HttpStatusCodes.FORBIDDEN,
+          errorCode: "DEALSITE_NOT_ACTIVE",
+          message: "This Public access page is not currently active.",
+        } as const;
+      }
     }
 
     const ownerId = resolveLeanRefToObjectId(dealSite.createdBy);

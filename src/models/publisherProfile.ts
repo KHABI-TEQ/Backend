@@ -70,6 +70,7 @@ export interface IPublisherProfile {
     localGovtArea: string;
   };
   regionOfOperation?: string[];
+  utilityBillUrl?: string;
   practitionerType?: "Individual" | "Company";
   companyDetails?: {
     companyName?: string;
@@ -136,6 +137,7 @@ export class PublisherProfile {
           localGovtArea: { type: String },
         },
         regionOfOperation: { type: [String], default: [] },
+        utilityBillUrl: { type: String, trim: true },
         practitionerType: { type: String, enum: ["Individual", "Company"] },
         companyDetails: {
           companyName: { type: String },
