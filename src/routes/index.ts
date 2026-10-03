@@ -17,6 +17,7 @@ import {
 import { getLatestApprovedTestimonials } from "../controllers/public/testimonial";
 import { AuthRouter } from "./auth";
 import BuyerAuthRouter from "./buyerAuth";
+import BuyerRouter from "./buyer";
 import { preferenceRouter } from "./preference";
 import AccountRouter from "./account";
 import thirdPartyRouter from "./thirdParty";
@@ -242,6 +243,9 @@ router.use("/auth", AuthRouter);
 
 // Buyer (mobile) Auth Routes
 router.use("/buyer/auth", BuyerAuthRouter);
+
+// Buyer Cases & Petitions Routes
+router.use("/buyer", BuyerRouter);
 
 // All Properties Routes
 router.use("/properties", propertyRouter);

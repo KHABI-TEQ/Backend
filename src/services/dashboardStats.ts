@@ -189,6 +189,8 @@ export class DashboardStatsService {
   private dealSiteModel = DB.Models.DealSite;
   private publisherProfileModel = DB.Models.PublisherProfile;
   private searchInsuranceModel = DB.Models.SearchInsurancePolicy;
+  private petitionModel = DB.Models.Petition;
+  private caseModel = DB.Models.Case;
 
   private liveListingsMatch() {
     return liveListingMongoFilter();
@@ -2088,6 +2090,79 @@ export class DashboardStatsService {
           change: calculateChange(currentStats.referralStats.totalRewardAmount, previousStats.referralStats.totalRewardAmount)
         }
       }
+    };
+  }
+  // ─── LASRERA Case Management Stats ─────────────────────────────────────────────
+
+  async getCaseStats(filter: TimeFilter, customRange?: DateRange) {
+    const dateRange = this.getDateRange(filter, customRange);
+    const { startDate, endDate } = dateRange;
+
+    const [
+      totalPetitions,
+      petitionsInPeriod,
+      totalCases,
+      casesInPeriod,
+      casesByStatus,
+      efccTransfers,
+    ] = await Promise.all([
+      // All-time petition count
+      this.petitionModel.countDocuments(),
+
+      // Petitions submitted within the selected period
+      this.petitionModel.countDocuments({
+        createdAt: { $gte: startDate, $lte: endDate },
+      }),
+
+      // All-time case count
+      this.caseModel.countDocuments(),
+
+      // Cases opened within the selected period
+      this.caseModel.countDocuments({
+        createdAt: { $gte: startDate, $lte: endDate },
+      }),
+
+      // Cases grouped by current status (all time)
+      this.caseModel.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      // EFCC transfers initiated within the period
+      DB.Models.EfccTransfer.countDocuments({
+        createdAt: { $gte: startDate, $lte: endDate },
+      }),
+    ]);
+
+    // Build status breakdown map
+    const statusBreakdown: Record<string, number> = {};
+    for (const row of casesByStatus) {
+      statusBreakdown[row._id as string] = row.count as number;
+    }
+
+    return {
+      petitions: {
+        total: totalPetitions,
+        inPeriod: petitionsInPeriod,
+      },
+      cases: {
+        total: totalCases,
+        openedInPeriod: casesInPeriod,
+        byStatus: {
+          petition_submitted: statusBreakdown["petition_submitted"] ?? 0,
+          case_opened: statusBreakdown["case_opened"] ?? 0,
+          mediation: statusBreakdown["mediation"] ?? 0,
+          transferred_to_efcc: statusBreakdown["transferred_to_efcc"] ?? 0,
+          closed: statusBreakdown["closed"] ?? 0,
+        },
+      },
+      efccTransfers: {
+        initiatedInPeriod: efccTransfers,
+      },
     };
   }
 }

@@ -27,7 +27,8 @@ export interface IPermission {
     | 'email-subscriptions'
     | 'khabiteq-registrations'
     | 'lasrera-registrations'
-    | 'lasrera-settings';
+    | 'lasrera-settings'
+    | 'lasrera-cases';
   isActive: boolean;
 }
  
@@ -86,6 +87,7 @@ export class Permission {
             'khabiteq-registrations',
             'lasrera-registrations',
             'lasrera-settings',
+            'lasrera-cases',
           ],
         },
         isActive: {

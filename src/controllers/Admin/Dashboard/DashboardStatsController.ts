@@ -198,6 +198,7 @@ export class DashboardStatsController {
    *             - properties
    *             - transactions
    *             - subscriptions
+   *             - cases
    *     responses:
    *       200:
    *         description: Statistics fetched successfully
@@ -298,6 +299,10 @@ export class DashboardStatsController {
 
         case "analytics":
             stats = await this.statsService.getAnalyticsStats(filter as TimeFilter, customRange);
+            break;
+
+        case "cases":
+            stats = await this.statsService.getCaseStats(filter as TimeFilter, customRange);
             break;
 
         default:

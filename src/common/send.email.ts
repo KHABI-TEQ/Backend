@@ -15,6 +15,7 @@ type EmailOptions = {
   text: string;
   html?: string;
   attachments?: EmailAttachment[];
+  replyTo?: string;
   /** Set true to skip buyer in-app / push mirroring for this mail. */
   skipBuyerInbox?: boolean;
   /**
@@ -37,6 +38,7 @@ async function sendViaResend(emailOptions: EmailOptions, apiKey: string) {
     subject: emailOptions.subject,
     text: emailOptions.text,
     html: emailOptions.html,
+    replyTo: emailOptions.replyTo,
     attachments: emailOptions.attachments?.map((attachment) => ({
       filename: attachment.filename,
       content: attachment.content,
@@ -73,6 +75,7 @@ async function sendViaSmtp(emailOptions: EmailOptions) {
     subject: emailOptions.subject,
     text: emailOptions.text,
     html: emailOptions.html,
+    replyTo: emailOptions.replyTo,
     attachments: emailOptions.attachments,
   });
 
@@ -100,7 +103,7 @@ function mirrorToBuyerInbox(emailOptions: EmailOptions) {
     );
 }
 
-const sendEmail = async (emailOptions: EmailOptions) => {
+const sendEmail = async (emailOptions: EmailOptions): Promise<string> => {
   const apiKey = process.env.RESEND_API_KEY?.trim();
 
   try {
@@ -113,6 +116,7 @@ const sendEmail = async (emailOptions: EmailOptions) => {
       messageId
     );
     mirrorToBuyerInbox(emailOptions);
+    return messageId;
   } catch (error) {
     console.error("Error sending email: %s", error);
     throw error;

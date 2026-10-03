@@ -27,7 +27,8 @@ async function ensurePermissions(): Promise<Map<string, string>> {
   console.log("🔐 Ensuring permissions exist...");
 
   const permissionMap = await loadPermissionMap();
-  const missing = Object.values(PERMISSIONS).filter((name) => !permissionMap.has(name));
+  const allPermValues = Array.from(new Set(Object.values(PERMISSIONS)));
+  const missing = allPermValues.filter((name) => !permissionMap.has(name));
 
   if (missing.length === 0) {
     console.log(`   ✅ All ${permissionMap.size} permissions already present.`);
@@ -62,16 +63,29 @@ async function ensureRoles(permissionMap: Map<string, string>): Promise<void> {
     level: number;
     permissions: readonly string[];
   }>) {
+    const desiredPermissionIds = roleTemplate.permissions
+      .map((permName) => permissionMap.get(permName))
+      .filter((id): id is string => !!id);
+
     const existing = await DB.Models.Role.findOne({ name: roleTemplate.name });
-    if (existing) continue;
+    if (existing) {
+      const existingIds = new Set(existing.permissions.map((p: any) => p.toString()));
+      const toAdd = desiredPermissionIds.filter((id) => !existingIds.has(id));
+      if (toAdd.length > 0) {
+        await DB.Models.Role.updateOne(
+          { _id: existing._id },
+          { $addToSet: { permissions: { $each: toAdd } } },
+        );
+        console.log(`   🔄 Added ${toAdd.length} new permission(s) to existing role: ${existing.name}`);
+      }
+      continue;
+    }
 
     const role = await DB.Models.Role.create({
       name: roleTemplate.name,
       description: roleTemplate.description,
       level: roleTemplate.level,
-      permissions: roleTemplate.permissions
-        .map((permName) => permissionMap.get(permName))
-        .filter((id): id is string => !!id),
+      permissions: desiredPermissionIds,
       isActive: true,
     });
 

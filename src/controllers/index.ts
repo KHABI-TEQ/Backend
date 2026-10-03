@@ -123,6 +123,20 @@ import {
   ISearchInsurancePolicyModel,
   SearchInsuranceClaim,
   ISearchInsuranceClaimModel,
+  CaseCounter,
+  ICaseCounterModel,
+  Petition,
+  IPetitionModel,
+  Case,
+  ICaseModel,
+  CaseMediationNote,
+  ICaseMediationNoteModel,
+  CaseCommunication,
+  ICaseCommunicationModel,
+  EfccTransfer,
+  IEfccTransferModel,
+  CaseActivityLog,
+  ICaseActivityLogModel,
 } from "../models/index";
 
 
@@ -190,6 +204,13 @@ declare interface IModels {
   ProfessionalServiceRequest: IProfessionalServiceRequestModel;
   SearchInsurancePolicy: ISearchInsurancePolicyModel;
   SearchInsuranceClaim: ISearchInsuranceClaimModel;
+  CaseCounter: ICaseCounterModel;
+  Petition: IPetitionModel;
+  Case: ICaseModel;
+  CaseMediationNote: ICaseMediationNoteModel;
+  CaseCommunication: ICaseCommunicationModel;
+  EfccTransfer: IEfccTransferModel;
+  CaseActivityLog: ICaseActivityLogModel;
 }
 
 export class DB {
@@ -272,6 +293,13 @@ export class DB {
       ProfessionalServiceRequest: new ProfessionalServiceRequest().model,
       SearchInsurancePolicy: new SearchInsurancePolicy().model,
       SearchInsuranceClaim: new SearchInsuranceClaim().model,
+      CaseCounter: new CaseCounter().model,
+      Petition: new Petition().model,
+      Case: new Case().model,
+      CaseMediationNote: new CaseMediationNote().model,
+      CaseCommunication: new CaseCommunication().model,
+      EfccTransfer: new EfccTransfer().model,
+      CaseActivityLog: new CaseActivityLog().model,
     };
   }
 

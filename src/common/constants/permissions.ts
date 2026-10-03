@@ -18,6 +18,7 @@ export const PERMISSION_CATEGORIES = {
   EXTRA_PAGES: 'extra-pages',
   PUBLIC_ACCESS_PAGE: 'public-access-page',
   EMAIL_SUBSCRIPTIONS: 'email-subscriptions',
+  LASRERA_CASES: 'lasrera-cases',
 } as const;
 
 
@@ -174,6 +175,16 @@ export const PERMISSIONS = {
   LASRERA_REGISTRATIONS_REVIEW: 'lasrera-registrations.review',
   LASRERA_REGISTRATIONS_CERTIFICATE: 'lasrera-registrations.certificate',
   LASRERA_SETTINGS_MANAGE: 'lasrera-settings.manage',
+
+  // LASRERA Case & Petition Dispute Management permissions
+  PETITION_VIEW: 'lasrera-cases.petition_read',
+  PETITION_MANAGE: 'lasrera-cases.petition_manage',
+  CASE_VIEW: 'lasrera-cases.read',
+  CASE_ASSIGN: 'lasrera-cases.assign',
+  CASE_MEDIATE: 'lasrera-cases.mediate',
+  CASE_REQUEST_INFO: 'lasrera-cases.request_info',
+  CASE_TRANSFER_EFCC: 'lasrera-cases.transfer_efcc',
+  CASE_CLOSE: 'lasrera-cases.close',
 } as const;
 
 export const PERMISSION_DESCRIPTIONS = {
@@ -318,6 +329,15 @@ export const PERMISSION_DESCRIPTIONS = {
   [PERMISSIONS.LASRERA_REGISTRATIONS_REVIEW]: 'Review, approve, reject, or request info on registrations',
   [PERMISSIONS.LASRERA_REGISTRATIONS_CERTIFICATE]: 'Issue LASRERA transaction registration certificates',
   [PERMISSIONS.LASRERA_SETTINGS_MANAGE]: 'Manage LASRERA certificate branding and signature',
+
+  [PERMISSIONS.PETITION_VIEW]: 'View LASRERA petitions queue and details',
+  [PERMISSIONS.PETITION_MANAGE]: 'Manage petitions and open formal LASRERA cases',
+  [PERMISSIONS.CASE_VIEW]: 'View LASRERA cases, transaction summaries, digital trails, and audit logs',
+  [PERMISSIONS.CASE_ASSIGN]: 'Assign LASRERA mediation officers to dispute cases',
+  [PERMISSIONS.CASE_MEDIATE]: 'Conduct mediation and record mediation notes/resolutions',
+  [PERMISSIONS.CASE_REQUEST_INFO]: 'Request information from buyers and track responses',
+  [PERMISSIONS.CASE_TRANSFER_EFCC]: 'Prepare and transfer dispute case dossier to EFCC',
+  [PERMISSIONS.CASE_CLOSE]: 'Formally conclude and close dispute cases',
 } as const;
 
 // Role definitions with default permissions
@@ -580,13 +600,21 @@ export const DEFAULT_ROLES = {
   },
   LASRERA_ADMIN: {
     name: 'lasrera-admin',
-    description: 'LASRERA authority dashboard — review registrations and issue certificates',
+    description: 'LASRERA authority dashboard — review registrations, issue certificates, and manage dispute cases',
     level: 3,
     permissions: [
       PERMISSIONS.LASRERA_REGISTRATIONS_VIEW,
       PERMISSIONS.LASRERA_REGISTRATIONS_REVIEW,
       PERMISSIONS.LASRERA_REGISTRATIONS_CERTIFICATE,
       PERMISSIONS.LASRERA_SETTINGS_MANAGE,
+      PERMISSIONS.PETITION_VIEW,
+      PERMISSIONS.PETITION_MANAGE,
+      PERMISSIONS.CASE_VIEW,
+      PERMISSIONS.CASE_ASSIGN,
+      PERMISSIONS.CASE_MEDIATE,
+      PERMISSIONS.CASE_REQUEST_INFO,
+      PERMISSIONS.CASE_TRANSFER_EFCC,
+      PERMISSIONS.CASE_CLOSE,
     ],
   },
 } as const;

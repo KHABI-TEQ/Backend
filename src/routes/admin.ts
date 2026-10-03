@@ -1,5 +1,6 @@
 import express from "express";
 import AdminInspRouter from "./admin.inspections";
+import AdminCasesRouter from "./admin.cases";
 import multer from "multer";
 import { adminAuth } from "../middlewares/adminAuth";
 import { loginAdmin } from "../controllers/Admin/Auth/loginAdmin";
@@ -751,6 +752,7 @@ AdminRouter.get("/whatsapp/support/sessions/:phone", getWhatsappSupportSessionDe
 AdminRouter.post("/whatsapp/support/sessions/:phone/reply", postWhatsappSupportReply);
 AdminRouter.patch("/whatsapp/support/sessions/:phone/resolve", patchWhatsappSupportResolve);
 
+AdminRouter.use(AdminCasesRouter);
 AdminRouter.use(AdminInspRouter);
 
 export default AdminRouter;
